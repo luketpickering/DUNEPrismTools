@@ -1,3 +1,6 @@
+#include "NuDataReader.hxx"
+#include "Utils.hxx"
+
 #include "TChain.h"
 #include "TFile.h"
 #include "TGraph.h"
@@ -13,115 +16,31 @@
 #include <utility>
 #include <vector>
 
-int NuPDGTarget = 14;
-
-struct NuDataReader {
-  Int_t Ntype;
-  Double_t Nimpwt;
-
-  Float_t Vx;
-  Float_t Vy;
-  Float_t Vz;
-
-  Float_t pdPx;
-  Float_t pdPy;
-  Float_t pdPz;
-
-  Float_t ppdxdz;
-  Float_t ppdydz;
-  Float_t pppz;
-  Float_t ppenergy;
-
-  Float_t muparpx;
-  Float_t muparpy;
-  Float_t muparpz;
-  Float_t mupare;
-
-  Int_t ptype;
-
-  Float_t Necm;
-
-  void SetBranchAddresses(TTree *t) {
-    t->SetBranchAddress("Ntype", &Ntype);
-    t->SetBranchAddress("Nimpwt", &Nimpwt);
-    t->SetBranchAddress("Vx", &Vx);
-    t->SetBranchAddress("Vy", &Vy);
-    t->SetBranchAddress("Vz", &Vz);
-    t->SetBranchAddress("pdPx", &pdPx);
-    t->SetBranchAddress("pdPy", &pdPy);
-    t->SetBranchAddress("pdPz", &pdPz);
-    t->SetBranchAddress("ppdxdz", &ppdxdz);
-    t->SetBranchAddress("ppdydz", &ppdydz);
-    t->SetBranchAddress("pppz", &pppz);
-    t->SetBranchAddress("ppenergy", &ppenergy);
-    t->SetBranchAddress("muparpx", &muparpx);
-    t->SetBranchAddress("muparpy", &muparpy);
-    t->SetBranchAddress("muparpz", &muparpz);
-    t->SetBranchAddress("mupare", &mupare);
-    t->SetBranchAddress("ptype", &ptype);
-    t->SetBranchAddress("Necm", &Necm);
-  }
-
-  Int_t GetPDG() {
-    switch (Ntype) {
-      case 52:
-        return -12;
-      case 53:
-        return 12;
-
-      case 55:
-        return -14;
-      case 56:
-        return 14;
-
-      default:
-        return 0;
-    }
-  }
-
-  double GetParentMass() {
-    static double const pimass = 0.13957;  // in GeV
-    static double const kmass = 0.49368;
-    static double const k0mass = 0.49767;
-    static double const mumass = 0.105658389;
-
-    if ((ptype == 8) || (ptype == 9)) {
-      return pimass;
-    } else if ((ptype == 11) || (ptype == 12)) {
-      return kmass;
-    } else if (ptype == 10) {
-      return k0mass;
-    } else if ((ptype == 5) || (ptype == 6)) {
-      return mumass;
-    } else {
-      return 0xdeadbeef;
-    }
-  }
-};
-
 double CosTheta(TVector3 const &v1, TVector3 const &v2) {
   return v1.Unit().Dot(v2.Unit());
 }
 
-std::pair<double, double> GetNuWeight(NuDataReader &ndr,
+std::pair<double, double> GetNuWeight(DK2NuReader &dk2nuRdr,
                                       TVector3 const &DetPoint) {
   static const double detRadius = 100.0;  // in cm
   static double const mumass = 0.105658389;
 
-  double parent_mass = ndr.GetParentMass();
+  double parent_mass = dk2nuRdr.GetParentMass();
   if (parent_mass == 0xdeadbeef) {
     return std::make_pair(0xdeadbeef, 0xdeadbeef);
   }
 
   TLorentzVector parent_4mom;
-  parent_4mom.SetXYZM(ndr.pdPx, ndr.pdPy, ndr.pdPz, parent_mass);
+  parent_4mom.SetXYZM(dk2nuRdr.decay_pdpx, dk2nuRdr.decay_pdpy,
+                      dk2nuRdr.decay_pdpz, parent_mass);
 
   double parent_energy = parent_4mom.E();
 
-  double enuzr = ndr.Necm;
+  double enuzr = dk2nuRdr.decay_necm;
 
-  TVector3 VToDetVect((DetPoint[0] - ndr.Vx), (DetPoint[1] - ndr.Vy),
-                      (DetPoint[2] - ndr.Vz));
+  TVector3 VToDetVect((DetPoint[0] - dk2nuRdr.decay_vx),
+                      (DetPoint[1] - dk2nuRdr.decay_vy),
+                      (DetPoint[2] - dk2nuRdr.decay_vz));
 
   double parent_4mom_Gamma = parent_4mom.Gamma();
   double emrat =
@@ -137,7 +56,7 @@ std::pair<double, double> GetNuWeight(NuDataReader &ndr,
 
   // done for all except polarized muon
   // in which case need to modify weight
-  if ((ndr.ptype == 5) || (ndr.ptype == 6)) {
+  if ((dk2nuRdr.decay_ptype == 5) || (dk2nuRdr.decay_ptype == 6)) {
     // boost new neutrino to mu decay cm
     TVector3 betaVect = parent_4mom.Vect();
     betaVect[0] /= parent_4mom.E();
@@ -160,22 +79,27 @@ std::pair<double, double> GetNuWeight(NuDataReader &ndr,
     p_dcm_nu[3] = sqrt(p_dcm_nu[3]);
 
     // boost parent of mu to mu production cm
-    parent_4mom_Gamma = ndr.ppenergy / parent_mass;
-    TVector3 parentParentBetaVect(ndr.ppdxdz * ndr.pppz, ndr.ppdydz * ndr.pppz,
-                                  ndr.pppz);
-    parentParentBetaVect[0] /= ndr.ppenergy;
-    parentParentBetaVect[1] /= ndr.ppenergy;
-    parentParentBetaVect[2] /= ndr.ppenergy;
+    parent_4mom_Gamma = dk2nuRdr.decay_ppenergy / parent_mass;
+    TVector3 parentParentBetaVect(dk2nuRdr.decay_ppdxdz * dk2nuRdr.decay_pppz,
+                                  dk2nuRdr.decay_ppdydz * dk2nuRdr.decay_pppz,
+                                  dk2nuRdr.decay_pppz);
+    parentParentBetaVect[0] /= dk2nuRdr.decay_ppenergy;
+    parentParentBetaVect[1] /= dk2nuRdr.decay_ppenergy;
+    parentParentBetaVect[2] /= dk2nuRdr.decay_ppenergy;
 
-    double partial_mp = parent_4mom_Gamma *
-                        (betaVect[0] * ndr.muparpx + betaVect[1] * ndr.muparpy +
-                         betaVect[2] * ndr.muparpz);
-    partial_mp = ndr.mupare - partial_mp / (parent_4mom_Gamma + 1.);
+    double partial_mp =
+        parent_4mom_Gamma * (betaVect[0] * dk2nuRdr.decay_muparpx +
+                             betaVect[1] * dk2nuRdr.decay_muparpy +
+                             betaVect[2] * dk2nuRdr.decay_muparpz);
+    partial_mp = dk2nuRdr.decay_mupare - partial_mp / (parent_4mom_Gamma + 1.);
 
     TLorentzVector p_pcm_mp;
-    p_pcm_mp[0] = ndr.muparpx - betaVect[0] * parent_4mom_Gamma * partial_mp;
-    p_pcm_mp[1] = ndr.muparpy - betaVect[1] * parent_4mom_Gamma * partial_mp;
-    p_pcm_mp[2] = ndr.muparpz - betaVect[2] * parent_4mom_Gamma * partial_mp;
+    p_pcm_mp[0] =
+        dk2nuRdr.decay_muparpx - betaVect[0] * parent_4mom_Gamma * partial_mp;
+    p_pcm_mp[1] =
+        dk2nuRdr.decay_muparpy - betaVect[1] * parent_4mom_Gamma * partial_mp;
+    p_pcm_mp[2] =
+        dk2nuRdr.decay_muparpz - betaVect[2] * parent_4mom_Gamma * partial_mp;
     p_pcm_mp[3] = 0;
     for (int i = 0; i < 3; i++) {
       p_pcm_mp[3] += p_pcm_mp[i] * p_pcm_mp[i];
@@ -190,14 +114,14 @@ std::pair<double, double> GetNuWeight(NuDataReader &ndr,
       double costh = CosTheta(p_dcm_nu.Vect(), p_pcm_mp.Vect());
 
       // calc relative weight due to angle difference
-      if (abs(ndr.GetPDG()) == NuPDGTarget) {
+      if (abs(dk2nuRdr.decay_ntype) == 12) {
         wt_ratio = 1. - costh;
-      } else if (abs(ndr.GetPDG()) == NuPDGTarget) {
+      } else if (abs(dk2nuRdr.decay_ntype) == 14) {
         double xnu = 2. * enuzr / mumass;
         wt_ratio =
             ((3. - 2. * xnu) - (1. - 2. * xnu) * costh) / (3. - 2. * xnu);
       } else {
-        std::cout << "eventRates:: Bad neutrino type = " << ndr.Ntype
+        std::cout << "eventRates:: Bad neutrino type = " << dk2nuRdr.decay_ntype
                   << std::endl;
         throw;
       }
@@ -208,49 +132,6 @@ std::pair<double, double> GetNuWeight(NuDataReader &ndr,
   return std::make_pair(nu_energy, nu_wght);
 }
 
-double str2d(std::string str) {
-  std::istringstream stream(str);
-  double d;
-  stream >> d;
-  return d;
-}
-
-int str2i(std::string str) {
-  std::istringstream stream(str);
-  int d;
-  stream >> d;
-  return d;
-}
-
-std::vector<double> ParseToDbl(std::string str, const char *del) {
-  std::istringstream stream(str);
-  std::string temp_string;
-  std::vector<double> vals;
-
-  while (std::getline(stream >> std::ws, temp_string, *del)) {
-    if (temp_string.empty()) continue;
-    std::istringstream stream(temp_string);
-    double entry;
-    stream >> entry;
-
-    vals.push_back(entry);
-  }
-  return vals;
-}
-
-std::vector<std::string> ParseToStr(std::string str, const char *del) {
-  std::istringstream stream(str);
-  std::string temp_string;
-  std::vector<std::string> vals;
-
-  while (std::getline(stream >> std::ws, temp_string, *del)) {
-    if (temp_string.empty()) continue;
-    vals.push_back(temp_string);
-  }
-
-  return vals;
-}
-
 std::vector<double> mrads;
 std::string inpDir = ".";
 bool DoExtra = false;
@@ -259,87 +140,73 @@ int NBins = 50;
 double BLow = 0;
 double BUp = 10;
 
+double ZDist = 57400;
+double PotPerFile = 1E5;
+int NMaxNeutrinos = -1;
+
 std::vector<double> varBin;
 bool VariableBinning = false;
 
-bool Rebin = false;
-int rNBins = 50;
-double rBLow = 0;
-double rBUp = 10;
-
-bool DontSaveCalcBin = false;
-bool DontSmoothInterpolation = false;
-
 std::string outputFile;
-
-bool DoBinOptimiz = false;
-
-int NBO = 5E3;
 
 void SayUsage(char const *argv[]) {
   std::cout << "[USAGE]: " << argv[0]
-            << " -i /path/to/DUNE/nudata/files -a "
-               "1,2,3,4,5,<other mrad fluxes to calc> -o [<Output ROOT file>] "
-               "[-e (Outputs flux from "
-               "specific parent species.)] [-b <NBins>,<FluxLow>,<FluxHigh>] "
-               "[-d <step_deg>,<max_deg>] [-vb "
-               "<bin0low>,<bin1low>_<binXUp>:step,..,<binYlow>,<binYup>] -r "
-               "<RebinNBins>,<RebinFluxLow>,<RebinFluxHigh> -BO <NNuPerBin> "
-               "(BinOptimisation -- Warning, very slow) -C (keep calc fluxes) "
-               "-I (Don't smooth interpolation) -u <NuPDG>"
+            << "\t-i /path/to/DUNE/nudata/files : Can include wildcards "
+               "(remeber to quote \n"
+               "\t                                to avoid shell expansion.)   "
+               "           \n"
+               "\n"
+               "\t-o output.root                : File to write fluxes to.     "
+               "           \n"
+               "\n"
+               "\t-a 1,2,3[,...]                : Specific mrad off-axis "
+               "fluxes to        \n"
+               "\t                                calculate.                   "
+               "           \n"
+               "\n"
+               "\t-d <step_deg>,<max_deg>       : Calculate fluxes from mrad = "
+               "0 to       \n"
+               "\t                                mrad = <max_deg> in steps of "
+               "           \n"
+               "\t                                mrad = <step_deg>.           "
+               "           \n"
+               "\n"
+               "\t-e                            : Build fluxes for specific "
+               "neutrino decay\n"
+               "\t                                parents.                     "
+               "           \n"
+               "\n"
+               "\t-b <NBins>,<Low>,<High>       : Use uniform binning for flux "
+               "histograms.\n"
+               "\n"
+               "\t-vb <bin0low>,<bin1low>_<binXUp>:step,..,<binYlow>,<binYup> "
+               ": Use       \n"
+               "\t                                variable binning specified "
+               "by bin edges \n"
+               "\t                                and step ranges.             "
+               "           \n"
+               "\n"
+               "\t-n <NMaxNeutrinos>             : Only loop over -n nus.    \n"
+               "\n"
+               "\t-z <ZDist>                    : Detector ZDist (cm).       \n"
+               "\n"
+               "\t-P <POTPerFile>               : The POT per input file.    \n"
+               "\n"
             << std::endl;
-}
-
-void AppendDblVect(std::vector<double> &target,
-                   std::vector<double> const &toApp) {
-  for (size_t i = 0; i < toApp.size(); ++i) {
-    target.push_back(toApp[i]);
-  }
-}
-
-// Converts "5_10:1" into a vector containing: 5,6,7,8,9,10
-std::vector<double> BuildDoubleList(std::string const &str) {
-  std::vector<std::string> steps = ParseToStr(str, ":");
-  if (steps.size() != 2) {
-    return ParseToDbl(str, ",");
-  }
-  double step = str2d(steps[1]);
-
-  std::vector<double> range = ParseToDbl(steps[0], "_");
-  if (!steps.size() == 2) {
-    std::cout
-        << "[ERROR]: When attempting to parse bin range descriptor: \" " << str
-        << "\", couldn't determine range. Expect form: <bin1low>_<binXUp>:step"
-        << std::endl;
-    exit(1);
-  }
-
-  int nsteps = (range[1] - range[0]) / step;
-
-  std::vector<double> rtn;
-  for (int step_it = 0; step_it <= nsteps; ++step_it) {
-    rtn.push_back(range[0] + step * step_it);
-  }
-  return rtn;
 }
 
 void handleOpts(int argc, char const *argv[]) {
   int opt = 1;
   while (opt < argc) {
-    if (std::string(argv[opt]) == "-i") {
+    if (std::string(argv[opt]) == "-?") {
+      SayUsage(argv);
+      exit(0);
+    } else if (std::string(argv[opt]) == "-i") {
       inpDir = argv[++opt];
     } else if (std::string(argv[opt]) == "-o") {
       outputFile = argv[++opt];
     } else if (std::string(argv[opt]) == "-a") {
       mrads = ParseToDbl(argv[++opt], ",");
-      mrads.insert(mrads.begin(), 0);
-    } else if (std::string(argv[opt]) == "-C") {
-      DontSaveCalcBin = true;
-    } else if (std::string(argv[opt]) == "-I") {
-      DontSmoothInterpolation = true;
-    } else if (std::string(argv[opt]) == "-?") {
-      SayUsage(argv);
-      exit(0);
     } else if (std::string(argv[opt]) == "-e") {
       DoExtra = true;
     } else if (std::string(argv[opt]) == "-b") {
@@ -352,17 +219,6 @@ void handleOpts(int argc, char const *argv[]) {
       NBins = int(binning[0]);
       BLow = binning[1];
       BUp = binning[2];
-    } else if (std::string(argv[opt]) == "-r") {
-      std::vector<double> binning = ParseToDbl(argv[++opt], ",");
-      if (binning.size() != 3) {
-        std::cout << "[ERROR]: Recieved " << binning.size()
-                  << " entrys for -r, expected 3." << std::endl;
-        exit(1);
-      }
-      rNBins = int(binning[0]);
-      rBLow = binning[1];
-      rBUp = binning[2];
-      Rebin = true;
     } else if (std::string(argv[opt]) == "-vb") {
       std::vector<std::string> vbDescriptors = ParseToStr(argv[++opt], ",");
       varBin.clear();
@@ -403,15 +259,12 @@ void handleOpts(int argc, char const *argv[]) {
         curr += radStep[0];
       }
 
-    } else if (std::string(argv[opt]) == "-BO") {
-      NBO = str2i(argv[++opt]);
-      DoBinOptimiz = true;
-    } else if (std::string(argv[opt]) == "-u") {
-      NuPDGTarget = str2i(argv[++opt]);
-      if ((abs(NuPDGTarget) != 14) && (abs(NuPDGTarget) != 12)) {
-        std::cout << "[ERROR]: -u option recieved " << argv[opt - 1]
-                  << ". Expected one of {12,-12,14,-14}." << std::endl;
-      }
+    } else if (std::string(argv[opt]) == "-n") {
+      NMaxNeutrinos = str2i(argv[++opt]);
+    } else if (std::string(argv[opt]) == "-z") {
+      ZDist = str2d(argv[++opt]);
+    } else if (std::string(argv[opt]) == "-P") {
+      PotPerFile = str2d(argv[++opt]);
     } else {
       std::cout << "[ERROR]: Unknown option: " << argv[opt] << std::endl;
       SayUsage(argv);
@@ -421,77 +274,89 @@ void handleOpts(int argc, char const *argv[]) {
   }
 }
 
-void AllInOneGo(TTree *nuChain, double TotalPOT, double ZDist) {
-  NuDataReader ndr;
-  ndr.SetBranchAddresses(nuChain);
-
+void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
   size_t NAngs = mrads.size();
-  size_t nNus = nuChain->GetEntries();
-  std::cout << "Have " << nNus << " nudata entries." << std::endl;
+  size_t nNus = (NMaxNeutrinos == -1)
+                    ? dk2nuRdr.GetEntries()
+                    : std::min(NMaxNeutrinos, int(dk2nuRdr.GetEntries()));
+
+  TotalPOT = TotalPOT * (double(nNus) / double(dk2nuRdr.GetEntries()));
+  std::cout << "Only using the first " << nNus << " events out of "
+            << dk2nuRdr.GetEntries() << ", scaling POT to " << TotalPOT
+            << std::endl;
+  std::cout << "Reding " << nNus << " Dk2Nu entries." << std::endl;
 
   TFile *outfile = new TFile(outputFile.c_str(), "RECREATE");
 
-  std::vector<std::vector<TH1D *> > Hists;
+  std::vector<std::vector<std::vector<TH1D *> > > Hists;
   Hists.resize(NAngs);
+
+  std::vector<int> NuPDGTargets = {-12, 12, -14, 14};
+  std::vector<std::string> NuNames = {"nueb", "nue", "numub", "numu"};
+
   for (size_t ang_it = 0; ang_it < NAngs; ++ang_it) {
-    std::stringstream ss("");
-    ss << "LBNF_numu_mrad_" << mrads[ang_it];
+    Hists.push_back(std::vector<std::vector<TH1D *> >());
+    for (size_t nuPDG_it = 0; nuPDG_it < NuPDGTargets.size(); ++nuPDG_it) {
+      Hists[ang_it].push_back(std::vector<TH1D *>());
+    }
+  }
+  for (size_t ang_it = 0; ang_it < NAngs; ++ang_it) {
+    for (size_t nuPDG_it = 0; nuPDG_it < NuPDGTargets.size(); ++nuPDG_it) {
+      std::stringstream ss("");
+      ss << "LBNF_" << NuNames[nuPDG_it] << "_mrad_" << mrads[ang_it];
 
-    Hists[ang_it].push_back(
-        VariableBinning
-            ? new TH1D(
-                  ss.str().c_str(),
-                  ";#it{E}_{#nu} (GeV);#Phi_{#nu} (GeV^{-1}cm^{-2} per POT)",
-                  varBin.size() - 1, varBin.data())
-            : new TH1D(
-                  ss.str().c_str(),
-                  ";#it{E}_{#nu} (GeV);#Phi_{#nu} (GeV^{-1}cm^{-2} per POT)",
-                  NBins, BLow, BUp));
+      Hists[ang_it][nuPDG_it].push_back(
+          VariableBinning
+              ? new TH1D(
+                    ss.str().c_str(),
+                    ";#it{E}_{#nu} (GeV);#Phi_{#nu} (GeV^{-1}cm^{-2} per POT)",
+                    varBin.size() - 1, varBin.data())
+              : new TH1D(
+                    ss.str().c_str(),
+                    ";#it{E}_{#nu} (GeV);#Phi_{#nu} (GeV^{-1}cm^{-2} per POT)",
+                    NBins, BLow, BUp));
 
-    if (DoExtra) {
-      Hists[ang_it].push_back(
-          new TH1D((ss.str() + "_pdp").c_str(), "", 1010, -10, 1000));
+      if (DoExtra) {
+        Hists[ang_it][nuPDG_it].push_back(
+            new TH1D((ss.str() + "_pdp").c_str(), "", 1010, -10, 1000));
 
-      Hists[ang_it].push_back(
-          VariableBinning
-              ? new TH1D(
-                    (ss.str() + "_pi").c_str(),
-                    ";#it{E}_{#nu} (GeV);#Phi_{#nu} (GeV^{-1}cm^{-2} per POT)",
-                    varBin.size() - 1, varBin.data())
-              : new TH1D(
-                    (ss.str() + "_pi").c_str(),
-                    ";#it{E}_{#nu} (GeV);#Phi_{#nu} (GeV^{-1}cm^{-2} per POT)",
-                    NBins, BLow, BUp));
-      Hists[ang_it].push_back(
-          VariableBinning
-              ? new TH1D(
-                    (ss.str() + "_k").c_str(),
-                    ";#it{E}_{#nu} (GeV);#Phi_{#nu} (GeV^{-1}cm^{-2} per POT)",
-                    varBin.size() - 1, varBin.data())
-              : new TH1D(
-                    (ss.str() + "_k").c_str(),
-                    ";#it{E}_{#nu} (GeV);#Phi_{#nu} (GeV^{-1}cm^{-2} per POT)",
-                    NBins, BLow, BUp));
-      Hists[ang_it].push_back(
-          VariableBinning
-              ? new TH1D(
-                    (ss.str() + "_k0").c_str(),
-                    ";#it{E}_{#nu} (GeV);#Phi_{#nu} (GeV^{-1}cm^{-2} per POT)",
-                    varBin.size() - 1, varBin.data())
-              : new TH1D(
-                    (ss.str() + "_k0").c_str(),
-                    ";#it{E}_{#nu} (GeV);#Phi_{#nu} (GeV^{-1}cm^{-2} per POT)",
-                    NBins, BLow, BUp));
-      Hists[ang_it].push_back(
-          VariableBinning
-              ? new TH1D(
-                    (ss.str() + "_mu").c_str(),
-                    ";#it{E}_{#nu} (GeV);#Phi_{#nu} (GeV^{-1}cm^{-2} per POT)",
-                    varBin.size() - 1, varBin.data())
-              : new TH1D(
-                    (ss.str() + "_mu").c_str(),
-                    ";#it{E}_{#nu} (GeV);#Phi_{#nu} (GeV^{-1}cm^{-2} per POT)",
-                    NBins, BLow, BUp));
+        Hists[ang_it][nuPDG_it].push_back(
+            VariableBinning ? new TH1D((ss.str() + "_pi").c_str(),
+                                       ";#it{E}_{#nu} (GeV);#Phi_{#nu} "
+                                       "(GeV^{-1}cm^{-2} per POT)",
+                                       varBin.size() - 1, varBin.data())
+                            : new TH1D((ss.str() + "_pi").c_str(),
+                                       ";#it{E}_{#nu} (GeV);#Phi_{#nu} "
+                                       "(GeV^{-1}cm^{-2} per POT)",
+                                       NBins, BLow, BUp));
+        Hists[ang_it][nuPDG_it].push_back(
+            VariableBinning ? new TH1D((ss.str() + "_k").c_str(),
+                                       ";#it{E}_{#nu} (GeV);#Phi_{#nu} "
+                                       "(GeV^{-1}cm^{-2} per POT)",
+                                       varBin.size() - 1, varBin.data())
+                            : new TH1D((ss.str() + "_k").c_str(),
+                                       ";#it{E}_{#nu} (GeV);#Phi_{#nu} "
+                                       "(GeV^{-1}cm^{-2} per POT)",
+                                       NBins, BLow, BUp));
+        Hists[ang_it][nuPDG_it].push_back(
+            VariableBinning ? new TH1D((ss.str() + "_k0").c_str(),
+                                       ";#it{E}_{#nu} (GeV);#Phi_{#nu} "
+                                       "(GeV^{-1}cm^{-2} per POT)",
+                                       varBin.size() - 1, varBin.data())
+                            : new TH1D((ss.str() + "_k0").c_str(),
+                                       ";#it{E}_{#nu} (GeV);#Phi_{#nu} "
+                                       "(GeV^{-1}cm^{-2} per POT)",
+                                       NBins, BLow, BUp));
+        Hists[ang_it][nuPDG_it].push_back(
+            VariableBinning ? new TH1D((ss.str() + "_mu").c_str(),
+                                       ";#it{E}_{#nu} (GeV);#Phi_{#nu} "
+                                       "(GeV^{-1}cm^{-2} per POT)",
+                                       varBin.size() - 1, varBin.data())
+                            : new TH1D((ss.str() + "_mu").c_str(),
+                                       ";#it{E}_{#nu} (GeV);#Phi_{#nu} "
+                                       "(GeV^{-1}cm^{-2} per POT)",
+                                       NBins, BLow, BUp));
+      }
     }
   }
 
@@ -507,19 +372,32 @@ void AllInOneGo(TTree *nuChain, double TotalPOT, double ZDist) {
               << ((ZDist * 1.0E-2) * tan(mrads[ang_it] * 1.0E-3)) << " m."
               << std::endl;
   }
+  size_t updateStep = nNus / 10 ? nNus / 10 : 1;
   for (size_t nu_it = 0; nu_it < nNus; ++nu_it) {
-    nuChain->GetEntry(nu_it);
-
-    if (ndr.GetPDG() != NuPDGTarget) {  // Only care about numu at the moment
-      continue;
+    if (!(nu_it % updateStep)) {
+      std::cout << "--" << nu_it << "/" << nNus << std::endl;
     }
 
-    double wF = (ndr.Nimpwt / TMath::Pi()) * (1.0 / TotalPOT);
+    dk2nuRdr.GetEntry(nu_it);
+
+    double wF = (dk2nuRdr.decay_nimpwt / TMath::Pi()) * (1.0 / TotalPOT);
     for (size_t ang_it = 0; ang_it < NAngs; ++ang_it) {
-      std::pair<double, double> nuStats = GetNuWeight(ndr, detPoses[ang_it]);
+      std::pair<double, double> nuStats =
+          GetNuWeight(dk2nuRdr, detPoses[ang_it]);
 
       double w = nuStats.second * wF;
-      Hists[ang_it][0]->Fill(nuStats.first, w);
+
+      int nuPDG_it =
+          std::distance(NuPDGTargets.begin(),
+                        std::find(NuPDGTargets.begin(), NuPDGTargets.end(),
+                                  dk2nuRdr.decay_ntype));
+      if (nuPDG_it == 4) {
+        std::cout << "Warning, couldn't find plot index for NuPDG: "
+                  << dk2nuRdr.decay_ntype << std::endl;
+        exit(1);
+      }
+
+      Hists[ang_it][nuPDG_it][0]->Fill(nuStats.first, w);
 
       if ((nuStats.first != nuStats.first) || (w != w)) {
         std::cout << nuStats.first << ", " << w << std::endl;
@@ -527,216 +405,34 @@ void AllInOneGo(TTree *nuChain, double TotalPOT, double ZDist) {
       }
 
       if (DoExtra) {
-        Hists[ang_it][1]->Fill(ndr.Vz * 1E-2, w);
+        Hists[ang_it][nuPDG_it][1]->Fill(dk2nuRdr.decay_vz * 1E-2, w);
 
-        if ((ndr.ptype == 8) || (ndr.ptype == 9)) {
-          Hists[ang_it][2]->Fill(nuStats.first, w);
-        } else if ((ndr.ptype == 11) || (ndr.ptype == 12)) {
-          Hists[ang_it][3]->Fill(nuStats.first, w);
-        } else if (ndr.ptype == 10) {
-          Hists[ang_it][4]->Fill(nuStats.first, w);
-        } else if ((ndr.ptype == 5) || (ndr.ptype == 6)) {
-          Hists[ang_it][5]->Fill(nuStats.first, w);
+        if ((dk2nuRdr.decay_ptype == 8) || (dk2nuRdr.decay_ptype == 9)) {
+          Hists[ang_it][nuPDG_it][2]->Fill(nuStats.first, w);
+        } else if ((dk2nuRdr.decay_ptype == 11) ||
+                   (dk2nuRdr.decay_ptype == 12)) {
+          Hists[ang_it][nuPDG_it][3]->Fill(nuStats.first, w);
+        } else if (dk2nuRdr.decay_ptype == 10) {
+          Hists[ang_it][nuPDG_it][4]->Fill(nuStats.first, w);
+        } else if ((dk2nuRdr.decay_ptype == 5) || (dk2nuRdr.decay_ptype == 6)) {
+          Hists[ang_it][nuPDG_it][5]->Fill(nuStats.first, w);
         }
       }
     }
   }
-  for (size_t ang_it = 0; ang_it < NAngs; ++ang_it) {
-    Hists[ang_it][0]->Scale(1E-4, "width");
-    if (DoExtra) {
-      Hists[ang_it][2]->Scale(1E-4, "width");
-      Hists[ang_it][3]->Scale(1E-4, "width");
-      Hists[ang_it][4]->Scale(1E-4, "width");
-      Hists[ang_it][5]->Scale(1E-4, "width");
-    }
-  }
-
-  if (Rebin) {
-    std::vector<std::vector<TH1D *> > ReBinHists;
-
-    for (size_t ang_it = 0; ang_it < NAngs; ++ang_it) {
-      ReBinHists.push_back(std::vector<TH1D *>());
-      for (size_t h_it = 0; h_it < Hists[ang_it].size(); ++h_it) {
-        if (h_it == 1) {  // skip PDP
-          continue;
-        }
-        std::string name = Hists[ang_it][h_it]->GetName();
-        Hists[ang_it][h_it]->SetName((name + "_CalcBinning").c_str());
-        if (DontSaveCalcBin) {
-          Hists[ang_it][h_it]->SetDirectory(NULL);
-        }
-        TGraph TheEvaluator(Hists[ang_it][h_it]->GetXaxis()->GetNbins());
-
-        for (size_t bi_it = 1;
-             bi_it < Hists[ang_it][h_it]->GetXaxis()->GetNbins() + 1; ++bi_it) {
-          TheEvaluator.SetPoint(
-              bi_it - 1, Hists[ang_it][h_it]->GetXaxis()->GetBinCenter(bi_it),
-              Hists[ang_it][h_it]->GetBinContent(bi_it));
-        }
-
-        ReBinHists[ang_it].push_back(
-            new TH1D(name.c_str(),
-                     ";#it{E}_{#nu} (GeV);#Phi_{#nu} (GeV^{-1}cm^{-2} per POT)",
-                     rNBins, rBLow, rBUp));
-
-        for (size_t bin_it = 1;
-             bin_it < ReBinHists[ang_it].back()->GetXaxis()->GetNbins() + 1;
-             ++bin_it) {
-          double eval = TheEvaluator.Eval(
-              ReBinHists[ang_it].back()->GetXaxis()->GetBinCenter(bin_it), 0,
-              "S");
-          ReBinHists[ang_it].back()->SetBinContent(bin_it, eval);
-          ReBinHists[ang_it].back()->SetBinError(bin_it, eval * 0.01);
-        }
-      }
-    }
-  }
-
-  outfile->Write();
-  outfile->Close();
-}
-
-// Only want to sort on pair.first
-bool SortNumuByE(std::pair<double, double> const &l,
-                 std::pair<double, double> const &r) {
-  return l.first < r.first;
-}
-
-void BinOptimisation(TTree *nuChain, double TotalPOT, double ZDist) {
-  NuDataReader ndr;
-  ndr.SetBranchAddresses(nuChain);
-
-  size_t NAngs = mrads.size();
-  size_t nNus = nuChain->GetEntries();
-  std::cout << "Have " << nNus << " nudata entries." << std::endl;
-
-  TFile *outfile = new TFile(outputFile.c_str(), "RECREATE");
 
   for (size_t ang_it = 0; ang_it < NAngs; ++ang_it) {
-    TVector3 detPos(ZDist * mrads[ang_it] * 1E-3, 0, ZDist);
-
-    static const double rad2deg = 90.0 / asin(1);
-
-    std::cout << "[INFO]: Building flux at: "
-              << (mrads[ang_it] * 1.0E-3 * rad2deg) << " degrees ("
-              << mrads[ang_it] << " mrads) Offset = "
-              << ((ZDist * 1.0E-2) * tan(mrads[ang_it] * 1.0E-3)) << " m."
-              << std::endl;
-
-    TH1D *Hist;
-    std::vector<std::pair<double, double> > numus;
-    for (size_t nu_it = 0; nu_it < nNus; ++nu_it) {
-      nuChain->GetEntry(nu_it);
-
-      if (ndr.GetPDG() != NuPDGTarget) {  // Only care about numu at the moment
-        continue;
-      }
-
-      double wF = (ndr.Nimpwt / TMath::Pi()) * (1.0 / TotalPOT);
-      numus.push_back(GetNuWeight(ndr, detPos));
-      numus.back().second *= wF;
-    }
-    std::cout << "Sorting..." << std::endl;
-    std::stable_sort(numus.begin(), numus.end(), SortNumuByE);
-    std::cout << "Binning..." << std::endl;
-
-    std::vector<double> binEdges;
-
-    size_t InBin = 0;
-    size_t NNumus = numus.size();
-
-    if (!NNumus) {
-      std::cout << "[ERROR]: Didn't find any neutrinos." << std::endl;
-      exit(1);
-    }
-    binEdges.push_back(0);
-    for (size_t nu_it = 0; nu_it < (NNumus - 1); ++nu_it) {
-      if (InBin < NBO) {
-        InBin++;
-        continue;
-      }
-      binEdges.push_back((numus[nu_it + 1].first + numus[nu_it].first) / 2.0);
-      // std::cout << "Bin [" << binEdges.size()
-      //           << "] low edge: " << binEdges.back() << std::endl;
-      InBin = 0;
-    }
-    binEdges.push_back(numus[NNumus - 1].first +
-                       (numus[NNumus - 1].first - numus[NNumus - 2].first) /
-                           2.0);
-
-    std::stringstream ss("");
-    ss << "LBNF_numu_mrad_" << mrads[ang_it];
-    Hist = new TH1D(ss.str().c_str(),
-                    ";#it{E}_{#nu} (GeV);#Phi_{#nu} (GeV^{-1}cm^{-2} per POT)",
-                    binEdges.size() - 1, binEdges.data());
-
-    for (size_t nu_it = 0; nu_it < (NNumus - 1); ++nu_it) {
-      Hist->Fill(numus[nu_it].first, numus[nu_it].second);
-    }
-
-    Hist->Scale(1E-4, "width");
-
-    if (Rebin) {
-      std::string name = Hist->GetName();
-      Hist->SetName((name + "_CalcBinning").c_str());
-      if (DontSaveCalcBin) {
-        Hist->SetDirectory(NULL);
-      }
-      TH1D *ReBinHist =
-          new TH1D(name.c_str(),
-                   ";#it{E}_{#nu} (GeV);#Phi_{#nu} (GeV^{-1}cm^{-2} per POT)",
-                   rNBins, rBLow, rBUp);
-
-      TGraph TheEvaluator(Hist->GetXaxis()->GetNbins());
-
-      for (size_t bi_it = 1; bi_it < Hist->GetXaxis()->GetNbins() + 1;
-           ++bi_it) {
-        TheEvaluator.SetPoint(bi_it - 1, Hist->GetXaxis()->GetBinCenter(bi_it),
-                              Hist->GetBinContent(bi_it));
-      }
-
-      double Peak = std::numeric_limits<double>::min();
-      bool foundPeak = false;
-      double peval = 0;
-      for (size_t bin_it = 1; bin_it < ReBinHist->GetXaxis()->GetNbins() + 1;
-           ++bin_it) {
-        double eval;
-        if (DontSmoothInterpolation) {
-          eval = Hist->Interpolate(ReBinHist->GetXaxis()->GetBinCenter(bin_it));
-        } else {
-          eval = TheEvaluator.Eval(ReBinHist->GetXaxis()->GetBinCenter(bin_it),
-                                   0, "S");
-          eval = eval < 0 ? 0 : eval;
-
-          if (!foundPeak) {
-            if (eval > Peak) {
-              Peak = eval;
-            } else {
-              foundPeak = true;
-            }
-          } else {
-            if (eval > peval) {
-              eval = TheEvaluator.Eval(
-                  ReBinHist->GetXaxis()->GetBinCenter(bin_it));
-              if (eval > peval) {
-                eval = peval;
-              }
-            }
-          }
-        }
-
-        if (ReBinHist->GetXaxis()->GetBinCenter(bin_it) >
-            Hist->GetXaxis()->GetBinCenter(Hist->GetXaxis()->GetNbins())) {
-          eval = 0;
-        }
-
-        ReBinHist->SetBinContent(bin_it, eval);
-        ReBinHist->SetBinError(bin_it,
-                               eval * (sqrt(double(NBO)) / double(NBO)));
-        peval = eval;
+    for (size_t nuPDG_it = 0; nuPDG_it < NuPDGTargets.size(); ++nuPDG_it) {
+      Hists[ang_it][nuPDG_it][0]->Scale(1E-4, "width");
+      if (DoExtra) {
+        Hists[ang_it][nuPDG_it][2]->Scale(1E-4, "width");
+        Hists[ang_it][nuPDG_it][3]->Scale(1E-4, "width");
+        Hists[ang_it][nuPDG_it][4]->Scale(1E-4, "width");
+        Hists[ang_it][nuPDG_it][5]->Scale(1E-4, "width");
       }
     }
   }
+
   outfile->Write();
   outfile->Close();
 }
@@ -745,20 +441,28 @@ int main(int argc, char const *argv[]) {
   TH1::SetDefaultSumw2();
   handleOpts(argc, argv);
 
-  double ZDist_ND = 57400;  // cm
-  double ZDist_FD = 1287E5;  // cm
+  if (!mrads.size()) {
+    mrads.push_back(0);
+  }
 
-  double ZDist = ZDist_FD;
+  DK2NuReader *dk2nuRdr = new DK2NuReader("dk2nuTree", inpDir);
 
-  double PotPerFile = 1E5;
+  if (!dk2nuRdr->GetEntries()) {
+    std::cout << "No valid input files found." << std::endl;
+    return 1;
+  }
 
-  TChain *nuChain = new TChain("nudata");
-  std::string loc = inpDir + "/g4lbne_v3r3p8_QGSP_BERT_DK2Nu_200kA*.root";
-  int nFiles = nuChain->Add(loc.c_str());
+  DKMetaReader *dkmRdr = new DKMetaReader("dkmetaTree", inpDir);
 
-  double TotalPOT = PotPerFile * nFiles;
-  nuChain->SetMakeClass(true);
+  int metaNEntries = dkmRdr->GetEntries();
 
-  DoBinOptimiz ? BinOptimisation(nuChain, TotalPOT, ZDist)
-               : AllInOneGo(nuChain, TotalPOT, ZDist);
+  double TotalPOT = 0;
+  for (int i = 0; i < metaNEntries; ++i) {
+    dkmRdr->GetEntry(i);
+    TotalPOT += dkmRdr->pots;
+  }
+
+  std::cout << "Total POT: " << TotalPOT << std::endl;
+
+  AllInOneGo(*dk2nuRdr, TotalPOT);
 }

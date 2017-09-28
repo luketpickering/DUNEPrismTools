@@ -46,6 +46,8 @@ include(${CMAKE_SOURCE_DIR}/cmake/Prob3++Setup.cmake)
 ################################## COMPILER ####################################
 include(${CMAKE_SOURCE_DIR}/cmake/c++CompilerSetup.cmake)
 
+LIST(APPEND INCLUDE_DIRECTORIES ${CMAKE_SOURCE_DIR}/src)
+
 add_subdirectory(src/app)
 
 configure_file(cmake/setup.sh.in
