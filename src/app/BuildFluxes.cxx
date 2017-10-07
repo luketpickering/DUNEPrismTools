@@ -133,12 +133,15 @@ std::pair<double, double> GetNuWeight(DK2NuReader &dk2nuRdr,
 }
 
 std::vector<double> mrads;
+std::vector<double> latsteps;
 std::string inpDir = ".";
 bool DoExtra = false;
 
 int NBins = 50;
 double BLow = 0;
 double BUp = 10;
+double detector_width = 0;
+double detector_height = 0;
 
 double ZDist = 57400;
 double PotPerFile = 1E5;
@@ -164,11 +167,18 @@ void SayUsage(char const *argv[]) {
                "\t                                calculate.                   "
                "           \n"
                "\n"
-               "\t-d <step_deg>,<max_deg>       : Calculate fluxes from mrad = "
+               "\t-d <step_deg>,<max_deg>       : Calculate fluxes from deg = "
                "0 to       \n"
-               "\t                                mrad = <max_deg> in steps of "
+               "\t                                deg = <max_deg> in steps of "
                "           \n"
-               "\t                                mrad = <step_deg>.           "
+               "\t                                deg = <step_deg>.           "
+               "           \n"
+               "\n"
+               "\t-x <step_x>,<max_x>           : Calculate fluxes from lateral"
+               " offset =  \n"
+               "\t                                x = <max_x> in steps of "
+               "           \n"
+               "\t                                x = <step_x>. x in cm.       "
                "           \n"
                "\n"
                "\t-e                            : Build fluxes for specific "
@@ -186,7 +196,12 @@ void SayUsage(char const *argv[]) {
                "\t                                and step ranges.             "
                "           \n"
                "\n"
-               "\t-n <NMaxNeutrinos>             : Only loop over -n nus.    \n"
+               "\t-w <DetectorWidth=0           : Width of detector plane (cm)."
+               "\n\n"
+               "\t-h <DetectorHeight=0>         : Height of detector plane (cm)"
+               ".\n"
+               "\n"
+               "\t-n <NMaxNeutrinos>            : Only loop over -n nus.    \n"
                "\n"
                "\t-z <ZDist>                    : Detector ZDist (cm).       \n"
                "\n"
@@ -245,20 +260,30 @@ void handleOpts(int argc, char const *argv[]) {
       }
       VariableBinning = true;
     } else if (std::string(argv[opt]) == "-d") {
-      std::vector<double> radStep = ParseToDbl(argv[++opt], ",");
-      if (radStep.size() != 2) {
-        std::cout << "[ERROR]: Recieved " << radStep.size()
+      std::vector<double> degstep = ParseToDbl(argv[++opt], ",");
+      if (degstep.size() != 2) {
+        std::cout << "[ERROR]: Recieved " << degstep.size()
                   << " entrys for -d, expected 2." << std::endl;
         exit(1);
       }
       mrads.push_back(0);
       static const double deg2rad = asin(1) / 90.0;
-      double curr = radStep[0];
-      while (curr < radStep[1]) {
+      double curr = degstep[0];
+      while (curr < degstep[1]) {
         mrads.push_back(curr * deg2rad * 1E3);
-        curr += radStep[0];
+        curr += degstep[0];
       }
 
+    } else if (std::string(argv[opt]) == "-x") {
+      std::vector<std::string> latDescriptors = ParseToStr(argv[++opt], ",");
+      latsteps.clear();
+      for (size_t vbd_it = 0; vbd_it < latDescriptors.size(); ++vbd_it) {
+        AppendDblVect(latsteps, BuildDoubleList(latDescriptors[vbd_it]));
+      }
+    } else if (std::string(argv[opt]) == "-w") {
+      detector_width = str2d(argv[++opt]);
+    } else if (std::string(argv[opt]) == "-h") {
+      detector_height = str2d(argv[++opt]);
     } else if (std::string(argv[opt]) == "-n") {
       NMaxNeutrinos = str2i(argv[++opt]);
     } else if (std::string(argv[opt]) == "-z") {
@@ -275,6 +300,8 @@ void handleOpts(int argc, char const *argv[]) {
 }
 
 void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
+  TRandom3 rnjesus;
+
   size_t NAngs = mrads.size();
   size_t nNus = (NMaxNeutrinos == -1)
                     ? dk2nuRdr.GetEntries()
@@ -303,7 +330,12 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
   for (size_t ang_it = 0; ang_it < NAngs; ++ang_it) {
     for (size_t nuPDG_it = 0; nuPDG_it < NuPDGTargets.size(); ++nuPDG_it) {
       std::stringstream ss("");
-      ss << "LBNF_" << NuNames[nuPDG_it] << "_mrad_" << mrads[ang_it];
+      if (!latsteps.size()) {
+        ss << "LBNF_" << NuNames[nuPDG_it] << "_mrad_" << mrads[ang_it];
+      } else {
+        ss << "LBNF_" << NuNames[nuPDG_it] << "_lateral_displace_"
+           << latsteps[ang_it] << "_cm";
+      }
 
       Hists[ang_it][nuPDG_it].push_back(
           VariableBinning
@@ -317,9 +349,6 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
                     NBins, BLow, BUp));
 
       if (DoExtra) {
-        Hists[ang_it][nuPDG_it].push_back(
-            new TH1D((ss.str() + "_pdp").c_str(), "", 1010, -10, 1000));
-
         Hists[ang_it][nuPDG_it].push_back(
             VariableBinning ? new TH1D((ss.str() + "_pi").c_str(),
                                        ";#it{E}_{#nu} (GeV);#Phi_{#nu} "
@@ -362,7 +391,7 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
 
   std::vector<TVector3> detPoses;
   for (size_t ang_it = 0; ang_it < NAngs; ++ang_it) {
-    detPoses.push_back(TVector3(ZDist * mrads[ang_it] * 1E-3, 0, ZDist));
+    detPoses.push_back(TVector3(ZDist * tan(mrads[ang_it] * 1.0E-3), 0, ZDist));
 
     static const double rad2deg = 90.0 / asin(1);
 
@@ -382,8 +411,17 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
 
     double wF = (dk2nuRdr.decay_nimpwt / TMath::Pi()) * (1.0 / TotalPOT);
     for (size_t ang_it = 0; ang_it < NAngs; ++ang_it) {
-      std::pair<double, double> nuStats =
-          GetNuWeight(dk2nuRdr, detPoses[ang_it]);
+      TVector3 det_point = detPoses[ang_it];
+
+      if (detector_width != 0) {
+        det_point[0] += (2.0 * rnjesus.Uniform() - 1.0) * detector_width;
+      }
+
+      if (detector_height != 0) {
+        det_point[1] += (2.0 * rnjesus.Uniform() - 1.0) * detector_height;
+      }
+
+      std::pair<double, double> nuStats = GetNuWeight(dk2nuRdr, det_point);
 
       double w = nuStats.second * wF;
 
@@ -405,17 +443,18 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
       }
 
       if (DoExtra) {
-        Hists[ang_it][nuPDG_it][1]->Fill(dk2nuRdr.decay_vz * 1E-2, w);
-
-        if ((dk2nuRdr.decay_ptype == 8) || (dk2nuRdr.decay_ptype == 9)) {
+        if ((dk2nuRdr.decay_ptype == 211) || (dk2nuRdr.decay_ptype == -211)) {
+          Hists[ang_it][nuPDG_it][1]->Fill(nuStats.first, w);
+        } else if ((dk2nuRdr.decay_ptype == 321) ||
+                   (dk2nuRdr.decay_ptype == -321)) {
           Hists[ang_it][nuPDG_it][2]->Fill(nuStats.first, w);
-        } else if ((dk2nuRdr.decay_ptype == 11) ||
-                   (dk2nuRdr.decay_ptype == 12)) {
+        } else if ((dk2nuRdr.decay_ptype == 311) ||
+                   (dk2nuRdr.decay_ptype == 310) ||
+                   (dk2nuRdr.decay_ptype == 130)) {
           Hists[ang_it][nuPDG_it][3]->Fill(nuStats.first, w);
-        } else if (dk2nuRdr.decay_ptype == 10) {
+        } else if ((dk2nuRdr.decay_ptype == 13) ||
+                   (dk2nuRdr.decay_ptype == -13)) {
           Hists[ang_it][nuPDG_it][4]->Fill(nuStats.first, w);
-        } else if ((dk2nuRdr.decay_ptype == 5) || (dk2nuRdr.decay_ptype == 6)) {
-          Hists[ang_it][nuPDG_it][5]->Fill(nuStats.first, w);
         }
       }
     }
@@ -425,10 +464,10 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
     for (size_t nuPDG_it = 0; nuPDG_it < NuPDGTargets.size(); ++nuPDG_it) {
       Hists[ang_it][nuPDG_it][0]->Scale(1E-4, "width");
       if (DoExtra) {
+        Hists[ang_it][nuPDG_it][1]->Scale(1E-4, "width");
         Hists[ang_it][nuPDG_it][2]->Scale(1E-4, "width");
         Hists[ang_it][nuPDG_it][3]->Scale(1E-4, "width");
         Hists[ang_it][nuPDG_it][4]->Scale(1E-4, "width");
-        Hists[ang_it][nuPDG_it][5]->Scale(1E-4, "width");
       }
     }
   }
@@ -440,6 +479,17 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
 int main(int argc, char const *argv[]) {
   TH1::SetDefaultSumw2();
   handleOpts(argc, argv);
+
+  if (!mrads.size() && latsteps.size()) {
+    for (auto ls : latsteps) {
+      double theta = atan(ls / ZDist);
+      mrads.push_back(theta * 1.0E3);
+
+      std::cout << "[INFO]: Building flux [" << mrads.size()
+                << "] at lateral position: " << ls
+                << " (mrad = " << mrads.back() << ")." << std::endl;
+    }
+  }
 
   if (!mrads.size()) {
     mrads.push_back(0);
