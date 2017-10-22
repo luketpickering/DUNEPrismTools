@@ -1,3 +1,5 @@
+#include "Utils.hxx"
+
 #include "TFile.h"
 #include "TGraph.h"
 #include "TH1D.h"
@@ -28,63 +30,11 @@ void SayUsage(char const *argv[]) {
             << std::endl;
 }
 
-double str2d(std::string str) {
-  std::istringstream stream(str);
-  double d;
-  stream >> d;
-  return d;
-}
-
-std::vector<double> ParseToDbl(std::string str, const char *del) {
-  std::istringstream stream(str);
-  std::string temp_string;
-  std::vector<double> vals;
-
-  while (std::getline(stream >> std::ws, temp_string, *del)) {
-    if (temp_string.empty()) continue;
-    std::istringstream stream(temp_string);
-    double entry;
-    stream >> entry;
-
-    vals.push_back(entry);
-  }
-  return vals;
-}
-
-std::vector<int> ParseToInt(std::string str, const char *del) {
-  std::istringstream stream(str);
-  std::string temp_string;
-  std::vector<int> vals;
-
-  while (std::getline(stream >> std::ws, temp_string, *del)) {
-    if (temp_string.empty()) continue;
-    std::istringstream stream(temp_string);
-    int entry;
-    stream >> entry;
-
-    vals.push_back(entry);
-  }
-  return vals;
-}
-
-std::vector<std::string> ParseToStr(std::string str, const char *del) {
-  std::istringstream stream(str);
-  std::string temp_string;
-  std::vector<std::string> vals;
-
-  while (std::getline(stream >> std::ws, temp_string, *del)) {
-    if (temp_string.empty()) continue;
-    vals.push_back(temp_string);
-  }
-
-  return vals;
-}
-
 void handleOpts(int argc, char const *argv[]) {
   int opt = 1;
   while (opt < argc) {
     if (std::string(argv[opt]) == "-d") {
-      DipAngle = str2d(argv[++opt]);
+      DipAngle = str2T<double>(argv[++opt]);
 
       const static double REarth_cm = 6371.393 * 1.0E5;
       const static double ProductionHeight_cm = 0;
@@ -99,7 +49,7 @@ void handleOpts(int argc, char const *argv[]) {
                 << std::endl;
 
     } else if (std::string(argv[opt]) == "-p") {
-      std::vector<double> params = ParseToDbl(argv[++opt], ",");
+      std::vector<double> params = ParseToVect<double>(argv[++opt], ",");
       if (params.size() != 6) {
         std::cout << "[ERROR]: Recieved " << params.size()
                   << " entrys for -p, expected 6." << std::endl;
@@ -123,7 +73,8 @@ void handleOpts(int argc, char const *argv[]) {
       std::cout << "dcp = " << OscParams[5] << std::endl;
 
     } else if (std::string(argv[opt]) == "-i") {
-      std::vector<std::string> params = ParseToStr(argv[++opt], ",");
+      std::vector<std::string> params =
+          ParseToVect<std::string>(argv[++opt], ",");
       if (params.size() != 2) {
         std::cout << "[ERROR]: Recieved " << params.size()
                   << " entrys for -i, expected 2." << std::endl;
@@ -132,7 +83,8 @@ void handleOpts(int argc, char const *argv[]) {
       inpFile = params[0];
       inpHistName = params[1];
     } else if (std::string(argv[opt]) == "-o") {
-      std::vector<std::string> params = ParseToStr(argv[++opt], ",");
+      std::vector<std::string> params =
+          ParseToVect<std::string>(argv[++opt], ",");
       if (params.size() != 2) {
         std::cout << "[ERROR]: Recieved " << params.size()
                   << " entrys for -o, expected 2." << std::endl;
@@ -141,7 +93,7 @@ void handleOpts(int argc, char const *argv[]) {
       oupFile = params[0];
       oupHistName = params[1];
     } else if (std::string(argv[opt]) == "-n") {
-      std::vector<int> params = ParseToInt(argv[++opt], ",");
+      std::vector<int> params = ParseToVect<int>(argv[++opt], ",");
       if (params.size() != 2) {
         std::cout << "[ERROR]: Recieved " << params.size()
                   << " entrys for -n, expected 2." << std::endl;

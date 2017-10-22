@@ -1,4 +1,6 @@
-SET(APPS BuildFluxes FitFluxes OscillateFlux)
+SET(APPS BuildFluxes
+  # FitFluxes
+  OscillateFlux)
 
   include_directories(${INCLUDE_DIRECTORIES})
 

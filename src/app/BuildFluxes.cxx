@@ -1,3 +1,4 @@
+#include "DetectorStop.hxx"
 #include "NuDataReader.hxx"
 #include "Utils.hxx"
 
@@ -16,7 +17,7 @@
 #include <utility>
 #include <vector>
 
-double CosTheta(TVector3 const &v1, TVector3 const &v2) {
+inline double CosTheta(TVector3 const &v1, TVector3 const &v2) {
   return v1.Unit().Dot(v2.Unit());
 }
 
@@ -34,36 +35,41 @@ std::pair<double, double> GetNuWeight(DK2NuReader &dk2nuRdr,
   parent_4mom.SetXYZM(dk2nuRdr.decay_pdpx, dk2nuRdr.decay_pdpy,
                       dk2nuRdr.decay_pdpz, parent_mass);
 
-  double parent_energy = parent_4mom.E();
-
   double enuzr = dk2nuRdr.decay_necm;
 
-  TVector3 VToDetVect((DetPoint[0] - dk2nuRdr.decay_vx),
-                      (DetPoint[1] - dk2nuRdr.decay_vy),
-                      (DetPoint[2] - dk2nuRdr.decay_vz));
+  TVector3 nuRay((DetPoint[0] - dk2nuRdr.decay_vx),
+                 (DetPoint[1] - dk2nuRdr.decay_vy),
+                 (DetPoint[2] - dk2nuRdr.decay_vz));
 
   double parent_4mom_Gamma = parent_4mom.Gamma();
   double emrat =
-      1.0 /
-      (parent_4mom_Gamma *
-       (1 - parent_4mom.Beta() * CosTheta(parent_4mom.Vect(), VToDetVect)));
+      1.0 / (parent_4mom_Gamma *
+             (1 - parent_4mom.Beta() * CosTheta(parent_4mom.Vect(), nuRay)));
 
   double nu_energy = emrat * enuzr;
 
-  double sangDet = (detRadius * detRadius / VToDetVect.Mag2() / 4.);
+  double sangDet = (1.0 - cos(atan(detRadius / nuRay.Mag()))) / 2.0;
+
+  if (sangDet != sangDet) {
+    std::cerr
+        << "[ERROR]: Failed to calculate the solid angle element for nuRay: { "
+        << nuRay[0] << ", " << nuRay[1] << ", " << nuRay[2] << " }."
+        << std::endl;
+    throw;
+  }
 
   double nu_wght = sangDet * emrat * emrat;
 
   // done for all except polarized muon
   // in which case need to modify weight
-  if ((dk2nuRdr.decay_ptype == 5) || (dk2nuRdr.decay_ptype == 6)) {
+  if (abs(dk2nuRdr.decay_ptype) == 13) {
     // boost new neutrino to mu decay cm
     TVector3 betaVect = parent_4mom.Vect();
     betaVect[0] /= parent_4mom.E();
     betaVect[1] /= parent_4mom.E();
     betaVect[2] /= parent_4mom.E();
 
-    TVector3 nu_3mom = VToDetVect.Unit() * nu_energy;
+    TVector3 nu_3mom = nuRay.Unit() * nu_energy;
 
     double partial = parent_4mom_Gamma * betaVect.Dot(nu_3mom);
     partial = nu_energy - partial / (parent_4mom_Gamma + 1.);
@@ -152,8 +158,10 @@ bool VariableBinning = false;
 
 std::string outputFile;
 
+std::string runPlanCfg;
+
 void SayUsage(char const *argv[]) {
-  std::cout << "[USAGE]: " << argv[0]
+  std::cout << "[USAGE]: " << argv[0] << "\n"
             << "\t-i /path/to/DUNE/nudata/files : Can include wildcards "
                "(remeber to quote \n"
                "\t                                to avoid shell expansion.)   "
@@ -180,6 +188,13 @@ void SayUsage(char const *argv[]) {
                "           \n"
                "\t                                x = <step_x>. x in cm.       "
                "           \n"
+               "\n"
+               "\t-r <RunPlan.XML>                   : An XML file specifying "
+               "a run plan  \n"
+               "\t                                     to build fluxes for. "
+               "See           \n"
+               "\t                                     documentation for XML "
+               "structure.   \n"
                "\n"
                "\t-e                            : Build fluxes for specific "
                "neutrino decay\n"
@@ -221,11 +236,11 @@ void handleOpts(int argc, char const *argv[]) {
     } else if (std::string(argv[opt]) == "-o") {
       outputFile = argv[++opt];
     } else if (std::string(argv[opt]) == "-a") {
-      mrads = ParseToDbl(argv[++opt], ",");
+      mrads = ParseToVect<double>(argv[++opt], ",");
     } else if (std::string(argv[opt]) == "-e") {
       DoExtra = true;
     } else if (std::string(argv[opt]) == "-b") {
-      std::vector<double> binning = ParseToDbl(argv[++opt], ",");
+      std::vector<double> binning = ParseToVect<double>(argv[++opt], ",");
       if (binning.size() != 3) {
         std::cout << "[ERROR]: Recieved " << binning.size()
                   << " entrys for -b, expected 3." << std::endl;
@@ -235,10 +250,11 @@ void handleOpts(int argc, char const *argv[]) {
       BLow = binning[1];
       BUp = binning[2];
     } else if (std::string(argv[opt]) == "-vb") {
-      std::vector<std::string> vbDescriptors = ParseToStr(argv[++opt], ",");
+      std::vector<std::string> vbDescriptors =
+          ParseToVect<std::string>(argv[++opt], ",");
       varBin.clear();
       for (size_t vbd_it = 0; vbd_it < vbDescriptors.size(); ++vbd_it) {
-        AppendDblVect(varBin, BuildDoubleList(vbDescriptors[vbd_it]));
+        AppendVect(varBin, BuildDoubleList(vbDescriptors[vbd_it]));
       }
 
       for (size_t bin_it = 1; bin_it < varBin.size(); ++bin_it) {
@@ -260,7 +276,7 @@ void handleOpts(int argc, char const *argv[]) {
       }
       VariableBinning = true;
     } else if (std::string(argv[opt]) == "-d") {
-      std::vector<double> degstep = ParseToDbl(argv[++opt], ",");
+      std::vector<double> degstep = ParseToVect<double>(argv[++opt], ",");
       if (degstep.size() != 2) {
         std::cout << "[ERROR]: Recieved " << degstep.size()
                   << " entrys for -d, expected 2." << std::endl;
@@ -274,22 +290,27 @@ void handleOpts(int argc, char const *argv[]) {
         curr += degstep[0];
       }
 
+    } else if (std::string(argv[opt]) == "-r") {
+      runPlanCfg = argv[++opt];
+      std::cout << "\t--Reading run plan configurationf rom: " << runPlanCfg
+                << std::endl;
     } else if (std::string(argv[opt]) == "-x") {
-      std::vector<std::string> latDescriptors = ParseToStr(argv[++opt], ",");
+      std::vector<std::string> latDescriptors =
+          ParseToVect<std::string>(argv[++opt], ",");
       latsteps.clear();
       for (size_t vbd_it = 0; vbd_it < latDescriptors.size(); ++vbd_it) {
-        AppendDblVect(latsteps, BuildDoubleList(latDescriptors[vbd_it]));
+        AppendVect(latsteps, BuildDoubleList(latDescriptors[vbd_it]));
       }
     } else if (std::string(argv[opt]) == "-w") {
-      detector_width = str2d(argv[++opt]);
+      detector_width = str2T<double>(argv[++opt]);
     } else if (std::string(argv[opt]) == "-h") {
-      detector_height = str2d(argv[++opt]);
+      detector_height = str2T<double>(argv[++opt]);
     } else if (std::string(argv[opt]) == "-n") {
-      NMaxNeutrinos = str2i(argv[++opt]);
+      NMaxNeutrinos = str2T<int>(argv[++opt]);
     } else if (std::string(argv[opt]) == "-z") {
-      ZDist = str2d(argv[++opt]);
+      ZDist = str2T<double>(argv[++opt]);
     } else if (std::string(argv[opt]) == "-P") {
-      PotPerFile = str2d(argv[++opt]);
+      PotPerFile = str2T<double>(argv[++opt]);
     } else {
       std::cout << "[ERROR]: Unknown option: " << argv[opt] << std::endl;
       SayUsage(argv);
@@ -476,6 +497,112 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
   outfile->Close();
 }
 
+void CalculateFluxesForRunPlan(DK2NuReader &dk2nuRdr, double TotalPOT,
+                               std::vector<DetectorStop> &detStops) {
+  TRandom3 rnjesus;
+  size_t nNus = (NMaxNeutrinos == -1)
+                    ? dk2nuRdr.GetEntries()
+                    : std::min(NMaxNeutrinos, int(dk2nuRdr.GetEntries()));
+  TotalPOT = TotalPOT * (double(nNus) / double(dk2nuRdr.GetEntries()));
+  std::cout << "Only using the first " << nNus << " events out of "
+            << dk2nuRdr.GetEntries() << ", scaling POT to " << TotalPOT
+            << std::endl;
+  std::cout << "Reding " << nNus << " Dk2Nu entries." << std::endl;
+
+  TFile *outfile = new TFile(outputFile.c_str(), "RECREATE");
+
+  std::vector<double> MeasurementsOffsets;
+  std::vector<double> MeasurementHalfWidths;
+  std::vector<double> MeasurementHalfHeights;
+  std::vector<TVector3> detPositions;
+
+  std::vector<std::map<int, TH1D *> > Fluxes;
+
+  std::stringstream ss("");
+
+  for (size_t ds_it = 0; ds_it < detStops.size(); ++ds_it) {
+    DetectorStop &ds = detStops[ds_it];
+
+    for (size_t ms_it = 0; ms_it < ds.GetNMeasurementSlices(); ++ms_it) {
+      MeasurementsOffsets.push_back(ds.GetAbsoluteOffsetOfSlice(ms_it));
+      MeasurementHalfWidths.push_back(ds.MeasurementRegionWidth / 2.0);
+      MeasurementHalfHeights.push_back(ds.DetectorFiducialHeight / 2.0);
+
+      detPositions.push_back(
+          TVector3(MeasurementsOffsets.back() * 100.0, 0, ZDist));
+
+      std::map<int, TH1D *> fluxhistos;
+
+      for (int species : {-14, -12, 12, 14}) {
+        ss.str("");
+        ss << GetSpeciesName(species) << "_flux_stop_" << ds_it << "_slice_"
+           << ms_it << "_" << MeasurementsOffsets.back() << "_m";
+
+        fluxhistos[species] = VariableBinning
+                                  ? new TH1D((ss.str() + "_pi").c_str(),
+                                             ";#it{E}_{#nu} (GeV);#Phi_{#nu} "
+                                             "(GeV^{-1}cm^{-2} per POT)",
+                                             varBin.size() - 1, varBin.data())
+                                  : new TH1D((ss.str() + "_pi").c_str(),
+                                             ";#it{E}_{#nu} (GeV);#Phi_{#nu} "
+                                             "(GeV^{-1}cm^{-2} per POT)",
+                                             NBins, BLow, BUp);
+        fluxhistos[species]->SetDirectory(nullptr);
+      }
+
+      Fluxes.push_back(fluxhistos);
+    }
+  }
+
+  size_t NSlices = detPositions.size();
+  size_t updateStep = nNus / 10 ? nNus / 10 : 1;
+  for (size_t nu_it = 0; nu_it < nNus; ++nu_it) {
+    if (!(nu_it % updateStep)) {
+      std::cout << "--" << nu_it << "/" << nNus << std::endl;
+    }
+
+    dk2nuRdr.GetEntry(nu_it);
+
+    double wF = (dk2nuRdr.decay_nimpwt / TMath::Pi()) * (1.0 / TotalPOT);
+    for (size_t slice_it = 0; slice_it < NSlices; ++slice_it) {
+      TVector3 det_point = detPositions[slice_it];
+
+      det_point[0] += (2.0 * rnjesus.Uniform() - 1.0) *
+                      MeasurementHalfWidths[slice_it] * 100.0;
+
+      det_point[1] += (2.0 * rnjesus.Uniform() - 1.0) *
+                      MeasurementHalfHeights[slice_it] * 100.0;
+
+      std::pair<double, double> nuStats = GetNuWeight(dk2nuRdr, det_point);
+
+      double w = nuStats.second * wF;
+
+      if ((nuStats.first != nuStats.first) || (w != w)) {
+        std::cout << nuStats.first << ", " << w << std::endl;
+        throw;
+      }
+
+      Fluxes[slice_it][dk2nuRdr.decay_ntype]->Fill(nuStats.first, w);
+    }
+  }
+
+  size_t slice_it = 0;
+  for (size_t ds_it = 0; ds_it < detStops.size(); ++ds_it) {
+    DetectorStop &ds = detStops[ds_it];
+    for (size_t ms_it = 0; ms_it < ds.GetNMeasurementSlices(); ++ms_it) {
+      for (int species : {-14, -12, 12, 14}) {
+        Fluxes[slice_it][species]->Scale(1E-4, "width");
+        ds.AddSliceFlux(ms_it, species, Fluxes[slice_it][species]);
+      }
+      slice_it++;
+    }
+    ds.Write();
+  }
+
+  outfile->Write();
+  outfile->Close();
+}
+
 int main(int argc, char const *argv[]) {
   TH1::SetDefaultSumw2();
   handleOpts(argc, argv);
@@ -514,5 +641,10 @@ int main(int argc, char const *argv[]) {
 
   std::cout << "Total POT: " << TotalPOT << std::endl;
 
-  AllInOneGo(*dk2nuRdr, TotalPOT);
+  if (runPlanCfg.length()) {
+    std::vector<DetectorStop> detStops = ReadDetectorStopConfig(runPlanCfg);
+    CalculateFluxesForRunPlan(*dk2nuRdr, TotalPOT, detStops);
+  } else {
+    AllInOneGo(*dk2nuRdr, TotalPOT);
+  }
 }
