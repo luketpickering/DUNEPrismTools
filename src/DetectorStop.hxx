@@ -259,6 +259,7 @@ inline std::vector<DetectorStop> ReadDetectorStopConfig(
           std::cout << "[INFO]: Read detector definition with "
                     << detDefinition.GetNMeasurementSlices()
                     << " measurement slices." << std::endl;
+          rp_child = xE.GetNext(rp_child);
           continue;
         }
         if (sstagname == xE.GetNodeName(rp_child)) {
@@ -266,6 +267,7 @@ inline std::vector<DetectorStop> ReadDetectorStopConfig(
             std::cout << "[WARN]: Ignoring " << sstagname << " node because "
                       << dstagname << " has not been encountered yet."
                       << std::endl;
+            rp_child = xE.GetNext(rp_child);
             continue;
           }
 
