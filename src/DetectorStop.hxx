@@ -260,11 +260,16 @@ inline std::vector<DetectorStop> ReadDetectorStopConfig(
                     << detDefinition.GetNMeasurementSlices()
                     << " measurement slices. {"
                        " MeasurementRegionWidth: "
-                    << ds.MeasurementRegionWidth ", DetectorFiducialWidth: "
-                    << ds.DetectorFiducialWidth ", DetectorFiducialHeight: "
-                    << ds.DetectorFiducialHeight ", DetectorFiducialDepth: "
-                    << ds.DetectorFiducialDepth ", FiducialVolumeDensity: "
-                    << ds.FiducialVolumeDensity << " }." << std::endl;
+                    << detDefinition.MeasurementRegionWidth
+                       ", DetectorFiducialWidth: "
+                    << detDefinition.DetectorFiducialWidth
+                       ", DetectorFiducialHeight: "
+                    << detDefinition.DetectorFiducialHeight
+                       ", DetectorFiducialDepth: "
+                    << detDefinition.DetectorFiducialDepth
+                       ", FiducialVolumeDensity: "
+                    << detDefinition.FiducialVolumeDensity << " }."
+                    << std::endl;
 
           rp_child = xE.GetNext(rp_child);
           continue;
