@@ -134,7 +134,7 @@ struct DetectorStop {
     }
 
     if (Fluxes[species].size() < i) {
-      Fluxes[species].resize(i);
+      Fluxes[species].resize(i+1);
     }
     Fluxes[species][i] = static_cast<TH1D *>(flux->Clone());
     Fluxes[species][i]->SetDirectory(nullptr);
