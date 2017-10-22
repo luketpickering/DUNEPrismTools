@@ -256,6 +256,9 @@ inline std::vector<DetectorStop> ReadDetectorStopConfig(
       while (rp_child) {
         if (dstagname == xE.GetNodeName(rp_child)) {
           foundDetDefinition = detDefinition.ConfigureDetector(rp_child);
+          std::cout << "[INFO]: Read detector definition with "
+                    << detDefinition.GetNMeasurementSlices()
+                    << " measurement slices." << std::endl;
           continue;
         }
         if (sstagname == xE.GetNodeName(rp_child)) {
@@ -271,17 +274,22 @@ inline std::vector<DetectorStop> ReadDetectorStopConfig(
             if (stagname == xE.GetNodeName(stops_child)) {
               DetectorStop ds = detDefinition.CloneDetectorConfig();
               if (ds.ConfigureStop(stops_child)) {
+                std::cout << "[INFO]: Read stop at offset: " << ds.LateralOffset
+                          << std::endl;
                 stops.push_back(ds);
               } else {
                 std::cout << "[WARN]: Failed to parse stop definition."
                           << std::endl;
               }
             }
+            stops_child = xE.GetNext(stops_child);
           }
         }
+        rp_child = xE.GetNext(rp_child);
       }
       break;
     }
+    root_child = xE.GetNext(root_child);
   }
 
   xE.FreeDoc(doc);
