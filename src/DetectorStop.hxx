@@ -258,7 +258,14 @@ inline std::vector<DetectorStop> ReadDetectorStopConfig(
           foundDetDefinition = detDefinition.ConfigureDetector(rp_child);
           std::cout << "[INFO]: Read detector definition with "
                     << detDefinition.GetNMeasurementSlices()
-                    << " measurement slices." << std::endl;
+                    << " measurement slices. {"
+                       " MeasurementRegionWidth: "
+                    << ds.MeasurementRegionWidth ", DetectorFiducialWidth: "
+                    << ds.DetectorFiducialWidth ", DetectorFiducialHeight: "
+                    << ds.DetectorFiducialHeight ", DetectorFiducialDepth: "
+                    << ds.DetectorFiducialDepth ", FiducialVolumeDensity: "
+                    << ds.FiducialVolumeDensity << " }." << std::endl;
+
           rp_child = xE.GetNext(rp_child);
           continue;
         }
