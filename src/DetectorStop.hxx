@@ -107,7 +107,7 @@ struct DetectorStop {
   }
 
   size_t GetNMeasurementSlices() {
-    return floor(MeasurementRegionWidth / (DetectorFiducialWidth / 2.0)) * 2;
+    return floor((DetectorFiducialWidth / 2.0) / MeasurementRegionWidth) * 2;
   }
 
   double GetAbsoluteOffsetOfSlice(size_t i) {
