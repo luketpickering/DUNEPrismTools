@@ -189,11 +189,11 @@ void SayUsage(char const *argv[]) {
                "\t                                x = <step_x>. x in cm.       "
                "           \n"
                "\n"
-               "\t-r <RunPlan.XML>                   : An XML file specifying "
-               "a run plan  \n"
-               "\t                                     to build fluxes for. "
-               "See           \n"
-               "\t                                     documentation for XML "
+               "\t-r <RunPlan.XML>              : An XML file specifying a run "
+               "plan  \n"
+               "\t                                to build fluxes for. See     "
+               "      \n"
+               "\t                                documentation for XML "
                "structure.   \n"
                "\n"
                "\t-e                            : Build fluxes for specific "
@@ -525,6 +525,12 @@ void CalculateFluxesForRunPlan(DK2NuReader &dk2nuRdr, double TotalPOT,
 
     for (size_t ms_it = 0; ms_it < ds.GetNMeasurementSlices(); ++ms_it) {
       MeasurementsOffsets.push_back(ds.GetAbsoluteOffsetOfSlice(ms_it));
+
+      std::cout << "[INFO]: Building flux for measurement slice: Stop " << ds_it
+                << ", slice: " << ms_it
+                << " at absolute offset: " << MeasurementsOffsets.back()
+                << " m." << std::endl;
+
       MeasurementHalfWidths.push_back(ds.MeasurementRegionWidth / 2.0);
       MeasurementHalfHeights.push_back(ds.DetectorFiducialHeight / 2.0);
 

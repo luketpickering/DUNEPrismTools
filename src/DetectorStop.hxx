@@ -117,8 +117,8 @@ struct DetectorStop {
                 << GetNMeasurementSlices() << std::endl;
       return 0xdeadbeef;
     }
-    return (LateralOffset - ((DetectorFiducialWidth / 2.0) *
-                             MeasurementRegionWidth * (double(i) + 0.5)));
+    return (LateralOffset - (DetectorFiducialWidth / 2.0) +
+            (MeasurementRegionWidth * (double(i) + 0.5)));
   }
 
   void AddSliceFlux(size_t i, int species, TH1D const *flux) {
@@ -133,11 +133,15 @@ struct DetectorStop {
       Fluxes[species] = std::vector<TH1D *>();
     }
 
-    if (Fluxes[species].size() < (i+1)) {
-      Fluxes[species].resize(i+1);
+    if (Fluxes[species].size() < (i + 1)) {
+      Fluxes[species].resize(i + 1);
     }
     Fluxes[species][i] = static_cast<TH1D *>(flux->Clone());
     Fluxes[species][i]->SetDirectory(nullptr);
+  }
+
+  std::vector<TH1D *> GetFluxesForSpecies(int species) {
+    return Fluxes[species];
   }
 
   void PredictEventRates(std::vector<TH1D *> XSecComponents) { throw; }
@@ -211,6 +215,39 @@ struct DetectorStop {
         }
       }
     }
+    if (ogDir) {
+      ogDir->cd();
+    }
+  }
+
+  void Read(TFile *inpF) {
+    TDirectory *ogDir = gDirectory;
+
+    std::stringstream ss("");
+
+    size_t NRead = 0;
+    for (int species : {-14, -12, 12, 14}) {
+      for (size_t fl_it = 0; fl_it < Fluxes[species].size(); ++fl_it) {
+        ss.str("");
+        ss << "stop_" << LateralOffset << "_m/" << GetSpeciesName(species)
+           << "_flux_" << GetAbsoluteOffsetOfSlice(fl_it) << "_m";
+
+        TH1D *fl = dynamic_cast<TH1D *>(inpF->Get(ss.str().c_str()));
+
+        if (!fl) {
+          std::cout << "[WARN]: Couldn't find expected flux prediction: \""
+                    << ss.str() << "\" in the input file." << std::endl;
+          continue;
+        }
+        AddSliceFlux(fl_it, species, fl);
+        NRead++;
+      }
+    }
+
+    std::cout << "[INFO]: Read in " << NRead << "/"
+              << GetNMeasurementSlices() * 4 << " expected flux predictions."
+              << std::endl;
+
     if (ogDir) {
       ogDir->cd();
     }
