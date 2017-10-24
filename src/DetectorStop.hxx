@@ -238,7 +238,7 @@ struct DetectorStop {
 
     size_t NRead = 0;
     for (int species : {-14, -12, 12, 14}) {
-      for (size_t fl_it = 0; fl_it < Fluxes[species].size(); ++fl_it) {
+      for (size_t fl_it = 0; fl_it < GetNMeasurementSlices(); ++fl_it) {
         ss.str("");
         ss << "stop_" << LateralOffset << "_m/" << GetSpeciesName(species)
            << "_flux_" << GetAbsoluteOffsetOfSlice(fl_it) << "_m";
@@ -258,6 +258,10 @@ struct DetectorStop {
     std::cout << "[INFO]: Read in " << NRead << "/"
               << GetNMeasurementSlices() * 4 << " expected flux predictions."
               << std::endl;
+
+    if (NRead != (GetNMeasurementSlices() * 4)) {
+      throw;
+    }
 
     if (ogDir) {
       ogDir->cd();
