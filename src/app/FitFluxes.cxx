@@ -1,3 +1,4 @@
+#include "DetectorStop.hxx"
 #include "Utils.hxx"
 
 #include "TF1.h"
@@ -42,6 +43,8 @@ int MaxMINUITCalls = 50000;
 double FitBetween_low = 0xdeadbeef, FitBetween_high = 0xdeadbeef;
 int binLow, binHigh;
 
+double referencePOT = std::numeric_limits<double>::min();
+std::vector<double> MeasurementFactor;
 std::vector<TH1D *> Fluxes;
 
 TH1D *SummedFlux;
@@ -362,7 +365,58 @@ int main(int argc, char const *argv[]) {
 
       for (size_t ds_it = 0; ds_it < detStops.size(); ++ds_it) {
         detStops[ds_it].Read(ifl);
-        AppendVect(Fluxes, detStops[ds_it].GetFluxesForSpecies(14));
+        referencePOT = std::max(detStops[ds_it].POTExposure, referencePOT);
+
+        std::vector<double> doubleupevrate;
+        for (size_t ms_it = 0; ms_it < detStops[ds_it].GetNMeasurementSlices();
+             ++ms_it) {
+          if (detStops[ds_it].GetAbsoluteOffsetOfSlice(ms_it) < 0) {
+            doubleupevrate.push_back(
+                fabs(detStops[ds_it].GetAbsoluteOffsetOfSlice(ms_it)));
+            std::cout << "[INFO]: Excluding Stop " << ds_it << ", slice "
+                      << ms_it
+                      << " from fit as it should have a mirrored slice."
+                      << std::endl;
+            continue;
+          }
+
+          if (doubleupevrate.size()) {
+            bool found = false;
+            for (size_t du_it = 0; du_it < doubleupevrate.size(); ++du_it) {
+              if (fabs(doubleupevrate[du_it] -
+                       detStops[ds_it].GetAbsoluteOffsetOfSlice(ms_it)) <
+                  std::numeric_limits<double>::epsilon()) {
+                std::cout
+                    << "[INFO]: Stop " << ds_it << ", slice " << ms_it
+                    << ", getting double stats from mirrored measurement slice."
+                    << std::endl;
+
+                doubleupevrate.erase(doubleupevrate.begin() + du_it);
+                found = true;
+                break;
+              }
+            }
+            if (found) {
+              MeasurementFactor.push_back(detStops[ds_it].POTExposure * 2.0);
+            } else {
+              MeasurementFactor.push_back(detStops[ds_it].POTExposure);
+            }
+          } else {
+            MeasurementFactor.push_back(detStops[ds_it].POTExposure);
+          }
+
+          Fluxes.push_back(detStops[ds_it].GetFluxForSpecies(ms_it, 14));
+        }
+        if (doubleupevrate.size()) {
+          std::cout << "[ERROR]: Still had " << doubleupevrate.size()
+                    << " ignored negative slices that did not have positive "
+                       "offset mirror slices."
+                    << std::endl;
+          for (size_t du_it = 0; du_it < doubleupevrate.size(); ++du_it) {
+            std::cout << "\t\t" << doubleupevrate[du_it];
+          }
+          throw;
+        }
       }
       if (!Fluxes.size()) {
         std::cout << "[ERROR]: Found no input fluxes from input run plan: \""
@@ -514,11 +568,11 @@ int main(int argc, char const *argv[]) {
   oupD->cd("flux_build");
   wD = oupD->GetDirectory("flux_build");
 
-  TH1D *cl_0 = static_cast<TH1D *>(Fluxes[flux_it]->Clone());
-  cl_0->Scale(coeffs[flux_it]);
+  TH1D *cl_0 = static_cast<TH1D *>(Fluxes[0]->Clone());
+  cl_0->Scale(coeffs[0]);
   cl_0->SetDirectory(wD);
-  cl_0->SetName();
   std::stringstream ss("flux_0");
+  cl_0->SetName(ss.str().c_str());
   for (size_t flux_it = 1; flux_it < Fluxes.size(); flux_it++) {
     TH1D *cl = static_cast<TH1D *>(Fluxes[flux_it]->Clone());
     cl->Scale(coeffs[flux_it]);

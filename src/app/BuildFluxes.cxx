@@ -545,11 +545,11 @@ void CalculateFluxesForRunPlan(DK2NuReader &dk2nuRdr, double TotalPOT,
            << ms_it << "_" << MeasurementsOffsets.back() << "_m";
 
         fluxhistos[species] = VariableBinning
-                                  ? new TH1D((ss.str() + "_pi").c_str(),
+                                  ? new TH1D((ss.str()).c_str(),
                                              ";#it{E}_{#nu} (GeV);#Phi_{#nu} "
                                              "(GeV^{-1}cm^{-2} per POT)",
                                              varBin.size() - 1, varBin.data())
-                                  : new TH1D((ss.str() + "_pi").c_str(),
+                                  : new TH1D((ss.str()).c_str(),
                                              ";#it{E}_{#nu} (GeV);#Phi_{#nu} "
                                              "(GeV^{-1}cm^{-2} per POT)",
                                              NBins, BLow, BUp);

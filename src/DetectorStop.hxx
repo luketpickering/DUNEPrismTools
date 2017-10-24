@@ -144,6 +144,16 @@ struct DetectorStop {
     return Fluxes[species];
   }
 
+  TH1D *GetFluxForSpecies(size_t i, int species) {
+    if (i >= GetNMeasurementSlices()) {
+      std::cout << "[WARN]: Requested position of slice: " << i
+                << ", but current detector configuration only specifies: "
+                << GetNMeasurementSlices() << std::endl;
+      return nullptr;
+    }
+    return Fluxes[species][i];
+  }
+
   void PredictEventRates(std::vector<TH1D *> XSecComponents) { throw; }
 
   void Write() {
@@ -169,7 +179,8 @@ struct DetectorStop {
         ss << GetSpeciesName(species) << "_flux_"
            << GetAbsoluteOffsetOfSlice(fl_it) << "_m";
 
-        fl->Write(ss.str().c_str(), TObject::kOverwrite);
+        fl->SetName(ss.str().c_str());
+        fl->Write(fl->GetName(), TObject::kOverwrite);
         fl->SetDirectory(nullptr);
       }
 
