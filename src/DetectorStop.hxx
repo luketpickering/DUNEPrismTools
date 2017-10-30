@@ -18,6 +18,12 @@ static std::string const rptagname = "RunPlan";
 static std::string const dstagname = "Detector";
 static std::string const sstagname = "Stops";
 static std::string const stagname = "Stop";
+
+const double mass_proton_kg = 1.6727E-27;   // Proton mass in kg
+const double mass_neutron_kg = 1.6750E-27;  // Neutron mass in kg
+const double mass_nucleon_kg = (mass_proton_kg + mass_neutron_kg) / 2.;
+
+const double pm2topcm2 = 1E-4;
 }
 
 struct DetectorStop {
@@ -154,7 +160,37 @@ struct DetectorStop {
     return Fluxes[species][i];
   }
 
-  void PredictEventRates(std::vector<TH1D *> XSecComponents) { throw; }
+  void PredictEventRates(std::map<std::string, TH1D *> XSecComponents,
+                         int species) {
+    for (TH1D *fl : Fluxes[species]) {
+      EventRates[species]["total"].push_back(static_cast<TH1D *>(fl->Clone()));
+      EventRates[species]["total"].back()->SetDirectory(nullptr);
+      EventRates[species]["total"].back()->Reset();
+      EventRates[species]["total"].back()->SetTitle("Events / GeV");
+
+      for (std::pair<std::string, TH1D *> xsc : XSecComponents) {
+        EventRates[species][xsc.first].push_back(
+            static_cast<TH1D *>(fl->Clone()));
+        EventRates[species][xsc.first].back()->SetDirectory(nullptr);
+        EventRates[species][xsc.first].back()->Reset();
+        EventRates[species][xsc.first].back()->Multiply(fl, xsc.second);
+
+        double Vol = MeasurementRegionWidth * DetectorFiducialDepth *
+                     DetectorFiducialHeight;
+        double Mass = Vol * FiducialVolumeDensity;
+        double NNucleons = Mass / mass_nucleon_kg;
+
+        // If flux is nu / m^2 / GeV and xsec is cm^2 / Nucleon
+        // Then this should be an evrate / GeV
+        EventRates[species][xsc.first].back()->Scale(POTExposure * NNucleons *
+                                                     pm2topcm2);
+        EventRates[species][xsc.first].back()->SetTitle("Events / GeV");
+
+        EventRates[species]["total"].back()->Add(
+            EventRates[species][xsc.first].back());
+      }
+    }
+  }
 
   void Write() {
     TDirectory *ogDir = gDirectory;

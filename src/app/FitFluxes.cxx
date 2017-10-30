@@ -165,6 +165,7 @@ void TargetSumGauss(int &nDim, double *gout, double &result, double coeffs[],
     sumdiff += pow(GaussEval - SummedBinContent, 2) / Uncert;
   }
   result = sumdiff;
+  std::cout << "[INFO]: Gauss chi2: " << sumdiff << std::endl;
 }
 
 void SayUsage(char const *argv[]) {
@@ -374,8 +375,9 @@ int main(int argc, char const *argv[]) {
             doubleupevrate.push_back(
                 fabs(detStops[ds_it].GetAbsoluteOffsetOfSlice(ms_it)));
             std::cout << "[INFO]: Excluding Stop " << ds_it << ", slice "
-                      << ms_it
-                      << " from fit as it should have a mirrored slice."
+                      << ms_it << " ("
+                      << detStops[ds_it].GetAbsoluteOffsetOfSlice(ms_it)
+                      << " m) from fit as it should have a mirrored slice."
                       << std::endl;
             continue;
           }
@@ -385,11 +387,12 @@ int main(int argc, char const *argv[]) {
             for (size_t du_it = 0; du_it < doubleupevrate.size(); ++du_it) {
               if (fabs(doubleupevrate[du_it] -
                        detStops[ds_it].GetAbsoluteOffsetOfSlice(ms_it)) <
-                  std::numeric_limits<double>::epsilon()) {
-                std::cout
-                    << "[INFO]: Stop " << ds_it << ", slice " << ms_it
-                    << ", getting double stats from mirrored measurement slice."
-                    << std::endl;
+                  1E-3) {
+                std::cout << "[INFO]: Stop " << ds_it << ", slice " << ms_it
+                          << ", getting double stats from mirrored measurement "
+                             "slice ("
+                          << detStops[ds_it].GetAbsoluteOffsetOfSlice(ms_it)
+                          << " m)." << std::endl;
 
                 doubleupevrate.erase(doubleupevrate.begin() + du_it);
                 found = true;
@@ -564,9 +567,9 @@ int main(int argc, char const *argv[]) {
 
   oupD->cd();
 
-  oupD->mkdir("flux_build");
-  oupD->cd("flux_build");
-  wD = oupD->GetDirectory("flux_build");
+  oupD->mkdir("flux_build_unordered");
+  oupD->cd("flux_build_unordered");
+  wD = oupD->GetDirectory("flux_build_unordered");
 
   TH1D *cl_0 = static_cast<TH1D *>(Fluxes[0]->Clone());
   cl_0->Scale(coeffs[0]);
@@ -585,6 +588,62 @@ int main(int argc, char const *argv[]) {
     cl_0->Write(ss.str().c_str());
 
     delete cl;
+  }
+
+  oupD->cd();
+
+  oupD->mkdir("flux_build_ordered");
+  oupD->cd("flux_build_ordered");
+  wD = oupD->GetDirectory("flux_build_ordered");
+
+  std::vector<double> order_coeff;
+  std::vector<size_t> order_idxs;
+
+  order_coeff.resize(Fluxes.size());
+  order_idxs.resize(Fluxes.size());
+
+  for (size_t fl_it = 0; fl_it < Fluxes.size(); ++fl_it) {
+    order_coeff[fl_it] = coeffs[fl_it];
+    order_idxs[fl_it] = fl_it;
+  }
+
+  //Bubbbbles
+  bool IsOrdered = false;
+  while (!IsOrdered) {
+    IsOrdered = true;
+    for (size_t fl_it = 0; fl_it < (Fluxes.size() - 1); ++fl_it) {
+      if (abs(order_coeff[fl_it]) < abs(order_coeff[fl_it + 1])) {
+        std::swap(order_coeff[fl_it], order_coeff[fl_it + 1]);
+        std::swap(order_idxs[fl_it], order_idxs[fl_it + 1]);
+        IsOrdered = false;
+      }
+    }
+  }
+
+  std::cout << "[INFO]: Ordered by coeff: " << std::endl;
+  for (size_t fl_it = 0; fl_it < (Fluxes.size() - 1); ++fl_it) {
+    std::cout << "\t" << fl_it << ": idx: " << order_idxs[fl_it]
+              << ", coeff: " << order_coeff[fl_it] << std::endl;
+  }
+
+  TH1D *clordered_0 = static_cast<TH1D *>(Fluxes[order_idxs[0]]->Clone());
+  clordered_0->Scale(order_coeff[0]);
+  clordered_0->SetDirectory(wD);
+  ss.str("flux_0");
+  ss << "__" << order_idxs[0];
+  clordered_0->SetName(ss.str().c_str());
+  for (size_t flux_it = 1; flux_it < Fluxes.size(); flux_it++) {
+    TH1D *clordered = static_cast<TH1D *>(Fluxes[order_idxs[flux_it]]->Clone());
+    clordered->Scale(order_coeff[flux_it]);
+    clordered->SetDirectory(nullptr);
+
+    cl_0->Add(clordered);
+    ss.str("");
+    ss << "flux_sum_0-" << flux_it << "__" << order_idxs[0];
+
+    cl_0->Write(ss.str().c_str());
+
+    delete clordered;
   }
 
   oupD->cd();
