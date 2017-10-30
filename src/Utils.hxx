@@ -124,12 +124,18 @@ inline TH1D *GetHistogram(TFile *f, std::string const &fhname) {
 }
 
 inline TH1D *GetHistogram(std::string const &fname, std::string const &hname) {
+  TDirectory *ogDir = gDirectory;
+
   TFile *inpF = CheckOpenFile(fname);
 
   TH1D *h = GetHistogram(inpF, hname);
 
   inpF->Close();
   delete inpF;
+
+  if (ogDir) {
+    ogDir->cd();
+  }
 
   return h;
 }
@@ -168,6 +174,18 @@ inline void SumHistograms(TH1D *summed, double *coeffs,
   summed->Reset();
   for (size_t f_it = 0; f_it < nf; ++f_it) {
     summed->Add(histos[f_it], coeffs[f_it]);
+
+    for (Int_t bi_it = 0; bi_it < summed->GetXaxis()->GetNbins() + 1; ++bi_it) {
+      double bc = summed->GetBinContent(bi_it);
+      double be = summed->GetBinError(bi_it);
+
+      if ((bc != bc) || (be != be)) {
+        std::cout << "Produced bad histo: bin " << bi_it
+                  << " after adding coeff " << f_it << " = " << coeffs[f_it]
+                  << std::endl;
+        throw;
+      }
+    }
   }
 }
 

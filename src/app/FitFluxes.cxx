@@ -22,12 +22,13 @@ std::string inpFile, inpHistName;
 std::string oupFile;
 std::string oupDir;
 std::vector<DetectorStop> detStops;
+std::vector<std::pair<size_t, size_t> > UsedDetStopSlices;
 std::string runPlanCfg;
 
 bool UPDATEOutputFile = false;
 
 std::vector<std::pair<std::string, std::string> > XSecComponentInputs;
-std::vector<TH1D *> XSecComponents;
+std::map<std::string, TH1D *> XSecComponents;
 TH1D *TotalXSec;
 
 bool IsGauss = false;
@@ -37,6 +38,7 @@ double TargetPeakNorm;
 bool UseErrorsInTestStat = true;
 
 double CoeffLimit = 30;
+double RegFactor = 0xdeadbeef;
 
 int MaxMINUITCalls = 50000;
 
@@ -148,6 +150,12 @@ void TargetSumChi2(int &nDim, double *gout, double &result, double coeffs[],
         err;
   }
 
+  if (RegFactor != 0xdeadbeef) {
+    for (size_t i = 0; i < Fluxes.size(); i++) {
+      sumdiff += pow((coeffs[i] - coeffs[i + 1]) / RegFactor, 2);
+    }
+  }
+
   result = sumdiff;
 }
 
@@ -164,8 +172,18 @@ void TargetSumGauss(int &nDim, double *gout, double &result, double coeffs[],
     double Uncert = pow(GaussEval / 20.0, 2) + pow(TargetPeakNorm / 30.0, 2);
     sumdiff += pow(GaussEval - SummedBinContent, 2) / Uncert;
   }
+
+  double reg = 0;
+  if (RegFactor != 0xdeadbeef) {
+    for (size_t i = 0; i < Fluxes.size(); i++) {
+      reg += pow((coeffs[i] - coeffs[i + 1]) / RegFactor, 2);
+    }
+  }
+  sumdiff += reg;
+
   result = sumdiff;
-  std::cout << "[INFO]: Gauss chi2: " << sumdiff << std::endl;
+  std::cout << "[INFO]: Gauss chi2: " << sumdiff << " (reg = " << reg << " )."
+            << std::endl;
 }
 
 void SayUsage(char const *argv[]) {
@@ -232,6 +250,11 @@ void SayUsage(char const *argv[]) {
                "\t-x <ROOT file, hist name>          : Add xsec component for "
                "making event\n"
                "\t                                     rate predictions.       "
+               "           \n"
+               "\n"
+               "\t-rg <regularisation factor>        : Adds neighbouring       "
+               "coefficient\n"
+               "\t                                     regularisation.         "
                "           \n"
                "\n"
             << std::endl;
@@ -308,13 +331,16 @@ void handleOpts(int argc, char const *argv[]) {
     } else if (std::string(argv[opt]) == "-x") {
       std::vector<std::string> params =
           ParseToVect<std::string>(argv[++opt], ",");
-      if (params.size() != 2) {
+      if (params.size() < 2) {
         std::cout << "[ERROR]: Recieved " << params.size()
                   << " entrys for -x, expected 2." << std::endl;
         exit(1);
       }
-
-      XSecComponentInputs.push_back(std::make_pair(params[0], params[1]));
+      for (size_t xs_it = 1; xs_it < params.size(); ++xs_it) {
+        XSecComponentInputs.push_back(std::make_pair(params[0], params[xs_it]));
+      }
+    } else if (std::string(argv[opt]) == "-rg") {
+      RegFactor = str2T<double>(argv[++opt]);
     } else if (std::string(argv[opt]) == "-?") {
       SayUsage(argv);
       exit(0);
@@ -361,12 +387,12 @@ int main(int argc, char const *argv[]) {
   if (FluxesFile.length()) {
     if (runPlanCfg.length()) {
       detStops = ReadDetectorStopConfig(runPlanCfg);
+      referencePOT = detStops[0].POTExposure;
 
       TFile *ifl = CheckOpenFile(FluxesFile.c_str());
 
       for (size_t ds_it = 0; ds_it < detStops.size(); ++ds_it) {
         detStops[ds_it].Read(ifl);
-        referencePOT = std::max(detStops[ds_it].POTExposure, referencePOT);
 
         std::vector<double> doubleupevrate;
         for (size_t ms_it = 0; ms_it < detStops[ds_it].GetNMeasurementSlices();
@@ -400,16 +426,34 @@ int main(int argc, char const *argv[]) {
               }
             }
             if (found) {
-              MeasurementFactor.push_back(detStops[ds_it].POTExposure * 2.0);
+              MeasurementFactor.push_back(2.0 * detStops[ds_it].POTExposure /
+                                          referencePOT);
+              std::cout << "MeasurementFactor " << MeasurementFactor.size()
+                        << " = " << MeasurementFactor.back() << std::endl;
             } else {
-              MeasurementFactor.push_back(detStops[ds_it].POTExposure);
+              MeasurementFactor.push_back(detStops[ds_it].POTExposure /
+                                          referencePOT);
+              std::cout << "MeasurementFactor " << MeasurementFactor.size()
+                        << " = " << MeasurementFactor.back() << std::endl;
             }
           } else {
-            MeasurementFactor.push_back(detStops[ds_it].POTExposure);
+            MeasurementFactor.push_back(detStops[ds_it].POTExposure /
+                                        referencePOT);
+            std::cout << "MeasurementFactor " << MeasurementFactor.size()
+                      << " = " << MeasurementFactor.back() << std::endl;
           }
 
           Fluxes.push_back(detStops[ds_it].GetFluxForSpecies(ms_it, 14));
+          UsedDetStopSlices.push_back(std::make_pair(ds_it, ms_it));
         }
+
+        if (MeasurementFactor.size() != Fluxes.size()) {
+          std::cout << "[ERROR]: Didn't determine coeff POT scale for every "
+                       "flux slice."
+                    << std::endl;
+          throw;
+        }
+
         if (doubleupevrate.size()) {
           std::cout << "[ERROR]: Still had " << doubleupevrate.size()
                     << " ignored negative slices that did not have positive "
@@ -607,12 +651,12 @@ int main(int argc, char const *argv[]) {
     order_idxs[fl_it] = fl_it;
   }
 
-  //Bubbbbles
+  // Bubbbbles
   bool IsOrdered = false;
   while (!IsOrdered) {
     IsOrdered = true;
     for (size_t fl_it = 0; fl_it < (Fluxes.size() - 1); ++fl_it) {
-      if (abs(order_coeff[fl_it]) < abs(order_coeff[fl_it + 1])) {
+      if (fabs(order_coeff[fl_it]) < fabs(order_coeff[fl_it + 1])) {
         std::swap(order_coeff[fl_it], order_coeff[fl_it + 1]);
         std::swap(order_idxs[fl_it], order_idxs[fl_it + 1]);
         IsOrdered = false;
@@ -630,23 +674,83 @@ int main(int argc, char const *argv[]) {
   clordered_0->Scale(order_coeff[0]);
   clordered_0->SetDirectory(wD);
   ss.str("flux_0");
-  ss << "__" << order_idxs[0];
-  clordered_0->SetName(ss.str().c_str());
+  clordered_0->Write(ss.str().c_str());
   for (size_t flux_it = 1; flux_it < Fluxes.size(); flux_it++) {
     TH1D *clordered = static_cast<TH1D *>(Fluxes[order_idxs[flux_it]]->Clone());
     clordered->Scale(order_coeff[flux_it]);
     clordered->SetDirectory(nullptr);
 
-    cl_0->Add(clordered);
+    clordered_0->Add(clordered);
     ss.str("");
-    ss << "flux_sum_0-" << flux_it << "__" << order_idxs[0];
+    ss << "flux_order_0-" << flux_it;
 
-    cl_0->Write(ss.str().c_str());
+    clordered_0->Write(ss.str().c_str());
 
     delete clordered;
   }
 
   oupD->cd();
+
+  if (XSecComponentInputs.size() && detStops.size()) {
+    for (std::pair<std::string, std::string> hdescript : XSecComponentInputs) {
+      TH1D *hist = GetHistogram(hdescript.first, hdescript.second);
+      std::cout << "[INFO]: Got XSec component: " << hist->GetName()
+                << std::endl;
+      XSecComponents[hist->GetName()] = static_cast<TH1D *>(hist->Clone());
+      XSecComponents[hist->GetName()]->SetDirectory(nullptr);
+    }
+
+    std::vector<TH1D *> EvrRates;
+
+    for (size_t ds_it = 0; ds_it < detStops.size(); ++ds_it) {
+      detStops[ds_it].PredictEventRates(XSecComponents, 14);
+      detStops[ds_it].Write();
+    }
+
+    for (std::pair<size_t, size_t> usedSlices : UsedDetStopSlices) {
+      EvrRates.push_back(detStops[usedSlices.first].GetTotalPredictedEventRate(
+          14, usedSlices.second));
+    }
+
+    TH1D *evr = static_cast<TH1D *>(SummedFlux->Clone());
+
+    std::vector<double> evrcoeffs = MeasurementFactor;
+    for (size_t co_it = 0; co_it < evrcoeffs.size(); ++co_it) {
+      evrcoeffs[co_it] = coeffs[co_it] / evrcoeffs[co_it];
+    }
+
+    oupD->cd();
+
+    oupD->mkdir("evr_build_unordered");
+    oupD->cd("evr_build_unordered");
+    wD = oupD->GetDirectory("evr_build_unordered");
+
+    TH1D *ev_0 = static_cast<TH1D *>(EvrRates[0]->Clone());
+    ev_0->Scale(evrcoeffs[0]);
+    ev_0->SetDirectory(wD);
+    std::stringstream ss("flux_0");
+    ev_0->Write(ss.str().c_str(), TObject::kOverwrite);
+    for (size_t evr_it = 1; evr_it < EvrRates.size(); evr_it++) {
+      TH1D *ev = static_cast<TH1D *>(EvrRates[evr_it]->Clone());
+      ev->Scale(evrcoeffs[evr_it]);
+      ev->SetDirectory(nullptr);
+
+      ev_0->Add(ev);
+      ss.str("");
+      ss << "evr_sum_0-" << evr_it;
+
+      ev_0->Write(ss.str().c_str(), TObject::kOverwrite);
+
+      delete ev;
+    }
+
+    oupD->cd();
+
+    SumHistograms(evr, evrcoeffs.data(), EvrRates);
+    evr->SetDirectory(nullptr);
+    evr->GetYaxis()->SetTitle("Events / GeV");
+    evr->Write("PredictedMeasurement");
+  }
 
   SummedFlux->SetDirectory(oupD);
   SummedFlux->SetName("BestFit");
@@ -669,6 +773,39 @@ int main(int argc, char const *argv[]) {
     }
 
     tGauss->Write("Target_gauss");
+
+    if (XSecComponents.size() && detStops.size()) {
+      TGraph *tGauss_evt = new TGraph(1);
+      tGauss_evt->Set(1E4 - 1);
+
+      TH1D *totalXSec =
+          static_cast<TH1D *>(XSecComponents.begin()->second->Clone());
+      totalXSec->Reset();
+      totalXSec->SetDirectory(nullptr);
+      for (std::map<std::string, TH1D *>::iterator xs_it =
+               XSecComponents.begin();
+           xs_it != XSecComponents.end(); ++xs_it) {
+        totalXSec->Add(xs_it->second);
+      }
+
+      const double mass_proton_kg = 1.6727E-27;   // Proton mass in kg
+      const double mass_neutron_kg = 1.6750E-27;  // Neutron mass in kg
+      const double mass_nucleon_kg = (mass_proton_kg + mass_neutron_kg) / 2.;
+      double Vol = detStops[0].MeasurementRegionWidth *
+                   detStops[0].DetectorFiducialDepth *
+                   detStops[0].DetectorFiducialHeight;
+      double Mass = Vol * detStops[0].FiducialVolumeDensity;
+      double NNucleons = Mass / mass_nucleon_kg;
+
+      for (size_t i = 1; i < 1E4; ++i) {
+        double enu = min + i * step;
+        double val = TargetGauss->Eval(enu);
+        double b_evr =
+            val * totalXSec->Interpolate(enu) * referencePOT * NNucleons;
+        tGauss_evt->SetPoint(i - 1, enu, b_evr);
+      }
+      tGauss_evt->Write("Target_gauss_EvrRate");
+    }
 
   } else {
     TargetFlux->SetDirectory(oupD);

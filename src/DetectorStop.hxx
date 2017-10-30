@@ -22,8 +22,6 @@ static std::string const stagname = "Stop";
 const double mass_proton_kg = 1.6727E-27;   // Proton mass in kg
 const double mass_neutron_kg = 1.6750E-27;  // Neutron mass in kg
 const double mass_nucleon_kg = (mass_proton_kg + mass_neutron_kg) / 2.;
-
-const double pm2topcm2 = 1E-4;
 }
 
 struct DetectorStop {
@@ -162,34 +160,62 @@ struct DetectorStop {
 
   void PredictEventRates(std::map<std::string, TH1D *> XSecComponents,
                          int species) {
+    size_t ind = 0;
+
+    double Vol =
+        MeasurementRegionWidth * DetectorFiducialDepth * DetectorFiducialHeight;
+    double Mass = Vol * FiducialVolumeDensity;
+    double NNucleons = Mass / mass_nucleon_kg;
+
     for (TH1D *fl : Fluxes[species]) {
       EventRates[species]["total"].push_back(static_cast<TH1D *>(fl->Clone()));
       EventRates[species]["total"].back()->SetDirectory(nullptr);
       EventRates[species]["total"].back()->Reset();
-      EventRates[species]["total"].back()->SetTitle("Events / GeV");
+      EventRates[species]["total"].back()->GetYaxis()->SetTitle("Events / GeV");
 
       for (std::pair<std::string, TH1D *> xsc : XSecComponents) {
         EventRates[species][xsc.first].push_back(
             static_cast<TH1D *>(fl->Clone()));
         EventRates[species][xsc.first].back()->SetDirectory(nullptr);
         EventRates[species][xsc.first].back()->Reset();
-        EventRates[species][xsc.first].back()->Multiply(fl, xsc.second);
 
-        double Vol = MeasurementRegionWidth * DetectorFiducialDepth *
-                     DetectorFiducialHeight;
-        double Mass = Vol * FiducialVolumeDensity;
-        double NNucleons = Mass / mass_nucleon_kg;
+        for (Int_t bi_it = 1; bi_it < fl->GetXaxis()->GetNbins(); ++bi_it) {
+          // If flux is nu / cm^2 / GeV and xsec is cm^2 / Nucleon
+          // Then this should be an evrate / GeV
+          double b_evr =
+              fl->GetBinContent(bi_it) *
+              xsc.second->Interpolate(fl->GetXaxis()->GetBinCenter(bi_it)) *
+              POTExposure * NNucleons;
+          EventRates[species][xsc.first].back()->SetBinContent(bi_it, b_evr);
+          EventRates[species][xsc.first].back()->SetBinError(bi_it,
+                                                             sqrt(fabs(b_evr)));
+        }
 
-        // If flux is nu / m^2 / GeV and xsec is cm^2 / Nucleon
-        // Then this should be an evrate / GeV
-        EventRates[species][xsc.first].back()->Scale(POTExposure * NNucleons *
-                                                     pm2topcm2);
-        EventRates[species][xsc.first].back()->SetTitle("Events / GeV");
+        EventRates[species][xsc.first].back()->GetYaxis()->SetTitle(
+            "Events / GeV");
 
         EventRates[species]["total"].back()->Add(
             EventRates[species][xsc.first].back());
       }
+      ind++;
     }
+  }
+
+  TH1D *GetTotalPredictedEventRate(int species, size_t i) {
+    if (i >= GetNMeasurementSlices()) {
+      std::cout << "[WARN]: Requested Total event rate at slice: " << i
+                << ", but current detector configuration only specifies: "
+                << GetNMeasurementSlices() << std::endl;
+      return nullptr;
+    }
+    if (!EventRates.size() || !EventRates[species].size() ||
+        !EventRates[species]["total"].size()) {
+      std::cout << "[WARN]: Requested Total event rate at slice: " << i
+                << ", but event rate predictions for species PDG=" << species
+                << " haven't been made yet." << std::endl;
+      return nullptr;
+    }
+    return EventRates[species]["total"][i];
   }
 
   void Write() {
