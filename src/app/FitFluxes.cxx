@@ -257,6 +257,29 @@ void SayUsage(char const *argv[]) {
                "\t                                     regularisation.         "
                "           \n"
                "\n"
+               "\t-l <min val, max val>              : Fit between min and max."
+               "Outside \n"
+               "\t                                     of this range, -m       "
+               "determines\n"
+               "\t                                     behavior.             \n"
+               "\n"
+               "\t-m <0,1,2>                         : Out of range behavior.  "
+               "          \n"
+               "\t                                     0: Ignore out of range "
+               "bins.      \n"
+               "\t                                     1: Force out of range "
+               "bins to 0.  \n"
+               "\t                                     2: exponential decay "
+               "outside fit  \n"
+               "\t                                        region. decay rate "
+               "is          \n"
+               "\t                                        determined by -ed."
+               "\n"
+               "\t-ed <decay rate>                   : For -m 2, controls "
+               "decay rate.    \n"
+               "\t                                     Default = 3, larger is "
+               "faster     \n"
+               "\t                                     decay."
             << std::endl;
 }
 
@@ -324,8 +347,6 @@ void handleOpts(int argc, char const *argv[]) {
       CoeffLimit = str2T<double>(argv[++opt]);
     } else if (std::string(argv[opt]) == "-m") {
       OutOfRangeMode = str2T<int>(argv[++opt]);
-    } else if (std::string(argv[opt]) == "-E") {
-      UseErrorsInTestStat = false;
     } else if (std::string(argv[opt]) == "-r") {
       runPlanCfg = argv[++opt];
     } else if (std::string(argv[opt]) == "-x") {
@@ -333,7 +354,7 @@ void handleOpts(int argc, char const *argv[]) {
           ParseToVect<std::string>(argv[++opt], ",");
       if (params.size() < 2) {
         std::cout << "[ERROR]: Recieved " << params.size()
-                  << " entrys for -x, expected 2." << std::endl;
+                  << " entrys for -x, expected at least 2." << std::endl;
         exit(1);
       }
       for (size_t xs_it = 1; xs_it < params.size(); ++xs_it) {
@@ -341,6 +362,8 @@ void handleOpts(int argc, char const *argv[]) {
       }
     } else if (std::string(argv[opt]) == "-rg") {
       RegFactor = str2T<double>(argv[++opt]);
+    } else if (std::string(argv[opt]) == "-ed") {
+      ExpDecayRate = str2T<double>(argv[++opt]);
     } else if (std::string(argv[opt]) == "-?") {
       SayUsage(argv);
       exit(0);
@@ -500,8 +523,13 @@ int main(int argc, char const *argv[]) {
   SummedFlux->Reset();
 
   if (IsGauss) {
-    binLow = 1;
-    binHigh = SummedFlux->GetXaxis()->GetNbins();
+    if (FitBetween_low == 0xdeadbeef) {
+      binLow = 1;
+      binHigh = SummedFlux->GetXaxis()->GetNbins();
+    } else {
+      binLow = SummedFlux->GetXaxis()->FindFixBin(FitBetween_low);
+      binHigh = SummedFlux->GetXaxis()->FindFixBin(FitBetween_high);
+    }
   }
 
   TFitter *minimizer = new TFitter(Fluxes.size());
@@ -611,6 +639,20 @@ int main(int argc, char const *argv[]) {
 
   oupD->cd();
 
+  std::stringstream ss("");
+  TGraph peak_coeffs(1);
+  peak_coeffs.Set(Fluxes.size());
+  for (size_t flux_it = 0; flux_it < Fluxes.size(); flux_it++) {
+    peak_coeffs.SetPoint(
+        flux_it,
+        detStops[UsedDetStopSlices[flux_it].first].GetAbsoluteOffsetOfSlice(
+            UsedDetStopSlices[flux_it].second),
+        coeffs[flux_it]);
+  }
+  peak_coeffs.Write("coeffs_OAA");
+
+  oupD->cd();
+
   oupD->mkdir("flux_build_unordered");
   oupD->cd("flux_build_unordered");
   wD = oupD->GetDirectory("flux_build_unordered");
@@ -618,7 +660,7 @@ int main(int argc, char const *argv[]) {
   TH1D *cl_0 = static_cast<TH1D *>(Fluxes[0]->Clone());
   cl_0->Scale(coeffs[0]);
   cl_0->SetDirectory(wD);
-  std::stringstream ss("flux_0");
+  ss.str("flux_0");
   cl_0->SetName(ss.str().c_str());
   for (size_t flux_it = 1; flux_it < Fluxes.size(); flux_it++) {
     TH1D *cl = static_cast<TH1D *>(Fluxes[flux_it]->Clone());

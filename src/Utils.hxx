@@ -2,6 +2,7 @@
 #define DP_UTILS_HXX_SEEN
 
 #include "TFile.h"
+#include "TGraph.h"
 #include "TH1D.h"
 #include "TKey.h"
 #include "TRegexp.h"
@@ -187,6 +188,39 @@ inline void SumHistograms(TH1D *summed, double *coeffs,
       }
     }
   }
+}
+
+inline double FindHistogramPeak(TH1D *hist, double resolution,
+                                std::string const &WriteName) {
+  double min = hist->GetXaxis()->GetBinLowEdge(1);
+  double max = hist->GetXaxis()->GetBinUpEdge(hist->GetXaxis()->GetNbins());
+
+  Int_t NSteps = ceil((max - min) / resolution);
+  max = min + NSteps * resolution;
+
+  TGraph interp(1);
+  interp.Set(hist->GetXaxis()->GetNbins());
+
+  for (Int_t bi_it = 1; bi_it < hist->GetXaxis()->GetNbins(); ++bi_it) {
+    interp.SetPoint(bi_it - 1, hist->GetXaxis()->GetBinCenter(bi_it),
+                    hist->GetBinContent(bi_it));
+  }
+
+  double peak = std::numeric_limits<double>::min();
+  double peak_E = 0;
+
+  for (Int_t i = 0; i < NSteps; ++i) {
+    if (interp.Eval(min + i * resolution) > peak) {
+      peak = interp.Eval(min + i * resolution);
+      peak_E = min + i * resolution;
+    }
+  }
+
+  if (WriteName.length()) {
+    interp.Write(WriteName.c_str(), TObject::kOverwrite);
+  }
+
+  return peak_E;
 }
 
 template <typename T>

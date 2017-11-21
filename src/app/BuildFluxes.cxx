@@ -6,6 +6,7 @@
 #include "TFile.h"
 #include "TGraph.h"
 #include "TH1D.h"
+#include "TH2D.h"
 #include "TLorentzVector.h"
 #include "TMath.h"
 #include "TRandom3.h"
@@ -14,6 +15,7 @@
 #include <iostream>
 #include <sstream>
 #include <string>
+#include <tuple>
 #include <utility>
 #include <vector>
 
@@ -21,14 +23,14 @@ inline double CosTheta(TVector3 const &v1, TVector3 const &v2) {
   return v1.Unit().Dot(v2.Unit());
 }
 
-std::pair<double, double> GetNuWeight(DK2NuReader &dk2nuRdr,
-                                      TVector3 const &DetPoint) {
+std::tuple<double, double, double> GetNuWeight(DK2NuReader &dk2nuRdr,
+                                               TVector3 const &DetPoint) {
   static const double detRadius = 100.0;  // in cm
   static double const mumass = 0.105658389;
 
   double parent_mass = dk2nuRdr.GetParentMass();
   if (parent_mass == 0xdeadbeef) {
-    return std::make_pair(0xdeadbeef, 0xdeadbeef);
+    return std::make_tuple(0xdeadbeef, 0xdeadbeef, 0xdeadbeef);
   }
 
   TLorentzVector parent_4mom;
@@ -135,7 +137,7 @@ std::pair<double, double> GetNuWeight(DK2NuReader &dk2nuRdr,
     nu_wght *= wt_ratio;
   }
 
-  return std::make_pair(nu_energy, nu_wght);
+  return std::make_tuple(nu_energy, nuRay.Theta(), nu_wght);
 }
 
 std::vector<double> mrads;
@@ -158,7 +160,7 @@ bool VariableBinning = false;
 
 std::string outputFile;
 
-std::string runPlanCfg;
+std::string runPlanCfg, runPlanName = "";
 
 void SayUsage(char const *argv[]) {
   std::cout << "[USAGE]: " << argv[0] << "\n"
@@ -291,9 +293,14 @@ void handleOpts(int argc, char const *argv[]) {
       }
 
     } else if (std::string(argv[opt]) == "-r") {
-      runPlanCfg = argv[++opt];
-      std::cout << "\t--Reading run plan configurationf rom: " << runPlanCfg
-                << std::endl;
+      std::vector<std::string> params =
+          ParseToVect<std::string>(argv[++opt], ",");
+
+      runPlanCfg = params[0];
+
+      if (params.size() > 1) {
+        runPlanName = params[1];
+      }
     } else if (std::string(argv[opt]) == "-x") {
       std::vector<std::string> latDescriptors =
           ParseToVect<std::string>(argv[++opt], ",");
@@ -319,6 +326,8 @@ void handleOpts(int argc, char const *argv[]) {
     opt++;
   }
 }
+
+constexpr double rad2deg = 90.0 / asin(1);
 
 void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
   TRandom3 rnjesus;
@@ -414,8 +423,6 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
   for (size_t ang_it = 0; ang_it < NAngs; ++ang_it) {
     detPoses.push_back(TVector3(ZDist * tan(mrads[ang_it] * 1.0E-3), 0, ZDist));
 
-    static const double rad2deg = 90.0 / asin(1);
-
     std::cout << "[INFO]: Building flux at: "
               << (mrads[ang_it] * 1.0E-3 * rad2deg) << " degrees ("
               << mrads[ang_it] << " mrads) Offset = "
@@ -442,9 +449,10 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
         det_point[1] += (2.0 * rnjesus.Uniform() - 1.0) * detector_height;
       }
 
-      std::pair<double, double> nuStats = GetNuWeight(dk2nuRdr, det_point);
+      std::tuple<double, double, double> nuStats =
+          GetNuWeight(dk2nuRdr, det_point);
 
-      double w = nuStats.second * wF;
+      double w = std::get<2>(nuStats) * wF;
 
       int nuPDG_it =
           std::distance(NuPDGTargets.begin(),
@@ -456,26 +464,26 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
         exit(1);
       }
 
-      Hists[ang_it][nuPDG_it][0]->Fill(nuStats.first, w);
+      Hists[ang_it][nuPDG_it][0]->Fill(std::get<0>(nuStats), w);
 
-      if ((nuStats.first != nuStats.first) || (w != w)) {
-        std::cout << nuStats.first << ", " << w << std::endl;
+      if ((std::get<0>(nuStats) != std::get<0>(nuStats)) || (w != w)) {
+        std::cout << std::get<0>(nuStats) << ", " << w << std::endl;
         throw;
       }
 
       if (DoExtra) {
         if ((dk2nuRdr.decay_ptype == 211) || (dk2nuRdr.decay_ptype == -211)) {
-          Hists[ang_it][nuPDG_it][1]->Fill(nuStats.first, w);
+          Hists[ang_it][nuPDG_it][1]->Fill(std::get<0>(nuStats), w);
         } else if ((dk2nuRdr.decay_ptype == 321) ||
                    (dk2nuRdr.decay_ptype == -321)) {
-          Hists[ang_it][nuPDG_it][2]->Fill(nuStats.first, w);
+          Hists[ang_it][nuPDG_it][2]->Fill(std::get<0>(nuStats), w);
         } else if ((dk2nuRdr.decay_ptype == 311) ||
                    (dk2nuRdr.decay_ptype == 310) ||
                    (dk2nuRdr.decay_ptype == 130)) {
-          Hists[ang_it][nuPDG_it][3]->Fill(nuStats.first, w);
+          Hists[ang_it][nuPDG_it][3]->Fill(std::get<0>(nuStats), w);
         } else if ((dk2nuRdr.decay_ptype == 13) ||
                    (dk2nuRdr.decay_ptype == -13)) {
-          Hists[ang_it][nuPDG_it][4]->Fill(nuStats.first, w);
+          Hists[ang_it][nuPDG_it][4]->Fill(std::get<0>(nuStats), w);
         }
       }
     }
@@ -517,6 +525,7 @@ void CalculateFluxesForRunPlan(DK2NuReader &dk2nuRdr, double TotalPOT,
   std::vector<TVector3> detPositions;
 
   std::vector<std::map<int, TH1D *> > Fluxes;
+  std::vector<std::map<int, TH2D *> > Divergences;
 
   std::stringstream ss("");
 
@@ -538,6 +547,7 @@ void CalculateFluxesForRunPlan(DK2NuReader &dk2nuRdr, double TotalPOT,
           TVector3(MeasurementsOffsets.back() * 100.0, 0, ZDist));
 
       std::map<int, TH1D *> fluxhistos;
+      std::map<int, TH2D *> divhistos;
 
       for (int species : {-14, -12, 12, 14}) {
         ss.str("");
@@ -545,18 +555,29 @@ void CalculateFluxesForRunPlan(DK2NuReader &dk2nuRdr, double TotalPOT,
            << ms_it << "_" << MeasurementsOffsets.back() << "_m";
 
         fluxhistos[species] = VariableBinning
-                                  ? new TH1D((ss.str()).c_str(),
+                                  ? new TH1D(ss.str().c_str(),
                                              ";#it{E}_{#nu} (GeV);#Phi_{#nu} "
                                              "(GeV^{-1}cm^{-2} per POT)",
                                              varBin.size() - 1, varBin.data())
-                                  : new TH1D((ss.str()).c_str(),
+                                  : new TH1D(ss.str().c_str(),
                                              ";#it{E}_{#nu} (GeV);#Phi_{#nu} "
                                              "(GeV^{-1}cm^{-2} per POT)",
                                              NBins, BLow, BUp);
         fluxhistos[species]->SetDirectory(nullptr);
+
+        ss.str("");
+        ss << GetSpeciesName(species) << "_divergence_stop_" << ds_it
+           << "_slice_" << ms_it << "_" << MeasurementsOffsets.back() << "_m";
+        divhistos[species] =
+            new TH2D(ss.str().c_str(),
+                     ";#it{E}_{#nu} (GeV);#theta_{#nu} (degrees);#Phi_{#nu} "
+                     "per POT",
+                     80, BLow, BUp, 240, 0, 6);
+        divhistos[species]->SetDirectory(nullptr);
       }
 
       Fluxes.push_back(fluxhistos);
+      Divergences.push_back(divhistos);
     }
   }
 
@@ -579,16 +600,20 @@ void CalculateFluxesForRunPlan(DK2NuReader &dk2nuRdr, double TotalPOT,
       det_point[1] += (2.0 * rnjesus.Uniform() - 1.0) *
                       MeasurementHalfHeights[slice_it] * 100.0;
 
-      std::pair<double, double> nuStats = GetNuWeight(dk2nuRdr, det_point);
+      std::tuple<double, double, double> nuStats =
+          GetNuWeight(dk2nuRdr, det_point);
 
-      double w = nuStats.second * wF;
+      double w = std::get<2>(nuStats) * wF;
 
-      if ((nuStats.first != nuStats.first) || (w != w)) {
-        std::cout << nuStats.first << ", " << w << std::endl;
+      if ((std::get<0>(nuStats) != std::get<0>(nuStats)) || (w != w)) {
+        std::cout << std::get<0>(nuStats) << ", " << w << std::endl;
         throw;
       }
 
-      Fluxes[slice_it][dk2nuRdr.decay_ntype]->Fill(nuStats.first, w);
+      Fluxes[slice_it][dk2nuRdr.decay_ntype]->Fill(std::get<0>(nuStats), w);
+      Divergences[slice_it][dk2nuRdr.decay_ntype]->Fill(
+          std::get<0>(nuStats), std::get<1>(nuStats) * (180.0 / TMath::Pi()),
+          w);
     }
   }
 
@@ -599,10 +624,40 @@ void CalculateFluxesForRunPlan(DK2NuReader &dk2nuRdr, double TotalPOT,
       for (int species : {-14, -12, 12, 14}) {
         Fluxes[slice_it][species]->Scale(1E-4, "width");
         ds.AddSliceFlux(ms_it, species, Fluxes[slice_it][species]);
+        ds.AddSliceDivergence(ms_it, species, Divergences[slice_it][species]);
       }
       slice_it++;
     }
     ds.Write();
+  }
+
+  std::map<int, TGraph> FluxNorms = {{-14, TGraph(Fluxes.size())},
+                                     {14, TGraph(Fluxes.size())},
+                                     {-12, TGraph(Fluxes.size())},
+                                     {12, TGraph(Fluxes.size())}};
+
+  slice_it = 0;
+  for (size_t ds_it = 0; ds_it < detStops.size(); ++ds_it) {
+    DetectorStop &ds = detStops[ds_it];
+    for (size_t ms_it = 0; ms_it < ds.GetNMeasurementSlices(); ++ms_it) {
+      for (int species : {-14, -12, 12, 14}) {
+        double sliceOffset = ds.GetAbsoluteOffsetOfSlice(ms_it);
+        double theta_rad = atan(sliceOffset / ZDist);
+        FluxNorms[species].SetPoint(
+            slice_it, theta_rad * rad2deg,
+            ds.GetFluxForSpecies(ms_it, species)->Integral("width"));
+      }
+      slice_it++;
+    }
+  }
+
+  for (int species : {-14, -12, 12, 14}) {
+    FluxNorms[species].GetXaxis()->SetTitle("Off-axis angle (Degrees)");
+    FluxNorms[species].GetYaxis()->SetTitle(
+        "#Phi_{#nu}^{Total} per m^{2} per POT");
+    ss.str("");
+    ss << GetSpeciesName(species) << "_norm";
+    FluxNorms[species].Write(ss.str().c_str(), TObject::kOverwrite);
   }
 
   outfile->Write();
@@ -648,7 +703,8 @@ int main(int argc, char const *argv[]) {
   std::cout << "Total POT: " << TotalPOT << std::endl;
 
   if (runPlanCfg.length()) {
-    std::vector<DetectorStop> detStops = ReadDetectorStopConfig(runPlanCfg);
+    std::vector<DetectorStop> detStops =
+        ReadDetectorStopConfig(runPlanCfg, runPlanName);
     CalculateFluxesForRunPlan(*dk2nuRdr, TotalPOT, detStops);
   } else {
     AllInOneGo(*dk2nuRdr, TotalPOT);

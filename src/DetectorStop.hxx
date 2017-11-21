@@ -4,6 +4,8 @@
 #include "Utils.hxx"
 
 #include "TH1D.h"
+#include "TH2D.h"
+#include "TProfile.h"
 #include "TXMLEngine.h"
 
 #include <array>
@@ -36,6 +38,7 @@ struct DetectorStop {
   double POTExposure;
 
   std::map<int, std::vector<TH1D *> > Fluxes;
+  std::map<int, std::vector<TH2D *> > Divergences;
   std::map<int, std::map<std::string, std::vector<TH1D *> > > EventRates;
 
   DetectorStop()
@@ -111,6 +114,9 @@ struct DetectorStop {
   }
 
   size_t GetNMeasurementSlices() {
+    if (DetectorFiducialWidth == MeasurementRegionWidth) {
+      return 1;
+    }
     return floor((DetectorFiducialWidth / 2.0) / MeasurementRegionWidth) * 2;
   }
 
@@ -144,6 +150,25 @@ struct DetectorStop {
     Fluxes[species][i]->SetDirectory(nullptr);
   }
 
+  void AddSliceDivergence(size_t i, int species, TH2D const *flux) {
+    if (i >= GetNMeasurementSlices()) {
+      std::cout << "[WARN]: Requested position of slice: " << i
+                << ", but current detector configuration only specifies: "
+                << GetNMeasurementSlices() << std::endl;
+      return;
+    }
+
+    if (!Divergences.count(species)) {
+      Divergences[species] = std::vector<TH2D *>();
+    }
+
+    if (Divergences[species].size() < (i + 1)) {
+      Divergences[species].resize(i + 1);
+    }
+    Divergences[species][i] = static_cast<TH2D *>(flux->Clone());
+    Divergences[species][i]->SetDirectory(nullptr);
+  }
+
   std::vector<TH1D *> GetFluxesForSpecies(int species) {
     return Fluxes[species];
   }
@@ -157,6 +182,15 @@ struct DetectorStop {
     }
     return Fluxes[species][i];
   }
+
+  double SliceMass() {
+    double Vol =
+        MeasurementRegionWidth * DetectorFiducialDepth * DetectorFiducialHeight;
+    double Mass = Vol * FiducialVolumeDensity;
+    return Mass;
+  }
+
+  double Mass() { return SliceMass() * double(GetNMeasurementSlices()); }
 
   void PredictEventRates(std::map<std::string, TH1D *> XSecComponents,
                          int species) {
@@ -218,6 +252,29 @@ struct DetectorStop {
     return EventRates[species]["total"][i];
   }
 
+  TH1D *GetPredictedEventRate(std::string const &xs, int species, size_t i) {
+    if (i >= GetNMeasurementSlices()) {
+      std::cout << "[WARN]: Requested event rate at slice: " << i
+                << ", but current detector configuration only specifies: "
+                << GetNMeasurementSlices() << std::endl;
+      return nullptr;
+    }
+    if (!EventRates.size() || !EventRates[species].size()) {
+      std::cout << "[WARN]: Requested event rate at slice: " << i
+                << ", but event rate predictions for species PDG=" << species
+                << " haven't been made yet." << std::endl;
+      return nullptr;
+    }
+    if (!EventRates[species][xs].size()) {
+      std::cout << "[WARN]: Requested event rate at slice: " << i
+                << ", but event rate predictions for xs component " << xs
+                << " haven't been made yet." << std::endl;
+      return nullptr;
+    }
+
+    return EventRates[species][xs][i];
+  }
+
   void Write() {
     TDirectory *ogDir = gDirectory;
 
@@ -244,6 +301,21 @@ struct DetectorStop {
         fl->SetName(ss.str().c_str());
         fl->Write(fl->GetName(), TObject::kOverwrite);
         fl->SetDirectory(nullptr);
+      }
+
+      for (size_t div_it = 0; div_it < Divergences[species].size(); ++div_it) {
+        TH2D *dv = Divergences[species][div_it];
+        ss.str("");
+        ss << GetSpeciesName(species) << "_divergence_"
+           << GetAbsoluteOffsetOfSlice(div_it) << "_m";
+
+        dv->SetName(ss.str().c_str());
+        dv->Write(dv->GetName(), TObject::kOverwrite);
+        dv->SetDirectory(nullptr);
+
+        TProfile *pfx = dv->ProfileX();
+        pfx->Write(pfx->GetName(), TObject::kOverwrite);
+        pfx->SetDirectory(nullptr);
       }
 
       if (!EventRates.count(species) || !EventRates[species].size()) {
@@ -347,7 +419,7 @@ struct DetectorStop {
 };
 
 inline std::vector<DetectorStop> ReadDetectorStopConfig(
-    std::string const &fname) {
+    std::string const &fname, std::string const &RPName = "") {
   TXMLEngine xE;
   xE.SetSkipComments(true);
   XMLDocPointer_t doc = xE.ParseFile(fname.c_str());
@@ -364,6 +436,21 @@ inline std::vector<DetectorStop> ReadDetectorStopConfig(
   XMLNodePointer_t root_child = xE.GetChild(rootNode);
   while (root_child) {  // Look for run plan node
     if (rptagname == xE.GetNodeName(root_child)) {
+      bool found;
+      std::string name =
+          GetXMLAttributeValue<std::string>(root_child, "Name", found);
+      if (RPName.size()) {
+        if (!found) {
+          std::cout << "[INFO]: Ignoring unnamed run plan." << std::endl;
+          root_child = xE.GetNext(root_child);
+          continue;
+        }
+        if (RPName != name) {
+          std::cout << "[INFO]: Ignoring run plan named: " << name << std::endl;
+          root_child = xE.GetNext(root_child);
+          continue;
+        }
+      }
       XMLNodePointer_t rp_child = xE.GetChild(root_child);
       DetectorStop detDefinition;
       bool foundDetDefinition = false;

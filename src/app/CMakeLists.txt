@@ -1,6 +1,7 @@
 SET(APPS BuildFluxes
   FitFluxes
-  OscillateFlux)
+  OscillateFlux
+  PredictRunPlanEventRates)
 
   include_directories(${INCLUDE_DIRECTORIES})
 
