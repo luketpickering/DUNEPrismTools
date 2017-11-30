@@ -9,6 +9,7 @@
 #include <sstream>
 #include <string>
 #include <vector>
+#include <algorithm>
 
 //Dumb bullshit initialization from pyroot stuff 
 const int maxInit = 100;
@@ -34,11 +35,18 @@ class DunePrismAnalyzer{
     TTree * eventTree;
     TTree * gOutTree;
    
+    std::vector<int> trackPi0;//trackIDs of pi0s
+    std::map<int,int> trackGamma;//< trackID -> parid > of gammas
+    std::vector< std::pair<int,double> > trackE; //(parid,edep)
+    std::vector< std::pair<int,double> > trackEIn; //(parid,edep)
+    std::vector< std::pair<int,double> > trackEOut; //(parid,edep)
+
     double dimension[3];
     double FV[3];
     double shift;
   
     int nEntries;
+    int ev;
     double Enu;
     double EvtVtx[3];
     int nuPID;
@@ -53,6 +61,8 @@ class DunePrismAnalyzer{
     double mi[maxInit];
 
     int PID[maxNQ];
+    int track[maxNQ];
+    int parid[maxNQ];
     double xs[maxNQ];
     double xe[maxNQ];
     double ys[maxNQ];
@@ -75,22 +85,40 @@ class DunePrismAnalyzer{
     std::vector<double> mu_py;
     std::vector<double> mu_pz;
 
-    int flagExitBack = 0;
-    int flagExitFront = 0;
-    int flagExitY = 0;
-    int flagExitRight = 0;
-    int flagExitLeft = 0;
+    bool flagExitBack = 0;
+    bool flagExitFront = 0;
+    bool flagExitY = 0;
+    bool flagExitXHigh = 0;
+    bool flagExitXLow = 0;
 
-    double muExitingP[3];
+    double muExitingPX;
+    double muExitingPY;
+    double muExitingPZ;
 
-    double eHadOut;
-    double eHadIn;
+    double eHadOutDep;
+    double eHadInDep;
     double eHadTotalDep;
+
+    double ePi0TotalDep;
+    double ePi0InDep;
+    double ePi0OutDep;
+
+    double eMuDep;
+    double eMuTotalDep;
 
     double eHadTrueCharged;
     double eHadTrueTotal;
-    double eMu;
+    double eMuTrue;
 
+    bool flagNoEHadOut;
+    bool flagMuContained; 
+
+    int nMu;
+    int nPi0;
+    int nPiC;
+    int nProton;
+    int nNeutron;
+    int eventNum;
   private:
 };
 
