@@ -1,10 +1,13 @@
 #include "TTree.h"
 #include "TFile.h"
 #include "TH1.h"
+#include "TXMLEngine.h"
 #include "TH2.h"
+#include "xml_parse.h"
 
 #include <array>
 #include <iostream>
+#include <iomanip>
 #include <map>
 #include <sstream>
 #include <string>
@@ -21,35 +24,50 @@ class DunePrismAnalyzer{
 
     //Functions
     DunePrismAnalyzer(std::string inFileName, std::string outFileName, double det[3], double fid[3], double off);
+    DunePrismAnalyzer(std::string inFileName, std::string outFileName, std::vector<DetectorStop> detStops);
     virtual ~DunePrismAnalyzer(){}; 
-    void Analyze();
+    //void Analyze();
+    void AnalyzeStops();
     void Finalize();
+    void FinalizeStops();
     void SetBranches();
+    void SetInBranches();
+    void SetOutBranches( int stop);
+    void InitVarsStop();
     ////////////////////
 
     TFile * fin;
     TFile * fout;
 
     TTree * inTree;
-    TTree * gTree;
     TTree * eventTree;
     TTree * gOutTree;
    
+    std::vector<TTree*> stopsTrees;
+    int nStops;
+
     std::vector<int> trackPi0;//trackIDs of pi0s
     std::map<int,int> trackGamma;//< trackID -> parid > of gammas
+    std::vector<int> trackPiC;//trackIDs of pics
+    std::vector<int> trackProton;//trackIDs of protons
+    std::vector<int> trackMu;//trackIDs of muons
     std::vector< std::pair<int,double> > trackE; //(parid,edep)
     std::vector< std::pair<int,double> > trackEIn; //(parid,edep)
     std::vector< std::pair<int,double> > trackEOut; //(parid,edep)
 
-    double dimension[3];
+/*    double dimension[3];
     double FV[3];
-    double shift;
+    double shift;*/
+
+    std::vector< std::array<double,3> > dimension;
+    std::vector< std::array<double,3> > FV;
+    std::vector<double> shift;
   
     int nEntries;
     int ev;
-    double Enu;
-    double EvtVtx[3];
+    double ekina;
     int nuPID;
+    double EvtVtx[3];
 
     int nstep;
     int ni;
@@ -85,40 +103,71 @@ class DunePrismAnalyzer{
     std::vector<double> mu_py;
     std::vector<double> mu_pz;
 
-    bool flagExitBack = 0;
-    bool flagExitFront = 0;
-    bool flagExitY = 0;
-    bool flagExitXHigh = 0;
-    bool flagExitXLow = 0;
+    //Output
+    std::vector<int> eventNum;
+    std::vector<double> Enu;
+    std::vector<double> vtx_X;
+    std::vector<double> vtx_Y;
+    std::vector<double> vtx_Z;
 
-    double muExitingPX;
-    double muExitingPY;
-    double muExitingPZ;
+    std::vector<int> flagExitBack;
+    std::vector<int> flagExitFront;
+    std::vector<int> flagExitY;
+    std::vector<int> flagExitXHigh;
+    std::vector<int> flagExitXLow;
+    std::vector<int> flagNoEHadOut;
+    std::vector<int> flagMuContained; 
 
-    double eHadOutDep;
-    double eHadInDep;
-    double eHadTotalDep;
+    std::vector<double> muExitingPX;
+    std::vector<double> muExitingPY;
+    std::vector<double> muExitingPZ;
 
-    double ePi0TotalDep;
-    double ePi0InDep;
-    double ePi0OutDep;
+    std::vector<double> eHadOutDep;
+    std::vector<double> eHadInDep;
+    std::vector<double> eHadTotalDep;
 
-    double eMuDep;
-    double eMuTotalDep;
+    std::vector<double> ePi0TotalDep;
+    std::vector<double> ePi0InDep;
+    std::vector<double> ePi0OutDep;
 
-    double eHadTrueCharged;
-    double eHadTrueTotal;
-    double eMuTrue;
+    std::vector<double> ePiCTotalDep;
+    std::vector<double> ePiCInDep;
+    std::vector<double> ePiCOutDep;
 
-    bool flagNoEHadOut;
-    bool flagMuContained; 
+    std::vector<double> eProtonTotalDep;
+    std::vector<double> eProtonInDep;
+    std::vector<double> eProtonOutDep;
 
-    int nMu;
-    int nPi0;
-    int nPiC;
-    int nProton;
-    int nNeutron;
-    int eventNum;
+    std::vector<double> ePiCEMTotalDep;
+    std::vector<double> ePiCEMInDep;
+    std::vector<double> ePiCEMOutDep;
+
+    std::vector<double> eProtonEMTotalDep;
+    std::vector<double> eProtonEMInDep;
+    std::vector<double> eProtonEMOutDep;
+
+    std::vector<double> eMuEMTotalDep;
+    std::vector<double> eMuEMInDep;
+    std::vector<double> eMuEMOutDep;
+
+    std::vector<double> eResidualEMTotalDep;
+    std::vector<double> eResidualEMInDep;
+    std::vector<double> eResidualEMOutDep;
+
+    std::vector<double> eMuDep;
+    std::vector<double> eMuTotalDep;
+
+    std::vector<double> eHadTrueCharged;
+    std::vector<double> eHadTrueTotal;
+    std::vector<double> eMuTrue;
+
+
+    std::vector<int> nMu;
+    std::vector<int> nPi0;
+    std::vector<int> nPiC;
+    std::vector<int> nProton;
+    std::vector<int> nNeutron;
+
   private:
 };
 
@@ -130,6 +179,7 @@ double offset;
 std::string inFileName;
 std::string outFileName;
 
+std::vector<DetectorStop> detStops;
 
 
 void parse_args(int argc, char* argv[]){
@@ -155,4 +205,24 @@ void parse_args(int argc, char* argv[]){
     else if(flag == "--offset") offset = atof(argv[i+1]);
   }
 }
+
+void parse_args_xml(int argc, char* argv[]){
+  for (int i = 1; i < argc; ++i){
+
+    std::string flag = argv[i];
+
+    if(flag == "-i") inFileName = argv[i+1];
+
+    else if(flag == "-o") outFileName = argv[i+1];
+
+    else if(flag == "-x"){
+      std::cout << argv[i+1] << std::endl;
+      detStops = ReadDetectorStopConfig(argv[i+1]);
+      std::cout << "size "<<  detStops.size() << std::endl;
+    }
+    
+  }
+}
+
+
 
