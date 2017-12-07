@@ -156,10 +156,16 @@ class DunePrismAnalyzer{
 
     std::vector<double> eMuDep;
     std::vector<double> eMuTotalDep;
+    std::vector<double> eMuSecondaryDep;
+
+    std::vector<double> eReco;
 
     std::vector<double> eHadTrueCharged;
     std::vector<double> eHadTrueTotal;
     std::vector<double> eMuTrue;
+    std::vector<double> pMuTrueX;
+    std::vector<double> pMuTrueY;
+    std::vector<double> pMuTrueZ;
 
 
     std::vector<int> nMu;

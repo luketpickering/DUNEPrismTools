@@ -769,6 +769,7 @@ void DunePrismAnalyzer::AnalyzeStops(){
 
     eMuDep.at(stop_num) = 0.;
     eMuTotalDep.at(stop_num) = 0.;
+    eMuSecondaryDep.at(stop_num) = 0.;
 
     std::vector<int>::iterator itPi0;
     std::map<int,int>::iterator itGamma;
@@ -791,7 +792,7 @@ void DunePrismAnalyzer::AnalyzeStops(){
     for(int i = 0; i < nstep; ++i){
 
       //Look for muon track
-      if(PID[i] == 13 && !muEnd){
+      if(PID[i] == 13 && !muEnd && parid[i] == 0){//Checking for initial muon
         if(!found) {
 //          std::cout<<"found start of muon track"<<std::endl;
           found = true;          
@@ -805,7 +806,7 @@ void DunePrismAnalyzer::AnalyzeStops(){
         eMuTotalDep.at(stop_num) += edep[i];
 
         //check if it hits the walls
-        if(xe[i] < wallX[0] - FV.at(stop_num)[0]){
+        if(xe[i] <= wallX[0] - FV.at(stop_num)[0]){
           flagExitXLow.at(stop_num) = true; 
           muExitingPX.at(stop_num) = pxe[i];
           muExitingPY.at(stop_num) = pye[i];
@@ -817,7 +818,7 @@ void DunePrismAnalyzer::AnalyzeStops(){
           #endif
           muEnd = true;
         }
-        else if(xe[i] > wallX[1] + FV.at(stop_num)[0]){ 
+        else if(xe[i] >= wallX[1] + FV.at(stop_num)[0]){ 
           flagExitXHigh.at(stop_num) = true; 
           muExitingPX.at(stop_num) = pxe[i];
           muExitingPY.at(stop_num) = pye[i];
@@ -830,7 +831,7 @@ void DunePrismAnalyzer::AnalyzeStops(){
           muEnd = true;
         }
 
-        if(abs(ye[i]) > wallY + FV.at(stop_num)[1]){ 
+        if(abs(ye[i]) >= wallY + FV.at(stop_num)[1]){ 
           flagExitY.at(stop_num) = true; 
           muExitingPX.at(stop_num) = pxe[i];
           muExitingPY.at(stop_num) = pye[i];
@@ -843,7 +844,7 @@ void DunePrismAnalyzer::AnalyzeStops(){
           muEnd = true;
         }
 
-        if(ze[i] > wallZ + FV.at(stop_num)[2]){ 
+        if(ze[i] >= wallZ + FV.at(stop_num)[2]){ 
           flagExitBack.at(stop_num) = true; 
           muExitingPX.at(stop_num) = pxe[i];
           muExitingPY.at(stop_num) = pye[i];
@@ -855,7 +856,7 @@ void DunePrismAnalyzer::AnalyzeStops(){
           #endif
           muEnd = true;
         }
-        else if(ze[i] < -wallZ - FV.at(stop_num)[2]){ 
+        else if(ze[i] <= -wallZ - FV.at(stop_num)[2]){ 
           flagExitFront.at(stop_num) = true; 
           muExitingPX.at(stop_num) = pxe[i];
           muExitingPY.at(stop_num) = pye[i];
@@ -869,8 +870,19 @@ void DunePrismAnalyzer::AnalyzeStops(){
         }
       }
 
-      else if(PID[i] == 13 && muEnd){//Energy dep outside detector
+      else if(PID[i] == 13 && muEnd && parid[i] == 0){//Energy dep outside detector
         eMuTotalDep.at(stop_num) += edep[i];
+      }
+
+      //Add in step to look for secondary muons
+      else if(PID[i] == 13 && parid[i] != 0){
+        eMuSecondaryDep.at(stop_num) += edep[i];
+        if(xe[i] > wallX[0] + FV.at(stop_num)[0]
+        && xe[i] < wallX[1] + FV.at(stop_num)[0]
+        && abs(ye[i]) < wallY + FV.at(stop_num)[1] 
+        && abs(ze[i]) < wallZ + FV.at(stop_num)[2]){
+          eMuSecondaryDep.at(stop_num) += edep[i];
+        }
       }
 
       //Look for hadronic energy deposits
@@ -981,6 +993,8 @@ void DunePrismAnalyzer::AnalyzeStops(){
     eResidualEMTotalDep.at(stop_num) = 0.;
     eResidualEMInDep.at(stop_num) = 0.;
     eResidualEMOutDep.at(stop_num) = 0.;
+
+    eReco.at(stop_num) = 0.;
 
     //Iterate over e+- edeps, check if parid in gamma map
     //if so: check if gamma parid in pi0 vector
@@ -1148,14 +1162,24 @@ void DunePrismAnalyzer::AnalyzeStops(){
 
     }
 
-    flagNoEHadOut.at(stop_num) = (ePi0OutDep.at(stop_num) == 0 && ( ePi0TotalDep.at(stop_num) == ePi0InDep.at(stop_num) )
-                     && eHadOutDep.at(stop_num) == 0 
-                     && ( eHadTotalDep.at(stop_num) == eHadInDep.at(stop_num) ) );
+    eReco.at(stop_num) = eMuDep.at(stop_num) + eProtonInDep.at(stop_num) + ePiCInDep.at(stop_num) + ePi0InDep.at(stop_num) + eMuEMInDep.at(stop_num) + eProtonEMInDep.at(stop_num) + ePiCEMInDep.at(stop_num) + eResidualEMInDep.at(stop_num);
+
+    flagNoEHadOut.at(stop_num) = 
+                      ( ePi0OutDep.at(stop_num) == 0 && ( ePi0TotalDep.at(stop_num) == ePi0InDep.at(stop_num) )
+                     && eProtonOutDep.at(stop_num) == 0 
+                     && ePiCOutDep.at(stop_num) == 0 
+                     && eProtonEMOutDep.at(stop_num) == 0
+                     && ePiCEMOutDep.at(stop_num) == 0
+                     /*&& eResidualEMInDep.at(stop_num) == 0*/);
     ////////////////////////////////////
 
     eHadTrueCharged.at(stop_num) = 0.;
     eHadTrueTotal.at(stop_num) = 0.;
     eMuTrue.at(stop_num) = 0.;
+
+    pMuTrueX.at(stop_num) = 0.;
+    pMuTrueY.at(stop_num) = 0.;
+    pMuTrueZ.at(stop_num) = 0.;
 
     nMu.at(stop_num) = 0;
     nPi0.at(stop_num) = 0;
@@ -1164,12 +1188,13 @@ void DunePrismAnalyzer::AnalyzeStops(){
     nNeutron.at(stop_num) = 0;
 
     //Start of particle loop
-//    std::cout << "Starting true FS particle loop "<< ni << std::endl;
-
     for(int ip = 0; ip < ni; ++ip){
       //std::cout << ip << std::endl;
-      if(PIDi[ip] == 13){
+      if(PIDi[ip] == 13){ //Initial muon 
         eMuTrue.at(stop_num) += ekini[ip] + mi[ip];
+        pMuTrueX.at(stop_num) += pxi[ip];
+        pMuTrueY.at(stop_num) += pyi[ip];
+        pMuTrueZ.at(stop_num) += pzi[ip];
         nMu.at(stop_num)++;
       }
       else if(PIDi[ip] == 111){
@@ -1344,6 +1369,7 @@ void DunePrismAnalyzer::SetOutBranches(int stop){
 
   stopsTrees.at(stop)->Branch("eMuDep",&eMuDep.at(stop),"eMuDep/D");
   stopsTrees.at(stop)->Branch("eMuTotalDep",&eMuTotalDep.at(stop),"eMuTotalDep/D");
+  stopsTrees.at(stop)->Branch("eMuSecondaryDep",&eMuSecondaryDep.at(stop),"eMuSecondaryDep/D");
 
   stopsTrees.at(stop)->Branch("ePi0TotalDep",&ePi0TotalDep.at(stop),"ePi0TotalDep/D");
   stopsTrees.at(stop)->Branch("ePi0InDep",&ePi0InDep.at(stop),"ePi0InDep/D");
@@ -1373,9 +1399,14 @@ void DunePrismAnalyzer::SetOutBranches(int stop){
   stopsTrees.at(stop)->Branch("eResidualEMInDep",&eResidualEMInDep.at(stop),"eResidualEMInDep/D");
   stopsTrees.at(stop)->Branch("eResidualEMOutDep",&eResidualEMOutDep.at(stop),"eResidualEMOutDep/D");
 
+  stopsTrees.at(stop)->Branch("eReco",&eReco.at(stop),"eReco/D");
+
   stopsTrees.at(stop)->Branch("eHadTrueCharged",&eHadTrueCharged.at(stop),"eHadTrueCharged/D");
   stopsTrees.at(stop)->Branch("eHadTrueTotal",&eHadTrueTotal.at(stop),"eHadTrueTotal/D");
   stopsTrees.at(stop)->Branch("eMuTrue",&eMuTrue.at(stop),"eMuTrue/D");
+  stopsTrees.at(stop)->Branch("pMuTrueX",&pMuTrueX.at(stop),"pMuTrueX/D");
+  stopsTrees.at(stop)->Branch("pMuTrueY",&pMuTrueY.at(stop),"pMuTrueY/D");
+  stopsTrees.at(stop)->Branch("pMuTrueZ",&pMuTrueZ.at(stop),"pMuTrueZ/D");
   stopsTrees.at(stop)->Branch("nMu",&nMu.at(stop),"nMu/I");
   stopsTrees.at(stop)->Branch("nPi0",&nPi0.at(stop),"nPi0/I");
   stopsTrees.at(stop)->Branch("nPiC",&nPiC.at(stop),"nPiC/I");
@@ -1437,10 +1468,16 @@ void DunePrismAnalyzer::InitVarsStop(){
 
   eMuDep.push_back(0.);
   eMuTotalDep.push_back(0.);
+  eMuSecondaryDep.push_back(0.);
+
+  eReco.push_back(0.);
 
   eHadTrueCharged.push_back(0.);
   eHadTrueTotal.push_back(0.);
   eMuTrue.push_back(0.);
+  pMuTrueX.push_back(0.);
+  pMuTrueY.push_back(0.);
+  pMuTrueZ.push_back(0.);
 
   nMu.push_back(0.);
   nPi0.push_back(0.);
