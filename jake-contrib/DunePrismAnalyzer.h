@@ -66,6 +66,9 @@ class DunePrismAnalyzer{
     int nEntries;
     int ev;
     double ekina;
+    double pxa;
+    double pya;
+    double pza;
     int nuPID;
     double EvtVtx[3];
 
@@ -167,6 +170,9 @@ class DunePrismAnalyzer{
     std::vector<double> pMuTrueY;
     std::vector<double> pMuTrueZ;
 
+    std::vector<double> Q2True;
+    std::vector<double> yTrue;
+    std::vector<double> W_rest;
 
     std::vector<int> nMu;
     std::vector<int> nPi0;

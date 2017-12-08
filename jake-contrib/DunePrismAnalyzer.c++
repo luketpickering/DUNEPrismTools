@@ -831,7 +831,7 @@ void DunePrismAnalyzer::AnalyzeStops(){
           muEnd = true;
         }
 
-        if(abs(ye[i]) >= wallY + FV.at(stop_num)[1]){ 
+        if(fabs(ye[i]) >= wallY + FV.at(stop_num)[1]){ 
           flagExitY.at(stop_num) = true; 
           muExitingPX.at(stop_num) = pxe[i];
           muExitingPY.at(stop_num) = pye[i];
@@ -879,8 +879,8 @@ void DunePrismAnalyzer::AnalyzeStops(){
         eMuSecondaryDep.at(stop_num) += edep[i];
         if(xe[i] > wallX[0] + FV.at(stop_num)[0]
         && xe[i] < wallX[1] + FV.at(stop_num)[0]
-        && abs(ye[i]) < wallY + FV.at(stop_num)[1] 
-        && abs(ze[i]) < wallZ + FV.at(stop_num)[2]){
+        && fabs(ye[i]) < wallY + FV.at(stop_num)[1] 
+        && fabs(ze[i]) < wallZ + FV.at(stop_num)[2]){
           eMuSecondaryDep.at(stop_num) += edep[i];
         }
       }
@@ -895,12 +895,12 @@ void DunePrismAnalyzer::AnalyzeStops(){
 
         //Inside walls. Excuse terrible naming
         if(xe[i] > (wallX[0] - FV.at(stop_num)[0]) && xe[i] < (wallX[1] + FV.at(stop_num)[0])&&
-          abs(ye[i]) < (wallY + FV.at(stop_num)[0]) && abs(ze[i]) < (wallZ + FV.at(stop_num)[0])
+          fabs(ye[i]) < (wallY + FV.at(stop_num)[0]) && fabs(ze[i]) < (wallZ + FV.at(stop_num)[0])
           ){
         
           //Between wall and FV
           if(xe[i] < wallX[0] || xe[i] > wallX[1] ||
-            abs(ye[i]) > wallY || abs(ze[i]) > wallZ){
+            fabs(ye[i]) > wallY || fabs(ze[i]) > wallZ){
             
             eProtonOutDep.at(stop_num) += edep[i]; 
           }
@@ -917,12 +917,12 @@ void DunePrismAnalyzer::AnalyzeStops(){
 
         //Inside walls. Excuse terrible naming
         if(xe[i] > (wallX[0] - FV.at(stop_num)[0]) && xe[i] < (wallX[1] + FV.at(stop_num)[0])&&
-          abs(ye[i]) < (wallY + FV.at(stop_num)[0]) && abs(ze[i]) < (wallZ + FV.at(stop_num)[0])
+          fabs(ye[i]) < (wallY + FV.at(stop_num)[0]) && fabs(ze[i]) < (wallZ + FV.at(stop_num)[0])
           ){
         
           //Between wall and FV
           if(xe[i] < wallX[0] || xe[i] > wallX[1] ||
-            abs(ye[i]) > wallY || abs(ze[i]) > wallZ){
+            fabs(ye[i]) > wallY || fabs(ze[i]) > wallZ){
             
             ePiCOutDep.at(stop_num) += edep[i]; 
           }
@@ -953,12 +953,12 @@ void DunePrismAnalyzer::AnalyzeStops(){
 
         //Inside walls. Excuse terrible naming
         if(xe[i] > (wallX[0] - FV.at(stop_num)[0]) && xe[i] < (wallX[1] + FV.at(stop_num)[0])&&
-          abs(ye[i]) < (wallY + FV.at(stop_num)[0]) && abs(ze[i]) < (wallZ + FV.at(stop_num)[0])
+          fabs(ye[i]) < (wallY + FV.at(stop_num)[0]) && fabs(ze[i]) < (wallZ + FV.at(stop_num)[0])
           ){
         
           //Between wall and FV
           if(xe[i] < wallX[0] || xe[i] > wallX[1] ||
-            abs(ye[i]) > wallY || abs(ze[i]) > wallZ){
+            fabs(ye[i]) > wallY || fabs(ze[i]) > wallZ){
             
             trackEOut.push_back( std::make_pair(parid[i],edep[i]) ); 
           }
@@ -1191,10 +1191,20 @@ void DunePrismAnalyzer::AnalyzeStops(){
     for(int ip = 0; ip < ni; ++ip){
       //std::cout << ip << std::endl;
       if(PIDi[ip] == 13){ //Initial muon 
-        eMuTrue.at(stop_num) += ekini[ip] + mi[ip];
-        pMuTrueX.at(stop_num) += pxi[ip];
-        pMuTrueY.at(stop_num) += pyi[ip];
-        pMuTrueZ.at(stop_num) += pzi[ip];
+        eMuTrue.at(stop_num) = ekini[ip] + mi[ip];
+        pMuTrueX.at(stop_num) = pxi[ip];
+        pMuTrueY.at(stop_num) = pyi[ip];
+        pMuTrueZ.at(stop_num) = pzi[ip];
+
+        Q2True.at(stop_num) = fabs( pow( (ekina - eMuTrue.at(stop_num)), 2 ) 
+                                 - pow( (pxi[ip] - pxa), 2 )
+                                 - pow( (pyi[ip] - pya), 2 )
+                                 - pow( (pzi[ip] - pza), 2 ) );
+
+        yTrue.at(stop_num) = 1  - ekini[ip]/ekina;
+        double mN = .93827208;
+        W_rest.at(stop_num) = sqrt(-Q2True.at(stop_num) + 2 * mN * (ekina - eMuTrue.at(stop_num)) + mN * mN);
+
         nMu.at(stop_num)++;
       }
       else if(PIDi[ip] == 111){
@@ -1321,6 +1331,9 @@ void DunePrismAnalyzer::SetInBranches(){
   inTree->SetBranchAddress("xa",&EvtVtx[0]);
   inTree->SetBranchAddress("ya",&EvtVtx[1]);
   inTree->SetBranchAddress("za",&EvtVtx[2]);
+  inTree->SetBranchAddress("pxa",&pxa);
+  inTree->SetBranchAddress("pya",&pya);
+  inTree->SetBranchAddress("pza",&pza);
   inTree->SetBranchAddress("pida",&nuPID);
   
   inTree->SetBranchAddress("pid",&PID);
@@ -1407,6 +1420,11 @@ void DunePrismAnalyzer::SetOutBranches(int stop){
   stopsTrees.at(stop)->Branch("pMuTrueX",&pMuTrueX.at(stop),"pMuTrueX/D");
   stopsTrees.at(stop)->Branch("pMuTrueY",&pMuTrueY.at(stop),"pMuTrueY/D");
   stopsTrees.at(stop)->Branch("pMuTrueZ",&pMuTrueZ.at(stop),"pMuTrueZ/D");
+
+  stopsTrees.at(stop)->Branch("Q2True",&Q2True.at(stop),"Q2True/D"); 
+  stopsTrees.at(stop)->Branch("yTrue",&yTrue.at(stop),"yTrue/D"); 
+  stopsTrees.at(stop)->Branch("W_rest",&W_rest.at(stop),"W_rest/D"); 
+
   stopsTrees.at(stop)->Branch("nMu",&nMu.at(stop),"nMu/I");
   stopsTrees.at(stop)->Branch("nPi0",&nPi0.at(stop),"nPi0/I");
   stopsTrees.at(stop)->Branch("nPiC",&nPiC.at(stop),"nPiC/I");
@@ -1478,6 +1496,10 @@ void DunePrismAnalyzer::InitVarsStop(){
   pMuTrueX.push_back(0.);
   pMuTrueY.push_back(0.);
   pMuTrueZ.push_back(0.);
+
+  Q2True.push_back(0.);
+  yTrue.push_back(0.);
+  W_rest.push_back(0.);
 
   nMu.push_back(0.);
   nPi0.push_back(0.);
