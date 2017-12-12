@@ -152,6 +152,7 @@ struct DetectorStop {
                 << ", Slice: " << i << ". Adding this one." << std::endl;
 
       Fluxes[species][i]->Add(flux);
+      Fluxes[species][i]->Scale(0.5);
     } else {
       Fluxes[species][i] = static_cast<TH1D *>(flux->Clone());
       Fluxes[species][i]->SetDirectory(nullptr);

@@ -49,6 +49,7 @@ void handleOpts(int argc, char const *argv[]) {
 }
 
 int main(int argc, char const *argv[]) {
+  TH1::SetDefaultSumw2();
   handleOpts(argc, argv);
 
   if (!runPlanCfg.size()) {
