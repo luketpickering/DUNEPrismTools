@@ -84,7 +84,7 @@ inline std::vector<double> BuildDoubleList(std::string const &str) {
   double step = str2T<double>(steps[1]);
 
   std::vector<double> range = ParseToVect<double>(steps[0], "_");
-  if (!steps.size() == 2) {
+  if (steps.size() != 2) {
     std::cout
         << "[ERROR]: When attempting to parse bin range descriptor: \" " << str
         << "\", couldn't determine range. Expect form: <bin1low>_<binXUp>:step"
@@ -101,8 +101,8 @@ inline std::vector<double> BuildDoubleList(std::string const &str) {
   return rtn;
 }
 
-inline TFile *CheckOpenFile(std::string const &fname) {
-  TFile *inpF = new TFile(fname.c_str());
+inline TFile *CheckOpenFile(std::string const &fname, char const *opts="") {
+  TFile *inpF = new TFile(fname.c_str(),opts);
   if (!inpF || !inpF->IsOpen()) {
     std::cout << "[ERROR]: Couldn't open input file: " << fname << std::endl;
     exit(1);

@@ -131,7 +131,8 @@ struct DetectorStop {
             (MeasurementRegionWidth * (double(i) + 0.5)));
   }
 
-  void AddSliceFlux(size_t i, int species, TH1D const *flux) {
+  void AddSliceFlux(size_t i, int species, TH1D const *flux,
+                    bool CanAdd = false) {
     if (i >= GetNMeasurementSlices()) {
       std::cout << "[WARN]: Requested position of slice: " << i
                 << ", but current detector configuration only specifies: "
@@ -146,8 +147,15 @@ struct DetectorStop {
     if (Fluxes[species].size() < (i + 1)) {
       Fluxes[species].resize(i + 1);
     }
-    Fluxes[species][i] = static_cast<TH1D *>(flux->Clone());
-    Fluxes[species][i]->SetDirectory(nullptr);
+    if (Fluxes[species][i] && CanAdd) {
+      std::cout << "[INFO]: Already have an entry for Species: " << species
+                << ", Slice: " << i << ". Adding this one." << std::endl;
+
+      Fluxes[species][i]->Add(flux);
+    } else {
+      Fluxes[species][i] = static_cast<TH1D *>(flux->Clone());
+      Fluxes[species][i]->SetDirectory(nullptr);
+    }
   }
 
   void AddSliceDivergence(size_t i, int species, TH2D const *flux) {
@@ -365,7 +373,7 @@ struct DetectorStop {
     }
   }
 
-  void Read(TFile *inpF) {
+  void Read(TFile *inpF, bool CanAdd=false) {
     TDirectory *ogDir = gDirectory;
 
     std::stringstream ss("");
@@ -384,7 +392,7 @@ struct DetectorStop {
                     << ss.str() << "\" in the input file." << std::endl;
           continue;
         }
-        AddSliceFlux(fl_it, species, fl);
+        AddSliceFlux(fl_it, species, fl, CanAdd);
         NRead++;
       }
     }
