@@ -12,9 +12,9 @@
 #include <iostream>
 #include <string>
 
-std::string runPlanCfg, runPlanName;
-std::string input_pattern;
-std::string outputfile;
+std::string runPlanCfg = "", runPlanName = "";
+std::string input_pattern = "";
+std::string outputfile = "";
 
 void SayUsage(char const *argv[]) {
   std::cout << "[USAGE]: " << argv[0] << std::endl;
@@ -31,20 +31,20 @@ void handleOpts(int argc, char const *argv[]) {
 
       if (params.size() > 1) {
         runPlanName = params[1];
-      } else if (std::string(argv[opt]) == "-i") {
-        input_pattern = argv[++opt];
-      } else if (std::string(argv[opt]) == "-o") {
-        outputfile = argv[++opt];
-      } else if (std::string(argv[opt]) == "-?") {
-        SayUsage(argv);
-        exit(0);
-      } else {
-        std::cout << "[ERROR]: Unknown option: " << argv[opt] << std::endl;
-        SayUsage(argv);
-        exit(1);
       }
-      opt++;
+    } else if (std::string(argv[opt]) == "-i") {
+      input_pattern = argv[++opt];
+    } else if (std::string(argv[opt]) == "-o") {
+      outputfile = argv[++opt];
+    } else if (std::string(argv[opt]) == "-?") {
+      SayUsage(argv);
+      exit(0);
+    } else {
+      std::cout << "[ERROR]: Unknown option: " << argv[opt] << std::endl;
+      SayUsage(argv);
+      exit(1);
     }
+    opt++;
   }
 }
 
