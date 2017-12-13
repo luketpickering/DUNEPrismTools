@@ -677,6 +677,7 @@ DunePrismAnalyzer::DunePrismAnalyzer(std::string inFileName, std::string outFile
 
 void DunePrismAnalyzer::AnalyzeStops(){
   for (int ie = 0; ie < nEntries; ++ie){
+//  for (int ie = 0; ie < 3; ++ie){
     if(!(ie%100))std::cout<<"Entry " << ie<<std::endl;
     inTree->GetEntry(ie);
     if(nuPID != 14) continue;
@@ -703,6 +704,7 @@ void DunePrismAnalyzer::AnalyzeStops(){
     double wallX[2] = {0.,0.};
     double wallY = 0.;
     double wallZ = 0.;
+ 
 
     for(int i = 0; i < nStops; ++i){
 
@@ -723,9 +725,6 @@ void DunePrismAnalyzer::AnalyzeStops(){
       stop_num = i;
       noStops = false;
 
-      #ifdef DEBUG
-//      std::cout << "Inside FV "<< stop_num << std::endl;
-      #endif
 
       break;//Leave after finding first stop
             //that contains the event
@@ -739,9 +738,121 @@ void DunePrismAnalyzer::AnalyzeStops(){
     vtx_Y.at(stop_num) = EvtVtx[1];
     vtx_Z.at(stop_num) = EvtVtx[2];
     eventNum.at(stop_num) = ev; 
+
+    double muonBoundX[2] = {
+      wallX[0] - FV.at(stop_num)[0],
+      wallX[1] + FV.at(stop_num)[0]
+    };
+    double muonBoundY = wallY + FV.at(stop_num)[1];
+    double muonBoundZ = wallZ + FV.at(stop_num)[1];
    
     bool found = false;
     bool muEnd = false;
+
+    eHadTrueCharged.at(stop_num) = 0.;
+    eHadTrueTotal.at(stop_num) = 0.;
+    eMuTrue.at(stop_num) = 0.;
+
+    pMuTrueX.at(stop_num) = 0.;
+    pMuTrueY.at(stop_num) = 0.;
+    pMuTrueZ.at(stop_num) = 0.;
+
+    nMu.at(stop_num) = 0;
+    nPi0.at(stop_num) = 0;
+    nPiC.at(stop_num) = 0;
+    nProton.at(stop_num) = 0;
+    nNeutron.at(stop_num) = 0;
+
+    std::map<int,int> chain;
+
+    int nBindino = 0;
+    int nOther = 0;
+    //Start of particle loop
+    for(int ip = 0; ip < ni; ++ip){
+      //std::cout << ip << std::endl;
+      if (PIDi[ip] == 2000000101){
+        nBindino++;
+        continue;//Skip bindino
+      }
+//      trueFS[ip + 1] = std::make_pair(PIDI[ip],ekini[ip]); 
+      chain[ip + 1] = 0; 
+      if(PIDi[ip] == 13){ //Initial muon 
+       
+        FSMuon = new DepoMuon(
+          PIDi[ip], (ip + 1), ekini[ip],
+          muonBoundX, muonBoundY, muonBoundZ); 
+
+        eMuTrue.at(stop_num) = ekini[ip] + mi[ip];
+        pMuTrueX.at(stop_num) = pxi[ip];
+        pMuTrueY.at(stop_num) = pyi[ip];
+        pMuTrueZ.at(stop_num) = pzi[ip];
+
+        Q2True.at(stop_num) = fabs( pow( (ekina - eMuTrue.at(stop_num)), 2 ) 
+                                 - pow( (pxi[ip] - pxa), 2 )
+                                 - pow( (pyi[ip] - pya), 2 )
+                                 - pow( (pzi[ip] - pza), 2 ) );
+
+        yTrue.at(stop_num) = 1  - ekini[ip]/ekina;
+        double mN = .93827208;
+        W_rest.at(stop_num) = sqrt(-Q2True.at(stop_num) + 2 * mN * (ekina - eMuTrue.at(stop_num)) + mN * mN);
+
+        nMu.at(stop_num)++;
+      }
+      else if(PIDi[ip] == 111){
+        eHadTrueCharged.at(stop_num) += ekini[ip] + mi[ip];
+        nPi0.at(stop_num)++;
+        DepoHadron * hadron = new DepoHadron(
+          PIDi[ip], (ip + 1), ekini[ip],
+          wallX, wallY, wallZ);
+        FSHadrons[ip + 1] = hadron;
+      }
+      else if(abs(PIDi[ip]) == 211 ){
+        eHadTrueCharged.at(stop_num) += ekini[ip] + mi[ip];
+        nPiC.at(stop_num)++;
+        DepoHadron * hadron = new DepoHadron(
+          PIDi[ip], (ip + 1), ekini[ip],
+          wallX, wallY, wallZ);
+        FSHadrons[ip + 1] = hadron;
+      }
+      else if(PIDi[ip] == 2212){
+        eHadTrueCharged.at(stop_num) += ekini[ip];
+        nProton.at(stop_num)++;
+        DepoHadron * hadron = new DepoHadron(
+          PIDi[ip], (ip + 1), ekini[ip],
+          wallX, wallY, wallZ);
+        FSHadrons[ip + 1] = hadron;
+      }
+      else if(PIDi[ip] == 2112){
+        eHadTrueTotal.at(stop_num) += ekini[ip];
+        nNeutron.at(stop_num)++;
+        DepoHadron * hadron = new DepoHadron(
+          PIDi[ip], (ip + 1), ekini[ip],
+          wallX, wallY, wallZ);
+        FSHadrons[ip + 1] = hadron;
+      }
+      else if(PIDi[ip] == 22){
+        eGammaTrue.at(stop_num) += ekini[ip];
+        nGamma.at(stop_num)++;
+        DepoHadron * hadron = new DepoHadron(
+          PIDi[ip], (ip + 1), ekini[ip],
+          wallX, wallY, wallZ);
+        FSHadrons[ip + 1] = hadron;
+        //Add it to hadrons because I'm lazy 
+        //to make a new thing
+      }
+      else{
+        std::cout << "Skipping non standard FS particle " 
+        << PIDi[ip] <<std::endl;
+        nOther++;
+      }
+    }
+
+    int nPrimary = ni - nBindino - nOther;
+
+    if (nMu.at(stop_num) == 0) continue;
+
+    eHadTrueTotal.at(stop_num) += eHadTrueCharged.at(stop_num); 
+    ///////////////////////////////////
 
     flagExitBack.at(stop_num) = 0;
     flagExitFront.at(stop_num) = 0;
@@ -755,7 +866,7 @@ void DunePrismAnalyzer::AnalyzeStops(){
     muExitingPY.at(stop_num) = 0.;
     muExitingPZ.at(stop_num) = 0.;
 
-    eHadOutDep.at(stop_num) = 0.;
+    /*eHadOutDep.at(stop_num) = 0.;
     eHadInDep.at(stop_num) = 0.;
     eHadTotalDep.at(stop_num) = 0.;
 
@@ -770,6 +881,15 @@ void DunePrismAnalyzer::AnalyzeStops(){
     eMuDep.at(stop_num) = 0.;
     eMuTotalDep.at(stop_num) = 0.;
     eMuSecondaryDep.at(stop_num) = 0.;
+*/
+    eMuPrimaryDep.at(stop_num) = 0.;
+    eMuSecondaryDep.at(stop_num) = 0.;
+
+    eHadPrimaryDepIn.at(stop_num) = 0.;
+    eHadSecondaryDepIn.at(stop_num) = 0.;
+
+    eHadPrimaryDepOut.at(stop_num) = 0.;
+    eHadSecondaryDepOut.at(stop_num) = 0.;
 
     std::vector<int>::iterator itPi0;
     std::map<int,int>::iterator itGamma;
@@ -788,8 +908,134 @@ void DunePrismAnalyzer::AnalyzeStops(){
     trackEIn.clear();
     trackEOut.clear();
 
-    ///////Start of step loop
+//    std::map<int,int>::iterator itChain; 
+
+/*    std::cout << ni << " " << nstep<< std::endl;
+    std::cout << nMu.at(stop_num) << " " << (FSMuon) << std::endl; 
+    std::cout << FSHadrons.size() << std::endl;
+    std::cout << ie << std::endl;*/
     for(int i = 0; i < nstep; ++i){
+//      if(!(i % 100))*/std::cout << "\t" <<  i << std::endl;
+//      std::cout << "\t Track: "<<track[i] << " parid " <<parid[i]<< " pid " <<PID[i] <<  std::endl;
+      if(chain.find(track[i]) == chain.end()){//Not in chain
+        if(chain.find(parid[i]) == chain.end()){//Error
+          std::cout << "ERROR: PARENT NOT FOUND" << std::endl;
+          break;
+        }
+        chain[track[i]] = parid[i];
+      }
+    
+      if(chain[track[i]] == 0){//Primary
+//        std::cout << "Found Primary " << track[i] << " " 
+//        << PID[i] << std::endl;
+        //Do stuff with primary
+        //if muon: keep updating the final position
+        //till the end
+
+        if(PID[i] == 13){//Muon
+          if(FSMuon->trackID != track[i]){
+            std::cout << "ERROR: Wrong muon track" << std::endl;  
+          }
+
+          FSMuon->eDepPrimary += edep[i];
+          FSMuon->xf = xe[i];
+          FSMuon->yf = ye[i];
+          FSMuon->zf = ze[i];
+
+          FSMuon->pxf = pxe[i];
+          FSMuon->pyf = pye[i];
+          FSMuon->pzf = pze[i];
+        }
+        else{//Hadron
+          if(xe[i] <= FSHadrons[track[i]]->xBound[0] ||
+             xe[i] >= FSHadrons[track[i]]->xBound[1] ||
+              fabs(ye[i]) >= FSHadrons[track[i]]->yBound ||
+              fabs(ze[i]) >= FSHadrons[track[i]]->zBound){
+            
+            FSHadrons[track[i]]->eDepPrimaryOut += edep[i];
+          }
+          else{
+            FSHadrons[track[i]]->eDepPrimaryIn += edep[i];
+          }         
+        }
+      }
+      else{//Secondary
+
+        //Find ultimate parent
+        int itChain = track[i];
+        while (chain[itChain] != 0){
+          itChain = chain[itChain];                
+        }
+//        std::cout << "Found Secondary " << track[i] << " " 
+ //       << PID[i] << "\n\t of primary " << itChain << std::endl;        
+        if(itChain == 1){//Muon
+          FSMuon->eDepSecondary += edep[i];
+        }
+        else{//Hadron
+          if(FSHadrons.find(itChain) == FSHadrons.end()){
+            std::cout << "ERROR: ULTIMATE HADRON NOT IN FS" << std::endl;
+            break;
+          }
+          if(xe[i] <= FSHadrons[itChain]->xBound[0] ||
+             xe[i] >= FSHadrons[itChain]->xBound[1] ||
+              fabs(ye[i]) >= FSHadrons[itChain]->yBound ||
+              fabs(ze[i]) >= FSHadrons[itChain]->zBound){
+            
+            FSHadrons[itChain]->eDepSecondaryOut += edep[i];
+          }
+          else{
+            FSHadrons[itChain]->eDepSecondaryIn += edep[i];
+          }
+        }
+      }
+    }
+
+/*    std::cout << FSMuon->PDG << " " << FSMuon->trackID 
+    << " " << FSMuon->eKin << " " 
+    << FSMuon->eDepPrimary + FSMuon->eDepSecondary << std::endl;*/
+
+    eMuPrimaryDep.at(stop_num) += FSMuon->eDepPrimary;
+    eMuSecondaryDep.at(stop_num) += FSMuon->eDepSecondary;
+
+    FSMuon->CheckContained();
+
+    flagExitXLow.at(stop_num) = FSMuon->flagExitXLow;
+    flagExitXHigh.at(stop_num) = FSMuon->flagExitXHigh;
+    flagExitY.at(stop_num) = FSMuon->flagExitY;
+    flagExitBack.at(stop_num) = FSMuon->flagExitBack;
+    flagExitFront.at(stop_num) = FSMuon->flagExitFront;
+    flagMuContained.at(stop_num) = FSMuon->flagMuContained;
+
+    muExitingPX.at(stop_num) = FSMuon->pxf;
+    muExitingPY.at(stop_num) = FSMuon->pyf;
+    muExitingPZ.at(stop_num) = FSMuon->pzf;   
+
+    flagNoEHadOut.at(stop_num) = 0;
+
+    for(int ip = 2; ip <= nPrimary; ++ip){
+//        std::cout << ip << std::endl;
+/*      std::cout << FSHadrons[ip]->PDG << " " << FSHadrons[ip]->trackID 
+      << " " << FSHadrons[ip]->eKin << " " 
+      << FSHadrons[ip]->eDepPrimaryIn << " " <<  FSHadrons[ip]->eDepSecondaryIn << " "
+      << FSHadrons[ip]->eDepPrimaryOut << " " << FSHadrons[ip]->eDepSecondaryOut << std::endl;*/
+
+      eHadPrimaryDepIn.at(stop_num) += FSHadrons[ip]->eDepPrimaryIn;
+      eHadSecondaryDepIn.at(stop_num) += FSHadrons[ip]->eDepSecondaryIn;
+
+      eHadPrimaryDepOut.at(stop_num) += FSHadrons[ip]->eDepPrimaryOut;
+      eHadSecondaryDepOut.at(stop_num) += FSHadrons[ip]->eDepSecondaryOut;
+
+      if(FSHadrons[ip]->eDepPrimaryOut + FSHadrons[ip]->eDepSecondaryOut > 0.000000000000000001){
+        flagNoEHadOut.at(stop_num) = 1;
+      }
+
+    }
+
+    eReco.at(stop_num) = eMuPrimaryDep.at(stop_num) + eMuSecondaryDep.at(stop_num) 
+    + eHadPrimaryDepIn.at(stop_num) + eHadSecondaryDepIn.at(stop_num);
+
+    ///////Start of step loop
+/*    for(int i = 0; i < nstep; ++i){
 
       //Look for muon track
       if(PID[i] == 13 && !muEnd && parid[i] == 0){//Checking for initial muon
@@ -1169,63 +1415,10 @@ void DunePrismAnalyzer::AnalyzeStops(){
                      && eProtonOutDep.at(stop_num) == 0 
                      && ePiCOutDep.at(stop_num) == 0 
                      && eProtonEMOutDep.at(stop_num) == 0
-                     && ePiCEMOutDep.at(stop_num) == 0
-                     /*&& eResidualEMInDep.at(stop_num) == 0*/);
+                     && ePiCEMOutDep.at(stop_num) == 0*/
+    //                 /*&& eResidualEMInDep.at(stop_num) == 0*/);
     ////////////////////////////////////
 
-    eHadTrueCharged.at(stop_num) = 0.;
-    eHadTrueTotal.at(stop_num) = 0.;
-    eMuTrue.at(stop_num) = 0.;
-
-    pMuTrueX.at(stop_num) = 0.;
-    pMuTrueY.at(stop_num) = 0.;
-    pMuTrueZ.at(stop_num) = 0.;
-
-    nMu.at(stop_num) = 0;
-    nPi0.at(stop_num) = 0;
-    nPiC.at(stop_num) = 0;
-    nProton.at(stop_num) = 0;
-    nNeutron.at(stop_num) = 0;
-
-    //Start of particle loop
-    for(int ip = 0; ip < ni; ++ip){
-      //std::cout << ip << std::endl;
-      if(PIDi[ip] == 13){ //Initial muon 
-        eMuTrue.at(stop_num) = ekini[ip] + mi[ip];
-        pMuTrueX.at(stop_num) = pxi[ip];
-        pMuTrueY.at(stop_num) = pyi[ip];
-        pMuTrueZ.at(stop_num) = pzi[ip];
-
-        Q2True.at(stop_num) = fabs( pow( (ekina - eMuTrue.at(stop_num)), 2 ) 
-                                 - pow( (pxi[ip] - pxa), 2 )
-                                 - pow( (pyi[ip] - pya), 2 )
-                                 - pow( (pzi[ip] - pza), 2 ) );
-
-        yTrue.at(stop_num) = 1  - ekini[ip]/ekina;
-        double mN = .93827208;
-        W_rest.at(stop_num) = sqrt(-Q2True.at(stop_num) + 2 * mN * (ekina - eMuTrue.at(stop_num)) + mN * mN);
-
-        nMu.at(stop_num)++;
-      }
-      else if(PIDi[ip] == 111){
-        eHadTrueCharged.at(stop_num) += ekini[ip] + mi[ip];
-        nPi0.at(stop_num)++;
-      }
-      else if(abs(PIDi[ip]) == 211 ){
-        eHadTrueCharged.at(stop_num) += ekini[ip] + mi[ip];
-        nPiC.at(stop_num)++;
-      }
-      else if(PIDi[ip] == 2212){
-        eHadTrueCharged.at(stop_num) += ekini[ip];
-        nProton.at(stop_num)++;
-      }
-      else if(PIDi[ip] == 2112){
-        eHadTrueTotal.at(stop_num) += ekini[ip];
-        nNeutron.at(stop_num)++;
-      }
-    }
-    eHadTrueTotal.at(stop_num) += eHadTrueCharged.at(stop_num); 
-    ///////////////////////////////////
 
     stopsTrees.at(stop_num)->Fill();
   }
@@ -1376,7 +1569,21 @@ void DunePrismAnalyzer::SetOutBranches(int stop){
   stopsTrees.at(stop)->Branch("muExitingPY",&muExitingPY.at(stop),"muExitingPY/D");
   stopsTrees.at(stop)->Branch("muExitingPZ",&muExitingPZ.at(stop),"muExitingPZ/D");
 
-  stopsTrees.at(stop)->Branch("eHadOutDep",&eHadOutDep.at(stop),"eHadOutDep/D");
+  stopsTrees.at(stop)->Branch("eMuPrimaryDep",&eMuPrimaryDep.at(stop),"eMuPrimaryDep/D");
+  stopsTrees.at(stop)->Branch("eMuSecondaryDep",&eMuSecondaryDep.at(stop),"eMuSecondaryDep/D");
+
+  stopsTrees.at(stop)->Branch("eHadPrimaryDepIn",&eHadPrimaryDepIn.at(stop),"eHadPrimaryDepIn/D");
+  stopsTrees.at(stop)->Branch("eHadSecondaryDepIn",&eHadSecondaryDepIn.at(stop),"eHadSecondaryDepIn/D");
+
+  stopsTrees.at(stop)->Branch("eHadPrimaryDepOut",&eHadPrimaryDepOut.at(stop),"eHadPrimaryDepOut/D");
+  stopsTrees.at(stop)->Branch("eHadSecondaryDepOut",&eHadSecondaryDepOut.at(stop),"eHadSecondaryDepOut/D");
+
+  stopsTrees.at(stop)->Branch("eGammaPrimaryDepIn",&eGammaPrimaryDepIn.at(stop),"eGammaPrimaryDepIn/D");
+  stopsTrees.at(stop)->Branch("eGammaSecondaryDepIn",&eGammaSecondaryDepIn.at(stop),"eGammaSecondaryDepIn/D");
+
+  stopsTrees.at(stop)->Branch("eGammaPrimaryDepOut",&eGammaPrimaryDepOut.at(stop),"eGammaPrimaryDepOut/D");
+  stopsTrees.at(stop)->Branch("eGammaSecondaryDepOut",&eGammaSecondaryDepOut.at(stop),"eGammaSecondaryDepOut/D");
+/*  stopsTrees.at(stop)->Branch("eHadOutDep",&eHadOutDep.at(stop),"eHadOutDep/D");
   stopsTrees.at(stop)->Branch("eHadInDep",&eHadInDep.at(stop),"eHadInDep/D");
   stopsTrees.at(stop)->Branch("eHadTotalDep",&eHadTotalDep.at(stop),"eHadTotalDep/D");
 
@@ -1410,13 +1617,14 @@ void DunePrismAnalyzer::SetOutBranches(int stop){
 
   stopsTrees.at(stop)->Branch("eResidualEMTotalDep",&eResidualEMTotalDep.at(stop),"eResidualEMTotalDep/D");
   stopsTrees.at(stop)->Branch("eResidualEMInDep",&eResidualEMInDep.at(stop),"eResidualEMInDep/D");
-  stopsTrees.at(stop)->Branch("eResidualEMOutDep",&eResidualEMOutDep.at(stop),"eResidualEMOutDep/D");
+  stopsTrees.at(stop)->Branch("eResidualEMOutDep",&eResidualEMOutDep.at(stop),"eResidualEMOutDep/D");*/
 
   stopsTrees.at(stop)->Branch("eReco",&eReco.at(stop),"eReco/D");
 
   stopsTrees.at(stop)->Branch("eHadTrueCharged",&eHadTrueCharged.at(stop),"eHadTrueCharged/D");
   stopsTrees.at(stop)->Branch("eHadTrueTotal",&eHadTrueTotal.at(stop),"eHadTrueTotal/D");
   stopsTrees.at(stop)->Branch("eMuTrue",&eMuTrue.at(stop),"eMuTrue/D");
+  stopsTrees.at(stop)->Branch("eGammaTrue",&eGammaTrue.at(stop),"eGammaTrue/D");
   stopsTrees.at(stop)->Branch("pMuTrueX",&pMuTrueX.at(stop),"pMuTrueX/D");
   stopsTrees.at(stop)->Branch("pMuTrueY",&pMuTrueY.at(stop),"pMuTrueY/D");
   stopsTrees.at(stop)->Branch("pMuTrueZ",&pMuTrueZ.at(stop),"pMuTrueZ/D");
@@ -1426,6 +1634,7 @@ void DunePrismAnalyzer::SetOutBranches(int stop){
   stopsTrees.at(stop)->Branch("W_rest",&W_rest.at(stop),"W_rest/D"); 
 
   stopsTrees.at(stop)->Branch("nMu",&nMu.at(stop),"nMu/I");
+  stopsTrees.at(stop)->Branch("nGamma",&nGamma.at(stop),"nGamma/I");
   stopsTrees.at(stop)->Branch("nPi0",&nPi0.at(stop),"nPi0/I");
   stopsTrees.at(stop)->Branch("nPiC",&nPiC.at(stop),"nPiC/I");
   stopsTrees.at(stop)->Branch("nProton",&nProton.at(stop),"nProton/I");
@@ -1452,7 +1661,7 @@ void DunePrismAnalyzer::InitVarsStop(){
   muExitingPY.push_back(0.);
   muExitingPZ.push_back(0.);
 
-  eHadOutDep.push_back(0.);
+/*  eHadOutDep.push_back(0.);
   eHadInDep.push_back(0.);
   eHadTotalDep.push_back(0.);
 
@@ -1487,12 +1696,29 @@ void DunePrismAnalyzer::InitVarsStop(){
   eMuDep.push_back(0.);
   eMuTotalDep.push_back(0.);
   eMuSecondaryDep.push_back(0.);
+*/
+  
+  eMuPrimaryDep.push_back(0.);
+  eMuSecondaryDep.push_back(0.);
+
+  eHadPrimaryDepIn.push_back(0.);
+  eHadSecondaryDepIn.push_back(0.);
+
+  eHadPrimaryDepOut.push_back(0.);
+  eHadSecondaryDepOut.push_back(0.);
+
+  eGammaPrimaryDepIn.push_back(0.);
+  eGammaSecondaryDepIn.push_back(0.);
+
+  eGammaPrimaryDepOut.push_back(0.);
+  eGammaSecondaryDepOut.push_back(0.);
 
   eReco.push_back(0.);
 
   eHadTrueCharged.push_back(0.);
   eHadTrueTotal.push_back(0.);
   eMuTrue.push_back(0.);
+  eGammaTrue.push_back(0.);
   pMuTrueX.push_back(0.);
   pMuTrueY.push_back(0.);
   pMuTrueZ.push_back(0.);
@@ -1502,6 +1728,7 @@ void DunePrismAnalyzer::InitVarsStop(){
   W_rest.push_back(0.);
 
   nMu.push_back(0.);
+  nGamma.push_back(0.);
   nPi0.push_back(0.);
   nPiC.push_back(0.);
   nProton.push_back(0.);

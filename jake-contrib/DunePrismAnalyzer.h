@@ -4,6 +4,7 @@
 #include "TXMLEngine.h"
 #include "TH2.h"
 #include "xml_parse.h"
+#include "DepoParticle.h"
 
 #include <array>
 #include <iostream>
@@ -13,6 +14,7 @@
 #include <string>
 #include <vector>
 #include <algorithm>
+#include <utility>
 
 //Dumb bullshit initialization from pyroot stuff 
 const int maxInit = 100;
@@ -43,6 +45,9 @@ class DunePrismAnalyzer{
     TTree * eventTree;
     TTree * gOutTree;
    
+    DepoMuon * FSMuon;
+    std::map<int,DepoHadron *> FSHadrons;
+     
     std::vector<TTree*> stopsTrees;
     int nStops;
 
@@ -124,7 +129,7 @@ class DunePrismAnalyzer{
     std::vector<double> muExitingPX;
     std::vector<double> muExitingPY;
     std::vector<double> muExitingPZ;
-
+/*
     std::vector<double> eHadOutDep;
     std::vector<double> eHadInDep;
     std::vector<double> eHadTotalDep;
@@ -160,12 +165,26 @@ class DunePrismAnalyzer{
     std::vector<double> eMuDep;
     std::vector<double> eMuTotalDep;
     std::vector<double> eMuSecondaryDep;
+*/
+    std::vector<double> eMuPrimaryDep;
+    std::vector<double> eMuSecondaryDep;
+
+    std::vector<double> eHadPrimaryDepIn;
+    std::vector<double> eHadPrimaryDepOut;
+    std::vector<double> eHadSecondaryDepIn;
+    std::vector<double> eHadSecondaryDepOut;
+    
+    std::vector<double> eGammaPrimaryDepIn;
+    std::vector<double> eGammaPrimaryDepOut;
+    std::vector<double> eGammaSecondaryDepIn;
+    std::vector<double> eGammaSecondaryDepOut;
 
     std::vector<double> eReco;
 
     std::vector<double> eHadTrueCharged;
     std::vector<double> eHadTrueTotal;
     std::vector<double> eMuTrue;
+    std::vector<double> eGammaTrue;
     std::vector<double> pMuTrueX;
     std::vector<double> pMuTrueY;
     std::vector<double> pMuTrueZ;
@@ -175,6 +194,7 @@ class DunePrismAnalyzer{
     std::vector<double> W_rest;
 
     std::vector<int> nMu;
+    std::vector<int> nGamma;
     std::vector<int> nPi0;
     std::vector<int> nPiC;
     std::vector<int> nProton;
@@ -182,6 +202,9 @@ class DunePrismAnalyzer{
 
   private:
 };
+
+
+
 
 void parse_args(int, char ** );
 
