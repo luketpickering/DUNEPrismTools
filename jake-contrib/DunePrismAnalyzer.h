@@ -129,43 +129,7 @@ class DunePrismAnalyzer{
     std::vector<double> muExitingPX;
     std::vector<double> muExitingPY;
     std::vector<double> muExitingPZ;
-/*
-    std::vector<double> eHadOutDep;
-    std::vector<double> eHadInDep;
-    std::vector<double> eHadTotalDep;
 
-    std::vector<double> ePi0TotalDep;
-    std::vector<double> ePi0InDep;
-    std::vector<double> ePi0OutDep;
-
-    std::vector<double> ePiCTotalDep;
-    std::vector<double> ePiCInDep;
-    std::vector<double> ePiCOutDep;
-
-    std::vector<double> eProtonTotalDep;
-    std::vector<double> eProtonInDep;
-    std::vector<double> eProtonOutDep;
-
-    std::vector<double> ePiCEMTotalDep;
-    std::vector<double> ePiCEMInDep;
-    std::vector<double> ePiCEMOutDep;
-
-    std::vector<double> eProtonEMTotalDep;
-    std::vector<double> eProtonEMInDep;
-    std::vector<double> eProtonEMOutDep;
-
-    std::vector<double> eMuEMTotalDep;
-    std::vector<double> eMuEMInDep;
-    std::vector<double> eMuEMOutDep;
-
-    std::vector<double> eResidualEMTotalDep;
-    std::vector<double> eResidualEMInDep;
-    std::vector<double> eResidualEMOutDep;
-
-    std::vector<double> eMuDep;
-    std::vector<double> eMuTotalDep;
-    std::vector<double> eMuSecondaryDep;
-*/
     std::vector<double> eMuPrimaryDep;
     std::vector<double> eMuSecondaryDep;
 
@@ -174,10 +138,30 @@ class DunePrismAnalyzer{
     std::vector<double> eHadSecondaryDepIn;
     std::vector<double> eHadSecondaryDepOut;
     
+    std::vector<double> eProtonPrimaryDepIn;
+    std::vector<double> eProtonPrimaryDepOut;
+    std::vector<double> eProtonSecondaryDepIn;
+    std::vector<double> eProtonSecondaryDepOut;
+
+    std::vector<double> eNeutronPrimaryDepIn;
+    std::vector<double> eNeutronPrimaryDepOut;
+    std::vector<double> eNeutronSecondaryDepIn;
+    std::vector<double> eNeutronSecondaryDepOut;
+
+    std::vector<double> ePiCPrimaryDepIn;
+    std::vector<double> ePiCPrimaryDepOut;
+    std::vector<double> ePiCSecondaryDepIn;
+    std::vector<double> ePiCSecondaryDepOut;
+
     std::vector<double> eGammaPrimaryDepIn;
     std::vector<double> eGammaPrimaryDepOut;
     std::vector<double> eGammaSecondaryDepIn;
     std::vector<double> eGammaSecondaryDepOut;
+
+    std::vector<double> ePi0PrimaryDepIn;
+    std::vector<double> ePi0PrimaryDepOut;
+    std::vector<double> ePi0SecondaryDepIn;
+    std::vector<double> ePi0SecondaryDepOut;
 
     std::vector<double> eReco;
 

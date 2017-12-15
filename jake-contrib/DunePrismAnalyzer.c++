@@ -19,55 +19,6 @@ int main(int argc, char* argv[]){
   return 0;
 }
 
-/*DunePrismAnalyzer::DunePrismAnalyzer(std::string inFileName, std::string outFileName, double det[3], double fid[3], double off){
-  #ifdef DEBUG
-  std::cout << inFileName << std::endl;
-  std::cout << outFileName << std::endl;
-  std::cout << det[0] << " " << det[1] << " " << det[2] << std::endl;
-  std::cout << fid[0] << " " << fid[1] << " " << fid[2] << std::endl;
-  std::cout << off << std::endl;
-  #endif
-
-  fin = new TFile(inFileName.c_str(),"READ");
-  inTree = (TTree*)fin->Get("argon"); 
-
-  if(!inTree) std::cout << "Can't get argon tree" << std::endl;
-  #ifdef DEBUG
-  else std::cout<<"Got argon tree" << std::endl;
-  #endif
-
-  nEntries = inTree->GetEntries();
-  #ifdef DEBUG
-  std::cout << nEntries << std::endl; 
-  #endif
-
-  #ifdef DEBUG
-  std::cout << "Set branches" << std::endl;
-  #endif
-
-  eventTree = new TTree("events","Event Information");
-  fout = new TFile(outFileName.c_str(),"RECREATE");
-
-  SetBranches();
-
-  dimension[0] = det[0]*100;//Convert to cm
-  dimension[1] = det[1]*100;
-  dimension[2] = det[2]*100;
-  FV[0] = fid[0]*100;//Convert to cm
-  FV[1] = fid[1]*100;
-  FV[2] = fid[2]*100;
-  shift = off*100;
-
-  #ifdef DEBUG
-  std::cout << dimension[0] << std::endl;
-  std::cout << dimension[1] << std::endl;
-  std::cout << dimension[2] << std::endl;
-  std::cout << FV[0] << std::endl; 
-  std::cout << FV[1] << std::endl;
-  std::cout << FV[2] << std::endl;
-  std::cout << shift << std::endl;
-  #endif
-}*/
 
 DunePrismAnalyzer::DunePrismAnalyzer(std::string inFileName, std::string outFileName, std::vector<DetectorStop> detStops){
  #ifdef DEBUG
@@ -106,54 +57,7 @@ DunePrismAnalyzer::DunePrismAnalyzer(std::string inFileName, std::string outFile
 
 
     std::string treeName = "events_";
-/*    std::string temp;
 
-    std::stringstream stream;
-    stream << std::fixed << std::setprecision(2) << detStops.at(i).detectorSizeX;
-    temp = stream.str();
-    treeName += temp;
-
-    treeName += "x";
-    stream.str(std::string());
-    stream << std::fixed << std::setprecision(2) <<  detStops.at(i).detectorSizeY;
-    temp = stream.str();
-    treeName += temp;
-
-    treeName += "x";
-
-    stream.str(std::string());
-    stream << std::fixed << std::setprecision(2) << detStops.at(i).detectorSizeZ;
-    temp = stream.str();
-    treeName += temp;
-
-    treeName += "_";
-
-    stream.str(std::string());
-    stream << std::fixed << std::setprecision(2) << detStops.at(i).fiducialGapX;
-    temp = stream.str();
-    treeName += temp;
-
-    treeName += "x";
-
-    stream.str(std::string());
-    stream << std::fixed << std::setprecision(2) << detStops.at(i).fiducialGapY;
-    temp = stream.str();
-    treeName += temp;
-
-    treeName += "x";
-
-    stream.str(std::string());
-    stream << std::fixed << std::setprecision(2) << detStops.at(i).fiducialGapZ;
-    temp = stream.str();
-    treeName += temp;
-
-    treeName += "_";
-
-    stream.str(std::string());
-    stream << std::fixed << std::setprecision(2) << detStops.at(i).shift;
-    temp = stream.str();
-    treeName += temp;
-*/
 
     treeName += std::to_string(int(detStops.at(i).detectorSizeX*100));    
     treeName += "x";
@@ -215,488 +119,11 @@ DunePrismAnalyzer::DunePrismAnalyzer(std::string inFileName, std::string outFile
 */
 }
 
-/*void DunePrismAnalyzer::Analyze(){
-  for (int ie = 0; ie < nEntries; ++ie){
-    if(!(ie%100))std::cout<<"Entry " << ie<<std::endl;
-    inTree->GetEntry(ie);
-    if(nuPID != 14) continue;
-//    #ifdef DEBUG
-//    std::cout << i << std::endl;
-//    std::cout<<Enu<<std::endl;
-//    std::cout<<nuPID<<std::endl;
-//    #endif 
- 
-    //To Do: make a vector of trees
-    //that correspond to different 
-    //stops off axis
-    
-    //////////////Vertex in Detector?
-    #ifdef DEBUG
-//    std::cout << "vtxX " << EvtVtx[0] << std::endl;
-//    std::cout << "vtxY " << fabs(EvtVtx[1]) << std::endl; 
-//    std::cout << "vtxZ " << fabs(EvtVtx[2]) << std::endl; 
-    #endif 
-
-    double wallX[2] = {
-        (shift - dimension[0]*.5 + FV[0]),
-        (shift + dimension[0]*.5 - FV[0])};
-    double wallY = dimension[1]*.5 - FV[1];
-    double wallZ = dimension[2]*.5 - FV[2];
-
-    //First: check if in y & z FV
-    if( fabs(EvtVtx[1]) > wallY ) continue;
-    else if( fabs(EvtVtx[2]) > wallZ ) continue;
-
-    //Check if in x 
-    else if( EvtVtx[0] > wallX[1] || EvtVtx[0] < wallX[0]) continue;
-
-    #ifdef DEBUG
-//    std::cout << "Inside FV" << std::endl;
-    #endif
-    /////////////////////////////////////
-    
-    mu_x.clear();
-    mu_y.clear();
-    mu_z.clear();
-    mu_px.clear();
-    mu_py.clear();
-    mu_pz.clear();
-    
-    bool found = false;
-    bool muEnd = false;
-    flagExitBack = false;
-    flagExitFront = false;
-    flagExitY = false;
-    flagExitXHigh = false;
-    flagExitXLow = false;
-    flagMuContained = false;
-    flagNoEHadOut = false;
-
-    muExitingPX = 0.;
-    muExitingPY = 0.;
-    muExitingPZ = 0.;
-
-    eHadOutDep = 0.;
-    eHadInDep = 0.;
-    eHadTotalDep = 0.;
-
-    eMuDep = 0.;
-    eMuTotalDep = 0.;
-
-    std::vector<int>::iterator itPi0;
-    std::map<int,int>::iterator itGamma;
-    std::vector<int>::iterator itPiC;
-    std::vector<int>::iterator itProton;
-    std::vector<int>::iterator itMu;
-
-    ///New
-    trackMu.clear();
-    trackPiC.clear();
-    trackProton.clear();
-    
-    trackPi0.clear();
-    trackGamma.clear();
-    trackE.clear();
-    trackEIn.clear();
-    trackEOut.clear();
-
-    ///////Start of step loop
-    for(int i = 0; i < nstep; ++i){
-
-      //Look for muon track
-      if(PID[i] == 13 && !muEnd){
-        if(!found) {
-//          std::cout<<"found start of muon track"<<std::endl;
-          found = true;          
-          itMu = std::find( trackMu.begin(), trackMu.end(), track[i] );
-          if(itMu == trackMu.end() ){
-            trackMu.push_back(track[i]);
-          }
-        }                
-        
-        eMuDep += edep[i];
-        eMuTotalDep += edep[i];
-
-        //check if it hits the walls
-        if(xe[i] < wallX[0] - FV[0]){
-          flagExitXLow = true; 
-          muExitingPX = pxe[i];
-          muExitingPY = pye[i];
-          muExitingPZ = pze[i];
-          #ifdef MUEXITDEBUG
-          std::cout<<"Muon exitted XLow "<< 
-          xe[i] << " "<<ye[i] << " "<<ze[i]<<
-          std::endl;
-          #endif
-          muEnd = true;
-        }
-        else if(xe[i] > wallX[1] + FV[0]){ 
-          flagExitXHigh = true; 
-          muExitingPX = pxe[i];
-          muExitingPY = pye[i];
-          muExitingPZ = pze[i];
-          #ifdef MUEXITDEBUG
-          std::cout<<"Muon exitted right "<< 
-          xe[i] << " "<<ye[i] << " "<<ze[i]<<
-          std::endl;
-          #endif
-          muEnd = true;
-        }
-
-        if(abs(ye[i]) > wallY + FV[1]){ 
-          flagExitY = true; 
-          muExitingPX = pxe[i];
-          muExitingPY = pye[i];
-          muExitingPZ = pze[i];
-          #ifdef MUEXITDEBUG
-          std::cout<<"Muon exitted Y "<<
-          xe[i] << " "<<ye[i] << " "<<ze[i]<<
-          std::endl;
-          #endif
-          muEnd = true;
-        }
-
-        if(ze[i] > wallZ + FV[2]){ 
-          flagExitBack = true; 
-          muExitingPX = pxe[i];
-          muExitingPY = pye[i];
-          muExitingPZ = pze[i];
-          #ifdef MUEXITDEBUG
-          std::cout<<"Muon exitted back "<<
-          xe[i] << " "<<ye[i] << " "<<ze[i]<<
-          std::endl;
-          #endif
-          muEnd = true;
-        }
-        else if(ze[i] < -wallZ - FV[2]){ 
-          flagExitFront = true; 
-          muExitingPX = pxe[i];
-          muExitingPY = pye[i];
-          muExitingPZ = pze[i];
-          #ifdef MUEXITDEBUG
-          std::cout<<"Muon exitted front "<<
-          xe[i] << " "<<ye[i] << " "<<ze[i]<<
-          std::endl;
-          #endif
-          muEnd = true;
-        }
-      }
-
-      else if(PID[i] == 13 && muEnd){//Energy dep outside detector
-        eMuTotalDep += edep[i];
-      }
-
-      //Look for hadronic energy deposits
-      //right now: protons and charged pions
-      else if(PID[i] == 2212 || abs(PID[i]) == 211){
-        //std::cout << "checking hadron edeps" << std::endl;        
-        eHadTotalDep += edep[i];
-
-        //Inside walls. Excuse terrible naming
-        if(xe[i] > (wallX[0] - FV[0]) && xe[i] < (wallX[1] + FV[0])&&
-          abs(ye[i]) < (wallY + FV[0]) && abs(ze[i]) < (wallZ + FV[0])
-          ){
-        
-          //Between wall and FV
-          if(xe[i] < wallX[0] || xe[i] > wallX[1] ||
-            abs(ye[i]) > wallY || abs(ze[i]) > wallZ){
-            
-            eHadOutDep += edep[i]; 
-          }
-
-          else eHadInDep += edep[i];
-        }
-        if(PID[i] == 2212){
-          itProton = std::find( trackProton.begin(), trackProton.end(), track[i] );
-          if(itProton == trackProton.end() ){
-            trackProton.push_back(track[i]);
-          }
-        }
-        else{
-          itPiC = std::find( trackPiC.begin(), trackPiC.end(), track[i] );
-          if(itPiC == trackPiC.end() ){
-            trackPiC.push_back(track[i]);
-          }
-        }
-      }
-
-      //Look for Pi0. Add in track id if not in vector
-      else if(PID[i] == 111){
-        itPi0 = std::find( trackPi0.begin(), trackPi0.end(), track[i] );
-        if(itPi0 == trackPi0.end() ){
-          trackPi0.push_back(track[i]);
-        }
-      }
-
-      //Look for gamma. Add in track and parid if not in map
-      else if(PID[i] == 22){
-        if(trackGamma.find(track[i]) == trackGamma.end() ){
-          trackGamma[track[i]] = parid[i];
-        }
-      }
-
-      //Add in all edeps and parids from electrons
-      else if(abs(PID[i]) == 11){        
-        trackE.push_back( std::make_pair(parid[i],edep[i]) );
-
-        //Inside walls. Excuse terrible naming
-        if(xe[i] > (wallX[0] - FV[0]) && xe[i] < (wallX[1] + FV[0])&&
-          abs(ye[i]) < (wallY + FV[0]) && abs(ze[i]) < (wallZ + FV[0])
-          ){
-        
-          //Between wall and FV
-          if(xe[i] < wallX[0] || xe[i] > wallX[1] ||
-            abs(ye[i]) > wallY || abs(ze[i]) > wallZ){
-            
-            trackEOut.push_back( std::make_pair(parid[i],edep[i]) ); 
-          }
-
-          else trackEIn.push_back( std::make_pair(parid[i],edep[i]) );
-        }
-      }    
-    }
-
-    flagMuContained = !(flagExitFront || flagExitBack ||
-                         flagExitXLow || flagExitXHigh ||
-                         flagExitY);
-        
-    if(trackE.size() == 0)std::cout<<"found no e+-"<<std::endl;
-    
-    ePi0TotalDep = 0.; 
-    ePi0InDep = 0.;
-    ePi0OutDep = 0.;
-
-    ePiCEMTotalDep = 0.; 
-    ePiCEMInDep = 0.;
-    ePiCEMOutDep = 0.;
-
-    eProtonEMTotalDep = 0.; 
-    eProtonEMInDep = 0.;
-    eProtonEMOutDep = 0.;
-
-    eMuEMTotalDep = 0.; 
-    eMuEMInDep = 0.;
-    eMuEMOutDep = 0.;
-
-    //Iterate over e+- edeps, check if parid in gamma map
-    //if so: check if gamma parid in pi0 vector
-    for(int i = 0; i < trackE.size(); ++i){
-      int eParent = trackE.at(i).first;
-
-      itPiC = std::find(trackPiC.begin(), trackPiC.end(),eParent);
-      itProton = std::find(trackProton.begin(), trackProton.end(),eParent);
-      itMu = std::find(trackMu.begin(), trackMu.end(),eParent);
-
-      // if parent = gamma
-      if(trackGamma.find(eParent) != trackGamma.end()){
-        int gammaParent = trackGamma[eParent];
-        itPi0 = std::find(trackPi0.begin(),trackPi0.end(),gammaParent);
-        if(itPi0 != trackPi0.end()){//Successfully found pi0->g->e 
-          ePi0TotalDep += trackE.at(i).second; //add in edep
-        }
-
-        else if(std::find(trackPiC.begin(),trackPiC.end(),gammaParent)
-                != trackPiC.end()){
-          ePiCEMTotalDep += trackE.at(i).second;
-//          std::cout << "Found pic->gamma->e"<<std::endl;
-        }
-
-        else if(std::find(trackProton.begin(),trackProton.end(),gammaParent)
-                != trackProton.end()){
-          eProtonEMTotalDep += trackE.at(i).second;
-//          std::cout << "Found proton->gamma->e"<<std::endl;
-        }
-        
-        else if(std::find(trackMu.begin(),trackMu.end(),gammaParent)
-                != trackMu.end()){
-          eMuEMTotalDep += trackE.at(i).second;
- //         std::cout << "Found mu->gamma->e"<<std::endl;
-        }
-      }
-
-      // if parent = charged pion
-      else if(itPiC != trackPiC.end()){
-        ePiCEMTotalDep += trackE.at(i).second;
-      }
-
-      // if parent = proton
-      else if(itProton != trackProton.end()){
-        eProtonEMTotalDep += trackE.at(i).second;
-      }
-
-      // if parent = muon
-      else if(itMu != trackMu.end()){
-        eMuEMTotalDep += trackE.at(i).second;
-      }
-    }
-
-    for(int i = 0; i < trackEIn.size(); ++i){
-      int eParent = trackEIn.at(i).first;
-
-      itPiC = std::find(trackPiC.begin(), trackPiC.end(),eParent);
-      itProton = std::find(trackProton.begin(), trackProton.end(),eParent);
-      itMu = std::find(trackMu.begin(), trackMu.end(),eParent);
-
-      // if parent = gamma
-      if(trackGamma.find(eParent) != trackGamma.end()){
-        int gammaParent = trackGamma[eParent];
-        itPi0 = std::find(trackPi0.begin(),trackPi0.end(),gammaParent);
-        if(itPi0 != trackPi0.end()){//Successfully found pi0->g->e 
-          ePi0InDep += trackEIn.at(i).second; //add in edep
-        }
-
-        else if(std::find(trackPiC.begin(),trackPiC.end(),gammaParent)
-                != trackPiC.end()){
-          ePiCEMInDep += trackEIn.at(i).second;
-        }
-
-        else if(std::find(trackProton.begin(),trackProton.end(),gammaParent)
-                != trackProton.end()){
-          eProtonEMInDep += trackEIn.at(i).second;
-        }
-        
-        else if(std::find(trackMu.begin(),trackMu.end(),gammaParent)
-                != trackMu.end()){
-          eMuEMInDep += trackEIn.at(i).second;
-        }
-      }
-
-      // if parent = charged pion
-      else if(itPiC != trackPiC.end()){
-        ePiCEMInDep += trackE.at(i).second;
-      }
-
-      // if parent = proton
-      else if(itProton != trackProton.end()){
-        eProtonEMInDep += trackE.at(i).second;
-      }
-
-      // if parent = muon
-      else if(itMu != trackMu.end()){
-        eMuEMInDep += trackE.at(i).second;
-      }
-
-    }
-
-    for(int i = 0; i < trackEOut.size(); ++i){
-      int eParent = trackEOut.at(i).first;
-
-      itPiC = std::find(trackPiC.begin(), trackPiC.end(),eParent);
-      itProton = std::find(trackProton.begin(), trackProton.end(),eParent);
-      itMu = std::find(trackMu.begin(), trackMu.end(),eParent);
-
-      // if paremt = gamma
-      if(trackGamma.find(eParent) != trackGamma.end()){
-        int gammaParent = trackGamma[eParent];
-        itPi0 = std::find(trackPi0.begin(),trackPi0.end(),gammaParent);
-        if(itPi0 != trackPi0.end()){//Successfully found pi0->g->e 
-          ePi0OutDep += trackEOut.at(i).second; //add in edep
-        }
-
-        else if(std::find(trackPiC.begin(),trackPiC.end(),gammaParent)
-                != trackPiC.end()){
-          ePiCEMOutDep += trackEOut.at(i).second;
-        }
-
-        else if(std::find(trackProton.begin(),trackProton.end(),gammaParent)
-                != trackProton.end()){
-          eProtonEMOutDep += trackEOut.at(i).second;
-        }
-        
-        else if(std::find(trackMu.begin(),trackMu.end(),gammaParent)
-                != trackMu.end()){
-          eMuEMOutDep += trackEOut.at(i).second;
-        }
-      }
-
-      // if parent = charged pion
-      else if(itPiC != trackPiC.end()){
-        ePiCEMOutDep += trackE.at(i).second;
-      }
-
-      // if parent = proton
-      else if(itProton != trackProton.end()){
-        eProtonEMOutDep += trackE.at(i).second;
-      }
-
-      // if parent = muon
-      else if(itMu != trackMu.end()){
-        eMuEMOutDep += trackE.at(i).second;
-      }
-
-    }
-
-    flagNoEHadOut = (ePi0OutDep == 0 && ( ePi0TotalDep == ePi0InDep )
-                     && eHadOutDep == 0 
-                     && ( eHadTotalDep == eHadInDep ) );
-    ////////////////////////////////////
-
-    eHadTrueCharged = 0.;
-    eHadTrueTotal = 0.;
-    eMuTrue = 0.;
-
-    nMu = 0;
-    nPi0 = 0;
-    nPiC = 0;
-    nProton = 0;
-    nNeutron = 0;
-
-    //Start of particle loop
-//    std::cout << "Starting true FS particle loop "<< ni << std::endl;
-
-    for(int ip = 0; ip < ni; ++ip){
-      //std::cout << ip << std::endl;
-      if(PIDi[ip] == 13){
-        eMuTrue += ekini[ip] + mi[ip];
-        nMu++;
-      }
-      else if(PIDi[ip] == 111){
-        eHadTrueCharged += ekini[ip] + mi[ip];
-        nPi0++;
-      }
-      else if(abs(PIDi[ip]) == 211 ){
-        eHadTrueCharged += ekini[ip] + mi[ip];
-        nPiC++;
-      }
-      else if(PIDi[ip] == 2212){
-        eHadTrueCharged += ekini[ip];
-        nProton++;
-      }
-      else if(PIDi[ip] == 2112){
-        eHadTrueTotal += ekini[ip];
-        nNeutron++;
-      }
-    }
-    eHadTrueTotal += eHadTrueCharged; 
-    ///////////////////////////////////
-
-    eventNum = ev; 
-    eventTree->Fill();
-  }
-}*/
-
 void DunePrismAnalyzer::AnalyzeStops(){
   for (int ie = 0; ie < nEntries; ++ie){
-//  for (int ie = 0; ie < 3; ++ie){
     if(!(ie%100))std::cout<<"Entry " << ie<<std::endl;
     inTree->GetEntry(ie);
     if(nuPID != 14) continue;
-//    #ifdef DEBUG
-//    std::cout << i << std::endl;
-//    std::cout<<Enu<<std::endl;
-//    std::cout<<nuPID<<std::endl;
-//    #endif 
- 
-    //To Do: make a vector of trees
-    //that correspond to different 
-    //stops off axis
-    
-    //////////////Vertex in Detector?
-    #ifdef DEBUG
-//    std::cout << "vtxX " << EvtVtx[0] << std::endl;
-//    std::cout << "vtxY " << fabs(EvtVtx[1]) << std::endl; 
-//    std::cout << "vtxZ " << fabs(EvtVtx[2]) << std::endl; 
-    #endif 
 
     int stop_num;
     bool noStops = true;
@@ -710,7 +137,6 @@ void DunePrismAnalyzer::AnalyzeStops(){
 
       
       wallX[0] = (shift.at(i) - dimension.at(i)[0]*.5 + FV.at(i)[0]);
-//      std::cout <<"WALLLL " << wallX[0] << std::endl;
       wallX[1] = (shift.at(i) + dimension.at(i)[0]*.5 - FV.at(i)[0]);
       wallY = dimension.at(i)[1]*.5 - FV.at(i)[1];
       wallZ = dimension.at(i)[2]*.5 - FV.at(i)[2];
@@ -752,6 +178,7 @@ void DunePrismAnalyzer::AnalyzeStops(){
     eHadTrueCharged.at(stop_num) = 0.;
     eHadTrueTotal.at(stop_num) = 0.;
     eMuTrue.at(stop_num) = 0.;
+    eGammaTrue.at(stop_num) = 0.;
 
     pMuTrueX.at(stop_num) = 0.;
     pMuTrueY.at(stop_num) = 0.;
@@ -762,11 +189,15 @@ void DunePrismAnalyzer::AnalyzeStops(){
     nPiC.at(stop_num) = 0;
     nProton.at(stop_num) = 0;
     nNeutron.at(stop_num) = 0;
+    nGamma.at(stop_num) = 0;
 
     std::map<int,int> chain;
 
     int nBindino = 0;
     int nOther = 0;
+
+    FSHadrons.clear();
+
     //Start of particle loop
     for(int ip = 0; ip < ni; ++ip){
       //std::cout << ip << std::endl;
@@ -774,10 +205,9 @@ void DunePrismAnalyzer::AnalyzeStops(){
         nBindino++;
         continue;//Skip bindino
       }
-//      trueFS[ip + 1] = std::make_pair(PIDI[ip],ekini[ip]); 
       chain[ip + 1] = 0; 
       if(PIDi[ip] == 13){ //Initial muon 
-       
+ //       std::cout << "Found " << PIDi[ip] << " " << ip + 1 << std::endl; 
         FSMuon = new DepoMuon(
           PIDi[ip], (ip + 1), ekini[ip],
           muonBoundX, muonBoundY, muonBoundZ); 
@@ -799,6 +229,7 @@ void DunePrismAnalyzer::AnalyzeStops(){
         nMu.at(stop_num)++;
       }
       else if(PIDi[ip] == 111){
+//        std::cout << "Found " << PIDi[ip] <<  " " << ip + 1 << std::endl; 
         eHadTrueCharged.at(stop_num) += ekini[ip] + mi[ip];
         nPi0.at(stop_num)++;
         DepoHadron * hadron = new DepoHadron(
@@ -807,6 +238,7 @@ void DunePrismAnalyzer::AnalyzeStops(){
         FSHadrons[ip + 1] = hadron;
       }
       else if(abs(PIDi[ip]) == 211 ){
+//        std::cout << "Found " << PIDi[ip] <<  " " << ip + 1 << std::endl; 
         eHadTrueCharged.at(stop_num) += ekini[ip] + mi[ip];
         nPiC.at(stop_num)++;
         DepoHadron * hadron = new DepoHadron(
@@ -815,6 +247,7 @@ void DunePrismAnalyzer::AnalyzeStops(){
         FSHadrons[ip + 1] = hadron;
       }
       else if(PIDi[ip] == 2212){
+//        std::cout << "Found " << PIDi[ip] <<  " " << ip + 1 << std::endl; 
         eHadTrueCharged.at(stop_num) += ekini[ip];
         nProton.at(stop_num)++;
         DepoHadron * hadron = new DepoHadron(
@@ -823,6 +256,7 @@ void DunePrismAnalyzer::AnalyzeStops(){
         FSHadrons[ip + 1] = hadron;
       }
       else if(PIDi[ip] == 2112){
+ //       std::cout << "Found " << PIDi[ip] <<  " " << ip + 1 << std::endl; 
         eHadTrueTotal.at(stop_num) += ekini[ip];
         nNeutron.at(stop_num)++;
         DepoHadron * hadron = new DepoHadron(
@@ -831,6 +265,7 @@ void DunePrismAnalyzer::AnalyzeStops(){
         FSHadrons[ip + 1] = hadron;
       }
       else if(PIDi[ip] == 22){
+  //      std::cout << "Found " << PIDi[ip] <<  " " << ip + 1 << std::endl; 
         eGammaTrue.at(stop_num) += ekini[ip];
         nGamma.at(stop_num)++;
         DepoHadron * hadron = new DepoHadron(
@@ -841,14 +276,13 @@ void DunePrismAnalyzer::AnalyzeStops(){
         //to make a new thing
       }
       else{
-        std::cout << "Skipping non standard FS particle " 
-        << PIDi[ip] <<std::endl;
+//        std::cout << "Found Other! " << PIDi[ip] <<  " " << ip + 1 << std::endl;
         nOther++;
       }
     }
 
     int nPrimary = ni - nBindino - nOther;
-
+//    std::cout << "NHadrons: " << FSHadrons.size() << std::endl;
     if (nMu.at(stop_num) == 0) continue;
 
     eHadTrueTotal.at(stop_num) += eHadTrueCharged.at(stop_num); 
@@ -866,30 +300,38 @@ void DunePrismAnalyzer::AnalyzeStops(){
     muExitingPY.at(stop_num) = 0.;
     muExitingPZ.at(stop_num) = 0.;
 
-    /*eHadOutDep.at(stop_num) = 0.;
-    eHadInDep.at(stop_num) = 0.;
-    eHadTotalDep.at(stop_num) = 0.;
-
-    ePiCTotalDep.at(stop_num) = 0.; 
-    ePiCInDep.at(stop_num) = 0.;
-    ePiCOutDep.at(stop_num) = 0.;
-
-    eProtonTotalDep.at(stop_num) = 0.; 
-    eProtonInDep.at(stop_num) = 0.;
-    eProtonOutDep.at(stop_num) = 0.;
-
-    eMuDep.at(stop_num) = 0.;
-    eMuTotalDep.at(stop_num) = 0.;
-    eMuSecondaryDep.at(stop_num) = 0.;
-*/
     eMuPrimaryDep.at(stop_num) = 0.;
     eMuSecondaryDep.at(stop_num) = 0.;
 
     eHadPrimaryDepIn.at(stop_num) = 0.;
     eHadSecondaryDepIn.at(stop_num) = 0.;
-
     eHadPrimaryDepOut.at(stop_num) = 0.;
     eHadSecondaryDepOut.at(stop_num) = 0.;
+
+    eProtonPrimaryDepIn.at(stop_num) = 0.;
+    eProtonSecondaryDepIn.at(stop_num) = 0.;
+    eProtonPrimaryDepOut.at(stop_num) = 0.;
+    eProtonSecondaryDepOut.at(stop_num) = 0.;
+
+    eNeutronPrimaryDepIn.at(stop_num) = 0.;
+    eNeutronSecondaryDepIn.at(stop_num) = 0.;
+    eNeutronPrimaryDepOut.at(stop_num) = 0.;
+    eNeutronSecondaryDepOut.at(stop_num) = 0.;
+
+    ePiCPrimaryDepIn.at(stop_num) = 0.;
+    ePiCSecondaryDepIn.at(stop_num) = 0.;
+    ePiCPrimaryDepOut.at(stop_num) = 0.;
+    ePiCSecondaryDepOut.at(stop_num) = 0.;
+
+    eGammaPrimaryDepIn.at(stop_num) = 0.;
+    eGammaSecondaryDepIn.at(stop_num) = 0.;
+    eGammaPrimaryDepOut.at(stop_num) = 0.;
+    eGammaSecondaryDepOut.at(stop_num) = 0.;
+
+    ePi0PrimaryDepIn.at(stop_num) = 0.;
+    ePi0SecondaryDepIn.at(stop_num) = 0.;
+    ePi0PrimaryDepOut.at(stop_num) = 0.;
+    ePi0SecondaryDepOut.at(stop_num) = 0.;
 
     std::vector<int>::iterator itPi0;
     std::map<int,int>::iterator itGamma;
@@ -907,17 +349,10 @@ void DunePrismAnalyzer::AnalyzeStops(){
     trackE.clear();
     trackEIn.clear();
     trackEOut.clear();
-
-//    std::map<int,int>::iterator itChain; 
-
-/*    std::cout << ni << " " << nstep<< std::endl;
-    std::cout << nMu.at(stop_num) << " " << (FSMuon) << std::endl; 
-    std::cout << FSHadrons.size() << std::endl;
-    std::cout << ie << std::endl;*/
+//    std::cout << "Starting steps " << std::endl;
     for(int i = 0; i < nstep; ++i){
-//      if(!(i % 100))*/std::cout << "\t" <<  i << std::endl;
-//      std::cout << "\t Track: "<<track[i] << " parid " <<parid[i]<< " pid " <<PID[i] <<  std::endl;
       if(chain.find(track[i]) == chain.end()){//Not in chain
+      
         if(chain.find(parid[i]) == chain.end()){//Error
           std::cout << "ERROR: PARENT NOT FOUND" << std::endl;
           break;
@@ -926,11 +361,6 @@ void DunePrismAnalyzer::AnalyzeStops(){
       }
     
       if(chain[track[i]] == 0){//Primary
-//        std::cout << "Found Primary " << track[i] << " " 
-//        << PID[i] << std::endl;
-        //Do stuff with primary
-        //if muon: keep updating the final position
-        //till the end
 
         if(PID[i] == 13){//Muon
           if(FSMuon->trackID != track[i]){
@@ -947,6 +377,9 @@ void DunePrismAnalyzer::AnalyzeStops(){
           FSMuon->pzf = pze[i];
         }
         else{//Hadron
+          if(!(PID[i] == 2212 || PID[i] == 2112 || abs(PID[i]) == 211 ||
+               PID[i] == 111  || PID[i] ==   22))continue;
+               
           if(xe[i] <= FSHadrons[track[i]]->xBound[0] ||
              xe[i] >= FSHadrons[track[i]]->xBound[1] ||
               fabs(ye[i]) >= FSHadrons[track[i]]->yBound ||
@@ -966,15 +399,15 @@ void DunePrismAnalyzer::AnalyzeStops(){
         while (chain[itChain] != 0){
           itChain = chain[itChain];                
         }
-//        std::cout << "Found Secondary " << track[i] << " " 
- //       << PID[i] << "\n\t of primary " << itChain << std::endl;        
         if(itChain == 1){//Muon
           FSMuon->eDepSecondary += edep[i];
         }
         else{//Hadron
+          if(!(PID[i] == 2212 || PID[i] == 2112 || abs(PID[i]) == 211 ||
+               PID[i] == 111  || PID[i] ==   22))continue;
           if(FSHadrons.find(itChain) == FSHadrons.end()){
-            std::cout << "ERROR: ULTIMATE HADRON NOT IN FS" << std::endl;
-            break;
+//            std::cout << "ERROR: ULTIMATE HADRON NOT IN FS " << itChain << std::endl;
+            continue;
           }
           if(xe[i] <= FSHadrons[itChain]->xBound[0] ||
              xe[i] >= FSHadrons[itChain]->xBound[1] ||
@@ -989,11 +422,7 @@ void DunePrismAnalyzer::AnalyzeStops(){
         }
       }
     }
-
-/*    std::cout << FSMuon->PDG << " " << FSMuon->trackID 
-    << " " << FSMuon->eKin << " " 
-    << FSMuon->eDepPrimary + FSMuon->eDepSecondary << std::endl;*/
-
+//    std::cout << "Ending steps " << std::endl;
     eMuPrimaryDep.at(stop_num) += FSMuon->eDepPrimary;
     eMuSecondaryDep.at(stop_num) += FSMuon->eDepSecondary;
 
@@ -1011,503 +440,76 @@ void DunePrismAnalyzer::AnalyzeStops(){
     muExitingPZ.at(stop_num) = FSMuon->pzf;   
 
     flagNoEHadOut.at(stop_num) = 0;
+    
+    std::map<int,DepoHadron*>::iterator itHad;
+    for(itHad = FSHadrons.begin(); itHad != FSHadrons.end(); ++itHad){
+      eHadPrimaryDepIn.at(stop_num) += itHad->second->eDepPrimaryIn;
+      eHadSecondaryDepIn.at(stop_num) += itHad->second->eDepSecondaryIn;
 
-    for(int ip = 2; ip <= nPrimary; ++ip){
-//        std::cout << ip << std::endl;
-/*      std::cout << FSHadrons[ip]->PDG << " " << FSHadrons[ip]->trackID 
-      << " " << FSHadrons[ip]->eKin << " " 
-      << FSHadrons[ip]->eDepPrimaryIn << " " <<  FSHadrons[ip]->eDepSecondaryIn << " "
-      << FSHadrons[ip]->eDepPrimaryOut << " " << FSHadrons[ip]->eDepSecondaryOut << std::endl;*/
+      eHadPrimaryDepOut.at(stop_num) += itHad->second->eDepPrimaryOut;
+      eHadSecondaryDepOut.at(stop_num) += itHad->second->eDepSecondaryOut;
+       
+      //Splitting energy up into various particles
+      switch( abs(itHad->second->PDG) ){
+        case 2212: 
+          eProtonPrimaryDepIn.at(stop_num) += itHad->second->eDepPrimaryIn;
+          eProtonSecondaryDepIn.at(stop_num) += itHad->second->eDepSecondaryIn;
 
-      eHadPrimaryDepIn.at(stop_num) += FSHadrons[ip]->eDepPrimaryIn;
-      eHadSecondaryDepIn.at(stop_num) += FSHadrons[ip]->eDepSecondaryIn;
+          eProtonPrimaryDepOut.at(stop_num) += itHad->second->eDepPrimaryOut;
+          eProtonSecondaryDepOut.at(stop_num) += itHad->second->eDepSecondaryOut;
 
-      eHadPrimaryDepOut.at(stop_num) += FSHadrons[ip]->eDepPrimaryOut;
-      eHadSecondaryDepOut.at(stop_num) += FSHadrons[ip]->eDepSecondaryOut;
+          break;
+        case 2112:
+          eNeutronPrimaryDepIn.at(stop_num) += itHad->second->eDepPrimaryIn;
+          eNeutronSecondaryDepIn.at(stop_num) += itHad->second->eDepSecondaryIn;
 
-      if(FSHadrons[ip]->eDepPrimaryOut + FSHadrons[ip]->eDepSecondaryOut > 0.000000000000000001){
+          eNeutronPrimaryDepOut.at(stop_num) += itHad->second->eDepPrimaryOut;
+          eNeutronSecondaryDepOut.at(stop_num) += itHad->second->eDepSecondaryOut;
+
+          break;
+        case  211:
+          ePiCPrimaryDepIn.at(stop_num) += itHad->second->eDepPrimaryIn;
+          ePiCSecondaryDepIn.at(stop_num) += itHad->second->eDepSecondaryIn;
+
+          ePiCPrimaryDepOut.at(stop_num) += itHad->second->eDepPrimaryOut;
+          ePiCSecondaryDepOut.at(stop_num) += itHad->second->eDepSecondaryOut;
+
+          break;
+        case   22:
+          eGammaPrimaryDepIn.at(stop_num) += itHad->second->eDepPrimaryIn;
+          eGammaSecondaryDepIn.at(stop_num) += itHad->second->eDepSecondaryIn;
+
+          eGammaPrimaryDepOut.at(stop_num) += itHad->second->eDepPrimaryOut;
+          eGammaSecondaryDepOut.at(stop_num) += itHad->second->eDepSecondaryOut;
+
+          break;
+        case  111:
+          ePi0PrimaryDepIn.at(stop_num) += itHad->second->eDepPrimaryIn;
+          ePi0SecondaryDepIn.at(stop_num) += itHad->second->eDepSecondaryIn;
+
+          ePi0PrimaryDepOut.at(stop_num) += itHad->second->eDepPrimaryOut;
+          ePi0SecondaryDepOut.at(stop_num) += itHad->second->eDepSecondaryOut;
+
+          break;
+      }
+      //
+
+      if(itHad->second->eDepPrimaryOut + itHad->second->eDepSecondaryOut > 0.000000000000000001){
         flagNoEHadOut.at(stop_num) = 1;
       }
 
     }
 
-    eReco.at(stop_num) = eMuPrimaryDep.at(stop_num) + eMuSecondaryDep.at(stop_num) 
-    + eHadPrimaryDepIn.at(stop_num) + eHadSecondaryDepIn.at(stop_num);
-
-    ///////Start of step loop
-/*    for(int i = 0; i < nstep; ++i){
-
-      //Look for muon track
-      if(PID[i] == 13 && !muEnd && parid[i] == 0){//Checking for initial muon
-        if(!found) {
-//          std::cout<<"found start of muon track"<<std::endl;
-          found = true;          
-          itMu = std::find( trackMu.begin(), trackMu.end(), track[i] );
-          if(itMu == trackMu.end() ){
-            trackMu.push_back(track[i]);
-          }
-        }                
-        
-        eMuDep.at(stop_num) += edep[i];
-        eMuTotalDep.at(stop_num) += edep[i];
-
-        //check if it hits the walls
-        if(xe[i] <= wallX[0] - FV.at(stop_num)[0]){
-          flagExitXLow.at(stop_num) = true; 
-          muExitingPX.at(stop_num) = pxe[i];
-          muExitingPY.at(stop_num) = pye[i];
-          muExitingPZ.at(stop_num) = pze[i];
-          #ifdef MUEXITDEBUG
-          std::cout<<"Muon exitted XLow "<< 
-          xe[i] << " "<<ye[i] << " "<<ze[i]<<
-          std::endl;
-          #endif
-          muEnd = true;
-        }
-        else if(xe[i] >= wallX[1] + FV.at(stop_num)[0]){ 
-          flagExitXHigh.at(stop_num) = true; 
-          muExitingPX.at(stop_num) = pxe[i];
-          muExitingPY.at(stop_num) = pye[i];
-          muExitingPZ.at(stop_num) = pze[i];
-          #ifdef MUEXITDEBUG
-          std::cout<<"Muon exitted right "<< 
-          xe[i] << " "<<ye[i] << " "<<ze[i]<<
-          std::endl;
-          #endif
-          muEnd = true;
-        }
-
-        if(fabs(ye[i]) >= wallY + FV.at(stop_num)[1]){ 
-          flagExitY.at(stop_num) = true; 
-          muExitingPX.at(stop_num) = pxe[i];
-          muExitingPY.at(stop_num) = pye[i];
-          muExitingPZ.at(stop_num) = pze[i];
-          #ifdef MUEXITDEBUG
-          std::cout<<"Muon exitted Y "<<
-          xe[i] << " "<<ye[i] << " "<<ze[i]<<
-          std::endl;
-          #endif
-          muEnd = true;
-        }
-
-        if(ze[i] >= wallZ + FV.at(stop_num)[2]){ 
-          flagExitBack.at(stop_num) = true; 
-          muExitingPX.at(stop_num) = pxe[i];
-          muExitingPY.at(stop_num) = pye[i];
-          muExitingPZ.at(stop_num) = pze[i];
-          #ifdef MUEXITDEBUG
-          std::cout<<"Muon exitted back "<<
-          xe[i] << " "<<ye[i] << " "<<ze[i]<<
-          std::endl;
-          #endif
-          muEnd = true;
-        }
-        else if(ze[i] <= -wallZ - FV.at(stop_num)[2]){ 
-          flagExitFront.at(stop_num) = true; 
-          muExitingPX.at(stop_num) = pxe[i];
-          muExitingPY.at(stop_num) = pye[i];
-          muExitingPZ.at(stop_num) = pze[i];
-          #ifdef MUEXITDEBUG
-          std::cout<<"Muon exitted front "<<
-          xe[i] << " "<<ye[i] << " "<<ze[i]<<
-          std::endl;
-          #endif
-          muEnd = true;
-        }
-      }
-
-      else if(PID[i] == 13 && muEnd && parid[i] == 0){//Energy dep outside detector
-        eMuTotalDep.at(stop_num) += edep[i];
-      }
-
-      //Add in step to look for secondary muons
-      else if(PID[i] == 13 && parid[i] != 0){
-        eMuSecondaryDep.at(stop_num) += edep[i];
-        if(xe[i] > wallX[0] + FV.at(stop_num)[0]
-        && xe[i] < wallX[1] + FV.at(stop_num)[0]
-        && fabs(ye[i]) < wallY + FV.at(stop_num)[1] 
-        && fabs(ze[i]) < wallZ + FV.at(stop_num)[2]){
-          eMuSecondaryDep.at(stop_num) += edep[i];
-        }
-      }
-
-      //Look for hadronic energy deposits
-      else if(PID[i] == 2212){
-        itProton = std::find( trackProton.begin(), trackProton.end(), track[i] );
-        if(itProton == trackProton.end() ){
-          trackProton.push_back(track[i]);
-        }       
-        eProtonTotalDep.at(stop_num) += edep[i];
-
-        //Inside walls. Excuse terrible naming
-        if(xe[i] > (wallX[0] - FV.at(stop_num)[0]) && xe[i] < (wallX[1] + FV.at(stop_num)[0])&&
-          fabs(ye[i]) < (wallY + FV.at(stop_num)[0]) && fabs(ze[i]) < (wallZ + FV.at(stop_num)[0])
-          ){
-        
-          //Between wall and FV
-          if(xe[i] < wallX[0] || xe[i] > wallX[1] ||
-            fabs(ye[i]) > wallY || fabs(ze[i]) > wallZ){
-            
-            eProtonOutDep.at(stop_num) += edep[i]; 
-          }
-
-          else eProtonInDep.at(stop_num) += edep[i];
-        }     
-      }
-      else if(abs(PID[i]) == 211){
-        itPiC = std::find( trackPiC.begin(), trackPiC.end(), track[i] );
-        if(itPiC == trackPiC.end() ){
-          trackPiC.push_back(track[i]);
-        }
-        ePiCTotalDep.at(stop_num) += edep[i];
-
-        //Inside walls. Excuse terrible naming
-        if(xe[i] > (wallX[0] - FV.at(stop_num)[0]) && xe[i] < (wallX[1] + FV.at(stop_num)[0])&&
-          fabs(ye[i]) < (wallY + FV.at(stop_num)[0]) && fabs(ze[i]) < (wallZ + FV.at(stop_num)[0])
-          ){
-        
-          //Between wall and FV
-          if(xe[i] < wallX[0] || xe[i] > wallX[1] ||
-            fabs(ye[i]) > wallY || fabs(ze[i]) > wallZ){
-            
-            ePiCOutDep.at(stop_num) += edep[i]; 
-          }
-
-          else ePiCInDep.at(stop_num) += edep[i];
-        }
-      }
-
-      //Look for Pi0. Add in track id if not in vector
-      else if(PID[i] == 111){
-        itPi0 = std::find( trackPi0.begin(), trackPi0.end(), track[i] );
-        if(itPi0 == trackPi0.end() ){
-          trackPi0.push_back(track[i]);
-        }
-
-      }
-
-      //Look for gamma. Add in track and parid if not in map
-      else if(PID[i] == 22){
-        if(trackGamma.find(track[i]) == trackGamma.end() ){
-          trackGamma[track[i]] = parid[i];
-        }
-      }
-
-      //Add in all edeps and parids from electrons
-      else if(abs(PID[i]) == 11){        
-        trackE.push_back( std::make_pair(parid[i],edep[i]) );
-
-        //Inside walls. Excuse terrible naming
-        if(xe[i] > (wallX[0] - FV.at(stop_num)[0]) && xe[i] < (wallX[1] + FV.at(stop_num)[0])&&
-          fabs(ye[i]) < (wallY + FV.at(stop_num)[0]) && fabs(ze[i]) < (wallZ + FV.at(stop_num)[0])
-          ){
-        
-          //Between wall and FV
-          if(xe[i] < wallX[0] || xe[i] > wallX[1] ||
-            fabs(ye[i]) > wallY || fabs(ze[i]) > wallZ){
-            
-            trackEOut.push_back( std::make_pair(parid[i],edep[i]) ); 
-          }
-
-          else trackEIn.push_back( std::make_pair(parid[i],edep[i]) );
-        }
-      }    
-    }
-
-    flagMuContained.at(stop_num) = !(flagExitFront.at(stop_num) || flagExitBack.at(stop_num) ||
-                         flagExitXLow.at(stop_num) || flagExitXHigh.at(stop_num) ||
-                         flagExitY.at(stop_num));
-        
-    if(trackE.size() == 0)std::cout<<"found no e+-"<<std::endl;
-    
-    ePi0TotalDep.at(stop_num) = 0.; 
-    ePi0InDep.at(stop_num) = 0.;
-    ePi0OutDep.at(stop_num) = 0.;
-
-    ePiCEMTotalDep.at(stop_num) = 0.; 
-    ePiCEMInDep.at(stop_num) = 0.;
-    ePiCEMOutDep.at(stop_num) = 0.;
-
-    eProtonEMTotalDep.at(stop_num) = 0.; 
-    eProtonEMInDep.at(stop_num) = 0.;
-    eProtonEMOutDep.at(stop_num) = 0.;
-
-    eMuEMTotalDep.at(stop_num) = 0.; 
-    eMuEMInDep.at(stop_num) = 0.;
-    eMuEMOutDep.at(stop_num) = 0.;
-
-    eResidualEMTotalDep.at(stop_num) = 0.;
-    eResidualEMInDep.at(stop_num) = 0.;
-    eResidualEMOutDep.at(stop_num) = 0.;
-
-    eReco.at(stop_num) = 0.;
-
-    //Iterate over e+- edeps, check if parid in gamma map
-    //if so: check if gamma parid in pi0 vector
-    for(int i = 0; i < trackE.size(); ++i){
-      int eParent = trackE.at(i).first;
-
-      itPiC = std::find(trackPiC.begin(), trackPiC.end(),eParent);
-      itProton = std::find(trackProton.begin(), trackProton.end(),eParent);
-      itMu = std::find(trackMu.begin(), trackMu.end(),eParent);
-
-      // if parent = gamma
-      if(trackGamma.find(eParent) != trackGamma.end()){
-        int gammaParent = trackGamma[eParent];
-        itPi0 = std::find(trackPi0.begin(),trackPi0.end(),gammaParent);
-        if(itPi0 != trackPi0.end()){//Successfully found pi0->g->e 
-          ePi0TotalDep.at(stop_num) += trackE.at(i).second; //add in edep
-        }
-
-        else if(std::find(trackPiC.begin(),trackPiC.end(),gammaParent)
-                != trackPiC.end()){
-          ePiCEMTotalDep.at(stop_num) += trackE.at(i).second;
-//          std::cout << "Found pic->gamma->e"<<std::endl;
-        }
-
-        else if(std::find(trackProton.begin(),trackProton.end(),gammaParent)
-                != trackProton.end()){
-          eProtonEMTotalDep.at(stop_num) += trackE.at(i).second;
-//          std::cout << "Found proton->gamma->e"<<std::endl;
-        }
-        
-        else if(std::find(trackMu.begin(),trackMu.end(),gammaParent)
-                != trackMu.end()){
-          eMuEMTotalDep.at(stop_num) += trackE.at(i).second;
- //         std::cout << "Found mu->gamma->e"<<std::endl;
-        }
-        else{
-          eResidualEMTotalDep.at(stop_num) += trackE.at(i).second;
-        }
-      }
-
-      // if parent = charged pion
-      else if(itPiC != trackPiC.end()){
-        ePiCEMTotalDep.at(stop_num) += trackE.at(i).second;
-      }
-
-      // if parent = proton
-      else if(itProton != trackProton.end()){
-        eProtonEMTotalDep.at(stop_num) += trackE.at(i).second;
-      }
-
-      // if parent = muon
-      else if(itMu != trackMu.end()){
-        eMuEMTotalDep.at(stop_num) += trackE.at(i).second;
-      }
-      else{
-        eResidualEMTotalDep.at(stop_num) += trackE.at(i).second;
-      }
-    }
-
-    for(int i = 0; i < trackEIn.size(); ++i){
-      int eParent = trackEIn.at(i).first;
-
-      itPiC = std::find(trackPiC.begin(), trackPiC.end(),eParent);
-      itProton = std::find(trackProton.begin(), trackProton.end(),eParent);
-      itMu = std::find(trackMu.begin(), trackMu.end(),eParent);
-
-      // if parent = gamma
-      if(trackGamma.find(eParent) != trackGamma.end()){
-        int gammaParent = trackGamma[eParent];
-        itPi0 = std::find(trackPi0.begin(),trackPi0.end(),gammaParent);
-        if(itPi0 != trackPi0.end()){//Successfully found pi0->g->e 
-          ePi0InDep.at(stop_num) += trackEIn.at(i).second; //add in edep
-        }
-
-        else if(std::find(trackPiC.begin(),trackPiC.end(),gammaParent)
-                != trackPiC.end()){
-          ePiCEMInDep.at(stop_num) += trackEIn.at(i).second;
-        }
-
-        else if(std::find(trackProton.begin(),trackProton.end(),gammaParent)
-                != trackProton.end()){
-          eProtonEMInDep.at(stop_num) += trackEIn.at(i).second;
-        }
-        
-        else if(std::find(trackMu.begin(),trackMu.end(),gammaParent)
-                != trackMu.end()){
-          eMuEMInDep.at(stop_num) += trackEIn.at(i).second;
-        }
-        else{
-          eResidualEMInDep.at(stop_num) += trackEIn.at(i).second;
-        }
-      }
-
-      // if parent = charged pion
-      else if(itPiC != trackPiC.end()){
-        ePiCEMInDep.at(stop_num) += trackEIn.at(i).second;
-      }
-
-      // if parent = proton
-      else if(itProton != trackProton.end()){
-        eProtonEMInDep.at(stop_num) += trackEIn.at(i).second;
-      }
-
-      // if parent = muon
-      else if(itMu != trackMu.end()){
-        eMuEMInDep.at(stop_num) += trackEIn.at(i).second;
-      }
-      else{
-        eResidualEMInDep.at(stop_num) += trackEIn.at(i).second;
-      }
-
-    }
-
-    for(int i = 0; i < trackEOut.size(); ++i){
-      int eParent = trackEOut.at(i).first;
-
-      itPiC = std::find(trackPiC.begin(), trackPiC.end(),eParent);
-      itProton = std::find(trackProton.begin(), trackProton.end(),eParent);
-      itMu = std::find(trackMu.begin(), trackMu.end(),eParent);
-
-      // if paremt = gamma
-      if(trackGamma.find(eParent) != trackGamma.end()){
-        int gammaParent = trackGamma[eParent];
-        itPi0 = std::find(trackPi0.begin(),trackPi0.end(),gammaParent);
-        if(itPi0 != trackPi0.end()){//Successfully found pi0->g->e 
-          ePi0OutDep.at(stop_num) += trackEOut.at(i).second; //add in edep
-        }
-
-        else if(std::find(trackPiC.begin(),trackPiC.end(),gammaParent)
-                != trackPiC.end()){
-          ePiCEMOutDep.at(stop_num) += trackEOut.at(i).second;
-        }
-
-        else if(std::find(trackProton.begin(),trackProton.end(),gammaParent)
-                != trackProton.end()){
-          eProtonEMOutDep.at(stop_num) += trackEOut.at(i).second;
-        }
-        
-        else if(std::find(trackMu.begin(),trackMu.end(),gammaParent)
-                != trackMu.end()){
-          eMuEMOutDep.at(stop_num) += trackEOut.at(i).second;
-        }
-        else{
-          eResidualEMOutDep.at(stop_num) += trackEOut.at(i).second;
-        }
-      }
-
-      // if parent = charged pion
-      else if(itPiC != trackPiC.end()){
-        ePiCEMOutDep.at(stop_num) += trackEOut.at(i).second;
-      }
-
-      // if parent = proton
-      else if(itProton != trackProton.end()){
-        eProtonEMOutDep.at(stop_num) += trackEOut.at(i).second;
-      }
-
-      // if parent = muon
-      else if(itMu != trackMu.end()){
-        eMuEMOutDep.at(stop_num) += trackEOut.at(i).second;
-      }
-      else{
-        eResidualEMOutDep.at(stop_num) += trackEOut.at(i).second;
-      }
-
-    }
-
-    eReco.at(stop_num) = eMuDep.at(stop_num) + eProtonInDep.at(stop_num) + ePiCInDep.at(stop_num) + ePi0InDep.at(stop_num) + eMuEMInDep.at(stop_num) + eProtonEMInDep.at(stop_num) + ePiCEMInDep.at(stop_num) + eResidualEMInDep.at(stop_num);
-
-    flagNoEHadOut.at(stop_num) = 
-                      ( ePi0OutDep.at(stop_num) == 0 && ( ePi0TotalDep.at(stop_num) == ePi0InDep.at(stop_num) )
-                     && eProtonOutDep.at(stop_num) == 0 
-                     && ePiCOutDep.at(stop_num) == 0 
-                     && eProtonEMOutDep.at(stop_num) == 0
-                     && ePiCEMOutDep.at(stop_num) == 0*/
-    //                 /*&& eResidualEMInDep.at(stop_num) == 0*/);
-    ////////////////////////////////////
+    eReco.at(stop_num) = eMuPrimaryDep.at(stop_num) + eMuSecondaryDep.at(stop_num) + eHadPrimaryDepIn.at(stop_num) + eHadSecondaryDepIn.at(stop_num);
 
 
+//    std::cout << eReco.at(stop_num) << std::endl;
+
+    ///////////////////////////////
     stopsTrees.at(stop_num)->Fill();
   }
 }
 
-/*void DunePrismAnalyzer::SetBranches(){
-
-  inTree->SetBranchAddress("ni",&ni);
-  inTree->SetBranchAddress("pidi",&PIDi);
-  inTree->SetBranchAddress("pxi",&pxi);
-  inTree->SetBranchAddress("pyi",&pyi);
-  inTree->SetBranchAddress("pzi",&pzi);
-  inTree->SetBranchAddress("ekini",&ekini);
-  inTree->SetBranchAddress("mi",&mi);
-
-  inTree->SetBranchAddress("ev",&ev);
-  inTree->SetBranchAddress("ekina",&Enu);
-  inTree->SetBranchAddress("xa",&EvtVtx[0]);
-  inTree->SetBranchAddress("ya",&EvtVtx[1]);
-  inTree->SetBranchAddress("za",&EvtVtx[2]);
-  inTree->SetBranchAddress("pida",&nuPID);
-  
-  inTree->SetBranchAddress("pid",&PID);
-  inTree->SetBranchAddress("tid",&track);
-  inTree->SetBranchAddress("parid",&parid);
-  inTree->SetBranchAddress("nstep",&nstep);
-  inTree->SetBranchAddress("xs",&xs);
-  inTree->SetBranchAddress("xe",&xe);
-  inTree->SetBranchAddress("ys",&ys);
-  inTree->SetBranchAddress("ye",&ye);
-  inTree->SetBranchAddress("zs",&zs);
-  inTree->SetBranchAddress("ze",&ze);
-  inTree->SetBranchAddress("pxs",&pxs);
-  inTree->SetBranchAddress("pxe",&pxe);
-  inTree->SetBranchAddress("pys",&pys);
-  inTree->SetBranchAddress("pye",&pye);
-  inTree->SetBranchAddress("pzs",&pzs);
-  inTree->SetBranchAddress("pze",&pze);
-  inTree->SetBranchAddress("ekin",&ekin);
-  inTree->SetBranchAddress("edep",&edep);
- 
-  eventTree->Branch("eventNum",&eventNum);
-  eventTree->Branch("Enu",&Enu,"Enu/D");
-  eventTree->Branch("vtx_X",&EvtVtx[0],"vtx_X/D");
-  eventTree->Branch("vtx_Y",&EvtVtx[1],"vtx_Y/D");
-  eventTree->Branch("vtx_Z",&EvtVtx[2],"vtx_Z/D");
-
-  eventTree->Branch("flagExitBack",&flagExitBack);
-  eventTree->Branch("flagExitFront",&flagExitFront);
-  eventTree->Branch("flagExitY",&flagExitY);
-  eventTree->Branch("flagExitXLow",&flagExitXLow);
-  eventTree->Branch("flagExitXHigh",&flagExitXHigh);
-  eventTree->Branch("flagNoEHadOut",&flagNoEHadOut);
-  eventTree->Branch("flagMuContained",&flagMuContained);
-
-  eventTree->Branch("muExitingPX",&muExitingPX,"muExitingPX/D");
-  eventTree->Branch("muExitingPY",&muExitingPY,"muExitingPY/D");
-  eventTree->Branch("muExitingPZ",&muExitingPZ,"muExitingPZ/D");
-  eventTree->Branch("eHadOutDep",&eHadOutDep,"eHadOutDep/D");
-  eventTree->Branch("eHadInDep",&eHadInDep,"eHadInDep/D");
-  eventTree->Branch("eHadTotalDep",&eHadTotalDep,"eHadTotalDep/D");
-  eventTree->Branch("eMuDep",&eMuDep,"eMuDep/D");
-  eventTree->Branch("eMuTotalDep",&eMuTotalDep,"eMuTotalDep/D");
-  eventTree->Branch("ePi0TotalDep",&ePi0TotalDep,"ePi0TotalDep/D");
-  eventTree->Branch("ePi0InDep",&ePi0InDep,"ePi0InDep/D");
-  eventTree->Branch("ePi0OutDep",&ePi0OutDep,"ePi0OutDep/D");
-
-  eventTree->Branch("ePiCEMTotalDep",&ePiCEMTotalDep,"ePiCEMTotalDep/D");
-  eventTree->Branch("ePiCEMInDep",&ePiCEMInDep,"ePiCEMInDep/D");
-  eventTree->Branch("ePiCEMOutDep",&ePiCEMOutDep,"ePiCEMOutDep/D");
-
-  eventTree->Branch("eProtonEMTotalDep",&eProtonEMTotalDep,"eProtonEMTotalDep/D");
-  eventTree->Branch("eProtonEMInDep",&eProtonEMInDep,"eProtonEMInDep/D");
-  eventTree->Branch("eProtonEMOutDep",&eProtonEMOutDep,"eProtonEMOutDep/D");
-
-  eventTree->Branch("eMuEMTotalDep",&eMuEMTotalDep,"eMuEMTotalDep/D");
-  eventTree->Branch("eMuEMInDep",&eMuEMInDep,"eMuEMInDep/D");
-  eventTree->Branch("eMuEMOutDep",&eMuEMOutDep,"eMuEMOutDep/D");
-
-  eventTree->Branch("eHadTrueCharged",&eHadTrueCharged,"eHadTrueCharged/D");
-  eventTree->Branch("eHadTrueTotal",&eHadTrueTotal,"eHadTrueTotal/D");
-  eventTree->Branch("eMuTrue",&eMuTrue,"eMuTrue/D");
-  eventTree->Branch("nMu",&nMu,"nMu/I");
-  eventTree->Branch("nPi0",&nPi0,"nPi0/I");
-  eventTree->Branch("nPiC",&nPiC,"nPiC/I");
-  eventTree->Branch("nProton",&nProton,"nProton/I");
-  eventTree->Branch("nNeutron",&nNeutron,"nNeutron/I");
-
-}*/
 
 void DunePrismAnalyzer::SetInBranches(){
 
@@ -1574,50 +576,33 @@ void DunePrismAnalyzer::SetOutBranches(int stop){
 
   stopsTrees.at(stop)->Branch("eHadPrimaryDepIn",&eHadPrimaryDepIn.at(stop),"eHadPrimaryDepIn/D");
   stopsTrees.at(stop)->Branch("eHadSecondaryDepIn",&eHadSecondaryDepIn.at(stop),"eHadSecondaryDepIn/D");
-
   stopsTrees.at(stop)->Branch("eHadPrimaryDepOut",&eHadPrimaryDepOut.at(stop),"eHadPrimaryDepOut/D");
   stopsTrees.at(stop)->Branch("eHadSecondaryDepOut",&eHadSecondaryDepOut.at(stop),"eHadSecondaryDepOut/D");
 
+  stopsTrees.at(stop)->Branch("eProtonPrimaryDepIn",&eProtonPrimaryDepIn.at(stop),"eProtonPrimaryDepIn/D");
+  stopsTrees.at(stop)->Branch("eProtonSecondaryDepIn",&eProtonSecondaryDepIn.at(stop),"eProtonSecondaryDepIn/D");
+  stopsTrees.at(stop)->Branch("eProtonPrimaryDepOut",&eProtonPrimaryDepOut.at(stop),"eProtonPrimaryDepOut/D");
+  stopsTrees.at(stop)->Branch("eProtonSecondaryDepOut",&eProtonSecondaryDepOut.at(stop),"eProtonSecondaryDepOut/D");
+
+  stopsTrees.at(stop)->Branch("eNeutronPrimaryDepIn",&eNeutronPrimaryDepIn.at(stop),"eNeutronPrimaryDepIn/D");
+  stopsTrees.at(stop)->Branch("eNeutronSecondaryDepIn",&eNeutronSecondaryDepIn.at(stop),"eNeutronSecondaryDepIn/D");
+  stopsTrees.at(stop)->Branch("eNeutronPrimaryDepOut",&eNeutronPrimaryDepOut.at(stop),"eNeutronPrimaryDepOut/D");
+  stopsTrees.at(stop)->Branch("eNeutronSecondaryDepOut",&eNeutronSecondaryDepOut.at(stop),"eNeutronSecondaryDepOut/D");
+
+  stopsTrees.at(stop)->Branch("ePiCPrimaryDepIn",&ePiCPrimaryDepIn.at(stop),"ePiCPrimaryDepIn/D");
+  stopsTrees.at(stop)->Branch("ePiCSecondaryDepIn",&ePiCSecondaryDepIn.at(stop),"ePiCSecondaryDepIn/D");
+  stopsTrees.at(stop)->Branch("ePiCPrimaryDepOut",&ePiCPrimaryDepOut.at(stop),"ePiCPrimaryDepOut/D");
+  stopsTrees.at(stop)->Branch("ePiCSecondaryDepOut",&ePiCSecondaryDepOut.at(stop),"ePiCSecondaryDepOut/D");
+
   stopsTrees.at(stop)->Branch("eGammaPrimaryDepIn",&eGammaPrimaryDepIn.at(stop),"eGammaPrimaryDepIn/D");
   stopsTrees.at(stop)->Branch("eGammaSecondaryDepIn",&eGammaSecondaryDepIn.at(stop),"eGammaSecondaryDepIn/D");
-
   stopsTrees.at(stop)->Branch("eGammaPrimaryDepOut",&eGammaPrimaryDepOut.at(stop),"eGammaPrimaryDepOut/D");
   stopsTrees.at(stop)->Branch("eGammaSecondaryDepOut",&eGammaSecondaryDepOut.at(stop),"eGammaSecondaryDepOut/D");
-/*  stopsTrees.at(stop)->Branch("eHadOutDep",&eHadOutDep.at(stop),"eHadOutDep/D");
-  stopsTrees.at(stop)->Branch("eHadInDep",&eHadInDep.at(stop),"eHadInDep/D");
-  stopsTrees.at(stop)->Branch("eHadTotalDep",&eHadTotalDep.at(stop),"eHadTotalDep/D");
 
-  stopsTrees.at(stop)->Branch("eMuDep",&eMuDep.at(stop),"eMuDep/D");
-  stopsTrees.at(stop)->Branch("eMuTotalDep",&eMuTotalDep.at(stop),"eMuTotalDep/D");
-  stopsTrees.at(stop)->Branch("eMuSecondaryDep",&eMuSecondaryDep.at(stop),"eMuSecondaryDep/D");
-
-  stopsTrees.at(stop)->Branch("ePi0TotalDep",&ePi0TotalDep.at(stop),"ePi0TotalDep/D");
-  stopsTrees.at(stop)->Branch("ePi0InDep",&ePi0InDep.at(stop),"ePi0InDep/D");
-  stopsTrees.at(stop)->Branch("ePi0OutDep",&ePi0OutDep.at(stop),"ePi0OutDep/D");
-
-  stopsTrees.at(stop)->Branch("ePiCTotalDep",&ePiCTotalDep.at(stop),"ePiCTotalDep/D");
-  stopsTrees.at(stop)->Branch("ePiCInDep",&ePiCInDep.at(stop),"ePiCInDep/D");
-  stopsTrees.at(stop)->Branch("ePiCOutDep",&ePiCOutDep.at(stop),"ePiCOutDep/D");
-
-  stopsTrees.at(stop)->Branch("eProtonTotalDep",&eProtonTotalDep.at(stop),"eProtonTotalDep/D");
-  stopsTrees.at(stop)->Branch("eProtonInDep",&eProtonInDep.at(stop),"eProtonInDep/D");
-  stopsTrees.at(stop)->Branch("eProtonOutDep",&eProtonOutDep.at(stop),"eProtonOutDep/D");
-
-  stopsTrees.at(stop)->Branch("ePiCEMTotalDep",&ePiCEMTotalDep.at(stop),"ePiCEMTotalDep/D");
-  stopsTrees.at(stop)->Branch("ePiCEMInDep",&ePiCEMInDep.at(stop),"ePiCEMInDep/D");
-  stopsTrees.at(stop)->Branch("ePiCEMOutDep",&ePiCEMOutDep.at(stop),"ePiCEMOutDep/D");
-
-  stopsTrees.at(stop)->Branch("eProtonEMTotalDep",&eProtonEMTotalDep.at(stop),"eProtonEMTotalDep/D");
-  stopsTrees.at(stop)->Branch("eProtonEMInDep",&eProtonEMInDep.at(stop),"eProtonEMInDep/D");
-  stopsTrees.at(stop)->Branch("eProtonEMOutDep",&eProtonEMOutDep.at(stop),"eProtonEMOutDep/D");
-
-  stopsTrees.at(stop)->Branch("eMuEMTotalDep",&eMuEMTotalDep.at(stop),"eMuEMTotalDep/D");
-  stopsTrees.at(stop)->Branch("eMuEMInDep",&eMuEMInDep.at(stop),"eMuEMInDep/D");
-  stopsTrees.at(stop)->Branch("eMuEMOutDep",&eMuEMOutDep.at(stop),"eMuEMOutDep/D");
-
-  stopsTrees.at(stop)->Branch("eResidualEMTotalDep",&eResidualEMTotalDep.at(stop),"eResidualEMTotalDep/D");
-  stopsTrees.at(stop)->Branch("eResidualEMInDep",&eResidualEMInDep.at(stop),"eResidualEMInDep/D");
-  stopsTrees.at(stop)->Branch("eResidualEMOutDep",&eResidualEMOutDep.at(stop),"eResidualEMOutDep/D");*/
+  stopsTrees.at(stop)->Branch("ePi0PrimaryDepIn",&ePi0PrimaryDepIn.at(stop),"ePi0PrimaryDepIn/D");
+  stopsTrees.at(stop)->Branch("ePi0SecondaryDepIn",&ePi0SecondaryDepIn.at(stop),"ePi0SecondaryDepIn/D");
+  stopsTrees.at(stop)->Branch("ePi0PrimaryDepOut",&ePi0PrimaryDepOut.at(stop),"ePi0PrimaryDepOut/D");
+  stopsTrees.at(stop)->Branch("ePi0SecondaryDepOut",&ePi0SecondaryDepOut.at(stop),"ePi0SecondaryDepOut/D");
 
   stopsTrees.at(stop)->Branch("eReco",&eReco.at(stop),"eReco/D");
 
@@ -1645,7 +630,6 @@ void DunePrismAnalyzer::SetOutBranches(int stop){
 void DunePrismAnalyzer::InitVarsStop(){
   eventNum.push_back(0);
   Enu.push_back(0.);
-//  std::array<double,3> vtx = {0.,0.,0.};
   vtx_X.push_back(0.);
   vtx_Y.push_back(0.);
   vtx_Z.push_back(0.);
@@ -1660,58 +644,39 @@ void DunePrismAnalyzer::InitVarsStop(){
   muExitingPX.push_back(0.);
   muExitingPY.push_back(0.);
   muExitingPZ.push_back(0.);
-
-/*  eHadOutDep.push_back(0.);
-  eHadInDep.push_back(0.);
-  eHadTotalDep.push_back(0.);
-
-  ePi0TotalDep.push_back(0.);
-  ePi0InDep.push_back(0.);
-  ePi0OutDep.push_back(0.);
-
-  ePiCTotalDep.push_back(0.);
-  ePiCInDep.push_back(0.);
-  ePiCOutDep.push_back(0.);
-
-  eProtonTotalDep.push_back(0.);
-  eProtonInDep.push_back(0.);
-  eProtonOutDep.push_back(0.);
-
-  ePiCEMTotalDep.push_back(0.);
-  ePiCEMInDep.push_back(0.);
-  ePiCEMOutDep.push_back(0.);
-
-  eProtonEMTotalDep.push_back(0.);
-  eProtonEMInDep.push_back(0.);
-  eProtonEMOutDep.push_back(0.);
-
-  eMuEMTotalDep.push_back(0.);
-  eMuEMInDep.push_back(0.);
-  eMuEMOutDep.push_back(0.);
-
-  eResidualEMTotalDep.push_back(0.);
-  eResidualEMInDep.push_back(0.);
-  eResidualEMOutDep.push_back(0.);
-
-  eMuDep.push_back(0.);
-  eMuTotalDep.push_back(0.);
-  eMuSecondaryDep.push_back(0.);
-*/
   
   eMuPrimaryDep.push_back(0.);
   eMuSecondaryDep.push_back(0.);
 
   eHadPrimaryDepIn.push_back(0.);
   eHadSecondaryDepIn.push_back(0.);
-
   eHadPrimaryDepOut.push_back(0.);
   eHadSecondaryDepOut.push_back(0.);
 
+  eProtonPrimaryDepIn.push_back(0.);
+  eProtonSecondaryDepIn.push_back(0.);
+  eProtonPrimaryDepOut.push_back(0.);
+  eProtonSecondaryDepOut.push_back(0.);
+
+  eNeutronPrimaryDepIn.push_back(0.);
+  eNeutronSecondaryDepIn.push_back(0.);
+  eNeutronPrimaryDepOut.push_back(0.);
+  eNeutronSecondaryDepOut.push_back(0.);
+
+  ePiCPrimaryDepIn.push_back(0.);
+  ePiCSecondaryDepIn.push_back(0.);
+  ePiCPrimaryDepOut.push_back(0.);
+  ePiCSecondaryDepOut.push_back(0.);
+
   eGammaPrimaryDepIn.push_back(0.);
   eGammaSecondaryDepIn.push_back(0.);
-
   eGammaPrimaryDepOut.push_back(0.);
   eGammaSecondaryDepOut.push_back(0.);
+
+  ePi0PrimaryDepIn.push_back(0.);
+  ePi0SecondaryDepIn.push_back(0.);
+  ePi0PrimaryDepOut.push_back(0.);
+  ePi0SecondaryDepOut.push_back(0.);
 
   eReco.push_back(0.);
 
