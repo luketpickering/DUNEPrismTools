@@ -25,8 +25,8 @@ class DunePrismAnalyzer{
   public:
 
     //Functions
-    DunePrismAnalyzer(std::string inFileName, std::string outFileName, double det[3], double fid[3], double off);
-    DunePrismAnalyzer(std::string inFileName, std::string outFileName, std::vector<DetectorStop> detStops);
+    DunePrismAnalyzer(std::string inFileName, std::string outFileName, double det[3], double fid[3], double off,int N);
+    DunePrismAnalyzer(std::string inFileName, std::string outFileName, std::vector<DetectorStop> detStops,int N);
     virtual ~DunePrismAnalyzer(){}; 
     //void Analyze();
     void AnalyzeStops();
@@ -45,24 +45,11 @@ class DunePrismAnalyzer{
     TTree * eventTree;
     TTree * gOutTree;
    
-    DepoMuon * FSMuon;
+    DepoLepton * FSLepton;
     std::map<int,DepoHadron *> FSHadrons;
      
     std::vector<TTree*> stopsTrees;
     int nStops;
-
-    std::vector<int> trackPi0;//trackIDs of pi0s
-    std::map<int,int> trackGamma;//< trackID -> parid > of gammas
-    std::vector<int> trackPiC;//trackIDs of pics
-    std::vector<int> trackProton;//trackIDs of protons
-    std::vector<int> trackMu;//trackIDs of muons
-    std::vector< std::pair<int,double> > trackE; //(parid,edep)
-    std::vector< std::pair<int,double> > trackEIn; //(parid,edep)
-    std::vector< std::pair<int,double> > trackEOut; //(parid,edep)
-
-/*    double dimension[3];
-    double FV[3];
-    double shift;*/
 
     std::vector< std::array<double,3> > dimension;
     std::vector< std::array<double,3> > FV;
@@ -104,15 +91,12 @@ class DunePrismAnalyzer{
     double ekin[maxNQ];
     double edep[maxNQ];
 
-    std::vector<double> mu_x;
-    std::vector<double> mu_y;
-    std::vector<double> mu_z;
-    std::vector<double> mu_px;
-    std::vector<double> mu_py;
-    std::vector<double> mu_pz;
 
     //Output
     std::vector<int> eventNum;
+    std::vector<int> nuPDG;
+    std::vector<int> lepPDG;
+    std::vector<int> flagCC; 
     std::vector<double> Enu;
     std::vector<double> vtx_X;
     std::vector<double> vtx_Y;
@@ -124,14 +108,14 @@ class DunePrismAnalyzer{
     std::vector<int> flagExitXHigh;
     std::vector<int> flagExitXLow;
     std::vector<int> flagNoEHadOut;
-    std::vector<int> flagMuContained; 
+    std::vector<int> flagLepContained; 
 
-    std::vector<double> muExitingPX;
-    std::vector<double> muExitingPY;
-    std::vector<double> muExitingPZ;
+    std::vector<double> lepExitingPX;
+    std::vector<double> lepExitingPY;
+    std::vector<double> lepExitingPZ;
 
-    std::vector<double> eMuPrimaryDep;
-    std::vector<double> eMuSecondaryDep;
+    std::vector<double> eLepPrimaryDep;
+    std::vector<double> eLepSecondaryDep;
 
     std::vector<double> eHadPrimaryDepIn;
     std::vector<double> eHadPrimaryDepOut;
@@ -164,20 +148,29 @@ class DunePrismAnalyzer{
     std::vector<double> ePi0SecondaryDepOut;
 
     std::vector<double> eReco;
+    std::vector<double> eOtherDepIn;
+    std::vector<double> eOtherDepOut;
+    std::vector<double> eTotalDep;
 
     std::vector<double> eHadTrueCharged;
     std::vector<double> eHadTrueTotal;
-    std::vector<double> eMuTrue;
+    std::vector<double> eLepTrue;
+
+    std::vector<double> eProtonTrue;
+    std::vector<double> eNeutronTrue;
+    std::vector<double> ePiCTrue;
+    std::vector<double> ePi0True;
+
     std::vector<double> eGammaTrue;
-    std::vector<double> pMuTrueX;
-    std::vector<double> pMuTrueY;
-    std::vector<double> pMuTrueZ;
+    std::vector<double> pLepTrueX;
+    std::vector<double> pLepTrueY;
+    std::vector<double> pLepTrueZ;
 
     std::vector<double> Q2True;
     std::vector<double> yTrue;
     std::vector<double> W_rest;
 
-    std::vector<int> nMu;
+    std::vector<int> nLep;
     std::vector<int> nGamma;
     std::vector<int> nPi0;
     std::vector<int> nPiC;
@@ -197,7 +190,7 @@ double fiducialGap[3];
 double offset; 
 std::string inFileName;
 std::string outFileName;
-
+int nEntries;
 std::vector<DetectorStop> detStops;
 
 
@@ -238,6 +231,9 @@ void parse_args_xml(int argc, char* argv[]){
       std::cout << argv[i+1] << std::endl;
       detStops = ReadDetectorStopConfig(argv[i+1]);
       std::cout << "size "<<  detStops.size() << std::endl;
+    }
+    else if(flag == "-n"){
+      nEntries = atoi(argv[i+1]);
     }
     
   }

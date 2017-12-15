@@ -2,7 +2,7 @@ class DepoParticle{
   public:
     int PDG;
     int trackID;
-    double eKin; 
+    double energy; 
  
     double xBound[2];
     double yBound;
@@ -13,14 +13,14 @@ class DepoParticle{
 };
 
 
-class DepoMuon : public DepoParticle{
+class DepoLepton : public DepoParticle{
   public:
     int flagExitBack = 0;
     int flagExitFront = 0;
     int flagExitY = 0;
     int flagExitXHigh = 0;
     int flagExitXLow = 0;
-    int flagMuContained = 1;   
+    int flagLepContained = 1;   
 
     //Final position and momentum of the muon track
     //Used for determining where it exits
@@ -33,13 +33,13 @@ class DepoMuon : public DepoParticle{
     double pzf = 0.;  
 
 
-    double eDepPrimary;//From muon itself
+    double eDepPrimary;//From lepton itself
     double eDepSecondary;//From any secondary/tertiary... 
 
-    DepoMuon(int inPDG, int inTrackID, double inEKin, double *inXBound, double inYBound, double inZBound){
+    DepoLepton(int inPDG, int inTrackID, double inE, double *inXBound, double inYBound, double inZBound){
       PDG = inPDG;
       trackID = inTrackID;
-      eKin = inEKin;
+      energy = inE;
       xBound[0] = inXBound[0];
       xBound[1] = inXBound[1];
       yBound = inYBound;
@@ -54,7 +54,7 @@ class DepoMuon : public DepoParticle{
       else if( zf >= zBound ) flagExitBack = 1;
       else if( zf <= -1.*zBound ) flagExitFront = 1;
 
-      flagMuContained = !(
+      flagLepContained = !(
         flagExitXLow || flagExitXHigh || flagExitY ||
         flagExitBack || flagExitFront ); 
     };
@@ -76,10 +76,10 @@ class DepoHadron : public DepoParticle{
 
 //    int flagNoEHadOut;
 
-    DepoHadron(int inPDG, int inTrackID, double inEKin, double * inXBound, double inYBound, double inZBound){
+    DepoHadron(int inPDG, int inTrackID, double inE, double * inXBound, double inYBound, double inZBound){
       PDG = inPDG;
       trackID = inTrackID;
-      eKin = inEKin;
+      energy = inE;
       xBound[0] = inXBound[0];
       xBound[1] = inXBound[1];
       yBound = inYBound;

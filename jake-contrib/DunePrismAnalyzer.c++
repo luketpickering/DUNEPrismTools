@@ -12,7 +12,7 @@ int main(int argc, char* argv[]){
 
 
 //  DunePrismAnalyzer dpa = DunePrismAnalyzer(inFileName, outFileName, detector, fiducialGap, offset);
-  DunePrismAnalyzer dpa = DunePrismAnalyzer(inFileName, outFileName, detStops);
+  DunePrismAnalyzer dpa = DunePrismAnalyzer(inFileName, outFileName, detStops,nEntries);
   std::cout << "Checking dpa size: " << dpa.stopsTrees.size()<< std::endl;
   dpa.AnalyzeStops();
   dpa.FinalizeStops();
@@ -20,7 +20,7 @@ int main(int argc, char* argv[]){
 }
 
 
-DunePrismAnalyzer::DunePrismAnalyzer(std::string inFileName, std::string outFileName, std::vector<DetectorStop> detStops){
+DunePrismAnalyzer::DunePrismAnalyzer(std::string inFileName, std::string outFileName, std::vector<DetectorStop> detStops, int N){
  #ifdef DEBUG
   std::cout << inFileName << std::endl;
   std::cout << outFileName << std::endl;
@@ -35,7 +35,9 @@ DunePrismAnalyzer::DunePrismAnalyzer(std::string inFileName, std::string outFile
   else std::cout<<"Got argon tree" << std::endl;
   #endif
 
-  nEntries = inTree->GetEntries();
+  //nEntries = inTree->GetEntries();
+  nEntries = N;
+  if (nEntries > inTree->GetEntries()) nEntries = inTree->GetEntries();
   #ifdef DEBUG
   std::cout << nEntries << std::endl; 
   #endif
@@ -123,7 +125,7 @@ void DunePrismAnalyzer::AnalyzeStops(){
   for (int ie = 0; ie < nEntries; ++ie){
     if(!(ie%100))std::cout<<"Entry " << ie<<std::endl;
     inTree->GetEntry(ie);
-    if(nuPID != 14) continue;
+//    if(nuPID != 14) continue;
 
     int stop_num;
     bool noStops = true;
@@ -160,31 +162,36 @@ void DunePrismAnalyzer::AnalyzeStops(){
     /////////////////////////////////////
     
     Enu.at(stop_num) = ekina;
+    nuPDG.at(stop_num) = nuPID;    
     vtx_X.at(stop_num) = EvtVtx[0];
     vtx_Y.at(stop_num) = EvtVtx[1];
     vtx_Z.at(stop_num) = EvtVtx[2];
     eventNum.at(stop_num) = ev; 
 
-    double muonBoundX[2] = {
+    double leptonBoundX[2] = {
       wallX[0] - FV.at(stop_num)[0],
       wallX[1] + FV.at(stop_num)[0]
     };
-    double muonBoundY = wallY + FV.at(stop_num)[1];
-    double muonBoundZ = wallZ + FV.at(stop_num)[1];
+    double leptonBoundY = wallY + FV.at(stop_num)[1];
+    double leptonBoundZ = wallZ + FV.at(stop_num)[1];
    
-    bool found = false;
-    bool muEnd = false;
 
     eHadTrueCharged.at(stop_num) = 0.;
     eHadTrueTotal.at(stop_num) = 0.;
-    eMuTrue.at(stop_num) = 0.;
+    eLepTrue.at(stop_num) = 0.;
     eGammaTrue.at(stop_num) = 0.;
 
-    pMuTrueX.at(stop_num) = 0.;
-    pMuTrueY.at(stop_num) = 0.;
-    pMuTrueZ.at(stop_num) = 0.;
+    eProtonTrue.at(stop_num) = 0.;
+    eNeutronTrue.at(stop_num) = 0.;
+    ePi0True.at(stop_num) = 0.;
+    ePiCTrue.at(stop_num) = 0.;
 
-    nMu.at(stop_num) = 0;
+
+    pLepTrueX.at(stop_num) = 0.;
+    pLepTrueY.at(stop_num) = 0.;
+    pLepTrueZ.at(stop_num) = 0.;
+
+    nLep.at(stop_num) = 0;
     nPi0.at(stop_num) = 0;
     nPiC.at(stop_num) = 0;
     nProton.at(stop_num) = 0;
@@ -205,50 +212,59 @@ void DunePrismAnalyzer::AnalyzeStops(){
         nBindino++;
         continue;//Skip bindino
       }
-      chain[ip + 1] = 0; 
-      if(PIDi[ip] == 13){ //Initial muon 
+      chain[ip + 1] = 0;       
+      if((abs(PIDi[ip]) == 13 || abs(PIDi[ip]) == 11 || 
+         PIDi[ip] == nuPID) && nLep.at(stop_num) < 1){
  //       std::cout << "Found " << PIDi[ip] << " " << ip + 1 << std::endl; 
-        FSMuon = new DepoMuon(
-          PIDi[ip], (ip + 1), ekini[ip],
-          muonBoundX, muonBoundY, muonBoundZ); 
+        lepPDG.at(stop_num) = PIDi[ip];
+        FSLepton = new DepoLepton(
+          PIDi[ip], (ip + 1), ekini[ip] + mi[ip],
+          leptonBoundX, leptonBoundY, leptonBoundZ); 
 
-        eMuTrue.at(stop_num) = ekini[ip] + mi[ip];
-        pMuTrueX.at(stop_num) = pxi[ip];
-        pMuTrueY.at(stop_num) = pyi[ip];
-        pMuTrueZ.at(stop_num) = pzi[ip];
+        eLepTrue.at(stop_num) = ekini[ip] + mi[ip];
+        pLepTrueX.at(stop_num) = pxi[ip];
+        pLepTrueY.at(stop_num) = pyi[ip];
+        pLepTrueZ.at(stop_num) = pzi[ip];
 
-        Q2True.at(stop_num) = fabs( pow( (ekina - eMuTrue.at(stop_num)), 2 ) 
+        Q2True.at(stop_num) = fabs( pow( (ekina - eLepTrue.at(stop_num)), 2 ) 
                                  - pow( (pxi[ip] - pxa), 2 )
                                  - pow( (pyi[ip] - pya), 2 )
                                  - pow( (pzi[ip] - pza), 2 ) );
 
-        yTrue.at(stop_num) = 1  - ekini[ip]/ekina;
+        yTrue.at(stop_num) = 1  - eLepTrue.at(stop_num)/ekina;
         double mN = .93827208;
-        W_rest.at(stop_num) = sqrt(-Q2True.at(stop_num) + 2 * mN * (ekina - eMuTrue.at(stop_num)) + mN * mN);
+        W_rest.at(stop_num) = sqrt(-Q2True.at(stop_num) + 2 * mN * (ekina - eLepTrue.at(stop_num)) + mN * mN);
 
-        nMu.at(stop_num)++;
+        nLep.at(stop_num)++;
+
+        if( abs(PIDi[ip]) == abs(nuPID) - 1 ) flagCC.at(stop_num) = 1;
+        else if(PIDi[ip] == nuPID) flagCC.at(stop_num) = 0;
+
       }
       else if(PIDi[ip] == 111){
 //        std::cout << "Found " << PIDi[ip] <<  " " << ip + 1 << std::endl; 
         eHadTrueCharged.at(stop_num) += ekini[ip] + mi[ip];
+        ePi0True.at(stop_num) += ekini[ip] + mi[ip];
         nPi0.at(stop_num)++;
         DepoHadron * hadron = new DepoHadron(
-          PIDi[ip], (ip + 1), ekini[ip],
+          PIDi[ip], (ip + 1), ekini[ip] + mi[ip],
           wallX, wallY, wallZ);
         FSHadrons[ip + 1] = hadron;
       }
       else if(abs(PIDi[ip]) == 211 ){
 //        std::cout << "Found " << PIDi[ip] <<  " " << ip + 1 << std::endl; 
         eHadTrueCharged.at(stop_num) += ekini[ip] + mi[ip];
+        ePiCTrue.at(stop_num) += ekini[ip] + mi[ip];
         nPiC.at(stop_num)++;
         DepoHadron * hadron = new DepoHadron(
-          PIDi[ip], (ip + 1), ekini[ip],
+          PIDi[ip], (ip + 1), ekini[ip] + mi[ip],
           wallX, wallY, wallZ);
         FSHadrons[ip + 1] = hadron;
       }
       else if(PIDi[ip] == 2212){
 //        std::cout << "Found " << PIDi[ip] <<  " " << ip + 1 << std::endl; 
         eHadTrueCharged.at(stop_num) += ekini[ip];
+        eProtonTrue.at(stop_num) += ekini[ip];
         nProton.at(stop_num)++;
         DepoHadron * hadron = new DepoHadron(
           PIDi[ip], (ip + 1), ekini[ip],
@@ -258,6 +274,7 @@ void DunePrismAnalyzer::AnalyzeStops(){
       else if(PIDi[ip] == 2112){
  //       std::cout << "Found " << PIDi[ip] <<  " " << ip + 1 << std::endl; 
         eHadTrueTotal.at(stop_num) += ekini[ip];
+        eNeutronTrue.at(stop_num) += ekini[ip];
         nNeutron.at(stop_num)++;
         DepoHadron * hadron = new DepoHadron(
           PIDi[ip], (ip + 1), ekini[ip],
@@ -283,7 +300,7 @@ void DunePrismAnalyzer::AnalyzeStops(){
 
     int nPrimary = ni - nBindino - nOther;
 //    std::cout << "NHadrons: " << FSHadrons.size() << std::endl;
-    if (nMu.at(stop_num) == 0) continue;
+    if (nLep.at(stop_num) == 0) continue;
 
     eHadTrueTotal.at(stop_num) += eHadTrueCharged.at(stop_num); 
     ///////////////////////////////////
@@ -293,15 +310,15 @@ void DunePrismAnalyzer::AnalyzeStops(){
     flagExitY.at(stop_num) = 0;
     flagExitXHigh.at(stop_num) = 0;
     flagExitXLow.at(stop_num) = 0;
-    flagMuContained.at(stop_num) = 0;
+    flagLepContained.at(stop_num) = 0;
     flagNoEHadOut.at(stop_num) = 0;
 
-    muExitingPX.at(stop_num) = 0.;
-    muExitingPY.at(stop_num) = 0.;
-    muExitingPZ.at(stop_num) = 0.;
+    lepExitingPX.at(stop_num) = 0.;
+    lepExitingPY.at(stop_num) = 0.;
+    lepExitingPZ.at(stop_num) = 0.;
 
-    eMuPrimaryDep.at(stop_num) = 0.;
-    eMuSecondaryDep.at(stop_num) = 0.;
+    eLepPrimaryDep.at(stop_num) = 0.;
+    eLepSecondaryDep.at(stop_num) = 0.;
 
     eHadPrimaryDepIn.at(stop_num) = 0.;
     eHadSecondaryDepIn.at(stop_num) = 0.;
@@ -333,24 +350,12 @@ void DunePrismAnalyzer::AnalyzeStops(){
     ePi0PrimaryDepOut.at(stop_num) = 0.;
     ePi0SecondaryDepOut.at(stop_num) = 0.;
 
-    std::vector<int>::iterator itPi0;
-    std::map<int,int>::iterator itGamma;
-    std::vector<int>::iterator itPiC;
-    std::vector<int>::iterator itProton;
-    std::vector<int>::iterator itMu;
+    eOtherDepIn.at(stop_num) = 0.;
+    eOtherDepOut.at(stop_num) = 0.;
+    eTotalDep.at(stop_num) = 0.;
 
-    ///New
-    trackMu.clear();
-    trackPiC.clear();
-    trackProton.clear();
-    
-    trackPi0.clear();
-    trackGamma.clear();
-    trackE.clear();
-    trackEIn.clear();
-    trackEOut.clear();
-//    std::cout << "Starting steps " << std::endl;
     for(int i = 0; i < nstep; ++i){
+      eTotalDep.at(stop_num) += edep[i];
       if(chain.find(track[i]) == chain.end()){//Not in chain
       
         if(chain.find(parid[i]) == chain.end()){//Error
@@ -362,34 +367,50 @@ void DunePrismAnalyzer::AnalyzeStops(){
     
       if(chain[track[i]] == 0){//Primary
 
-        if(PID[i] == 13){//Muon
-          if(FSMuon->trackID != track[i]){
-            std::cout << "ERROR: Wrong muon track" << std::endl;  
+        if(PID[i] == lepPDG.at(stop_num)){//lepton
+          if(FSLepton->trackID != track[i]){
+            std::cout << "ERROR: Wrong lepton track" << std::endl;  
           }
+          if(!FSLepton->flagLepContained)continue;
+          FSLepton->eDepPrimary += edep[i];
+          FSLepton->xf = xe[i];
+          FSLepton->yf = ye[i];
+          FSLepton->zf = ze[i];
 
-          FSMuon->eDepPrimary += edep[i];
-          FSMuon->xf = xe[i];
-          FSMuon->yf = ye[i];
-          FSMuon->zf = ze[i];
-
-          FSMuon->pxf = pxe[i];
-          FSMuon->pyf = pye[i];
-          FSMuon->pzf = pze[i];
+          FSLepton->pxf = pxe[i];
+          FSLepton->pyf = pye[i];
+          FSLepton->pzf = pze[i];
+          FSLepton->CheckContained();
         }
         else{//Hadron
-          if(!(PID[i] == 2212 || PID[i] == 2112 || abs(PID[i]) == 211 ||
-               PID[i] == 111  || PID[i] ==   22))continue;
-               
-          if(xe[i] <= FSHadrons[track[i]]->xBound[0] ||
-             xe[i] >= FSHadrons[track[i]]->xBound[1] ||
-              fabs(ye[i]) >= FSHadrons[track[i]]->yBound ||
-              fabs(ze[i]) >= FSHadrons[track[i]]->zBound){
-            
-            FSHadrons[track[i]]->eDepPrimaryOut += edep[i];
+          if(PID[i] == 2212 || PID[i] == 2112 || abs(PID[i]) == 211 ||
+               PID[i] == 111  || PID[i] ==   22){
+//            std::cout << xe[i] << " " << FSHadrons[track[i]]->xBound[0]<< " "<<FSHadrons[track[i]]->xBound[1] << std::endl; 
+//            std::cout << ye[i] << " " << FSHadrons[track[i]]->yBound<< std::endl; 
+//            std::cout << ze[i] << " " << FSHadrons[track[i]]->zBound<< std::endl; 
+            if(xe[i] <= FSHadrons[track[i]]->xBound[0] ||
+               xe[i] >= FSHadrons[track[i]]->xBound[1] ||
+                fabs(ye[i]) >= FSHadrons[track[i]]->yBound ||
+                fabs(ze[i]) >= FSHadrons[track[i]]->zBound){
+ //             std::cout << "out"<<std::endl;  
+              FSHadrons[track[i]]->eDepPrimaryOut += edep[i];
+            }
+            else{
+//              std::cout << "in"<<std::endl;  
+              FSHadrons[track[i]]->eDepPrimaryIn += edep[i];
+            }         
           }
           else{
-            FSHadrons[track[i]]->eDepPrimaryIn += edep[i];
-          }         
+            if(xe[i] <= wallX[0] ||
+               xe[i] >= wallX[1] ||
+                fabs(ye[i]) >= wallY ||
+                fabs(ze[i]) >= wallZ){
+              eOtherDepOut.at(stop_num) += edep[i];
+            }
+            else{
+              eOtherDepIn.at(stop_num) += edep[i];
+            }
+          }
         }
       }
       else{//Secondary
@@ -399,50 +420,84 @@ void DunePrismAnalyzer::AnalyzeStops(){
         while (chain[itChain] != 0){
           itChain = chain[itChain];                
         }
-        if(itChain == 1){//Muon
-          FSMuon->eDepSecondary += edep[i];
+        if(itChain == 1){//Lepton
+          FSLepton->eDepSecondary += edep[i];
         }
         else{//Hadron
-          if(!(PID[i] == 2212 || PID[i] == 2112 || abs(PID[i]) == 211 ||
-               PID[i] == 111  || PID[i] ==   22))continue;
-          if(FSHadrons.find(itChain) == FSHadrons.end()){
-//            std::cout << "ERROR: ULTIMATE HADRON NOT IN FS " << itChain << std::endl;
-            continue;
-          }
-          if(xe[i] <= FSHadrons[itChain]->xBound[0] ||
-             xe[i] >= FSHadrons[itChain]->xBound[1] ||
-              fabs(ye[i]) >= FSHadrons[itChain]->yBound ||
-              fabs(ze[i]) >= FSHadrons[itChain]->zBound){
-            
-            FSHadrons[itChain]->eDepSecondaryOut += edep[i];
+
+          if(PID[i] == 2212 || PID[i] == 2112 || abs(PID[i]) == 211 || PID[i] == 111  || PID[i] == 22){
+
+            if(FSHadrons.find(itChain) == FSHadrons.end()){
+//              std::cout << "ERROR: ULTIMATE HADRON NOT IN FS " << PIDi[itChain - 1] << " " << PID[i] << " " << edep[i] << std::endl;
+              if(xe[i] <= wallX[0] ||
+                 xe[i] >= wallX[1] ||
+                  fabs(ye[i]) >= wallY ||
+                  fabs(ze[i]) >= wallZ){
+                eOtherDepOut.at(stop_num) += edep[i];
+              }
+              else{
+                eOtherDepIn.at(stop_num) += edep[i];
+              }
+              continue;
+            }
+//            std::cout << "FOUND ULTIMATE " << FSHadrons[itChain]->PDG <<  " " << edep[i] << " " << PID[i] << std::endl; 
+            if(xe[i] <= FSHadrons[itChain]->xBound[0] ||
+               xe[i] >= FSHadrons[itChain]->xBound[1] ||
+                fabs(ye[i]) >= FSHadrons[itChain]->yBound ||
+                fabs(ze[i]) >= FSHadrons[itChain]->zBound){
+              
+              FSHadrons[itChain]->eDepSecondaryOut += edep[i];
+            }
+            else{
+              FSHadrons[itChain]->eDepSecondaryIn += edep[i];
+            }
           }
           else{
-            FSHadrons[itChain]->eDepSecondaryIn += edep[i];
+            if(xe[i] <= wallX[0] ||
+               xe[i] >= wallX[1] ||
+                fabs(ye[i]) >= wallY ||
+                fabs(ze[i]) >= wallZ){
+              eOtherDepOut.at(stop_num) += edep[i];
+            }
+            else{
+              eOtherDepIn.at(stop_num) += edep[i];
+            }
           }
         }
       }
     }
 //    std::cout << "Ending steps " << std::endl;
-    eMuPrimaryDep.at(stop_num) += FSMuon->eDepPrimary;
-    eMuSecondaryDep.at(stop_num) += FSMuon->eDepSecondary;
+    eLepPrimaryDep.at(stop_num) += FSLepton->eDepPrimary;
+    eLepSecondaryDep.at(stop_num) += FSLepton->eDepSecondary;
 
-    FSMuon->CheckContained();
+//    FSLepton->CheckContained();
 
-    flagExitXLow.at(stop_num) = FSMuon->flagExitXLow;
-    flagExitXHigh.at(stop_num) = FSMuon->flagExitXHigh;
-    flagExitY.at(stop_num) = FSMuon->flagExitY;
-    flagExitBack.at(stop_num) = FSMuon->flagExitBack;
-    flagExitFront.at(stop_num) = FSMuon->flagExitFront;
-    flagMuContained.at(stop_num) = FSMuon->flagMuContained;
+    flagExitXLow.at(stop_num) = FSLepton->flagExitXLow;
+    flagExitXHigh.at(stop_num) = FSLepton->flagExitXHigh;
+    flagExitY.at(stop_num) = FSLepton->flagExitY;
+    flagExitBack.at(stop_num) = FSLepton->flagExitBack;
+    flagExitFront.at(stop_num) = FSLepton->flagExitFront;
+    flagLepContained.at(stop_num) = FSLepton->flagLepContained;
 
-    muExitingPX.at(stop_num) = FSMuon->pxf;
-    muExitingPY.at(stop_num) = FSMuon->pyf;
-    muExitingPZ.at(stop_num) = FSMuon->pzf;   
+    lepExitingPX.at(stop_num) = FSLepton->pxf;
+    lepExitingPY.at(stop_num) = FSLepton->pyf;
+    lepExitingPZ.at(stop_num) = FSLepton->pzf;   
 
     flagNoEHadOut.at(stop_num) = 0;
     
     std::map<int,DepoHadron*>::iterator itHad;
+    int count = 0;
     for(itHad = FSHadrons.begin(); itHad != FSHadrons.end(); ++itHad){
+    count++;
+/*      if(itHad->second->PDG == 111 || abs(itHad->second->PDG) == 211){
+      std::cout << itHad->second->PDG << " " << itHad->second->energy << std::endl;
+      std::cout<< " " <<  itHad->second->eDepPrimaryIn << 
+      std::endl<< " " <<  itHad->second->eDepSecondaryIn <<
+
+      std::endl<< " " <<  itHad->second->eDepPrimaryOut <<
+      std::endl<< " " <<  itHad->second->eDepSecondaryOut << std::endl;
+      std::cout << " " << itHad->second->energy - itHad->second->eDepSecondaryIn - itHad->second->eDepPrimaryIn - itHad->second->eDepPrimaryOut - itHad->second->eDepSecondaryOut << std::endl; }
+*/
       eHadPrimaryDepIn.at(stop_num) += itHad->second->eDepPrimaryIn;
       eHadSecondaryDepIn.at(stop_num) += itHad->second->eDepSecondaryIn;
 
@@ -499,8 +554,8 @@ void DunePrismAnalyzer::AnalyzeStops(){
       }
 
     }
-
-    eReco.at(stop_num) = eMuPrimaryDep.at(stop_num) + eMuSecondaryDep.at(stop_num) + eHadPrimaryDepIn.at(stop_num) + eHadSecondaryDepIn.at(stop_num);
+    if(count != FSHadrons.size()){std::cout << "Count: " << count << std::endl;    std::cout << "Nhads: " << FSHadrons.size() << std::endl;}
+    eReco.at(stop_num) = eLepPrimaryDep.at(stop_num) + eLepSecondaryDep.at(stop_num) + eHadPrimaryDepIn.at(stop_num) + eHadSecondaryDepIn.at(stop_num) + eOtherDepIn.at(stop_num);
 
 
 //    std::cout << eReco.at(stop_num) << std::endl;
@@ -555,6 +610,9 @@ void DunePrismAnalyzer::SetOutBranches(int stop){
 //  InitVarsStop(stop);
   stopsTrees.at(stop)->Branch("eventNum",&eventNum.at(stop));
   stopsTrees.at(stop)->Branch("Enu",&Enu.at(stop),"Enu/D");
+  stopsTrees.at(stop)->Branch("nuPDG",&nuPDG.at(stop));
+  stopsTrees.at(stop)->Branch("lepPDG",&lepPDG.at(stop));
+  stopsTrees.at(stop)->Branch("flagCC",&flagCC.at(stop));
   stopsTrees.at(stop)->Branch("vtx_X",&vtx_X.at(stop),"vtx_X/D");
   stopsTrees.at(stop)->Branch("vtx_Y",&vtx_Y.at(stop),"vtx_Y/D");
   stopsTrees.at(stop)->Branch("vtx_Z",&vtx_Z.at(stop),"vtx_Z/D");
@@ -565,14 +623,14 @@ void DunePrismAnalyzer::SetOutBranches(int stop){
   stopsTrees.at(stop)->Branch("flagExitXLow",&flagExitXLow.at(stop));
   stopsTrees.at(stop)->Branch("flagExitXHigh",&flagExitXHigh.at(stop));
   stopsTrees.at(stop)->Branch("flagNoEHadOut",&flagNoEHadOut.at(stop));
-  stopsTrees.at(stop)->Branch("flagMuContained",&flagMuContained.at(stop));
+  stopsTrees.at(stop)->Branch("flagLepContained",&flagLepContained.at(stop));
 
-  stopsTrees.at(stop)->Branch("muExitingPX",&muExitingPX.at(stop),"muExitingPX/D");
-  stopsTrees.at(stop)->Branch("muExitingPY",&muExitingPY.at(stop),"muExitingPY/D");
-  stopsTrees.at(stop)->Branch("muExitingPZ",&muExitingPZ.at(stop),"muExitingPZ/D");
+  stopsTrees.at(stop)->Branch("lepExitingPX",&lepExitingPX.at(stop),"lepExitingPX/D");
+  stopsTrees.at(stop)->Branch("lepExitingPY",&lepExitingPY.at(stop),"lepExitingPY/D");
+  stopsTrees.at(stop)->Branch("lepExitingPZ",&lepExitingPZ.at(stop),"lepExitingPZ/D");
 
-  stopsTrees.at(stop)->Branch("eMuPrimaryDep",&eMuPrimaryDep.at(stop),"eMuPrimaryDep/D");
-  stopsTrees.at(stop)->Branch("eMuSecondaryDep",&eMuSecondaryDep.at(stop),"eMuSecondaryDep/D");
+  stopsTrees.at(stop)->Branch("eLepPrimaryDep",&eLepPrimaryDep.at(stop),"eLepPrimaryDep/D");
+  stopsTrees.at(stop)->Branch("eLepSecondaryDep",&eLepSecondaryDep.at(stop),"eLepSecondaryDep/D");
 
   stopsTrees.at(stop)->Branch("eHadPrimaryDepIn",&eHadPrimaryDepIn.at(stop),"eHadPrimaryDepIn/D");
   stopsTrees.at(stop)->Branch("eHadSecondaryDepIn",&eHadSecondaryDepIn.at(stop),"eHadSecondaryDepIn/D");
@@ -604,21 +662,31 @@ void DunePrismAnalyzer::SetOutBranches(int stop){
   stopsTrees.at(stop)->Branch("ePi0PrimaryDepOut",&ePi0PrimaryDepOut.at(stop),"ePi0PrimaryDepOut/D");
   stopsTrees.at(stop)->Branch("ePi0SecondaryDepOut",&ePi0SecondaryDepOut.at(stop),"ePi0SecondaryDepOut/D");
 
+  stopsTrees.at(stop)->Branch("eOtherDepIn",&eOtherDepIn.at(stop),"eOtherDepIn/D");
+  stopsTrees.at(stop)->Branch("eOtherDepOut",&eOtherDepOut.at(stop),"eOtherDepOut/D");
+  stopsTrees.at(stop)->Branch("eTotalDep",&eTotalDep.at(stop),"eTotalDep/D");
+
   stopsTrees.at(stop)->Branch("eReco",&eReco.at(stop),"eReco/D");
 
   stopsTrees.at(stop)->Branch("eHadTrueCharged",&eHadTrueCharged.at(stop),"eHadTrueCharged/D");
   stopsTrees.at(stop)->Branch("eHadTrueTotal",&eHadTrueTotal.at(stop),"eHadTrueTotal/D");
-  stopsTrees.at(stop)->Branch("eMuTrue",&eMuTrue.at(stop),"eMuTrue/D");
+  stopsTrees.at(stop)->Branch("eLepTrue",&eLepTrue.at(stop),"eLepTrue/D");
+
+  stopsTrees.at(stop)->Branch("eProtonTrue",&eProtonTrue.at(stop),"eProtonTrue/D");
+  stopsTrees.at(stop)->Branch("eNeutronTrue",&eNeutronTrue.at(stop),"eNeutronTrue/D");
+  stopsTrees.at(stop)->Branch("ePiCTrue",&ePiCTrue.at(stop),"ePiCTrue/D");
+  stopsTrees.at(stop)->Branch("ePi0True",&ePi0True.at(stop),"ePi0True/D");
+
   stopsTrees.at(stop)->Branch("eGammaTrue",&eGammaTrue.at(stop),"eGammaTrue/D");
-  stopsTrees.at(stop)->Branch("pMuTrueX",&pMuTrueX.at(stop),"pMuTrueX/D");
-  stopsTrees.at(stop)->Branch("pMuTrueY",&pMuTrueY.at(stop),"pMuTrueY/D");
-  stopsTrees.at(stop)->Branch("pMuTrueZ",&pMuTrueZ.at(stop),"pMuTrueZ/D");
+  stopsTrees.at(stop)->Branch("pLepTrueX",&pLepTrueX.at(stop),"pLepTrueX/D");
+  stopsTrees.at(stop)->Branch("pLepTrueY",&pLepTrueY.at(stop),"pLepTrueY/D");
+  stopsTrees.at(stop)->Branch("pLepTrueZ",&pLepTrueZ.at(stop),"pLepTrueZ/D");
 
   stopsTrees.at(stop)->Branch("Q2True",&Q2True.at(stop),"Q2True/D"); 
   stopsTrees.at(stop)->Branch("yTrue",&yTrue.at(stop),"yTrue/D"); 
   stopsTrees.at(stop)->Branch("W_rest",&W_rest.at(stop),"W_rest/D"); 
 
-  stopsTrees.at(stop)->Branch("nMu",&nMu.at(stop),"nMu/I");
+  stopsTrees.at(stop)->Branch("nLep",&nLep.at(stop),"nLep/I");
   stopsTrees.at(stop)->Branch("nGamma",&nGamma.at(stop),"nGamma/I");
   stopsTrees.at(stop)->Branch("nPi0",&nPi0.at(stop),"nPi0/I");
   stopsTrees.at(stop)->Branch("nPiC",&nPiC.at(stop),"nPiC/I");
@@ -630,6 +698,9 @@ void DunePrismAnalyzer::SetOutBranches(int stop){
 void DunePrismAnalyzer::InitVarsStop(){
   eventNum.push_back(0);
   Enu.push_back(0.);
+  nuPDG.push_back(0);
+  lepPDG.push_back(0);
+  flagCC.push_back(0);
   vtx_X.push_back(0.);
   vtx_Y.push_back(0.);
   vtx_Z.push_back(0.);
@@ -639,14 +710,14 @@ void DunePrismAnalyzer::InitVarsStop(){
   flagExitXHigh.push_back(0);
   flagExitXLow.push_back(0);
   flagNoEHadOut.push_back(0);
-  flagMuContained.push_back(0);
+  flagLepContained.push_back(0);
 
-  muExitingPX.push_back(0.);
-  muExitingPY.push_back(0.);
-  muExitingPZ.push_back(0.);
+  lepExitingPX.push_back(0.);
+  lepExitingPY.push_back(0.);
+  lepExitingPZ.push_back(0.);
   
-  eMuPrimaryDep.push_back(0.);
-  eMuSecondaryDep.push_back(0.);
+  eLepPrimaryDep.push_back(0.);
+  eLepSecondaryDep.push_back(0.);
 
   eHadPrimaryDepIn.push_back(0.);
   eHadSecondaryDepIn.push_back(0.);
@@ -679,20 +750,29 @@ void DunePrismAnalyzer::InitVarsStop(){
   ePi0SecondaryDepOut.push_back(0.);
 
   eReco.push_back(0.);
+  eOtherDepIn.push_back(0.);
+  eOtherDepOut.push_back(0.);
+  eTotalDep.push_back(0.);
 
   eHadTrueCharged.push_back(0.);
   eHadTrueTotal.push_back(0.);
-  eMuTrue.push_back(0.);
+  eLepTrue.push_back(0.);
+
+  eProtonTrue.push_back(0.);
+  eNeutronTrue.push_back(0.);
+  ePiCTrue.push_back(0.);
+  ePi0True.push_back(0.);
+
   eGammaTrue.push_back(0.);
-  pMuTrueX.push_back(0.);
-  pMuTrueY.push_back(0.);
-  pMuTrueZ.push_back(0.);
+  pLepTrueX.push_back(0.);
+  pLepTrueY.push_back(0.);
+  pLepTrueZ.push_back(0.);
 
   Q2True.push_back(0.);
   yTrue.push_back(0.);
   W_rest.push_back(0.);
 
-  nMu.push_back(0.);
+  nLep.push_back(0.);
   nGamma.push_back(0.);
   nPi0.push_back(0.);
   nPiC.push_back(0.);
