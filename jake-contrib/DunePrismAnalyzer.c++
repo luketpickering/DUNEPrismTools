@@ -37,7 +37,7 @@ DunePrismAnalyzer::DunePrismAnalyzer(std::string inFileName, std::string outFile
 
   //nEntries = inTree->GetEntries();
   nEntries = N;
-  if (nEntries > inTree->GetEntries()) nEntries = inTree->GetEntries();
+  if (nEntries > inTree->GetEntries() || nEntries == -1) nEntries = inTree->GetEntries();
   #ifdef DEBUG
   std::cout << nEntries << std::endl; 
   #endif
@@ -385,14 +385,11 @@ void DunePrismAnalyzer::AnalyzeStops(){
         else{//Hadron
           if(PID[i] == 2212 || PID[i] == 2112 || abs(PID[i]) == 211 ||
                PID[i] == 111  || PID[i] ==   22){
-//            std::cout << xe[i] << " " << FSHadrons[track[i]]->xBound[0]<< " "<<FSHadrons[track[i]]->xBound[1] << std::endl; 
-//            std::cout << ye[i] << " " << FSHadrons[track[i]]->yBound<< std::endl; 
-//            std::cout << ze[i] << " " << FSHadrons[track[i]]->zBound<< std::endl; 
-            if(xe[i] <= FSHadrons[track[i]]->xBound[0] ||
-               xe[i] >= FSHadrons[track[i]]->xBound[1] ||
-                fabs(ye[i]) >= FSHadrons[track[i]]->yBound ||
-                fabs(ze[i]) >= FSHadrons[track[i]]->zBound){
- //             std::cout << "out"<<std::endl;  
+
+            if((xe[i] <= FSHadrons[track[i]]->xBound[0] && xe[i] >= FSHadrons[track[i]]->xBound[0] - FV.at(i)[0]) || 
+               (xe[i] >= FSHadrons[track[i]]->xBound[1] && xe[i] <= FSHadrons[track[i]]->xBound[1] + FV.at(i)[0]) ||
+               ( fabs(ye[i]) >= FSHadrons[track[i]]->yBound && fabs(ye[i]) <= FSHadrons[track[i]]->yBound + FV.at(i)[1]) ||
+               ( fabs(ze[i]) >= FSHadrons[track[i]]->zBound && fabs(ze[i]) <= FSHadrons[track[i]]->zBound + FV.at(i)[2]) ){
               FSHadrons[track[i]]->eDepPrimaryOut += edep[i];
             }
             else{
@@ -401,10 +398,10 @@ void DunePrismAnalyzer::AnalyzeStops(){
             }         
           }
           else{
-            if(xe[i] <= wallX[0] ||
-               xe[i] >= wallX[1] ||
-                fabs(ye[i]) >= wallY ||
-                fabs(ze[i]) >= wallZ){
+            if((xe[i] <= wallX[0] && xe[i] >= wallX[0] - FV.at(i)[0]) ||
+               (xe[i] >= wallX[1] && xe[i] <= wallX[1] + FV.at(i)[0]) ||
+               ( fabs(ye[i]) >= wallY && fabs(ye[i]) <= wallY + FV.at(i)[1]) ||
+               ( fabs(ze[i]) >= wallZ && fabs(ze[i]) <= wallZ + FV.at(i)[2]) ){
               eOtherDepOut.at(stop_num) += edep[i];
             }
             else{
@@ -429,10 +426,10 @@ void DunePrismAnalyzer::AnalyzeStops(){
 
             if(FSHadrons.find(itChain) == FSHadrons.end()){
 //              std::cout << "ERROR: ULTIMATE HADRON NOT IN FS " << PIDi[itChain - 1] << " " << PID[i] << " " << edep[i] << std::endl;
-              if(xe[i] <= wallX[0] ||
-                 xe[i] >= wallX[1] ||
-                  fabs(ye[i]) >= wallY ||
-                  fabs(ze[i]) >= wallZ){
+              if((xe[i] <= wallX[0] && xe[i] >= wallX[0] - FV.at(i)[0]) ||
+                (xe[i] >= wallX[1] && xe[i] <= wallX[1] + FV.at(i)[0]) ||
+                ( fabs(ye[i]) >= wallY && fabs(ye[i]) <= wallY + FV.at(i)[1]) ||
+                ( fabs(ze[i]) >= wallZ && fabs(ze[i]) <= wallZ + FV.at(i)[2]) ){
                 eOtherDepOut.at(stop_num) += edep[i];
               }
               else{
@@ -441,10 +438,10 @@ void DunePrismAnalyzer::AnalyzeStops(){
               continue;
             }
 //            std::cout << "FOUND ULTIMATE " << FSHadrons[itChain]->PDG <<  " " << edep[i] << " " << PID[i] << std::endl; 
-            if(xe[i] <= FSHadrons[itChain]->xBound[0] ||
-               xe[i] >= FSHadrons[itChain]->xBound[1] ||
-                fabs(ye[i]) >= FSHadrons[itChain]->yBound ||
-                fabs(ze[i]) >= FSHadrons[itChain]->zBound){
+            if( (xe[i] <= FSHadrons[itChain]->xBound[0] && xe[i] >= FSHadrons[itChain]->xBound[0] - FV.at(stop_num)[0]) ||
+                (xe[i] >= FSHadrons[itChain]->xBound[1] && xe[i] <= FSHadrons[itChain]->xBound[1] + FV.at(stop_num)[0]) ||
+                (fabs(ye[i]) >= FSHadrons[itChain]->yBound && fabs(ye[i]) <= FSHadrons[itChain]->yBound + FV.at(stop_num)[1]) ||
+                (fabs(ze[i]) >= FSHadrons[itChain]->zBound && fabs(ye[i]) <= FSHadrons[itChain]->zBound + FV.at(stop_num)[2]) ){
               
               FSHadrons[itChain]->eDepSecondaryOut += edep[i];
             }
@@ -453,10 +450,10 @@ void DunePrismAnalyzer::AnalyzeStops(){
             }
           }
           else{
-            if(xe[i] <= wallX[0] ||
-               xe[i] >= wallX[1] ||
-                fabs(ye[i]) >= wallY ||
-                fabs(ze[i]) >= wallZ){
+            if( (xe[i] <= wallX[0] && xe[i] >= wallX[0] - FV.at(stop_num)[0]) ||
+                (xe[i] >= wallX[1] && xe[i] <= wallX[1] + FV.at(stop_num)[0]) ||
+                (fabs(ye[i]) >= wallY && fabs(ye[i]) <= wallY + FV.at(stop_num)[1]) ||
+                (fabs(ze[i]) >= wallZ && fabs(ze[i]) <= wallZ + FV.at(stop_num)[2]) ){
               eOtherDepOut.at(stop_num) += edep[i];
             }
             else{
