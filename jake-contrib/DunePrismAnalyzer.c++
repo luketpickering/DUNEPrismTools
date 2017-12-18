@@ -205,6 +205,7 @@ void DunePrismAnalyzer::AnalyzeStops(){
 
     FSHadrons.clear();
 
+//    std::cout << "start of part loop" << std::endl;
     //Start of particle loop
     for(int ip = 0; ip < ni; ++ip){
       //std::cout << ip << std::endl;
@@ -297,7 +298,7 @@ void DunePrismAnalyzer::AnalyzeStops(){
         nOther++;
       }
     }
-
+//    std::cout << "end of part loop" << std::endl;
     int nPrimary = ni - nBindino - nOther;
 //    std::cout << "NHadrons: " << FSHadrons.size() << std::endl;
     if (nLep.at(stop_num) == 0) continue;
@@ -353,7 +354,8 @@ void DunePrismAnalyzer::AnalyzeStops(){
     eOtherDepIn.at(stop_num) = 0.;
     eOtherDepOut.at(stop_num) = 0.;
     eTotalDep.at(stop_num) = 0.;
-
+   
+//    std::cout << "start steps" << std::endl;
     for(int i = 0; i < nstep; ++i){
       eTotalDep.at(stop_num) += edep[i];
       if(chain.find(track[i]) == chain.end()){//Not in chain
@@ -366,7 +368,7 @@ void DunePrismAnalyzer::AnalyzeStops(){
       }
     
       if(chain[track[i]] == 0){//Primary
-
+//        std::cout << "primary" << std::endl;
         if(PID[i] == lepPDG.at(stop_num)){//lepton
           if(FSLepton->trackID != track[i]){
             std::cout << "ERROR: Wrong lepton track" << std::endl;  
@@ -386,10 +388,10 @@ void DunePrismAnalyzer::AnalyzeStops(){
           if(PID[i] == 2212 || PID[i] == 2112 || abs(PID[i]) == 211 ||
                PID[i] == 111  || PID[i] ==   22){
 
-            if((xe[i] <= FSHadrons[track[i]]->xBound[0] && xe[i] >= FSHadrons[track[i]]->xBound[0] - FV.at(i)[0]) || 
-               (xe[i] >= FSHadrons[track[i]]->xBound[1] && xe[i] <= FSHadrons[track[i]]->xBound[1] + FV.at(i)[0]) ||
-               ( fabs(ye[i]) >= FSHadrons[track[i]]->yBound && fabs(ye[i]) <= FSHadrons[track[i]]->yBound + FV.at(i)[1]) ||
-               ( fabs(ze[i]) >= FSHadrons[track[i]]->zBound && fabs(ze[i]) <= FSHadrons[track[i]]->zBound + FV.at(i)[2]) ){
+            if((xe[i] <= FSHadrons[track[i]]->xBound[0] && xe[i] >= FSHadrons[track[i]]->xBound[0] - FV.at(stop_num)[0]) || 
+               (xe[i] >= FSHadrons[track[i]]->xBound[1] && xe[i] <= FSHadrons[track[i]]->xBound[1] + FV.at(stop_num)[0]) ||
+               ( fabs(ye[i]) >= FSHadrons[track[i]]->yBound && fabs(ye[i]) <= FSHadrons[track[i]]->yBound + FV.at(stop_num)[1]) ||
+               ( fabs(ze[i]) >= FSHadrons[track[i]]->zBound && fabs(ze[i]) <= FSHadrons[track[i]]->zBound + FV.at(stop_num)[2]) ){
               FSHadrons[track[i]]->eDepPrimaryOut += edep[i];
             }
             else{
@@ -398,10 +400,10 @@ void DunePrismAnalyzer::AnalyzeStops(){
             }         
           }
           else{
-            if((xe[i] <= wallX[0] && xe[i] >= wallX[0] - FV.at(i)[0]) ||
-               (xe[i] >= wallX[1] && xe[i] <= wallX[1] + FV.at(i)[0]) ||
-               ( fabs(ye[i]) >= wallY && fabs(ye[i]) <= wallY + FV.at(i)[1]) ||
-               ( fabs(ze[i]) >= wallZ && fabs(ze[i]) <= wallZ + FV.at(i)[2]) ){
+            if((xe[i] <= wallX[0] && xe[i] >= wallX[0] - FV.at(stop_num)[0]) ||
+               (xe[i] >= wallX[1] && xe[i] <= wallX[1] + FV.at(stop_num)[0]) ||
+               ( fabs(ye[i]) >= wallY && fabs(ye[i]) <= wallY + FV.at(stop_num)[1]) ||
+               ( fabs(ze[i]) >= wallZ && fabs(ze[i]) <= wallZ + FV.at(stop_num)[2]) ){
               eOtherDepOut.at(stop_num) += edep[i];
             }
             else{
@@ -411,7 +413,7 @@ void DunePrismAnalyzer::AnalyzeStops(){
         }
       }
       else{//Secondary
-
+//        std::cout << "secondary" << std::endl;
         //Find ultimate parent
         int itChain = track[i];
         while (chain[itChain] != 0){
@@ -426,10 +428,10 @@ void DunePrismAnalyzer::AnalyzeStops(){
 
             if(FSHadrons.find(itChain) == FSHadrons.end()){
 //              std::cout << "ERROR: ULTIMATE HADRON NOT IN FS " << PIDi[itChain - 1] << " " << PID[i] << " " << edep[i] << std::endl;
-              if((xe[i] <= wallX[0] && xe[i] >= wallX[0] - FV.at(i)[0]) ||
-                (xe[i] >= wallX[1] && xe[i] <= wallX[1] + FV.at(i)[0]) ||
-                ( fabs(ye[i]) >= wallY && fabs(ye[i]) <= wallY + FV.at(i)[1]) ||
-                ( fabs(ze[i]) >= wallZ && fabs(ze[i]) <= wallZ + FV.at(i)[2]) ){
+              if((xe[i] <= wallX[0] && xe[i] >= wallX[0] - FV.at(stop_num)[0]) ||
+                (xe[i] >= wallX[1] && xe[i] <= wallX[1] + FV.at(stop_num)[0]) ||
+                ( fabs(ye[i]) >= wallY && fabs(ye[i]) <= wallY + FV.at(stop_num)[1]) ||
+                ( fabs(ze[i]) >= wallZ && fabs(ze[i]) <= wallZ + FV.at(stop_num)[2]) ){
                 eOtherDepOut.at(stop_num) += edep[i];
               }
               else{
