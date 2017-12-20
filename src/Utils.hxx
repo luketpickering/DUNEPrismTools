@@ -110,26 +110,28 @@ inline TFile *CheckOpenFile(std::string const &fname, char const *opts="") {
   return inpF;
 }
 
-inline TH1D *GetHistogram(TFile *f, std::string const &fhname) {
-  TH1D *inpH = dynamic_cast<TH1D *>(f->Get(fhname.c_str()));
+template <class TH>
+inline TH *GetHistogram(TFile *f, std::string const &fhname) {
+  TH *inpH = dynamic_cast<TH *>(f->Get(fhname.c_str()));
 
   if (!inpH) {
-    std::cout << "[ERROR]: Couldn't get TH1D: " << fhname
+    std::cout << "[ERROR]: Couldn't get TH: " << fhname
               << " from input file: " << f->GetName() << std::endl;
     exit(1);
   }
 
-  inpH = static_cast<TH1D *>(inpH->Clone());
+  inpH = static_cast<TH *>(inpH->Clone());
   inpH->SetDirectory(nullptr);
   return inpH;
 }
 
-inline TH1D *GetHistogram(std::string const &fname, std::string const &hname) {
+template <class TH>
+inline TH *GetHistogram(std::string const &fname, std::string const &hname) {
   TDirectory *ogDir = gDirectory;
 
   TFile *inpF = CheckOpenFile(fname);
 
-  TH1D *h = GetHistogram(inpF, hname);
+  TH *h = GetHistogram<TH>(inpF, hname);
 
   inpF->Close();
   delete inpF;
@@ -141,9 +143,10 @@ inline TH1D *GetHistogram(std::string const &fname, std::string const &hname) {
   return h;
 }
 
-inline std::vector<TH1D *> GetHistograms(std::string const &fname,
+template <class TH>
+inline std::vector<TH *> GetHistograms(std::string const &fname,
                                          std::string const &hnamePattern) {
-  std::vector<TH1D *> histos;
+  std::vector<TH *> histos;
 
   TFile *inpF = CheckOpenFile(fname);
 
@@ -153,13 +156,14 @@ inline std::vector<TH1D *> GetHistograms(std::string const &fname,
   TKey *k;
   while ((k = dynamic_cast<TKey *>(next()))) {
     TObject *obj = k->ReadObj();
-    if (std::string(obj->ClassName()) != "TH1D") {
+    TH *obj_hist = dynamic_cast<TH *>(obj);
+    if (!obj_hist) {
       continue;
     }
 
     Ssiz_t len = 0;
     if (matchExp.Index(obj->GetName(), &len) != Ssiz_t(-1)) {
-      histos.push_back(GetHistogram(inpF, obj->GetName()));
+      histos.push_back(GetHistogram<TH>(inpF, obj->GetName()));
     }
   }
 

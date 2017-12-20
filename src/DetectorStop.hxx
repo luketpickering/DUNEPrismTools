@@ -9,6 +9,7 @@
 #include "TXMLEngine.h"
 
 #include <array>
+#include <cmath>
 #include <iostream>
 #include <map>
 #include <sstream>
@@ -41,6 +42,8 @@ struct DetectorStop {
   std::map<int, std::vector<TH2D *> > Divergences;
   std::map<int, std::map<std::string, std::vector<TH1D *> > > EventRates;
 
+  std::map<int, std::vector<size_t> > NFluxesAveraged;
+
   DetectorStop()
       : MeasurementRegionWidth(0xdeadbeef),
         DetectorFiducialWidth(0xdeadbeef),
@@ -50,7 +53,8 @@ struct DetectorStop {
         LateralOffset(0xdeadbeef),
         POTExposure(0xdeadbeef),
         Fluxes(),
-        EventRates() {}
+        EventRates(),
+        NFluxesAveraged() {}
 
   bool ConfigureDetector(XMLNodePointer_t node) {
     std::array<bool, 5> found;
@@ -142,20 +146,39 @@ struct DetectorStop {
 
     if (!Fluxes.count(species)) {
       Fluxes[species] = std::vector<TH1D *>();
+      NFluxesAveraged[species] = std::vector<size_t>();
     }
 
     if (Fluxes[species].size() < (i + 1)) {
+      size_t os = Fluxes[species].size();
       Fluxes[species].resize(i + 1);
-    }
-    if (Fluxes[species][i] && CanAdd) {
-      std::cout << "[INFO]: Already have an entry for Species: " << species
-                << ", Slice: " << i << ". Adding this one." << std::endl;
+      NFluxesAveraged[species].resize(i + 1);
 
+      for (size_t it = os; it < (i + 1); ++it) {
+        Fluxes[species][i] = nullptr;
+        NFluxesAveraged[species][i] = 0;
+      }
+    }
+
+    if (Fluxes[species][i] && CanAdd) {
+      Fluxes[species][i]->Scale(double(NFluxesAveraged[species][i]++));
       Fluxes[species][i]->Add(flux);
-      Fluxes[species][i]->Scale(0.5);
+      Fluxes[species][i]->Scale(1.0 / double(NFluxesAveraged[species][i]));
+
+      // std::cout << "[INFO]: Already have an entry for Species: " << species
+      //           << ", Slice: " << i << ". Adding this one (#"
+      //           << NFluxesAveraged[species][i] << ")." << std::endl;
+
+      double integ = Fluxes[species][i]->Integral();
+      if (!std::isnormal(integ)) {
+        std::cerr << "[ERROR]: Flux now has bad integral." << std::endl;
+        throw;
+      }
+
     } else {
       Fluxes[species][i] = static_cast<TH1D *>(flux->Clone());
       Fluxes[species][i]->SetDirectory(nullptr);
+      NFluxesAveraged[species][i] = 1;
     }
   }
 
@@ -307,6 +330,13 @@ struct DetectorStop {
         ss << GetSpeciesName(species) << "_flux_"
            << GetAbsoluteOffsetOfSlice(fl_it) << "_m";
 
+        double integ = fl->Integral();
+        if (!std::isnormal(integ)) {
+          std::cerr << "[ERROR]: Flux (" << ss.str() << ") has bad integral."
+                    << std::endl;
+          throw;
+        }
+
         fl->SetName(ss.str().c_str());
         fl->Write(fl->GetName(), TObject::kOverwrite);
         fl->SetDirectory(nullptr);
@@ -374,7 +404,7 @@ struct DetectorStop {
     }
   }
 
-  void Read(TFile *inpF, bool CanAdd=false) {
+  void Read(TFile *inpF, bool CanAdd = false) {
     TDirectory *ogDir = gDirectory;
 
     std::stringstream ss("");
@@ -393,6 +423,14 @@ struct DetectorStop {
                     << ss.str() << "\" in the input file." << std::endl;
           continue;
         }
+
+        double integ = fl->Integral();
+        if (!std::isnormal(integ)) {
+          std::cerr << "[ERROR]: In input file, read bad histogram: "
+                    << ss.str() << " with infinite integral." << std::endl;
+          throw;
+        }
+
         AddSliceFlux(fl_it, species, fl, CanAdd);
         NRead++;
       }

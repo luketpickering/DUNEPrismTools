@@ -249,7 +249,7 @@ int main(int argc, char const *argv[]) {
   }
 
   for (std::pair<std::string, std::string> hdescript : XSecComponentInputs) {
-    TH1D *hist = GetHistogram(hdescript.first, hdescript.second);
+    TH1D *hist = GetHistogram<TH1D>(hdescript.first, hdescript.second);
     std::cout << "[INFO]: Got XSec component: " << hist->GetName() << std::endl;
     XSecComponents[hist->GetName()] = static_cast<TH1D *>(hist->Clone());
     XSecComponents[hist->GetName()]->SetDirectory(nullptr);

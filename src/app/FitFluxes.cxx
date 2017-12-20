@@ -391,7 +391,7 @@ int main(int argc, char const *argv[]) {
   }
 
   if (!IsGauss) {
-    OscFlux = GetHistogram(inpFile, inpHistName);
+    OscFlux = GetHistogram<TH1D>(inpFile, inpHistName);
 
     if (FitBetween_low == 0xdeadbeef) {
       binLow = 1;
@@ -500,7 +500,7 @@ int main(int argc, char const *argv[]) {
       ifl->Close();
       delete ifl;
     } else {
-      Fluxes = GetHistograms(FluxesFile, inpFluxHistsPattern);
+      Fluxes = GetHistograms<TH1D>(FluxesFile, inpFluxHistsPattern);
       if (!Fluxes.size()) {
         std::cout << "[ERROR]: Found no input fluxes matching pattern: \""
                   << inpFluxHistsPattern << "\" in file: \"" << FluxesFile
@@ -735,7 +735,7 @@ int main(int argc, char const *argv[]) {
 
   if (XSecComponentInputs.size() && detStops.size()) {
     for (std::pair<std::string, std::string> hdescript : XSecComponentInputs) {
-      TH1D *hist = GetHistogram(hdescript.first, hdescript.second);
+      TH1D *hist = GetHistogram<TH1D>(hdescript.first, hdescript.second);
       std::cout << "[INFO]: Got XSec component: " << hist->GetName()
                 << std::endl;
       XSecComponents[hist->GetName()] = static_cast<TH1D *>(hist->Clone());
