@@ -9,7 +9,8 @@
 int main(int argc, char* argv[]){
   parse_args_xml(argc, argv);
 
-
+//  gROOT->ProcessLine("#include <vector>");
+//  gROOT->ProcessLine("#include <array>");
 
 //  DunePrismAnalyzer dpa = DunePrismAnalyzer(inFileName, outFileName, detector, fiducialGap, offset);
   DunePrismAnalyzer dpa = DunePrismAnalyzer(inFileName, outFileName, detStops,nEntries);
@@ -82,6 +83,8 @@ DunePrismAnalyzer::DunePrismAnalyzer(std::string inFileName, std::string outFile
     TTree * sTree = new TTree(treeName.c_str(),"Event Information");
     stopsTrees.push_back(sTree);
     SetOutBranches(i);
+
+    InitDetector(i);
 
     std::array<double,3> stop_dim = {detStops.at(i).detectorSizeX*100.,
                           detStops.at(i).detectorSizeY*100.,
@@ -326,6 +329,25 @@ void DunePrismAnalyzer::AnalyzeStops(){
     eHadPrimaryDepOut.at(stop_num) = 0.;
     eHadSecondaryDepOut.at(stop_num) = 0.;
 
+    for(int it = 0; it < xBins.at(stop_num).size() -1; ++it){
+      for(int jt = 0; jt < yBins.at(stop_num).size() - 1; ++jt){
+        for(int kt = 0; kt < zBins.at(stop_num).size() - 1; ++kt){
+          eHadPrimaryDep[stop_num][it][jt][kt] = 0.;
+          eProtonPrimaryDep[stop_num][it][jt][kt] = 0.;
+          eNeutronPrimaryDep[stop_num][it][jt][kt] = 0.;
+          ePiCPrimaryDep[stop_num][it][jt][kt] = 0.;
+          ePi0PrimaryDep[stop_num][it][jt][kt] = 0.;
+          eOtherPrimaryDep[stop_num][it][jt][kt] = 0.;
+
+          eHadSecondaryDep[stop_num][it][jt][kt] = 0.;
+          eProtonSecondaryDep[stop_num][it][jt][kt] = 0.;
+          eNeutronSecondaryDep[stop_num][it][jt][kt] = 0.;
+          ePiCSecondaryDep[stop_num][it][jt][kt] = 0.;
+          ePi0SecondaryDep[stop_num][it][jt][kt] = 0.;
+          eOtherSecondaryDep[stop_num][it][jt][kt] = 0.;
+        }
+      }
+    }
     eProtonPrimaryDepIn.at(stop_num) = 0.;
     eProtonSecondaryDepIn.at(stop_num) = 0.;
     eProtonPrimaryDepOut.at(stop_num) = 0.;
@@ -398,6 +420,35 @@ void DunePrismAnalyzer::AnalyzeStops(){
 //              std::cout << "in"<<std::endl;  
               FSHadrons[track[i]]->eDepPrimaryIn += edep[i];
             }         
+
+            if( xe[i] >= xBins.at(stop_num).at(0) && xe[i] <= xBins.at(stop_num).at(xBins.at(stop_num).size() - 1) 
+            &&  ye[i] >= yBins.at(stop_num).at(0) && ye[i] <= yBins.at(stop_num).at(3)
+            &&  ze[i] >= zBins.at(stop_num).at(0) && ze[i] <= zBins.at(stop_num).at(3)){
+
+              int bins[3] = {
+                GetBinX(stop_num, xe[i]),
+                GetBinY(stop_num, ye[i]),
+                GetBinZ(stop_num, ze[i])};
+
+              eHadPrimaryDep[stop_num][bins[0]][bins[1]][bins[2]] += edep[i];
+              switch (abs(PID[i])){
+                case 2212:
+                  eProtonPrimaryDep[stop_num][bins[0]][bins[1]][bins[2]] += edep[i];
+                  break;
+                case 2112:
+                  eNeutronPrimaryDep[stop_num][bins[0]][bins[1]][bins[2]] += edep[i];
+                  break;
+                case  211:
+                  ePiCPrimaryDep[stop_num][bins[0]][bins[1]][bins[2]] += edep[i];
+                  break;
+                case  111:
+                  ePi0PrimaryDep[stop_num][bins[0]][bins[1]][bins[2]] += edep[i];
+                  break;
+                default:
+                  eOtherPrimaryDep[stop_num][bins[0]][bins[1]][bins[2]] += edep[i];
+              }
+            }
+
           }
           else{
             if((xe[i] <= wallX[0] && xe[i] >= wallX[0] - FV.at(stop_num)[0]) ||
@@ -408,6 +459,17 @@ void DunePrismAnalyzer::AnalyzeStops(){
             }
             else{
               eOtherDepIn.at(stop_num) += edep[i];
+            }
+            if( xe[i] >= xBins.at(stop_num).at(0) && xe[i] <= xBins.at(stop_num).at(xBins.at(stop_num).size() - 1) 
+            &&  ye[i] >= yBins.at(stop_num).at(0) && ye[i] <= yBins.at(stop_num).at(3)
+            &&  ze[i] >= zBins.at(stop_num).at(0) && ze[i] <= zBins.at(stop_num).at(3)){
+
+              int bins[3] = {
+                GetBinX(stop_num, xe[i]),
+                GetBinY(stop_num, ye[i]),
+                GetBinZ(stop_num, ze[i])};
+
+              eOtherPrimaryDep[stop_num][bins[0]][bins[1]][bins[2]] += edep[i];              
             }
           }
         }
@@ -450,6 +512,31 @@ void DunePrismAnalyzer::AnalyzeStops(){
             else{
               FSHadrons[itChain]->eDepSecondaryIn += edep[i];
             }
+            if( xe[i] >= xBins.at(stop_num).at(0) && xe[i] <= xBins.at(stop_num).at(xBins.at(stop_num).size() - 1) 
+            &&  ye[i] >= yBins.at(stop_num).at(0) && ye[i] <= yBins.at(stop_num).at(3)
+            &&  ze[i] >= zBins.at(stop_num).at(0) && ze[i] <= zBins.at(stop_num).at(3)){
+
+              int bins[3] = {
+                GetBinX(stop_num, xe[i]),
+                GetBinY(stop_num, ye[i]),
+                GetBinZ(stop_num, ze[i])};
+
+              eHadSecondaryDep[stop_num][bins[0]][bins[1]][bins[2]] += edep[i];
+              switch (abs(FSHadrons[itChain]->PDG)){
+                case 2212:
+                  eProtonSecondaryDep[stop_num][bins[0]][bins[1]][bins[2]] += edep[i];
+                  break;
+                case 2112:
+                  eNeutronSecondaryDep[stop_num][bins[0]][bins[1]][bins[2]] += edep[i];
+                  break;
+                case  211:
+                  ePiCSecondaryDep[stop_num][bins[0]][bins[1]][bins[2]] += edep[i];
+                  break;
+                case  111:
+                  ePi0SecondaryDep[stop_num][bins[0]][bins[1]][bins[2]] += edep[i];
+                  break;          
+              }
+            }
           }
           else{
             if( (xe[i] <= wallX[0] && xe[i] >= wallX[0] - FV.at(stop_num)[0]) ||
@@ -461,6 +548,17 @@ void DunePrismAnalyzer::AnalyzeStops(){
             else{
               eOtherDepIn.at(stop_num) += edep[i];
             }
+            if( xe[i] >= xBins.at(stop_num).at(0) && xe[i] <= xBins.at(stop_num).at(xBins.at(stop_num).size() - 1) 
+            &&  ye[i] >= yBins.at(stop_num).at(0) && ye[i] <= yBins.at(stop_num).at(3)
+            &&  ze[i] >= zBins.at(stop_num).at(0) && ze[i] <= zBins.at(stop_num).at(3)){
+
+              int bins[3] = {
+                GetBinX(stop_num, xe[i]),
+                GetBinY(stop_num, ye[i]),
+                GetBinZ(stop_num, ze[i])};
+
+              eOtherSecondaryDep[stop_num][bins[0]][bins[1]][bins[2]] += edep[i];              
+            }
           }
         }
       }
@@ -468,8 +566,6 @@ void DunePrismAnalyzer::AnalyzeStops(){
 //    std::cout << "Ending steps " << std::endl;
     eLepPrimaryDep.at(stop_num) += FSLepton->eDepPrimary;
     eLepSecondaryDep.at(stop_num) += FSLepton->eDepSecondary;
-
-//    FSLepton->CheckContained();
 
     flagExitXLow.at(stop_num) = FSLepton->flagExitXLow;
     flagExitXHigh.at(stop_num) = FSLepton->flagExitXHigh;
@@ -487,16 +583,8 @@ void DunePrismAnalyzer::AnalyzeStops(){
     std::map<int,DepoHadron*>::iterator itHad;
     int count = 0;
     for(itHad = FSHadrons.begin(); itHad != FSHadrons.end(); ++itHad){
-    count++;
-/*      if(itHad->second->PDG == 111 || abs(itHad->second->PDG) == 211){
-      std::cout << itHad->second->PDG << " " << itHad->second->energy << std::endl;
-      std::cout<< " " <<  itHad->second->eDepPrimaryIn << 
-      std::endl<< " " <<  itHad->second->eDepSecondaryIn <<
+      count++;
 
-      std::endl<< " " <<  itHad->second->eDepPrimaryOut <<
-      std::endl<< " " <<  itHad->second->eDepSecondaryOut << std::endl;
-      std::cout << " " << itHad->second->energy - itHad->second->eDepSecondaryIn - itHad->second->eDepPrimaryIn - itHad->second->eDepPrimaryOut - itHad->second->eDepSecondaryOut << std::endl; }
-*/
       eHadPrimaryDepIn.at(stop_num) += itHad->second->eDepPrimaryIn;
       eHadSecondaryDepIn.at(stop_num) += itHad->second->eDepSecondaryIn;
 
@@ -553,11 +641,19 @@ void DunePrismAnalyzer::AnalyzeStops(){
       }
 
     }
+
     if(count != FSHadrons.size()){std::cout << "Count: " << count << std::endl;    std::cout << "Nhads: " << FSHadrons.size() << std::endl;}
+
     eReco.at(stop_num) = eLepPrimaryDep.at(stop_num) + eLepSecondaryDep.at(stop_num) + eHadPrimaryDepIn.at(stop_num) + eHadSecondaryDepIn.at(stop_num) + eOtherDepIn.at(stop_num);
 
 
-//    std::cout << eReco.at(stop_num) << std::endl;
+/*    for(int it = 0; it < 60; ++it){
+      for(int jt = 0; jt < 3; ++jt){
+        for(int kt = 0; kt < 3; ++kt){
+          std::cout << eHadPrimaryDep[stop_num][it][jt][kt] << " ";
+        }
+      }
+    }*/
 
     ///////////////////////////////
     stopsTrees.at(stop_num)->Fill();
@@ -665,6 +761,7 @@ void DunePrismAnalyzer::SetOutBranches(int stop){
   stopsTrees.at(stop)->Branch("eOtherDepOut",&eOtherDepOut.at(stop),"eOtherDepOut/D");
   stopsTrees.at(stop)->Branch("eTotalDep",&eTotalDep.at(stop),"eTotalDep/D");
 
+
   stopsTrees.at(stop)->Branch("eReco",&eReco.at(stop),"eReco/D");
 
   stopsTrees.at(stop)->Branch("eHadTrueCharged",&eHadTrueCharged.at(stop),"eHadTrueCharged/D");
@@ -694,6 +791,85 @@ void DunePrismAnalyzer::SetOutBranches(int stop){
 
 }
 
+void DunePrismAnalyzer::InitDetector(int stop){
+  std::cout << "Initializing detector " << stop << std::endl;
+  double voxSize = 10.;//10cm
+
+  double sizeX = detStops.at(stop).detectorSizeX*100.;
+  double sizeY = detStops.at(stop).detectorSizeY*100.;
+  double sizeZ = detStops.at(stop).detectorSizeZ*100.;
+
+  double gapX = detStops.at(stop).fiducialGapX*100.;
+  double gapY = detStops.at(stop).fiducialGapY*100.;
+  double gapZ = detStops.at(stop).fiducialGapZ*100.;
+
+  double shift = detStops.at(stop).shift*100.;    
+  int nBinsX = floor(sizeX/voxSize);
+ 
+  std::vector<double> tempBins;
+
+//  double *tempX = new double[nBinsX];
+
+  for(int ix = 0; ix < nBinsX + 1; ++ix){
+    tempBins.push_back(shift - sizeX/2. + ix*voxSize);
+    std::cout << tempBins.at(ix) << " ";
+  }
+
+  std::cout << std::endl;
+  xBins.push_back(tempBins);
+ 
+  std::vector<double> tempBinsY;
+  tempBinsY.push_back(-1*sizeY/2.);
+  tempBinsY.push_back(gapY - sizeY/2.);
+  tempBinsY.push_back(sizeY/2. - gapY);
+  tempBinsY.push_back(sizeY/2.);
+  yBins.push_back(tempBinsY);
+
+  std::vector<double> tempBinsZ;
+  tempBinsZ.push_back(-1*sizeZ/2.);
+  tempBinsZ.push_back(gapZ - sizeZ/2.);
+  tempBinsZ.push_back(sizeZ/2. - gapZ);
+  tempBinsZ.push_back(sizeZ/2.);
+  zBins.push_back(tempBinsZ);
+
+  
+  for(int i = 0; i < xBins.at(stop).size() -1; ++i){
+    for(int j = 0; j < yBins.at(stop).size() - 1; ++j){
+      for(int k = 0; k < zBins.at(stop).size() - 1; ++k){
+        eHadPrimaryDep[stop][i][j][k] = 0.;
+        eProtonPrimaryDep[stop][i][j][k] = 0.;
+        eNeutronPrimaryDep[stop][i][j][k] = 0.;
+        ePiCPrimaryDep[stop][i][j][k] = 0.;
+        ePi0PrimaryDep[stop][i][j][k] = 0.;       
+        eOtherPrimaryDep[stop][i][j][k] = 0.;       
+
+        eHadSecondaryDep[stop][i][j][k] = 0.;
+        eProtonSecondaryDep[stop][i][j][k] = 0.;
+        eNeutronSecondaryDep[stop][i][j][k] = 0.;
+        ePiCSecondaryDep[stop][i][j][k] = 0.;
+        ePi0SecondaryDep[stop][i][j][k] = 0.;
+        eOtherSecondaryDep[stop][i][j][k] = 0.;
+      }
+    }
+  }
+  
+
+  stopsTrees.at(stop)->Branch("eHadPrimaryDep",eHadPrimaryDep[stop],"eHadPrimaryDep[100][3][3]/D");
+  stopsTrees.at(stop)->Branch("eProtonPrimaryDep",eProtonPrimaryDep[stop],"eProtonPrimaryDep[100][3][3]/D");
+  stopsTrees.at(stop)->Branch("eNeutronPrimaryDep",eNeutronPrimaryDep[stop],"eNeutronPrimaryDep[100][3][3]/D");
+  stopsTrees.at(stop)->Branch("ePiCPrimaryDep",ePiCPrimaryDep[stop],"ePiCPrimaryDep[100][3][3]/D");
+  stopsTrees.at(stop)->Branch("ePi0PrimaryDep",ePi0PrimaryDep[stop],"ePi0PrimaryDep[100][3][3]/D");
+  stopsTrees.at(stop)->Branch("eOtherPrimaryDep",eOtherPrimaryDep[stop],"eOtherPrimaryDep[100][3][3]/D");
+
+  stopsTrees.at(stop)->Branch("eHadSecondaryDep",eHadSecondaryDep[stop],"eHadSecondaryDep[100][3][3]/D");
+  stopsTrees.at(stop)->Branch("eProtonSecondaryDep",eProtonSecondaryDep[stop],"eProtonSecondaryDep[100][3][3]/D");
+  stopsTrees.at(stop)->Branch("eNeutronSecondaryDep",eNeutronSecondaryDep[stop],"eNeutronSecondaryDep[100][3][3]/D");
+  stopsTrees.at(stop)->Branch("ePiCSecondaryDep",ePiCSecondaryDep[stop],"ePiCSecondaryDep[100][3][3]/D");
+  stopsTrees.at(stop)->Branch("ePi0SecondaryDep",ePi0SecondaryDep[stop],"ePi0SecondaryDep[100][3][3]/D");
+  stopsTrees.at(stop)->Branch("eOtherSecondaryDep",eOtherSecondaryDep[stop],"eOtherSecondaryDep[100][3][3]/D");
+}
+
+  
 void DunePrismAnalyzer::InitVarsStop(){
   eventNum.push_back(0);
   Enu.push_back(0.);
@@ -753,6 +929,7 @@ void DunePrismAnalyzer::InitVarsStop(){
   eOtherDepOut.push_back(0.);
   eTotalDep.push_back(0.);
 
+
   eHadTrueCharged.push_back(0.);
   eHadTrueTotal.push_back(0.);
   eLepTrue.push_back(0.);
@@ -798,4 +975,49 @@ void DunePrismAnalyzer::FinalizeStops(){
   fout->Close();
   fin->Close();
 
+}
+
+int DunePrismAnalyzer::GetBinX(int stop, double x){
+  int xbin;
+  for(int ix = 0; ix < xBins.at(stop).size() - 1; ++ix){
+    xbin = ix;
+    if(x <= xBins.at(stop).at(ix + 1)) break;
+  }
+  return xbin;
+}
+
+int DunePrismAnalyzer::GetBinY(int stop, double y){
+  int ybin;
+  if (y <= yBins.at(stop).at(1)){ybin = 0;}
+  else if (y <= yBins.at(stop).at(2)){ybin=1;}
+  else if (y <= yBins.at(stop).at(3)){ybin=2;}
+  return ybin;
+}
+
+int DunePrismAnalyzer::GetBinZ(int stop, double z){
+  int zbin;
+  if (z <= zBins.at(stop).at(1)){zbin = 0;}
+  else if (z <= zBins.at(stop).at(2)){zbin=1;}
+  else if (z <= zBins.at(stop).at(3)){zbin=2;}
+  return zbin;
+}
+
+int * DunePrismAnalyzer::GetBins(int stop, double x, double y, double z){
+
+  int xbin, ybin, zbin;
+  for(int ix = 0; ix < xBins.at(stop).size() - 1; ++ix){
+    xbin = ix;
+    if (x <= xBins.at(stop).at(ix + 1))break;
+  }
+                
+  if (z <= zBins.at(stop).at(1)){zbin = 0;}
+  else if (z <= zBins.at(stop).at(2)){zbin = 1;}
+  else if (z <= zBins.at(stop).at(3)){zbin = 2;}
+
+  if (y <= yBins.at(stop).at(1)){ybin = 0;}
+  else if (y <= yBins.at(stop).at(2)){ybin=1;}
+  else if (y <= yBins.at(stop).at(3)){ybin=2;}
+
+  static int bins[3] = {xbin,ybin,zbin};
+  return bins; 
 }

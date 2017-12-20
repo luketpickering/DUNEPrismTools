@@ -1,10 +1,14 @@
 #include "TTree.h"
 #include "TFile.h"
 #include "TH1.h"
+#include "TH3.h"
 #include "TXMLEngine.h"
 #include "TH2.h"
 #include "xml_parse.h"
 #include "DepoParticle.h"
+#include "TMap.h"
+#include "TArray.h"
+#include "TROOT.h"
 
 #include <array>
 #include <iostream>
@@ -15,6 +19,7 @@
 #include <vector>
 #include <algorithm>
 #include <utility>
+#include <math.h>
 
 //Dumb bullshit initialization from pyroot stuff 
 const int maxInit = 100;
@@ -36,6 +41,11 @@ class DunePrismAnalyzer{
     void SetInBranches();
     void SetOutBranches( int stop);
     void InitVarsStop();
+    void InitDetector(int stop);
+    int * GetBins(int stop, double x, double y, double z);
+    int GetBinX(int stop, double x);
+    int GetBinY(int stop, double y);
+    int GetBinZ(int stop, double z);
     ////////////////////
 
     TFile * fin;
@@ -151,6 +161,26 @@ class DunePrismAnalyzer{
     std::vector<double> eOtherDepIn;
     std::vector<double> eOtherDepOut;
     std::vector<double> eTotalDep;
+
+    //Positional Deposits
+    double eHadPrimaryDep[10][100][3][3];//10Stops/100XSegmengs/9YZ
+    double eProtonPrimaryDep[10][100][3][3];
+    double eNeutronPrimaryDep[10][100][3][3];
+    double ePiCPrimaryDep[10][100][3][3];
+    double ePi0PrimaryDep[10][100][3][3];
+    double eOtherPrimaryDep[10][100][3][3];
+
+    double eHadSecondaryDep[10][100][3][3];//10Stops/100XSegmengs/9YZ
+    double eProtonSecondaryDep[10][100][3][3];
+    double eNeutronSecondaryDep[10][100][3][3];
+    double ePiCSecondaryDep[10][100][3][3];
+    double ePi0SecondaryDep[10][100][3][3];
+    double eOtherSecondaryDep[10][100][3][3];
+    std::vector< std::vector<double> > xBins;
+    std::vector< std::vector<double> > yBins;
+    std::vector< std::vector<double> > zBins;
+//    std::vector< std::pair<double*,double> > eHadSecondaryDep; 
+    //////////////////////
 
     std::vector<double> eHadTrueCharged;
     std::vector<double> eHadTrueTotal;
