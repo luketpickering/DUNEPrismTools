@@ -34,6 +34,7 @@ LIST(APPEND ROOT_LIBS
   Hist
   Tree
   MathCore
+  Matrix
   Physics
   Minuit)
 
