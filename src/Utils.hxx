@@ -30,6 +30,13 @@ inline T str2T(std::string const &str) {
   return d;
 }
 
+template <typename T>
+inline std::string to_str(T const &inp) {
+  std::stringstream stream("");
+  stream << inp;
+  return stream.str();
+}
+
 template <>
 inline bool str2T<bool>(std::string const &str) {
   if ((str == "true") || (str == "True") || (str == "TRUE")) {

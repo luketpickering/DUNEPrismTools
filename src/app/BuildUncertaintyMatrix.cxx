@@ -8,7 +8,8 @@
 #include <map>
 #include <utility>
 
-/// -n Nominal.root -v Name,Up.root,Down.root -E 3 -X 35 -M 1 -o Output.root
+/// -n Nominal.root -f Nominal.far.root -v
+/// Name,Up.root,Down.root,FarUp.root,Down.root -E 3 -X 35 -M 1 -o Output.root
 
 struct FlatHistTMatrixD {
   TMatrixD* BinContent;
@@ -146,7 +147,11 @@ std::map<std::string, TMatrixD*> IndividualMatrices;
 TMatrixD* TotalMatrix;
 
 std::string NominalInput;
-std::map<std::string, std::pair<std::string, std::string> > VariationalInputs;
+std::string FarNominalInput;
+
+std::map<std::string,
+         std::tuple<std::string, std::string, std::string, std::string> >
+    VariationalInputs;
 
 std::string OutputFile;
 
@@ -154,6 +159,10 @@ double MaxEnergy = std::numeric_limits<double>::max();
 double MaxAbsoluteOffset = std::numeric_limits<double>::max();
 int BinMergeSchemeX = 0;
 int BinMergeSchemeY = 0;
+bool DoAllSpecies = false;
+
+std::vector<double> NeatBinEdges;
+std::vector<std::string> NeatBinLabels;
 
 size_t NNominalBins;
 
@@ -170,6 +179,10 @@ void handleOpts(int argc, char const* argv[]) {
     } else if (std::string(argv[opt]) == "-n") {
       NominalInput = argv[++opt];
       std::cout << "--Reading nominal flux from " << NominalInput << std::endl;
+    } else if (std::string(argv[opt]) == "-f") {
+      FarNominalInput = argv[++opt];
+      std::cout << "--Reading Far detector nominal flux from "
+                << FarNominalInput << std::endl;
     } else if (std::string(argv[opt]) == "-o") {
       OutputFile = argv[++opt];
       std::cout << "--Reading nominal flux from " << NominalInput << std::endl;
@@ -177,19 +190,28 @@ void handleOpts(int argc, char const* argv[]) {
       std::vector<std::string> VariationDescriptors =
           ParseToVect<std::string>(argv[++opt], ",");
 
-      if (VariationDescriptors.size() != 3) {
+      if ((VariationDescriptors.size() != 3) &&
+          VariationDescriptors.size() != 5) {
         std::cout << "[ERROR]: Expected to find an option like: -v "
-                     "<VariationName>,<OneSigUp.root>,<OneSigDown.root>, but "
-                     "found \""
+                     "<VariationName>,<OneSigUp.root>,<OneSigDown.root>[,<"
+                     "FarOneSigUp.root>,<FarOneSigDown.root>] but found \""
                   << argv[opt] << "\"." << std::endl;
         exit(1);
       }
-      VariationalInputs[VariationDescriptors[0]] =
-          std::make_pair(VariationDescriptors[1], VariationDescriptors[2]);
+      VariationalInputs[VariationDescriptors[0]] = std::make_tuple(
+          VariationDescriptors[1], VariationDescriptors[2],
+          (VariationDescriptors.size() > 3) ? VariationDescriptors[3] : "",
+          (VariationDescriptors.size() > 3) ? VariationDescriptors[4] : "");
 
       std::cout << "--Reading " << VariationDescriptors[0]
                 << " varied fluxes from " << VariationDescriptors[1] << " and "
-                << VariationDescriptors[2] << std::endl;
+                << VariationDescriptors[2] << std::flush;
+      if (VariationDescriptors.size() > 3) {
+        std::cout << " with far detector variations from "
+                  << VariationDescriptors[3] << " and "
+                  << VariationDescriptors[4] << std::flush;
+      }
+      std::cout << std::endl;
 
     } else if (std::string(argv[opt]) == "-E") {
       MaxEnergy = str2T<double>(argv[++opt]);
@@ -207,6 +229,9 @@ void handleOpts(int argc, char const* argv[]) {
       BinMergeSchemeY = str2T<int>(argv[++opt]);
       std::cout << "--Merging " << (BinMergeSchemeY + 1) << " bins."
                 << std::endl;
+    } else if (std::string(argv[opt]) == "-A") {
+      DoAllSpecies = true;
+      std::cout << "--Building flux covariance for all species." << std::endl;
     } else {
       std::cout << "[ERROR]: Unknown option: " << argv[opt] << std::endl;
       SayUsage(argv);
@@ -216,45 +241,156 @@ void handleOpts(int argc, char const* argv[]) {
   }
 }
 
-FlatHistTMatrixD BuildFluxVector(std::string const& InputFileName) {
-  TH2D* fluxhist = GetHistogram<TH2D>(InputFileName, "numu_flux_2D");
-
-  if (BinMergeSchemeX && BinMergeSchemeY) {
-    fluxhist->Rebin2D(BinMergeSchemeX + 1, BinMergeSchemeY + 1);
-  } else if (BinMergeSchemeX) {
-    fluxhist->RebinX(BinMergeSchemeX + 1);
-
-  } else if (BinMergeSchemeY) {
-    fluxhist->RebinY(BinMergeSchemeY + 1);
-  }
-
+FlatHistTMatrixD BuildFluxVector(std::string const& InputFileName,
+                                 std::string const& InputFarDetFileName) {
   std::vector<double> content;
   std::vector<double> errors;
 
   Int_t dummy = 0;
 
-  size_t NEBins = 0;
+  std::stringstream ss("");
 
-  for (Int_t y_it = 1; y_it < fluxhist->GetYaxis()->GetNbins() + 1; ++y_it) {
-    double ble = fluxhist->GetYaxis()->GetBinLowEdge(y_it);
-    if ((fabs(ble - MaxAbsoluteOffset) < 1E-5) || (ble > MaxAbsoluteOffset)) {
-      break;
+  std::vector<int> spec_vec = DoAllSpecies
+                                  ? std::vector<int>({-14, -12, 12, 14})
+                                  : std::vector<int>({14});
+
+  bool Building_NeatBinEdges = !NeatBinEdges.size();
+
+  double XOffset = 0;
+  double EOffset = 0;
+  double bue = 0xdeadbeef;
+
+  for (int species : spec_vec) {
+    ss.str("");
+    ss << GetSpeciesName(species) << "_flux_2D";
+    TH2D* fluxhist = GetHistogram<TH2D>(InputFileName, ss.str());
+
+    if (BinMergeSchemeX && BinMergeSchemeY) {
+      fluxhist->Rebin2D(BinMergeSchemeX + 1, BinMergeSchemeY + 1);
+    } else if (BinMergeSchemeX) {
+      fluxhist->RebinX(BinMergeSchemeX + 1);
+
+    } else if (BinMergeSchemeY) {
+      fluxhist->RebinY(BinMergeSchemeY + 1);
     }
 
-    for (Int_t x_it = 1; x_it < fluxhist->GetXaxis()->GetNbins() + 1; ++x_it) {
-      double ble = fluxhist->GetXaxis()->GetBinLowEdge(x_it);
-      if ((fabs(ble - MaxEnergy) < 1E-5) || (ble > MaxEnergy)) {
+    size_t NEBins = 0;
+
+    for (Int_t y_it = 1; y_it < fluxhist->GetYaxis()->GetNbins() + 1; ++y_it) {
+      double ble_x = fluxhist->GetYaxis()->GetBinLowEdge(y_it);
+      if ((fabs(ble_x - MaxAbsoluteOffset) < 1E-5) ||
+          (ble_x > MaxAbsoluteOffset)) {
         break;
       }
 
-      if (y_it == 1) {
-        NEBins++;
+      for (Int_t x_it = 1; x_it < fluxhist->GetXaxis()->GetNbins() + 1;
+           ++x_it) {
+        double ble_e = fluxhist->GetXaxis()->GetBinLowEdge(x_it);
+
+        if (x_it == 1) {
+          EOffset = ble_e;
+        }
+        bue = fluxhist->GetXaxis()->GetBinUpEdge(x_it);
+
+        if ((fabs(ble_e - MaxEnergy) < 1E-5) || (ble_e > MaxEnergy)) {
+          break;
+        }
+
+        if (Building_NeatBinEdges) {
+          if ((y_it == 1) && (x_it == 1)) {
+            NeatBinLabels.push_back(std::string("ND, ") +
+                                    GetSpeciesName(species));
+          } else if (x_it == 1) {
+            NeatBinLabels.push_back(to_str(ble_x) + ", " + to_str(ble_e));
+          } else {
+            NeatBinLabels.push_back(to_str(ble_e));
+          }
+          NeatBinEdges.push_back(ble_e + XOffset - EOffset);
+        }
+
+        if (y_it == 1) {
+          NEBins++;
+        }
+
+        Int_t GBin = fluxhist->GetBin(x_it, y_it, dummy);
+        content.push_back(fluxhist->GetBinContent(GBin));
+        errors.push_back(fluxhist->GetBinError(GBin));
+      }
+      if (Building_NeatBinEdges) {
+        XOffset += bue;
+      }
+    }
+
+    delete fluxhist;
+
+    if (InputFarDetFileName.size()) {
+      ss.str("");
+      ss << GetSpeciesName(species) << "_flux_2D";
+      TH2D* far_fluxhist = GetHistogram<TH2D>(InputFileName, ss.str());
+
+      if (BinMergeSchemeX && BinMergeSchemeY) {
+        far_fluxhist->Rebin2D(BinMergeSchemeX + 1, BinMergeSchemeY + 1);
+      } else if (BinMergeSchemeX) {
+        far_fluxhist->RebinX(BinMergeSchemeX + 1);
+
+      } else if (BinMergeSchemeY) {
+        far_fluxhist->RebinY(BinMergeSchemeY + 1);
       }
 
-      Int_t GBin = fluxhist->GetBin(x_it, y_it, dummy);
-      content.push_back(fluxhist->GetBinContent(GBin));
-      errors.push_back(fluxhist->GetBinError(GBin));
+      for (Int_t y_it = 1; y_it < far_fluxhist->GetYaxis()->GetNbins() + 1;
+           ++y_it) {
+        double ble_x = far_fluxhist->GetYaxis()->GetBinLowEdge(y_it);
+        if ((fabs(ble_x - MaxAbsoluteOffset) < 1E-5) ||
+            (ble_x > MaxAbsoluteOffset)) {
+          break;
+        }
+
+        for (Int_t x_it = 1; x_it < far_fluxhist->GetXaxis()->GetNbins() + 1;
+             ++x_it) {
+          double ble_e = far_fluxhist->GetXaxis()->GetBinLowEdge(x_it);
+
+          if (x_it == 1) {
+            EOffset = ble_e;
+          }
+          bue = far_fluxhist->GetXaxis()->GetBinUpEdge(x_it);
+
+          if ((fabs(ble_e - MaxEnergy) < 1E-5) || (ble_e > MaxEnergy)) {
+            break;
+          }
+
+          if (Building_NeatBinEdges) {
+            if ((y_it == 1) && (x_it == 1)) {
+              NeatBinLabels.push_back(std::string("FD, ") +
+                                      GetSpeciesName(species));
+            } else if (x_it == 1) {
+              NeatBinLabels.push_back(to_str(ble_x) + ", " + to_str(ble_e));
+            } else {
+              NeatBinLabels.push_back(to_str(ble_e));
+            }
+            NeatBinEdges.push_back(ble_e + XOffset - EOffset);
+          }
+          Int_t GBin = far_fluxhist->GetBin(x_it, y_it, dummy);
+          content.push_back(far_fluxhist->GetBinContent(GBin));
+          errors.push_back(far_fluxhist->GetBinError(GBin));
+        }
+
+        if (Building_NeatBinEdges) {
+          XOffset += bue;
+        }
+      }
+
+      std::cout << "[INFO]: Build flux vector out of " << ss.str() << " with "
+                << ((fluxhist->GetXaxis()->GetNbins() + 2) *
+                    (fluxhist->GetYaxis()->GetNbins() + 2))
+                << ", where every " << NEBins << " is a new energy bin. "
+                << std::endl;
+
+      delete far_fluxhist;
     }
+  }
+
+  if (Building_NeatBinEdges) {
+    NeatBinEdges.push_back(bue + XOffset - EOffset);
   }
 
   FlatHistTMatrixD fh(content.size());
@@ -270,12 +406,6 @@ FlatHistTMatrixD BuildFluxVector(std::string const& InputFileName) {
     }
   }
 
-  std::cout << "[INFO]: Build flux vector out of " << content.size() << "/"
-            << ((fluxhist->GetXaxis()->GetNbins() + 2) *
-                (fluxhist->GetYaxis()->GetNbins() + 2))
-            << ", where every " << NEBins << " is a new energy bin. "
-            << std::endl;
-
   return fh;
 }
 
@@ -284,27 +414,32 @@ int main(int argc, char const* argv[]) {
   handleOpts(argc, argv);
 
   // Build Nominal
-  Nominal = BuildFluxVector(NominalInput);
+  Nominal = BuildFluxVector(NominalInput, FarNominalInput);
   NNominalBins = Nominal.Size();
 
   // Build Variational
-  for (std::map<std::string, std::pair<std::string, std::string> >::iterator
-           var_it = VariationalInputs.begin();
+  for (std::map<std::string, std::tuple<std::string, std::string, std::string,
+                                        std::string> >::iterator var_it =
+           VariationalInputs.begin();
        var_it != VariationalInputs.end(); ++var_it) {
     VariedFluxes[var_it->first] =
-        std::make_pair(BuildFluxVector(var_it->second.first),
-                       BuildFluxVector(var_it->second.second));
+        std::make_pair(BuildFluxVector(std::get<0>(var_it->second),
+                                       std::get<2>(var_it->second)),
+                       BuildFluxVector(std::get<1>(var_it->second),
+                                       std::get<3>(var_it->second)));
 
     if (VariedFluxes[var_it->first].first.Size() != NNominalBins) {
-      std::cout << "[ERROR]: Flux histogram found in " << var_it->second.first
-                << " had " << VariedFluxes[var_it->first].first.Size()
+      std::cout << "[ERROR]: Flux histogram found in "
+                << std::get<0>(var_it->second) << " had "
+                << VariedFluxes[var_it->first].first.Size()
                 << " bins after processing, but the nominal flux histogram has "
                 << NNominalBins << std::endl;
       exit(2);
     }
     if (VariedFluxes[var_it->first].second.Size() != NNominalBins) {
-      std::cout << "[ERROR]: Flux histogram found in " << var_it->second.second
-                << " had " << VariedFluxes[var_it->first].second.Size()
+      std::cout << "[ERROR]: Flux histogram found in "
+                << std::get<1>(var_it->second) << " had "
+                << VariedFluxes[var_it->first].second.Size()
                 << " bins after processing, but the nominal flux histogram has "
                 << NNominalBins << std::endl;
       exit(3);
@@ -420,6 +555,20 @@ int main(int argc, char const* argv[]) {
                           TObject::kOverwrite);
   }
   TotalMatrix->Write("Total_Uncertainty", TObject::kOverwrite);
+
+  TH2D* NeatH =
+      new TH2D("Total_Uncertainty_neat", "", NNominalBins, NeatBinEdges.data(),
+               NNominalBins, NeatBinEdges.data());
+  Int_t Dummy = 0;
+  for (size_t x_it = 0; x_it < NNominalBins; ++x_it) {
+    NeatH->GetXaxis()->SetBinLabel(x_it + 1, NeatBinLabels[x_it].c_str());
+    NeatH->GetYaxis()->SetBinLabel(x_it + 1, NeatBinLabels[x_it].c_str());
+    for (size_t y_it = 0; y_it < NNominalBins; ++y_it) {
+      Int_t GBin = NeatH->GetBin(x_it + 1, y_it + 1, Dummy);
+      NeatH->SetBinContent(GBin, (*TotalMatrix)[y_it][x_it]);
+    }
+  }
+  NeatH->Write("Total_Uncertainty", TObject::kOverwrite);
 
   of->Write();
   of->Close();
