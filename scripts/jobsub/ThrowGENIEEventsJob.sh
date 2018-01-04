@@ -29,15 +29,23 @@ if [ -z $1 ]; then
 fi
 FLUX_WINDOW_PARAMSET=${1}
 
-DOLOGS=""
-if [ ! -z ${3} ]; then
-  DOLOGS="TRUE"
+EXPOSURE=""
+if [ -z ${2} ]; then
+  echo "[ERROR]: Expected to recieve a target exposure."
+  exit 15
 fi
+EXPOSURE=${2}
+echo "[INFO]: Processing with an exposure of ${EXPOSURE} POT."
 
 PNFS_PATH_APPEND=""
-if [ ! -z $2 ]; then
+if [ ! -z ${3} ]; then
   echo "[INFO]: Appending path to pnfs outdir: $2"
-  PNFS_PATH_APPEND=$2
+  PNFS_PATH_APPEND=$3
+fi
+
+DOLOGS=""
+if [ ! -z ${4} ]; then
+  DOLOGS="TRUE"
 fi
 
 echo "JobID ${CLUSTER}, ArrayID ${PROCESS}"
@@ -96,6 +104,11 @@ setup larsoft v06_56_01 -q debug:e14
 setup dk2nu v01_05_00j -q debug:e14
 setup genie_xsec v2_12_8 -q DefaultPlusMECWithNC
 
+if ! [ ":$ROOT_INCLUDE_PATH:" == *":${GENIE_INC}/GENIE:"* ]; then
+  export ROOT_INCLUDE_PATH=$ROOT_INCLUDE_PATH:$GENIE_INC/GENIE
+  echo "[INFO]: Adding GENIE to ROOT_INCLUDE_PATH=\"${ROOT_INCLUDE_PATH}\""
+fi
+
 setup ifdhc v2_1_0 -q debug:e14:p2713d
 
 export IFDH_CP_UNLINK_ON_ERROR=1;
@@ -153,13 +166,24 @@ export GDK2NUFLUXXML=dk2nu_FluxWindow.xml
 echo "[INFO]: OLDGXMLPATH: ${GXMLPATH_OLD}, GXMLPATH=${GXMLPATH}."
 
 echo "Running GENIE @ $(date)"
-echo "gevgen_fnal --message-thresholds ${GENIE}/config/Messenger_whisper.xml -r ${PROCESS} -f ${INPUT_FILENAME},${FLUX_WINDOW_PARAMSET} -g geom.gdml -e 2E16 -L cm -D g_cm3 --cross-sections ${GXMLPATH_OLD}/gxspl-FNALsmall.xml &> gevgen_fnal.${CLUSTER}.${PROCESS}.log"
-gevgen_fnal --message-thresholds ${GENIE}/config/Messenger_whisper.xml -r ${PROCESS} -f ${INPUT_FILENAME},${FLUX_WINDOW_PARAMSET} -g geom.gdml -e 2E16 -L cm -D g_cm3 --cross-sections ${GXMLPATH_OLD}/gxspl-FNALsmall.xml &> gevgen_fnal.${CLUSTER}.${PROCESS}.log
+echo "gevgen_fnal --message-thresholds ${GENIE}/config/Messenger_whisper.xml -r ${PROCESS} -f ${INPUT_FILENAME},${FLUX_WINDOW_PARAMSET} -g geom.gdml -e ${EXPOSURE} -L cm -D g_cm3 --cross-sections ${GXMLPATH_OLD}/gxspl-FNALsmall.xml &> gevgen_fnal.${CLUSTER}.${PROCESS}.log"
+gevgen_fnal --message-thresholds ${GENIE}/config/Messenger_whisper.xml -r ${PROCESS} -f ${INPUT_FILENAME},${FLUX_WINDOW_PARAMSET} -g geom.gdml -e ${EXPOSURE} -L cm -D g_cm3 --cross-sections ${GXMLPATH_OLD}/gxspl-FNALsmall.xml &> gevgen_fnal.${CLUSTER}.${PROCESS}.log
 echo "Finished."
 echo "Converting to rootracker @ $(date)"
 echo "------ls-------"
 ls
 echo "---------------"
+
+if [ ! -z ${DOLOGS} ]; then
+  echo "ifdh cp -D $IFDH_OPTION gevgen_fnal.${CLUSTER}.${PROCESS}.log ${PNFS_OUTDIR}/gevgen_fnal/logs"
+  ifdh cp -D $IFDH_OPTION gevgen_fnal.${CLUSTER}.${PROCESS}.log ${PNFS_OUTDIR}/gevgen_fnal/logs
+fi
+
+if [ ! -e gntp.${PROCESS}.ghep.root ]; then
+  echo "[ERROR]: gevgen_fnal process produced no vector."
+  exit 1
+fi
+
 mv gntp.${PROCESS}.ghep.root ${GNTPOUT_FILENAME}
 gntpc -i ${GNTPOUT_FILENAME} -f rootracker -o ${RTOUT_FILENAME} &> /dev/null
 echo "Finished."
@@ -171,10 +195,11 @@ echo "---------------"
 echo "Copying output @ $(date)"
 echo "ifdh cp -D $IFDH_OPTION ${GNTPOUT_FILENAME} ${PNFS_OUTDIR}/gevgen_fnal/gntp"
 ifdh cp -D $IFDH_OPTION ${GNTPOUT_FILENAME} ${PNFS_OUTDIR}/gevgen_fnal/gntp
+
+if [ ! -e ${RTOUT_FILENAME} ]; then
+  echo "[ERROR]: gntpc process produced no vector."
+  exit 1
+fi
 echo "ifdh cp -D $IFDH_OPTION ${RTOUT_FILENAME} ${PNFS_OUTDIR}/gevgen_fnal/rootracker"
 ifdh cp -D $IFDH_OPTION ${RTOUT_FILENAME} ${PNFS_OUTDIR}/gevgen_fnal/rootracker
-if [ ! -z ${DOLOGS} ]; then
-  echo "ifdh cp -D $IFDH_OPTION gevgen_fnal.${CLUSTER}.${PROCESS}.log ${PNFS_OUTDIR}/gevgen_fnal/logs"
-  ifdh cp -D $IFDH_OPTION gevgen_fnal.${CLUSTER}.${PROCESS}.log ${PNFS_OUTDIR}/gevgen_fnal/logs
-fi
 echo "All stop"

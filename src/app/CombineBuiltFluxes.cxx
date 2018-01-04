@@ -183,13 +183,13 @@ int main(int argc, char const *argv[]) {
         double BinLowEdge = detStops[ds_it].GetAbsoluteOffsetOfSlice(ms_it) -
                             (detStops[ds_it].MeasurementRegionWidth / 2.0);
 
+        if (BinLowEdge < 0) {
+          continue;
+        }
+
         if (!OAABinEdges.size() ||
             (fabs(OAABinEdges.back() - BinLowEdge) > 1E-5)) {
           OAABinEdges.push_back(BinLowEdge);
-        }
-
-        if (BinLowEdge < 0) {
-          continue;
         }
 
         Fluxes.push_back(detStops[ds_it].GetFluxForSpecies(ms_it, species));
@@ -197,6 +197,9 @@ int main(int argc, char const *argv[]) {
       double BinUpEdge = (detStops[ds_it].GetAbsoluteOffsetOfSlice(
                               detStops[ds_it].GetNMeasurementSlices() - 1) +
                           (detStops[ds_it].MeasurementRegionWidth / 2.0));
+      if (BinUpEdge < 0) {
+        continue;
+      }
       OAABinEdges.push_back(BinUpEdge);
     }
 
@@ -234,9 +237,9 @@ int main(int argc, char const *argv[]) {
                  "(m^{-2} per 1 GeV per 1 POT)",
                  NXBins, XBins, NYBins, OAABinEdges.data());
 
+    Int_t dum = 0;
     for (Int_t fl_it = 0; fl_it < NYBins; ++fl_it) {
       for (Int_t enu_bi_it = 0; enu_bi_it < NXBins; ++enu_bi_it) {
-        Int_t dum;
         Int_t GBin = ENuOAA->GetBin(enu_bi_it + 1, fl_it + 1, dum);
         ENuOAA->SetBinContent(GBin,
                               Fluxes[fl_it]->GetBinContent(enu_bi_it + 1));

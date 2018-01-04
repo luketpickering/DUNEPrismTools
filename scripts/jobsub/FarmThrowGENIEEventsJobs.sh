@@ -7,6 +7,8 @@ FLUX_WINDOW_XML="${DUNEPRISMTOOLSROOT}/configs/DUNEPrismFluxWindow.xml"
 GDML_FILE="${DUNEPRISMTOOLSROOT}/configs/DUNEPrismLArBox.geom.manual.gdml"
 NMAXJOBS=""
 DOLOGS=""
+EXPOSURE="2E16"
+ISINTERACTIVE=""
 
 while [[ ${#} -gt 0 ]]; do
 
@@ -68,7 +70,7 @@ while [[ ${#} -gt 0 ]]; do
         exit 1
       fi
 
-      FLUX_WINDOW_NAME=$(readlink -f $2)
+      FLUX_WINDOW_NAME=${2}
       echo "[OPT]: Using flux window named: \"${FLUX_WINDOW_NAME}\"."
       shift # past argument
       ;;
@@ -85,10 +87,28 @@ while [[ ${#} -gt 0 ]]; do
       shift # past argument
       ;;
 
-      -L|--log)
+      -e|--Exposure)
+
+      if [[ ${#} -lt 2 ]]; then
+        echo "[ERROR]: ${1} expected a value."
+        exit 1
+      fi
+
+      EXPOSURE="$2"
+      echo "[OPT]: Requesting a POT exposure of: \"${EXPOSURE}\"."
+      shift # past argument
+      ;;
+
+      -L|--Log)
 
       DOLOGS="TRUE"
       echo "[OPT]: Writing out log files."
+      ;;
+
+      -I|--Interactive)
+
+      ISINTERACTIVE="TRUE"
+      echo "[OPT]: Running a single test job interactively."
       ;;
 
       -?|--help)
@@ -100,7 +120,9 @@ while [[ ${#} -gt 0 ]]; do
       echo -e "\t-w|--flux-window-file      : dk2nu flux window file"
       echo -e "\t-f|--flux-window-name      : dk2nu flux window paramset name"
       echo -e "\t-N|--NMAXJobs              : Maximum number of jobs to submit."
-      echo -e "\t-L|--log                   : Copy back gevgen_fnal log files."
+      echo -e "\t-e|--Exposure              : POT exposure to request (default = 2E16)."
+      echo -e "\t-L|--Log                   : Copy back gevgen_fnal log files."
+      echo -e "\t-I|--Interactive           : Run interactively instead of submitting to the grid (-N will always = 1)."
       echo -e "\t-?|--help                  : Print this message."
       exit 0
       ;;
@@ -166,6 +188,11 @@ if [ ! -z ${NMAXJOBS} ]; then
   NJOBSTORUN=$(python -c "print min(${NMAXJOBS},${NJOBSTORUN})")
 fi
 
+if [ ! -z ${ISINTERACTIVE} ]; then
+  NJOBSTORUN=1
+  echo "[INFO]: Forcing NJOBSTORUN = 1 as running interactively."
+fi
+
 echo "[INFO]: Found ${NINPUTS} in ${DK2NU_INPUT_DIR}."
 echo "[INFO]: Submitting ${NJOBSTORUN} jobs."
 
@@ -224,15 +251,26 @@ cp ${GDML_FILE} ./geom.gdml
 
 tar -zcvf DUNEPrism_gevgen_fnal.params.tar.gz geom.gdml dk2nu_FluxWindow.xml inputs.list
 
-JID=$(jobsub_submit --group=${EXPERIMENT} --jobid-output-only --resource-provides=usage_model=OPPORTUNISTIC --expected-lifetime=8h --disk=1GB -N ${NJOBSTORUN} --memory=2GB --cpu=1 --OS=SL6 --tar_file_name=dropbox://DUNEPrism_gevgen_fnal.params.tar.gz file://${DUNEPRISMTOOLSROOT}/scripts/ThrowGENIEEventsJob.sh ${FLUX_WINDOW_NAME} ${PNFS_PATH_APPEND} ${DOLOGS})
+if [ -z ${ISINTERACTIVE} ]; then
 
-cd ../
-rm -r sub_tmp
+  JID=$(jobsub_submit --group=${EXPERIMENT} --jobid-output-only --resource-provides=usage_model=OPPORTUNISTIC --expected-lifetime=8h --disk=1GB -N ${NJOBSTORUN} --memory=2GB --cpu=1 --OS=SL6 --tar_file_name=dropbox://DUNEPrism_gevgen_fnal.params.tar.gz file://${DUNEPRISMTOOLSROOT}/scripts/ThrowGENIEEventsJob.sh ${FLUX_WINDOW_NAME} ${EXPOSURE} ${PNFS_PATH_APPEND} ${DOLOGS})
+  cd ../
+  rm -r sub_tmp
 
-echo "Submitted job: JID${JID}"
+  echo "Submitted job: JID${JID}"
 
-echo -e "#!/bin/sh\n source /cvmfs/fermilab.opensciencegrid.org/products/common/etc/setups.sh; setup jobsub_client; jobsub_q --jobid=${JID}" > JID_${JID}.q.sh
-echo -e "#!/bin/sh\n source /cvmfs/fermilab.opensciencegrid.org/products/common/etc/setups.sh; setup jobsub_client; jobsub_rm --jobid=${JID}" > JID_${JID}.rm.sh
-echo -e "#!/bin/sh\n source /cvmfs/fermilab.opensciencegrid.org/products/common/etc/setups.sh; setup jobsub_client; mkdir ${JID}_log; cd ${JID}_log; jobsub_fetchlog --jobid=${JID}; tar -zxvf *.tgz" > JID_${JID}.fetchlog.sh
+  echo -e "#!/bin/sh\n source /cvmfs/fermilab.opensciencegrid.org/products/common/etc/setups.sh; setup jobsub_client; jobsub_q --jobid=${JID}" > JID_${JID}.q.sh
+  echo -e "#!/bin/sh\n source /cvmfs/fermilab.opensciencegrid.org/products/common/etc/setups.sh; setup jobsub_client; jobsub_rm --jobid=${JID}" > JID_${JID}.rm.sh
+  echo -e "#!/bin/sh\n source /cvmfs/fermilab.opensciencegrid.org/products/common/etc/setups.sh; setup jobsub_client; mkdir ${JID}_log; cd ${JID}_log; jobsub_fetchlog --jobid=${JID}; tar -zxvf *.tgz" > JID_${JID}.fetchlog.sh
 
-chmod +x JID_${JID}.q.sh JID_${JID}.rm.sh JID_${JID}.fetchlog.sh
+  chmod +x JID_${JID}.q.sh JID_${JID}.rm.sh JID_${JID}.fetchlog.sh
+
+else
+  INPUT_TAR_FILE=DUNEPrism_gevgen_fnal.params.tar.gz \
+  CLUSTER=1 \
+  PROCESS=0 \
+  GLIDEIN_ResourceName=DUMMY_RESOURCE \
+  GRID_USER=${USER} \
+  _CONDOR_SCRATCH_DIR=$(pwd) \
+  ${DUNEPRISMTOOLSROOT}/scripts/ThrowGENIEEventsJob.sh ${FLUX_WINDOW_NAME} ${EXPOSURE} ${PNFS_PATH_APPEND} ${DOLOGS}
+fi

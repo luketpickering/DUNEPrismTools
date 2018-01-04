@@ -54,4 +54,23 @@
     <enumax> 120. 1.05 1.05 2500000 </enumax>
     <reuse> 10 </reuse>
   </param_set>
+
+  <param_set name="LArDUNEFV_25.8mx23.8mx56.6m_1287km">
+    <units> m </units>
+
+    <beamdir type="series">
+       <rotation axis="x" units="deg"> -5.8 </rotation>
+    </beamdir>
+
+    <beampos> (0, 0, 0 ) = ( 0, 0, 1287000.0 ) </beampos>
+
+    <window>
+      <point coord="det"> -13, -12, -28.4 </point>
+      <point coord="det"> 13, -12, -28.4 </point>
+      <point coord="det"> -13, 12.5, -28.4 </point>
+    </window>
+
+    <enumax> 120. 1.05 1.05 2500000 </enumax>
+    <reuse> 10 </reuse>
+  </param_set>
 </gdk2nu_config>

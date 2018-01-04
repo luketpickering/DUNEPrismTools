@@ -169,29 +169,40 @@ echo "---------------"
 
 OUT_FILENAME_FINE=Fluxes.Fine.${CLUSTER}.${PROCESS}.root
 OUT_FILENAME_COARSE=Fluxes.Coarse.${CLUSTER}.${PROCESS}.root
+OUT_FILENAME_OPTIM=Fluxes.Optimized.${CLUSTER}.${PROCESS}.root
 
 echo "[INFO]: Writing output to: ${OUT_FILENAME_FINE}, ${OUT_FILENAME_COARSE} "
 
 echo "Building fluxes @ $(date)"
 
-echo "./dp_BuildFluxes -i \"inputs/*.dk2nu.root\" -o ${OUT_FILENAME_FINE} -r runplan.xml -z ${DET_DIST_CM} -b 1000,0,10 &> dp_BuildFluxes.${CLUSTER}.${PROCESS}.Fine.log"
-./dp_BuildFluxes -i "inputs/*.dk2nu.root" -o ${OUT_FILENAME_FINE} -r runplan.xml -z ${DET_DIST_CM} -b 1000,0,10 &> dp_BuildFluxes.${CLUSTER}.${PROCESS}.Fine.log
+# echo "./dp_BuildFluxes -i \"inputs/*.dk2nu.root\" -o ${OUT_FILENAME_FINE} -r runplan.xml -z ${DET_DIST_CM} -b 1000,0,10 &> dp_BuildFluxes.${CLUSTER}.${PROCESS}.Fine.log"
+# ./dp_BuildFluxes -i "inputs/*.dk2nu.root" -o ${OUT_FILENAME_FINE} -r runplan.xml -z ${DET_DIST_CM} -b 1000,0,10 &> dp_BuildFluxes.${CLUSTER}.${PROCESS}.Fine.log
 
-echo "./dp_BuildFluxes -i \"inputs/*.dk2nu.root\" -o ${OUT_FILENAME_COARSE} -r runplan.xml -z ${DET_DIST_CM} -b 80,0,10 &> dp_BuildFluxes.${CLUSTER}.${PROCESS}.Coarse.log"
-./dp_BuildFluxes -i "inputs/*.dk2nu.root" -o ${OUT_FILENAME_COARSE} -r runplan.xml -z ${DET_DIST_CM} -b 80,0,10 &> dp_BuildFluxes.${CLUSTER}.${PROCESS}.Coarse.log
+# echo "./dp_BuildFluxes -i \"inputs/*.dk2nu.root\" -o ${OUT_FILENAME_COARSE} -r runplan.xml -z ${DET_DIST_CM} -b 80,0,10 &> dp_BuildFluxes.${CLUSTER}.${PROCESS}.Coarse.log"
+# ./dp_BuildFluxes -i "inputs/*.dk2nu.root" -o ${OUT_FILENAME_COARSE} -r runplan.xml -z ${DET_DIST_CM} -b 80,0,10 &> dp_BuildFluxes.${CLUSTER}.${PROCESS}.Coarse.log
+
+echo "./dp_BuildFluxes -i \"inputs/*.dk2nu.root\" -o ${OUT_FILENAME_OPTIM} -r runplan.xml -z ${DET_DIST_CM} -vb 0,0.5,1_3:0.25,3_4:0.5,4_10:1,10_20:2 &> dp_BuildFluxes.${CLUSTER}.${PROCESS}.Optimized.log"
+./dp_BuildFluxes -i "inputs/*.dk2nu.root" -o ${OUT_FILENAME_OPTIM} -r runplan.xml -z ${DET_DIST_CM} -vb 0,0.5,1_3:0.25,3_4:0.5,4_10:1,10_20:2 &> dp_BuildFluxes.${CLUSTER}.${PROCESS}.Optimized.log
+
 
 echo "Finished."
 
 echo "Copying output @ $(date)"
 
-echo "ifdh cp -D $IFDH_OPTION ${OUT_FILENAME_FINE} ${PNFS_OUTDIR}/flux/"
-ifdh cp -D $IFDH_OPTION ${OUT_FILENAME_FINE} ${PNFS_OUTDIR}/flux/
-echo "ifdh cp -D $IFDH_OPTION dp_BuildFluxes.${CLUSTER}.${PROCESS}.Fine.log ${PNFS_OUTDIR}/logs/"
-ifdh cp -D $IFDH_OPTION dp_BuildFluxes.${CLUSTER}.${PROCESS}.Fine.log ${PNFS_OUTDIR}/logs/
+# echo "ifdh cp -D $IFDH_OPTION ${OUT_FILENAME_FINE} ${PNFS_OUTDIR}/flux/"
+# ifdh cp -D $IFDH_OPTION ${OUT_FILENAME_FINE} ${PNFS_OUTDIR}/flux/
+# echo "ifdh cp -D $IFDH_OPTION dp_BuildFluxes.${CLUSTER}.${PROCESS}.Fine.log ${PNFS_OUTDIR}/logs/"
+# ifdh cp -D $IFDH_OPTION dp_BuildFluxes.${CLUSTER}.${PROCESS}.Fine.log ${PNFS_OUTDIR}/logs/
 
-echo "ifdh cp -D $IFDH_OPTION ${OUT_FILENAME_COARSE} ${PNFS_OUTDIR}/flux/"
-ifdh cp -D $IFDH_OPTION ${OUT_FILENAME_COARSE} ${PNFS_OUTDIR}/flux/
-echo "ifdh cp -D $IFDH_OPTION dp_BuildFluxes.${CLUSTER}.${PROCESS}.Coarse.log ${PNFS_OUTDIR}/logs/"
-ifdh cp -D $IFDH_OPTION dp_BuildFluxes.${CLUSTER}.${PROCESS}.Coarse.log ${PNFS_OUTDIR}/logs/
+# echo "ifdh cp -D $IFDH_OPTION ${OUT_FILENAME_COARSE} ${PNFS_OUTDIR}/flux/"
+# ifdh cp -D $IFDH_OPTION ${OUT_FILENAME_COARSE} ${PNFS_OUTDIR}/flux/
+# echo "ifdh cp -D $IFDH_OPTION dp_BuildFluxes.${CLUSTER}.${PROCESS}.Coarse.log ${PNFS_OUTDIR}/logs/"
+# ifdh cp -D $IFDH_OPTION dp_BuildFluxes.${CLUSTER}.${PROCESS}.Coarse.log ${PNFS_OUTDIR}/logs/
+
+echo "ifdh cp -D $IFDH_OPTION ${OUT_FILENAME_OPTIM} ${PNFS_OUTDIR}/flux/"
+ifdh cp -D $IFDH_OPTION ${OUT_FILENAME_OPTIM} ${PNFS_OUTDIR}/flux/
+echo "ifdh cp -D $IFDH_OPTION dp_BuildFluxes.${CLUSTER}.${PROCESS}.Optimized.log ${PNFS_OUTDIR}/logs/"
+ifdh cp -D $IFDH_OPTION dp_BuildFluxes.${CLUSTER}.${PROCESS}.Optimized.log ${PNFS_OUTDIR}/logs/
+
 
 echo "All stop @ $(date)"
