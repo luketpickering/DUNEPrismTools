@@ -31,7 +31,7 @@ class DunePrismAnalyzer{
 
     //Functions
     DunePrismAnalyzer(std::string inFileName, std::string outFileName, double det[3], double fid[3], double off,int N);
-    DunePrismAnalyzer(std::string inFileName, std::string outFileName, std::vector<DetectorStop> detStops,int N);
+    DunePrismAnalyzer(std::string inFileName, std::string outFileName, std::vector<DetectorStop> detStops, DetectorStop fullDet, int N);
     virtual ~DunePrismAnalyzer(){}; 
     //void Analyze();
     void AnalyzeStops();
@@ -41,24 +41,23 @@ class DunePrismAnalyzer{
     void SetInBranches();
     void SetOutBranches( int stop);
     void InitVarsStop();
-    void InitDetector(int stop);
-    int * GetBins(int stop, double x, double y, double z);
-    int GetBinX(int stop, double x);
-    int GetBinY(int stop, double y);
-    int GetBinZ(int stop, double z);
+    void InitDetector();
+    int * GetBins(double x, double y, double z);
+    int GetBinX(double x);
+    int GetBinY(double y);
+    int GetBinZ(double z);
     ////////////////////
 
     TFile * fin;
     TFile * fout;
 
     TTree * inTree;
-    TTree * eventTree;
-    TTree * gOutTree;
-   
+  
     DepoLepton * FSLepton;
     std::map<int,DepoHadron *> FSHadrons;
      
     std::vector<TTree*> stopsTrees;
+    TTree * fullDetTree; 
     int nStops;
 
     std::vector< std::array<double,3> > dimension;
@@ -163,23 +162,55 @@ class DunePrismAnalyzer{
     std::vector<double> eTotalDep;
 
     //Positional Deposits
-    double eHadPrimaryDep[10][100][3][3];//10Stops/100XSegmengs/9YZ
-    double eProtonPrimaryDep[10][100][3][3];
-    double eNeutronPrimaryDep[10][100][3][3];
-    double ePiCPrimaryDep[10][100][3][3];
-    double ePi0PrimaryDep[10][100][3][3];
-    double eOtherPrimaryDep[10][100][3][3];
+    double eLepPrimaryDepFull[4000][3][3];
+    double eHadPrimaryDep[4000][3][3];//4000XSegmengs/9YZ
+    double eProtonPrimaryDep[4000][3][3];
+    double eNeutronPrimaryDep[4000][3][3];
+    double ePiCPrimaryDep[4000][3][3];
+    double ePi0PrimaryDep[4000][3][3];
+    double eOtherPrimaryDep[4000][3][3];
 
-    double eHadSecondaryDep[10][100][3][3];//10Stops/100XSegmengs/9YZ
-    double eProtonSecondaryDep[10][100][3][3];
-    double eNeutronSecondaryDep[10][100][3][3];
-    double ePiCSecondaryDep[10][100][3][3];
-    double ePi0SecondaryDep[10][100][3][3];
-    double eOtherSecondaryDep[10][100][3][3];
-    std::vector< std::vector<double> > xBins;
-    std::vector< std::vector<double> > yBins;
-    std::vector< std::vector<double> > zBins;
-//    std::vector< std::pair<double*,double> > eHadSecondaryDep; 
+    double eLepSecondaryDepFull[4000][3][3];
+    double eHadSecondaryDep[4000][3][3];//4000XSegmengs/9YZ
+    double eProtonSecondaryDep[4000][3][3];
+    double eNeutronSecondaryDep[4000][3][3];
+    double ePiCSecondaryDep[4000][3][3];
+    double ePi0SecondaryDep[4000][3][3];
+    double eOtherSecondaryDep[4000][3][3];
+    std::vector<double> xBins;
+    std::vector<double> yBins;
+    std::vector<double> zBins;
+
+    //FullDet metadata
+    double EnuFull;
+    int nuPDGFull;
+    double vtx_X_full;
+    double vtx_Y_full;
+    double vtx_Z_full;   
+    int eventNumFull;
+    int lepPDGFull;
+    int nLepFull;
+    double eLepTrueFull;
+    double pLepTrueXFull;
+    double pLepTrueYFull;
+    double pLepTrueZFull;
+    double Q2TrueFull;
+    double yTrueFull;
+    double W_rest_full;
+    int flagCCFull;
+    double eHadTrueChargedFull;
+    double eHadTrueTotalFull;
+    double ePi0TrueFull;
+    int nPi0Full;
+    double ePiCTrueFull;
+    int nPiCFull;
+    double eProtonTrueFull;
+    int nProtonFull;
+    double eNeutronTrueFull;
+    int nNeutronFull;
+    double eGammaTrueFull;
+    int nGammaFull;
+
     //////////////////////
 
     std::vector<double> eHadTrueCharged;
@@ -222,6 +253,7 @@ std::string inFileName;
 std::string outFileName;
 int nEntries;
 std::vector<DetectorStop> detStops;
+DetectorStop fullDet;
 
 
 void parse_args(int argc, char* argv[]){
@@ -260,6 +292,7 @@ void parse_args_xml(int argc, char* argv[]){
     else if(flag == "-x"){
       std::cout << argv[i+1] << std::endl;
       detStops = ReadDetectorStopConfig(argv[i+1]);
+      fullDet = GetFullDetectorConfig(argv[i+1]);
       std::cout << "size "<<  detStops.size() << std::endl;
     }
     else if(flag == "-n"){
