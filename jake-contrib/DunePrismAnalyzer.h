@@ -31,7 +31,7 @@ class DunePrismAnalyzer{
 
     //Functions
     DunePrismAnalyzer(std::string inFileName, std::string outFileName, double det[3], double fid[3], double off,int N);
-    DunePrismAnalyzer(std::string inFileName, std::string outFileName, std::vector<DetectorStop> detStops, DetectorStop fullDet, int N);
+    DunePrismAnalyzer(std::string inFileName, std::string outFileName, std::vector<DetectorStop> detStops, DetectorStop * fullDet, int N);
     virtual ~DunePrismAnalyzer(){}; 
     //void Analyze();
     void AnalyzeStops();
@@ -253,7 +253,7 @@ std::string inFileName;
 std::string outFileName;
 int nEntries;
 std::vector<DetectorStop> detStops;
-DetectorStop fullDet;
+DetectorStop * fullDet;
 
 
 void parse_args(int argc, char* argv[]){
@@ -292,8 +292,10 @@ void parse_args_xml(int argc, char* argv[]){
     else if(flag == "-x"){
       std::cout << argv[i+1] << std::endl;
       detStops = ReadDetectorStopConfig(argv[i+1]);
-      fullDet = GetFullDetectorConfig(argv[i+1]);
       std::cout << "size "<<  detStops.size() << std::endl;
+
+      fullDet = GetFullDetectorConfig(argv[i+1]);
+      std::cout << "fullDet: " << fullDet << std::endl;
     }
     else if(flag == "-n"){
       nEntries = atoi(argv[i+1]);

@@ -21,7 +21,7 @@ int main(int argc, char* argv[]){
 }
 
 
-DunePrismAnalyzer::DunePrismAnalyzer(std::string inFileName, std::string outFileName, std::vector<DetectorStop> detStops, DetectorStop fullDet, int N){
+DunePrismAnalyzer::DunePrismAnalyzer(std::string inFileName, std::string outFileName, std::vector<DetectorStop> detStops, DetectorStop * fullDet, int N){
  #ifdef DEBUG
   std::cout << inFileName << std::endl;
   std::cout << outFileName << std::endl;
@@ -81,10 +81,12 @@ DunePrismAnalyzer::DunePrismAnalyzer(std::string inFileName, std::string outFile
 
     TTree * sTree = new TTree(treeName.c_str(),"Event Information");
     stopsTrees.push_back(sTree);
-    fullDetTree = new TTree("fullDetTree","Positional deposits over full detector");
     SetOutBranches(i);
 
-    InitDetector();
+    if(fullDet != NULL){
+      fullDetTree = new TTree("fullDetTree","Positional deposits over full detector");
+      InitDetector();
+    }
 
     std::array<double,3> stop_dim = {detStops.at(i).detectorSizeX*100.,
                           detStops.at(i).detectorSizeY*100.,
@@ -556,315 +558,316 @@ void DunePrismAnalyzer::AnalyzeStops(){
       ///////////////////////////////
       stopsTrees.at(stop_num)->Fill();
     }
+    if(fullDet != NULL){
+      //Start of full detector info 
+      EnuFull = ekina;
+      nuPDGFull = nuPID;    
+      vtx_X_full = EvtVtx[0];
+      vtx_Y_full = EvtVtx[1];
+      vtx_Z_full = EvtVtx[2];
+      eventNumFull = ev;
 
-    //Start of full detector info 
-    EnuFull = ekina;
-    nuPDGFull = nuPID;    
-    vtx_X_full = EvtVtx[0];
-    vtx_Y_full = EvtVtx[1];
-    vtx_Z_full = EvtVtx[2];
-    eventNumFull = ev;
+      if(vtx_X_full < (fullDet->shift - fullDet->detectorSizeX*.5)*100. ||
+         vtx_X_full > (fullDet->shift + fullDet->detectorSizeX*.5)*100. ||
+         fabs(vtx_Y_full) > fullDet->detectorSizeY*.5*100 ||
+         fabs(vtx_Z_full) > fullDet->detectorSizeZ*.5*100){
+           std::cout<<"Skipping "<<ie<<std::endl << "\t" <<
+           vtx_X_full << " " << vtx_Y_full << " " << vtx_Z_full<<std::endl << "\t" << 
+           (fullDet->shift - fullDet->detectorSizeX*.5)*100. << " " << (fullDet->shift + fullDet->detectorSizeX*.5)*100. << " " << fullDet->detectorSizeY*.5*100. << " " << fullDet->detectorSizeZ*.5*100. << std::endl;
+           continue;
+         }
 
-    if(vtx_X_full < (fullDet.shift - fullDet.detectorSizeX*.5)*100. ||
-       vtx_X_full > (fullDet.shift + fullDet.detectorSizeX*.5)*100. ||
-       fabs(vtx_Y_full) > fullDet.detectorSizeY*.5*100 ||
-       fabs(vtx_Z_full) > fullDet.detectorSizeZ*.5*100){
-         std::cout<<"Skipping "<<ie<<std::endl << "\t" <<
-         vtx_X_full << " " << vtx_Y_full << " " << vtx_Z_full<<std::endl << "\t" << 
-         (fullDet.shift - fullDet.detectorSizeX*.5)*100. << " " << (fullDet.shift + fullDet.detectorSizeX*.5)*100. << " " << fullDet.detectorSizeY*.5*100. << " " << fullDet.detectorSizeZ*.5*100. << std::endl;
-         continue;
-       }
+        nLepFull = 0;
+        lepPDGFull = 0;
+        eLepTrueFull = 0.;
+        pLepTrueXFull = 0.;
+        pLepTrueYFull = 0.;
+        pLepTrueZFull = 0.;
+        Q2TrueFull = 0.;
+        yTrueFull = 0.;
+        W_rest_full = 0.;
+        eHadTrueChargedFull = 0.;
+        eHadTrueTotalFull = 0.;
+        ePi0TrueFull = 0.;
+        nPi0Full = 0;
+        ePiCTrueFull = 0.;
+        nPiCFull = 0;
+        eProtonTrueFull = 0.;
+        nProtonFull = 0;
+        eNeutronTrueFull = 0.;
+        nNeutronFull = 0;
+        eGammaTrueFull = 0.;
+        nGammaFull = 0;  
 
-      nLepFull = 0;
-      lepPDGFull = 0;
-      eLepTrueFull = 0.;
-      pLepTrueXFull = 0.;
-      pLepTrueYFull = 0.;
-      pLepTrueZFull = 0.;
-      Q2TrueFull = 0.;
-      yTrueFull = 0.;
-      W_rest_full = 0.;
-      eHadTrueChargedFull = 0.;
-      eHadTrueTotalFull = 0.;
-      ePi0TrueFull = 0.;
-      nPi0Full = 0;
-      ePiCTrueFull = 0.;
-      nPiCFull = 0;
-      eProtonTrueFull = 0.;
-      nProtonFull = 0;
-      eNeutronTrueFull = 0.;
-      nNeutronFull = 0;
-      eGammaTrueFull = 0.;
-      nGammaFull = 0;  
+        std::map<int,int> chain;
 
-      std::map<int,int> chain;
+        int nBindino = 0;
+        int nOther = 0;
 
-      int nBindino = 0;
-      int nOther = 0;
-
-      FSHadrons.clear();
+        FSHadrons.clear();
  
-      //std::cout << "start of part loop" << std::endl;
-      //Start of particle loop
-      for(int ip = 0; ip < ni; ++ip){
-        //std::cout << ip <<" " <<PIDi[ip]<< std::endl;
-        if (PIDi[ip] == 2000000101){
-          nBindino++;
-          continue;//Skip bindino
-        }
-        chain[ip + 1] = 0;       
-        if((abs(PIDi[ip]) == 13 || abs(PIDi[ip]) == 11 || 
-           PIDi[ip] == nuPID) && nLepFull < 1){
-          //std::cout << "Found " << PIDi[ip] << " " << ip + 1 << std::endl; 
-          lepPDGFull = PIDi[ip];
+        //std::cout << "start of part loop" << std::endl;
+        //Start of particle loop
+        for(int ip = 0; ip < ni; ++ip){
+          //std::cout << ip <<" " <<PIDi[ip]<< std::endl;
+          if (PIDi[ip] == 2000000101){
+            nBindino++;
+            continue;//Skip bindino
+          }
+          chain[ip + 1] = 0;       
+          if((abs(PIDi[ip]) == 13 || abs(PIDi[ip]) == 11 || 
+             PIDi[ip] == nuPID) && nLepFull < 1){
+            //std::cout << "Found " << PIDi[ip] << " " << ip + 1 << std::endl; 
+            lepPDGFull = PIDi[ip];
 
-          eLepTrueFull = ekini[ip] + mi[ip];
-          pLepTrueXFull = pxi[ip];
-          pLepTrueYFull = pyi[ip];
-          pLepTrueZFull = pzi[ip];
+            eLepTrueFull = ekini[ip] + mi[ip];
+            pLepTrueXFull = pxi[ip];
+            pLepTrueYFull = pyi[ip];
+            pLepTrueZFull = pzi[ip];
 
-          Q2TrueFull = fabs( pow( (ekina - eLepTrueFull), 2 ) 
-                                   - pow( (pxi[ip] - pxa), 2 )
-                                   - pow( (pyi[ip] - pya), 2 )
-                                   - pow( (pzi[ip] - pza), 2 ) );
+            Q2TrueFull = fabs( pow( (ekina - eLepTrueFull), 2 ) 
+                                     - pow( (pxi[ip] - pxa), 2 )
+                                     - pow( (pyi[ip] - pya), 2 )
+                                     - pow( (pzi[ip] - pza), 2 ) );
 
-          yTrueFull = 1  - eLepTrueFull/ekina;
-          double mN = .93827208;
-          W_rest_full = sqrt(-Q2TrueFull + 2 * mN * (ekina - eLepTrueFull) + mN * mN);
+            yTrueFull = 1  - eLepTrueFull/ekina;
+            double mN = .93827208;
+            W_rest_full = sqrt(-Q2TrueFull + 2 * mN * (ekina - eLepTrueFull) + mN * mN);
 
-          nLepFull++;
+            nLepFull++;
 
-          if( abs(PIDi[ip]) == abs(nuPID) - 1 ) flagCCFull = 1;
-          else if(PIDi[ip] == nuPID) flagCCFull = 0;
+            if( abs(PIDi[ip]) == abs(nuPID) - 1 ) flagCCFull = 1;
+            else if(PIDi[ip] == nuPID) flagCCFull = 0;
 
-        }
-        else if(PIDi[ip] == 111){
+          }
+          else if(PIDi[ip] == 111){
+           // std::cout << "Found " << PIDi[ip] <<  " " << ip + 1 << std::endl; 
+            eHadTrueChargedFull += ekini[ip] + mi[ip];
+            ePi0TrueFull += ekini[ip] + mi[ip];
+            nPi0Full++;
+            DepoHadron * hadron = new DepoHadron(
+              PIDi[ip], (ip + 1), ekini[ip] + mi[ip],
+              wallX, wallY, wallZ);
+            FSHadrons[ip + 1] = hadron;
+          }
+          else if(abs(PIDi[ip]) == 211 ){
+           // std::cout << "Found " << PIDi[ip] <<  " " << ip + 1 << std::endl; 
+            eHadTrueChargedFull += ekini[ip] + mi[ip];
+            ePiCTrueFull += ekini[ip] + mi[ip];
+            nPiCFull++;
+            DepoHadron * hadron = new DepoHadron(
+              PIDi[ip], (ip + 1), ekini[ip] + mi[ip],
+              wallX, wallY, wallZ);
+            FSHadrons[ip + 1] = hadron;
+          }
+          else if(PIDi[ip] == 2212){
+           // std::cout << "Found " << PIDi[ip] <<  " " << ip + 1 << std::endl; 
+            eHadTrueChargedFull += ekini[ip];
+            eProtonTrueFull += ekini[ip];
+            nProtonFull++;
+            DepoHadron * hadron = new DepoHadron(
+              PIDi[ip], (ip + 1), ekini[ip],
+              wallX, wallY, wallZ);
+            FSHadrons[ip + 1] = hadron;
+          }
+          else if(PIDi[ip] == 2112){
          // std::cout << "Found " << PIDi[ip] <<  " " << ip + 1 << std::endl; 
-          eHadTrueChargedFull += ekini[ip] + mi[ip];
-          ePi0TrueFull += ekini[ip] + mi[ip];
-          nPi0Full++;
-          DepoHadron * hadron = new DepoHadron(
-            PIDi[ip], (ip + 1), ekini[ip] + mi[ip],
-            wallX, wallY, wallZ);
-          FSHadrons[ip + 1] = hadron;
+            eHadTrueTotalFull += ekini[ip];
+            eNeutronTrueFull += ekini[ip];
+            nNeutronFull++;
+            DepoHadron * hadron = new DepoHadron(
+              PIDi[ip], (ip + 1), ekini[ip],
+              wallX, wallY, wallZ);
+            FSHadrons[ip + 1] = hadron;
+          }
+          else if(PIDi[ip] == 22){
+           // std::cout << "Found " << PIDi[ip] <<  " " << ip + 1 << std::endl; 
+            eGammaTrueFull += ekini[ip];
+            nGammaFull++;
+            DepoHadron * hadron = new DepoHadron(
+              PIDi[ip], (ip + 1), ekini[ip],
+              wallX, wallY, wallZ);
+            FSHadrons[ip + 1] = hadron;
+            //Add it to hadrons because I'm lazy 
+            //to make a new thing
+          }
+          else{
+//            std::cout << "Found Other! " << PIDi[ip] <<  " " << ip + 1 << std::endl;
+            nOther++;
+          }
         }
-        else if(abs(PIDi[ip]) == 211 ){
-         // std::cout << "Found " << PIDi[ip] <<  " " << ip + 1 << std::endl; 
-          eHadTrueChargedFull += ekini[ip] + mi[ip];
-          ePiCTrueFull += ekini[ip] + mi[ip];
-          nPiCFull++;
-          DepoHadron * hadron = new DepoHadron(
-            PIDi[ip], (ip + 1), ekini[ip] + mi[ip],
-            wallX, wallY, wallZ);
-          FSHadrons[ip + 1] = hadron;
-        }
-        else if(PIDi[ip] == 2212){
-         // std::cout << "Found " << PIDi[ip] <<  " " << ip + 1 << std::endl; 
-          eHadTrueChargedFull += ekini[ip];
-          eProtonTrueFull += ekini[ip];
-          nProtonFull++;
-          DepoHadron * hadron = new DepoHadron(
-            PIDi[ip], (ip + 1), ekini[ip],
-            wallX, wallY, wallZ);
-          FSHadrons[ip + 1] = hadron;
-        }
-        else if(PIDi[ip] == 2112){
-       // std::cout << "Found " << PIDi[ip] <<  " " << ip + 1 << std::endl; 
-          eHadTrueTotalFull += ekini[ip];
-          eNeutronTrueFull += ekini[ip];
-          nNeutronFull++;
-          DepoHadron * hadron = new DepoHadron(
-            PIDi[ip], (ip + 1), ekini[ip],
-            wallX, wallY, wallZ);
-          FSHadrons[ip + 1] = hadron;
-        }
-        else if(PIDi[ip] == 22){
-         // std::cout << "Found " << PIDi[ip] <<  " " << ip + 1 << std::endl; 
-          eGammaTrueFull += ekini[ip];
-          nGammaFull++;
-          DepoHadron * hadron = new DepoHadron(
-            PIDi[ip], (ip + 1), ekini[ip],
-            wallX, wallY, wallZ);
-          FSHadrons[ip + 1] = hadron;
-          //Add it to hadrons because I'm lazy 
-          //to make a new thing
-        }
-        else{
-//          std::cout << "Found Other! " << PIDi[ip] <<  " " << ip + 1 << std::endl;
-          nOther++;
+
+     // std::cout << "Resetting bins\n";
+      for(int it = 0; it < xBins.size() - 1; ++it){
+        for(int jt = 0; jt < yBins.size() - 1; ++jt){
+          for(int kt = 0; kt < zBins.size() - 1; ++kt){
+            eHadPrimaryDep[it][jt][kt] = 0.;
+            eProtonPrimaryDep[it][jt][kt] = 0.;
+            eNeutronPrimaryDep[it][jt][kt] = 0.;
+            ePiCPrimaryDep[it][jt][kt] = 0.;
+            ePi0PrimaryDep[it][jt][kt] = 0.;
+            eOtherPrimaryDep[it][jt][kt] = 0.;
+
+            eHadSecondaryDep[it][jt][kt] = 0.;
+            eProtonSecondaryDep[it][jt][kt] = 0.;
+            eNeutronSecondaryDep[it][jt][kt] = 0.;
+            ePiCSecondaryDep[it][jt][kt] = 0.;
+            ePi0SecondaryDep[it][jt][kt] = 0.;
+            eOtherSecondaryDep[it][jt][kt] = 0.;
+          }
         }
       }
 
-   // std::cout << "Resetting bins\n";
-    for(int it = 0; it < xBins.size() - 1; ++it){
-      for(int jt = 0; jt < yBins.size() - 1; ++jt){
-        for(int kt = 0; kt < zBins.size() - 1; ++kt){
-          eHadPrimaryDep[it][jt][kt] = 0.;
-          eProtonPrimaryDep[it][jt][kt] = 0.;
-          eNeutronPrimaryDep[it][jt][kt] = 0.;
-          ePiCPrimaryDep[it][jt][kt] = 0.;
-          ePi0PrimaryDep[it][jt][kt] = 0.;
-          eOtherPrimaryDep[it][jt][kt] = 0.;
-
-          eHadSecondaryDep[it][jt][kt] = 0.;
-          eProtonSecondaryDep[it][jt][kt] = 0.;
-          eNeutronSecondaryDep[it][jt][kt] = 0.;
-          ePiCSecondaryDep[it][jt][kt] = 0.;
-          ePi0SecondaryDep[it][jt][kt] = 0.;
-          eOtherSecondaryDep[it][jt][kt] = 0.;
+     // std::cout << "Steps\n";
+      for(int i = 0; i < nstep; ++i){
+        if(chain.find(track[i]) == chain.end()){//Not in chain
+        
+          if(chain.find(parid[i]) == chain.end()){//Error
+            std::cout << "ERROR: PARENT NOT FOUND" << std::endl;
+            break;
+          }
+          chain[track[i]] = parid[i];
         }
-      }
-    }
-
-   // std::cout << "Steps\n";
-    for(int i = 0; i < nstep; ++i){
-      if(chain.find(track[i]) == chain.end()){//Not in chain
       
-        if(chain.find(parid[i]) == chain.end()){//Error
-          std::cout << "ERROR: PARENT NOT FOUND" << std::endl;
-          break;
-        }
-        chain[track[i]] = parid[i];
-      }
-    
-      if(chain[track[i]] == 0){//Primary
-      //  std::cout << "primary" << std::endl;
-        if(PID[i] == lepPDG.at(stop_num)){//lepton
-      //    std::cout << "lepton" << std::endl;
-          if( xe[i] >= xBins.at(0) && xe[i] <= xBins.at(xBins.size() - 1) 
-             &&  ye[i] >= yBins.at(0) && ye[i] <= yBins.at(3)
-             &&  ze[i] >= zBins.at(0) && ze[i] <= zBins.at(3)){  
-             int bins[3] = {
-                GetBinX(xe[i]),
-                GetBinY(ye[i]),
-                GetBinZ(ze[i])};
-             eLepPrimaryDepFull[bins[0]][bins[1]][bins[2]] += edep[i];
-          }
-        }
-        else{//Hadron
-          if(PID[i] == 2212 || PID[i] == 2112 || abs(PID[i]) == 211 ||
-               PID[i] == 111  || PID[i] ==   22){
-      //      std::cout << "Hadron" << std::endl;
-
-
+        if(chain[track[i]] == 0){//Primary
+        //  std::cout << "primary" << std::endl;
+          if(PID[i] == lepPDG.at(stop_num)){//lepton
+        //    std::cout << "lepton" << std::endl;
             if( xe[i] >= xBins.at(0) && xe[i] <= xBins.at(xBins.size() - 1) 
-            &&  ye[i] >= yBins.at(0) && ye[i] <= yBins.at(3)
-            &&  ze[i] >= zBins.at(0) && ze[i] <= zBins.at(3)){
+               &&  ye[i] >= yBins.at(0) && ye[i] <= yBins.at(3)
+               &&  ze[i] >= zBins.at(0) && ze[i] <= zBins.at(3)){  
+               int bins[3] = {
+                  GetBinX(xe[i]),
+                  GetBinY(ye[i]),
+                  GetBinZ(ze[i])};
+               eLepPrimaryDepFull[bins[0]][bins[1]][bins[2]] += edep[i];
+            }
+          }
+          else{//Hadron
+            if(PID[i] == 2212 || PID[i] == 2112 || abs(PID[i]) == 211 ||
+                 PID[i] == 111  || PID[i] ==   22){
+        //      std::cout << "Hadron" << std::endl;
 
-              int bins[3] = {
-                GetBinX(xe[i]),
-                GetBinY(ye[i]),
-                GetBinZ(ze[i])};
 
-              eHadPrimaryDep[bins[0]][bins[1]][bins[2]] += edep[i];
-              switch (abs(PID[i])){
-                case 2212:
-                  eProtonPrimaryDep[bins[0]][bins[1]][bins[2]] += edep[i];
-                  break;
-                case 2112:
-                  eNeutronPrimaryDep[bins[0]][bins[1]][bins[2]] += edep[i];
-                  break;
-                case  211:
-                  ePiCPrimaryDep[bins[0]][bins[1]][bins[2]] += edep[i];
-                  break;
-                case  111:
-                  ePi0PrimaryDep[bins[0]][bins[1]][bins[2]] += edep[i];
-                  break;
-                default:
-                  eOtherPrimaryDep[bins[0]][bins[1]][bins[2]] += edep[i];
+              if( xe[i] >= xBins.at(0) && xe[i] <= xBins.at(xBins.size() - 1) 
+              &&  ye[i] >= yBins.at(0) && ye[i] <= yBins.at(3)
+              &&  ze[i] >= zBins.at(0) && ze[i] <= zBins.at(3)){
+
+                int bins[3] = {
+                  GetBinX(xe[i]),
+                  GetBinY(ye[i]),
+                  GetBinZ(ze[i])};
+
+                eHadPrimaryDep[bins[0]][bins[1]][bins[2]] += edep[i];
+                switch (abs(PID[i])){
+                  case 2212:
+                    eProtonPrimaryDep[bins[0]][bins[1]][bins[2]] += edep[i];
+                    break;
+                  case 2112:
+                    eNeutronPrimaryDep[bins[0]][bins[1]][bins[2]] += edep[i];
+                    break;
+                  case  211:
+                    ePiCPrimaryDep[bins[0]][bins[1]][bins[2]] += edep[i];
+                    break;
+                  case  111:
+                    ePi0PrimaryDep[bins[0]][bins[1]][bins[2]] += edep[i];
+                    break;
+                  default:
+                    eOtherPrimaryDep[bins[0]][bins[1]][bins[2]] += edep[i];
+                }
               }
+
             }
+            else{
+        //      std::cout << "Other" << std::endl;
 
-          }
-          else{
-      //      std::cout << "Other" << std::endl;
+              if( xe[i] >= xBins.at(0) && xe[i] <= xBins.at(xBins.size() - 1) 
+              &&  ye[i] >= yBins.at(0) && ye[i] <= yBins.at(3)
+              &&  ze[i] >= zBins.at(0) && ze[i] <= zBins.at(3)){
 
-            if( xe[i] >= xBins.at(0) && xe[i] <= xBins.at(xBins.size() - 1) 
-            &&  ye[i] >= yBins.at(0) && ye[i] <= yBins.at(3)
-            &&  ze[i] >= zBins.at(0) && ze[i] <= zBins.at(3)){
+                int bins[3] = {
+                  GetBinX(xe[i]),
+                  GetBinY(ye[i]),
+                  GetBinZ(ze[i])};
 
-              int bins[3] = {
-                GetBinX(xe[i]),
-                GetBinY(ye[i]),
-                GetBinZ(ze[i])};
-
-              eOtherPrimaryDep[bins[0]][bins[1]][bins[2]] += edep[i];              
-            }
-          }
-        }
-      }
-      else{//Secondary
-       // std::cout << "secondary" << std::endl;
-        //Find ultimate parent
-        int itChain = track[i];
-        while (chain[itChain] != 0){
-          itChain = chain[itChain];                
-        }
-        if(itChain == 1){//Lepton
-          //std::cout << "Lepton" << std::endl;
-          if( xe[i] >= xBins.at(0) && xe[i] <= xBins.at(xBins.size() - 1) 
-             &&  ye[i] >= yBins.at(0) && ye[i] <= yBins.at(3)
-             &&  ze[i] >= zBins.at(0) && ze[i] <= zBins.at(3)){  
-             int bins[3] = {
-                GetBinX(xe[i]),
-                GetBinY(ye[i]),
-                GetBinZ(ze[i])};
-             eLepSecondaryDepFull[bins[0]][bins[1]][bins[2]] += edep[i];
-          }
-        }
-        else{//Hadron
-
-          if( FSHadrons.find(itChain) != FSHadrons.end() ){ 
-           // std::cout << "Hadron" << std::endl;
-
-            if( xe[i] >= xBins.at(0) && xe[i] <= xBins.at(xBins.size() - 1) 
-            &&  ye[i] >= yBins.at(0) && ye[i] <= yBins.at(3)
-            &&  ze[i] >= zBins.at(0) && ze[i] <= zBins.at(3)){
-
-              int bins[3] = {
-                GetBinX(xe[i]),
-                GetBinY(ye[i]),
-                GetBinZ(ze[i])};
-
-              eHadSecondaryDep[bins[0]][bins[1]][bins[2]] += edep[i];
-             // std::cout << itChain << " " ;
-              //std::cout <<abs(FSHadrons[itChain]->PDG) << std::endl;
-              switch (abs(FSHadrons[itChain]->PDG)){
-                case 2212:
-                  eProtonSecondaryDep[bins[0]][bins[1]][bins[2]] += edep[i];
-                  break;
-                case 2112:
-                  eNeutronSecondaryDep[bins[0]][bins[1]][bins[2]] += edep[i];
-                  break;
-                case  211:
-                  ePiCSecondaryDep[bins[0]][bins[1]][bins[2]] += edep[i];
-                  break;
-                case  111:
-                  ePi0SecondaryDep[bins[0]][bins[1]][bins[2]] += edep[i];
-                  break;          
+                eOtherPrimaryDep[bins[0]][bins[1]][bins[2]] += edep[i];              
               }
             }
           }
-          else{
-        // std::cout << "Other" << std::endl;
-
+        }
+        else{//Secondary
+         // std::cout << "secondary" << std::endl;
+          //Find ultimate parent
+          int itChain = track[i];
+          while (chain[itChain] != 0){
+            itChain = chain[itChain];                
+          }
+          if(itChain == 1){//Lepton
+            //std::cout << "Lepton" << std::endl;
             if( xe[i] >= xBins.at(0) && xe[i] <= xBins.at(xBins.size() - 1) 
-            &&  ye[i] >= yBins.at(0) && ye[i] <= yBins.at(3)
-            &&  ze[i] >= zBins.at(0) && ze[i] <= zBins.at(3)){
+               &&  ye[i] >= yBins.at(0) && ye[i] <= yBins.at(3)
+               &&  ze[i] >= zBins.at(0) && ze[i] <= zBins.at(3)){  
+               int bins[3] = {
+                  GetBinX(xe[i]),
+                  GetBinY(ye[i]),
+                  GetBinZ(ze[i])};
+               eLepSecondaryDepFull[bins[0]][bins[1]][bins[2]] += edep[i];
+            }
+          }
+          else{//Hadron
 
-              int bins[3] = {
-                GetBinX(xe[i]),
-                GetBinY(ye[i]),
-                GetBinZ(ze[i])};
+            if( FSHadrons.find(itChain) != FSHadrons.end() ){ 
+             // std::cout << "Hadron" << std::endl;
 
-              eOtherSecondaryDep[bins[0]][bins[1]][bins[2]] += edep[i];              
+              if( xe[i] >= xBins.at(0) && xe[i] <= xBins.at(xBins.size() - 1) 
+              &&  ye[i] >= yBins.at(0) && ye[i] <= yBins.at(3)
+              &&  ze[i] >= zBins.at(0) && ze[i] <= zBins.at(3)){
+
+                int bins[3] = {
+                  GetBinX(xe[i]),
+                  GetBinY(ye[i]),
+                  GetBinZ(ze[i])};
+
+                eHadSecondaryDep[bins[0]][bins[1]][bins[2]] += edep[i];
+               // std::cout << itChain << " " ;
+                //std::cout <<abs(FSHadrons[itChain]->PDG) << std::endl;
+                switch (abs(FSHadrons[itChain]->PDG)){
+                  case 2212:
+                    eProtonSecondaryDep[bins[0]][bins[1]][bins[2]] += edep[i];
+                    break;
+                  case 2112:
+                    eNeutronSecondaryDep[bins[0]][bins[1]][bins[2]] += edep[i];
+                    break;
+                  case  211:
+                    ePiCSecondaryDep[bins[0]][bins[1]][bins[2]] += edep[i];
+                    break;
+                  case  111:
+                    ePi0SecondaryDep[bins[0]][bins[1]][bins[2]] += edep[i];
+                    break;          
+                }
+              }
+            }
+            else{
+          // std::cout << "Other" << std::endl;
+
+              if( xe[i] >= xBins.at(0) && xe[i] <= xBins.at(xBins.size() - 1) 
+              &&  ye[i] >= yBins.at(0) && ye[i] <= yBins.at(3)
+              &&  ze[i] >= zBins.at(0) && ze[i] <= zBins.at(3)){
+
+                int bins[3] = {
+                  GetBinX(xe[i]),
+                  GetBinY(ye[i]),
+                  GetBinZ(ze[i])};
+
+                eOtherSecondaryDep[bins[0]][bins[1]][bins[2]] += edep[i];              
+              }
             }
           }
         }
       }
+      //std::cout << "end Steps\n";
+      fullDetTree->Fill();
     }
-    //std::cout << "end Steps\n";
-    fullDetTree->Fill();
   }
 }
 
@@ -1004,15 +1007,15 @@ void DunePrismAnalyzer::InitDetector(){
   std::cout << "Initializing detector " << std::endl;
   double voxSize = 10.;//10cm
 
-  double sizeX = fullDet.detectorSizeX*100.;
-  double sizeY = fullDet.detectorSizeY*100.;
-  double sizeZ = fullDet.detectorSizeZ*100.;
+  double sizeX = fullDet->detectorSizeX*100.;
+  double sizeY = fullDet->detectorSizeY*100.;
+  double sizeZ = fullDet->detectorSizeZ*100.;
 
-  double gapX = fullDet.fiducialGapX*100.;
-  double gapY = fullDet.fiducialGapY*100.;
-  double gapZ = fullDet.fiducialGapZ*100.;
+  double gapX = fullDet->fiducialGapX*100.;
+  double gapY = fullDet->fiducialGapY*100.;
+  double gapZ = fullDet->fiducialGapZ*100.;
 
-  double shift = fullDet.shift*100.;    
+  double shift = fullDet->shift*100.;    
   int nBinsX = floor(sizeX/voxSize);
  
   std::vector<double> tempBins;
@@ -1198,7 +1201,9 @@ void DunePrismAnalyzer::FinalizeStops(){
   for(int i = 0; i < stopsTrees.size(); ++i){
     stopsTrees.at(i)->Write();  
   }
-  fullDetTree->Write(0,TObject::kOverwrite);
+  if(fullDet != NULL){
+    fullDetTree->Write(0,TObject::kOverwrite);
+  }
   fout->Close();
   fin->Close();
 

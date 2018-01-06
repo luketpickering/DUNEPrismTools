@@ -134,11 +134,11 @@ inline std::vector<DetectorStop> ReadDetectorStopConfig(std::string const &fname
   return stops;
 }
 
-inline DetectorStop GetFullDetectorConfig(std::string const &fname, std::string const &RPName = ""){
+inline DetectorStop* GetFullDetectorConfig(std::string const &fname, std::string const &RPName = ""){
   TXMLEngine xE;
   xE.SetSkipComments(true);
   XMLDocPointer_t doc = xE.ParseFile(fname.c_str());
-
+  bool found_full = false;
   if (!doc) {
     std::cout << "[ERROR]: Attempted to parse XML file: " << fname
                   << ", but failed." << std::endl;
@@ -149,10 +149,11 @@ inline DetectorStop GetFullDetectorConfig(std::string const &fname, std::string 
   XMLNodePointer_t rootNode = xE.DocGetRootElement(doc);
 
   XMLNodePointer_t root_child = xE.GetChild(rootNode);
-  DetectorStop detDefinition;
-
+  DetectorStop *detDefinition = new DetectorStop;
+  std::cout << detDefinition << std::endl;
   while (root_child){
     if (fullname == xE.GetNodeName(root_child) ){
+      found_full = true;
       bool found_rp;
       std::string name = GetXMLAttributeValue<std::string>(root_child, "Name", found_rp);
       
@@ -176,26 +177,26 @@ inline DetectorStop GetFullDetectorConfig(std::string const &fname, std::string 
 
       while(rp_child){
         if ( dstagname == xE.GetNodeName(rp_child) ){
-          detDefinition.detectorSizeX = GetXMLAttributeValue<double>(rp_child,"detectorSizeX",found[0]);
-          detDefinition.detectorSizeY = GetXMLAttributeValue<double>(rp_child,"detectorSizeY",found[1]);
-          detDefinition.detectorSizeZ = GetXMLAttributeValue<double>(rp_child,"detectorSizeZ",found[2]);
+          detDefinition->detectorSizeX = GetXMLAttributeValue<double>(rp_child,"detectorSizeX",found[0]);
+          detDefinition->detectorSizeY = GetXMLAttributeValue<double>(rp_child,"detectorSizeY",found[1]);
+          detDefinition->detectorSizeZ = GetXMLAttributeValue<double>(rp_child,"detectorSizeZ",found[2]);
 
-          detDefinition.fiducialGapX = GetXMLAttributeValue<double>(rp_child,"fiducialGapX",found[3]); 
-          detDefinition.fiducialGapY = GetXMLAttributeValue<double>(rp_child,"fiducialGapY",found[4]); 
-          detDefinition.fiducialGapZ = GetXMLAttributeValue<double>(rp_child,"fiducialGapZ",found[5]); 
+          detDefinition->fiducialGapX = GetXMLAttributeValue<double>(rp_child,"fiducialGapX",found[3]); 
+          detDefinition->fiducialGapY = GetXMLAttributeValue<double>(rp_child,"fiducialGapY",found[4]); 
+          detDefinition->fiducialGapZ = GetXMLAttributeValue<double>(rp_child,"fiducialGapZ",found[5]); 
 
-          detDefinition.shift = GetXMLAttributeValue<double>(rp_child,"shift",found[6]); 
+          detDefinition->shift = GetXMLAttributeValue<double>(rp_child,"shift",found[6]); 
 
           std::cout << "FOUND FULL DETECTOR\n" <<
-          detDefinition.detectorSizeX<<std::endl<< 
-          detDefinition.detectorSizeY<<std::endl<<
-          detDefinition.detectorSizeZ<<std::endl<<
+          detDefinition->detectorSizeX<<std::endl<< 
+          detDefinition->detectorSizeY<<std::endl<<
+          detDefinition->detectorSizeZ<<std::endl<<
 
-          detDefinition.fiducialGapX <<std::endl<<
-          detDefinition.fiducialGapY <<std::endl<<
-          detDefinition.fiducialGapZ <<std::endl<<
+          detDefinition->fiducialGapX <<std::endl<<
+          detDefinition->fiducialGapY <<std::endl<<
+          detDefinition->fiducialGapZ <<std::endl<<
 
-          detDefinition.shift<<std::endl;
+          detDefinition->shift<<std::endl;
 
 
           rp_child = xE.GetNext(rp_child);
@@ -208,6 +209,6 @@ inline DetectorStop GetFullDetectorConfig(std::string const &fname, std::string 
     root_child = xE.GetNext(root_child);
   }
 
-
-  return detDefinition;
+  if(found_full)return detDefinition;
+  else return 0x0; 
 }
