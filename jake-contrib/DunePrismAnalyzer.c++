@@ -83,10 +83,6 @@ DunePrismAnalyzer::DunePrismAnalyzer(std::string inFileName, std::string outFile
     stopsTrees.push_back(sTree);
     SetOutBranches(i);
 
-    if(fullDet != NULL){
-      fullDetTree = new TTree("fullDetTree","Positional deposits over full detector");
-      InitDetector();
-    }
 
     std::array<double,3> stop_dim = {detStops.at(i).detectorSizeX*100.,
                           detStops.at(i).detectorSizeY*100.,
@@ -102,6 +98,10 @@ DunePrismAnalyzer::DunePrismAnalyzer(std::string inFileName, std::string outFile
     FV.push_back(stop_FV);
     shift.push_back(stop_shift);
 
+  }
+  if(fullDet != NULL){
+    fullDetTree = new TTree("fullDetTree","Positional deposits over full detector");
+    InitDetector();
   }
 
   SetInBranches();
