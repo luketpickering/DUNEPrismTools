@@ -567,6 +567,11 @@ int main(int argc, char const *argv[]) {
 
   TFitter *minimizer = new TFitter(Fluxes.size());
 
+  //Rescale the target to a similar size to the fluxes.
+  double OnAxisPeak = Fluxes[0]->GetMaximum();
+  double TargetMax = TargetFlux->GetMaximum();
+  TargetFlux->Scale(OnAxisPeak / TargetMax);
+
   double targetenu = IsGauss ? GaussC : TargetFlux->GetXaxis()->GetBinCenter(
                                             TargetFlux->GetMaximumBin());
 
