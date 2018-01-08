@@ -349,13 +349,8 @@ FlatHistTMatrixD BuildFluxVector(std::string const& InputFileName,
       ss << GetSpeciesName(species) << "_flux_2D";
       TH2D* far_fluxhist = GetHistogram<TH2D>(InputFarDetFileName, ss.str());
 
-      if (BinMergeSchemeX && BinMergeSchemeY) {
-        far_fluxhist->Rebin2D(BinMergeSchemeX + 1, BinMergeSchemeY + 1);
-      } else if (BinMergeSchemeX) {
+      if (BinMergeSchemeX) {
         far_fluxhist->RebinX(BinMergeSchemeX + 1);
-
-      } else if (BinMergeSchemeY) {
-        far_fluxhist->RebinY(BinMergeSchemeY + 1);
       }
 
       for (Int_t y_it = 1; y_it < far_fluxhist->GetYaxis()->GetNbins() + 1;
