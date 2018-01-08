@@ -46,6 +46,7 @@ int MaxMINUITCalls = 50000;
 
 double FitBetween_low = 0xdeadbeef, FitBetween_high = 0xdeadbeef;
 int binLow, binHigh;
+bool MultiplyChi2ContribByBinWidth = false;
 
 double referencePOT = std::numeric_limits<double>::min();
 std::vector<double> MeasurementFactor;
@@ -147,9 +148,11 @@ void TargetSumChi2(int &nDim, double *gout, double &result, double coeffs[],
             : 1;
 
     sumdiff +=
-        (TargetFlux->GetBinContent(bi_it) - SummedFlux->GetBinContent(bi_it)) *
-        (TargetFlux->GetBinContent(bi_it) - SummedFlux->GetBinContent(bi_it)) /
-        err;
+        (MultiplyChi2ContribByBinWidth ? pow(SummedFlux->GetBinWidth(bi_it), 2)
+                                       : 1) *
+        ((TargetFlux->GetBinContent(bi_it) - SummedFlux->GetBinContent(bi_it)) *
+         (TargetFlux->GetBinContent(bi_it) - SummedFlux->GetBinContent(bi_it)) /
+         err);
   }
 
   double reg = 0;
@@ -176,7 +179,10 @@ void TargetSumGauss(int &nDim, double *gout, double &result, double coeffs[],
     double GaussEval = TargetGauss->Eval(bi_c_E);
     double SummedBinContent = SummedFlux->GetBinContent(bi_it);
     double Uncert = pow(GaussEval / 20.0, 2) + pow(TargetPeakNorm / 30.0, 2);
-    sumdiff += pow(GaussEval - SummedBinContent, 2) / Uncert;
+    sumdiff +=
+        (MultiplyChi2ContribByBinWidth ? pow(SummedFlux->GetBinWidth(bi_it), 2)
+                                       : 1) *
+        (pow(GaussEval - SummedBinContent, 2) / Uncert);
   }
 
   double reg = 0;
@@ -383,6 +389,8 @@ void handleOpts(int argc, char const *argv[]) {
       RegFactor = str2T<double>(argv[++opt]);
     } else if (std::string(argv[opt]) == "-ed") {
       ExpDecayRate = str2T<double>(argv[++opt]);
+    } else if (std::string(argv[opt]) == "-B") {
+      MultiplyChi2ContribByBinWidth = true;
     } else if (std::string(argv[opt]) == "-?") {
       SayUsage(argv);
       exit(0);
