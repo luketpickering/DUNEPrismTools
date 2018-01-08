@@ -150,9 +150,9 @@ double BLow = 0;
 double BUp = 10;
 double detector_width = 0;
 double detector_height = 0;
+bool ReUseParents = true;
 
 double ZDist = 57400;
-double PotPerFile = 1E5;
 int NMaxNeutrinos = -1;
 
 std::vector<double> varBin;
@@ -222,7 +222,8 @@ void SayUsage(char const *argv[]) {
                "\n"
                "\t-z <ZDist>                    : Detector ZDist (cm).       \n"
                "\n"
-               "\t-P <POTPerFile>               : The POT per input file.    \n"
+               "\t-P                            : Only use each decaying parent"
+               " once.       \n"
                "\n"
             << std::endl;
 }
@@ -317,7 +318,7 @@ void handleOpts(int argc, char const *argv[]) {
     } else if (std::string(argv[opt]) == "-z") {
       ZDist = str2T<double>(argv[++opt]);
     } else if (std::string(argv[opt]) == "-P") {
-      PotPerFile = str2T<double>(argv[++opt]);
+      ReUseParents = false;
     } else {
       std::cout << "[ERROR]: Unknown option: " << argv[opt] << std::endl;
       SayUsage(argv);
@@ -513,9 +514,9 @@ void CalculateFluxesForRunPlan(DK2NuReader &dk2nuRdr, double TotalPOT,
                     : std::min(NMaxNeutrinos, int(dk2nuRdr.GetEntries()));
   TotalPOT = TotalPOT * (double(nNus) / double(dk2nuRdr.GetEntries()));
   std::cout << "Only using the first " << nNus << " events out of "
-            << dk2nuRdr.GetEntries() << ", scaling POT to " << TotalPOT
+            << dk2nuRdr.GetEntries() << ", scaling totla POT to " << TotalPOT
             << std::endl;
-  std::cout << "Reding " << nNus << " Dk2Nu entries." << std::endl;
+  std::cout << "Reading " << nNus << " Dk2Nu entries." << std::endl;
 
   TFile *outfile = new TFile(outputFile.c_str(), "RECREATE");
 
@@ -581,8 +582,17 @@ void CalculateFluxesForRunPlan(DK2NuReader &dk2nuRdr, double TotalPOT,
     }
   }
 
+  double FluxNormPOT = TotalPOT;
+  if (!ReUseParents) {
+    FluxNormPOT /= Fluxes.size();
+    std::cout
+        << "[INFO]: Each decay parent may only be used once -- POT per slice: "
+        << FluxNormPOT << std::endl;
+  }
+
   size_t NSlices = detPositions.size();
   size_t updateStep = nNus / 10 ? nNus / 10 : 1;
+  size_t slice_it = 0;
   for (size_t nu_it = 0; nu_it < nNus; ++nu_it) {
     if (!(nu_it % updateStep)) {
       std::cout << "--" << nu_it << "/" << nNus << std::endl;
@@ -590,8 +600,36 @@ void CalculateFluxesForRunPlan(DK2NuReader &dk2nuRdr, double TotalPOT,
 
     dk2nuRdr.GetEntry(nu_it);
 
-    double wF = (dk2nuRdr.decay_nimpwt / TMath::Pi()) * (1.0 / TotalPOT);
-    for (size_t slice_it = 0; slice_it < NSlices; ++slice_it) {
+    double wF = (dk2nuRdr.decay_nimpwt / TMath::Pi()) * (1.0 / FluxNormPOT);
+
+    if (ReUseParents) {
+      for (slice_it = 0; slice_it < NSlices; ++slice_it) {
+        TVector3 det_point = detPositions[slice_it];
+
+        det_point[0] += (2.0 * rnjesus.Uniform() - 1.0) *
+                        MeasurementHalfWidths[slice_it] * 100.0;
+
+        det_point[1] += (2.0 * rnjesus.Uniform() - 1.0) *
+                        MeasurementHalfHeights[slice_it] * 100.0;
+
+        std::tuple<double, double, double> nuStats =
+            GetNuWeight(dk2nuRdr, det_point);
+
+        double w = std::get<2>(nuStats) * wF;
+
+        if ((std::get<0>(nuStats) != std::get<0>(nuStats)) || (w != w)) {
+          std::cout << std::get<0>(nuStats) << ", " << w << std::endl;
+          throw;
+        }
+
+        Fluxes[slice_it][dk2nuRdr.decay_ntype]->Fill(std::get<0>(nuStats), w);
+        Divergences[slice_it][dk2nuRdr.decay_ntype]->Fill(
+            std::get<0>(nuStats), std::get<1>(nuStats) * (180.0 / TMath::Pi()),
+            w);
+      }
+    } else {
+      slice_it = (slice_it + 1) % NSlices;
+
       TVector3 det_point = detPositions[slice_it];
 
       det_point[0] += (2.0 * rnjesus.Uniform() - 1.0) *
@@ -617,7 +655,7 @@ void CalculateFluxesForRunPlan(DK2NuReader &dk2nuRdr, double TotalPOT,
     }
   }
 
-  size_t slice_it = 0;
+  slice_it = 0;
   for (size_t ds_it = 0; ds_it < detStops.size(); ++ds_it) {
     DetectorStop &ds = detStops[ds_it];
     for (size_t ms_it = 0; ms_it < ds.GetNMeasurementSlices(); ++ms_it) {

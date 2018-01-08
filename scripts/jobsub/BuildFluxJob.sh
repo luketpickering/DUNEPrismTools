@@ -29,15 +29,32 @@ if [ -z $1 ]; then
 fi
 DET_DIST_CM=${1}
 
+if [ -z ${2} ]; then
+  echo "[ERROR]: Couldn't find binning descriptor."
+  exit 6
+fi
+BINNING_DESCRIPTOR=${2}
+
+if [ -z ${3} ]; then
+  echo "[ERROR]: Couldn't find Reuse parent descriptor."
+  exit 6
+fi
+REUSEPARENTS=${3}
+
+RUPARG=""
+if [ "${REUSEPARENTS}" == "1" ]; then
+  RUPARG="-P"
+fi
+
 PNFS_PATH_APPEND=""
-if [ ! -z $2 ]; then
-  echo "[INFO]: Appending path to pnfs outdir: $2"
-  PNFS_PATH_APPEND=$2
+if [ ! -z ${4} ]; then
+  echo "[INFO]: Appending path to pnfs outdir: ${3}"
+  PNFS_PATH_APPEND=${4}
 fi
 
 NFILES_TO_READ=1
-if [ ! -z $3 ]; then
-  NFILES_TO_READ=$3
+if [ ! -z ${5} ]; then
+  NFILES_TO_READ=${5}
 fi
 
 echo "[INFO]: Reading ${NFILES_TO_READ} files."
@@ -167,42 +184,24 @@ echo "------ls-------"
 ls -lah
 echo "---------------"
 
-OUT_FILENAME_FINE=Fluxes.Fine.${CLUSTER}.${PROCESS}.root
-OUT_FILENAME_COARSE=Fluxes.Coarse.${CLUSTER}.${PROCESS}.root
-OUT_FILENAME_OPTIM=Fluxes.Optimized.${CLUSTER}.${PROCESS}.root
+OUT_FILENAME=Fluxes.${CLUSTER}.${PROCESS}.root
 
 echo "[INFO]: Writing output to: ${OUT_FILENAME_FINE}, ${OUT_FILENAME_COARSE} "
 
 echo "Building fluxes @ $(date)"
 
-# echo "./dp_BuildFluxes -i \"inputs/*.dk2nu.root\" -o ${OUT_FILENAME_FINE} -r runplan.xml -z ${DET_DIST_CM} -b 1000,0,10 &> dp_BuildFluxes.${CLUSTER}.${PROCESS}.Fine.log"
-# ./dp_BuildFluxes -i "inputs/*.dk2nu.root" -o ${OUT_FILENAME_FINE} -r runplan.xml -z ${DET_DIST_CM} -b 1000,0,10 &> dp_BuildFluxes.${CLUSTER}.${PROCESS}.Fine.log
-
-# echo "./dp_BuildFluxes -i \"inputs/*.dk2nu.root\" -o ${OUT_FILENAME_COARSE} -r runplan.xml -z ${DET_DIST_CM} -b 80,0,10 &> dp_BuildFluxes.${CLUSTER}.${PROCESS}.Coarse.log"
-# ./dp_BuildFluxes -i "inputs/*.dk2nu.root" -o ${OUT_FILENAME_COARSE} -r runplan.xml -z ${DET_DIST_CM} -b 80,0,10 &> dp_BuildFluxes.${CLUSTER}.${PROCESS}.Coarse.log
-
-echo "./dp_BuildFluxes -i \"inputs/*.dk2nu.root\" -o ${OUT_FILENAME_OPTIM} -r runplan.xml -z ${DET_DIST_CM} -vb 0,0.5,1_3:0.25,3_4:0.5,4_10:1,10_20:2 &> dp_BuildFluxes.${CLUSTER}.${PROCESS}.Optimized.log"
-./dp_BuildFluxes -i "inputs/*.dk2nu.root" -o ${OUT_FILENAME_OPTIM} -r runplan.xml -z ${DET_DIST_CM} -vb 0,0.5,1_3:0.25,3_4:0.5,4_10:1,10_20:2 &> dp_BuildFluxes.${CLUSTER}.${PROCESS}.Optimized.log
+echo "./dp_BuildFluxes -i \"inputs/*.dk2nu.root\" -o ${OUT_FILENAME} -r runplan.xml -z ${DET_DIST_CM} -vb ${BINNING_DESCRIPTOR} ${RUPARG} &> dp_BuildFluxes.${CLUSTER}.${PROCESS}.log"
+./dp_BuildFluxes -i "inputs/*.dk2nu.root" -o ${OUT_FILENAME} -r runplan.xml -z ${DET_DIST_CM} -vb ${BINNING_DESCRIPTOR} ${RUPARG} &> dp_BuildFluxes.${CLUSTER}.${PROCESS}.log
 
 
 echo "Finished."
 
 echo "Copying output @ $(date)"
 
-# echo "ifdh cp -D $IFDH_OPTION ${OUT_FILENAME_FINE} ${PNFS_OUTDIR}/flux/"
-# ifdh cp -D $IFDH_OPTION ${OUT_FILENAME_FINE} ${PNFS_OUTDIR}/flux/
-# echo "ifdh cp -D $IFDH_OPTION dp_BuildFluxes.${CLUSTER}.${PROCESS}.Fine.log ${PNFS_OUTDIR}/logs/"
-# ifdh cp -D $IFDH_OPTION dp_BuildFluxes.${CLUSTER}.${PROCESS}.Fine.log ${PNFS_OUTDIR}/logs/
-
-# echo "ifdh cp -D $IFDH_OPTION ${OUT_FILENAME_COARSE} ${PNFS_OUTDIR}/flux/"
-# ifdh cp -D $IFDH_OPTION ${OUT_FILENAME_COARSE} ${PNFS_OUTDIR}/flux/
-# echo "ifdh cp -D $IFDH_OPTION dp_BuildFluxes.${CLUSTER}.${PROCESS}.Coarse.log ${PNFS_OUTDIR}/logs/"
-# ifdh cp -D $IFDH_OPTION dp_BuildFluxes.${CLUSTER}.${PROCESS}.Coarse.log ${PNFS_OUTDIR}/logs/
-
-echo "ifdh cp -D $IFDH_OPTION ${OUT_FILENAME_OPTIM} ${PNFS_OUTDIR}/flux/"
-ifdh cp -D $IFDH_OPTION ${OUT_FILENAME_OPTIM} ${PNFS_OUTDIR}/flux/
-echo "ifdh cp -D $IFDH_OPTION dp_BuildFluxes.${CLUSTER}.${PROCESS}.Optimized.log ${PNFS_OUTDIR}/logs/"
-ifdh cp -D $IFDH_OPTION dp_BuildFluxes.${CLUSTER}.${PROCESS}.Optimized.log ${PNFS_OUTDIR}/logs/
+echo "ifdh cp -D $IFDH_OPTION ${OUT_FILENAME} ${PNFS_OUTDIR}/flux/"
+ifdh cp -D $IFDH_OPTION ${OUT_FILENAME} ${PNFS_OUTDIR}/flux/
+echo "ifdh cp -D $IFDH_OPTION dp_BuildFluxes.${CLUSTER}.${PROCESS}.log ${PNFS_OUTDIR}/logs/"
+ifdh cp -D $IFDH_OPTION dp_BuildFluxes.${CLUSTER}.${PROCESS}.log ${PNFS_OUTDIR}/logs/
 
 
 echo "All stop @ $(date)"

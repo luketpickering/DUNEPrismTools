@@ -258,7 +258,7 @@ FlatHistTMatrixD BuildFluxVector(std::string const& InputFileName,
 
   double XOffset = 0;
   double EOffset = 0;
-  double bue = 0xdeadbeef;
+  double BW = 0xdeadbeef;
 
   for (int species : spec_vec) {
     ss.str("");
@@ -277,7 +277,9 @@ FlatHistTMatrixD BuildFluxVector(std::string const& InputFileName,
     size_t NEBins = 0;
 
     for (Int_t y_it = 1; y_it < fluxhist->GetYaxis()->GetNbins() + 1; ++y_it) {
+      double bue_x = fluxhist->GetYaxis()->GetBinUpEdge(y_it);
       double ble_x = fluxhist->GetYaxis()->GetBinLowEdge(y_it);
+      double bc_x = fluxhist->GetYaxis()->GetBinCenter(y_it);
       if ((fabs(ble_x - MaxAbsoluteOffset) < 1E-5) ||
           (ble_x > MaxAbsoluteOffset)) {
         break;
@@ -285,12 +287,14 @@ FlatHistTMatrixD BuildFluxVector(std::string const& InputFileName,
 
       for (Int_t x_it = 1; x_it < fluxhist->GetXaxis()->GetNbins() + 1;
            ++x_it) {
+        double bue_e = fluxhist->GetXaxis()->GetBinUpEdge(x_it);
         double ble_e = fluxhist->GetXaxis()->GetBinLowEdge(x_it);
+        double bc_e = fluxhist->GetXaxis()->GetBinCenter(x_it);
 
         if (x_it == 1) {
           EOffset = ble_e;
         }
-        bue = fluxhist->GetXaxis()->GetBinUpEdge(x_it);
+        BW = fluxhist->GetXaxis()->GetBinWidth(x_it);
 
         if ((fabs(ble_e - MaxEnergy) < 1E-5) || (ble_e > MaxEnergy)) {
           break;
@@ -301,11 +305,19 @@ FlatHistTMatrixD BuildFluxVector(std::string const& InputFileName,
             NeatBinLabels.push_back(std::string("ND, ") +
                                     GetSpeciesName(species));
           } else if (x_it == 1) {
-            NeatBinLabels.push_back(to_str(ble_x) + ", " + to_str(ble_e));
+            NeatBinLabels.push_back(std::string("Offset: ") + to_str(bc_x) +
+                                    ", E:" + to_str(bc_e));
           } else {
-            NeatBinLabels.push_back(to_str(ble_e));
+            NeatBinLabels.push_back(to_str(bc_e));
           }
           NeatBinEdges.push_back(ble_e + XOffset - EOffset);
+
+          std::cout << "[VERBOSE]: Added Neat bin[" << NeatBinEdges.size()
+                    << "], X {" << ble_x << "," << bue_x << "}, E {" << ble_e
+                    << "," << bue_e
+                    << "}. Neat binning Low: " << NeatBinEdges.back()
+                    << ", XOffset: " << XOffset << ", EOffset: " << EOffset
+                    << std::endl;
         }
 
         if (y_it == 1) {
@@ -317,16 +329,25 @@ FlatHistTMatrixD BuildFluxVector(std::string const& InputFileName,
         errors.push_back(fluxhist->GetBinError(GBin));
       }
       if (Building_NeatBinEdges) {
-        XOffset += bue;
+        XOffset = (NeatBinEdges.back() + BW);
       }
     }
+
+    std::cout << "[INFO]: Build flux vector out of " << ss.str() << " with "
+              << fluxhist->GetXaxis()->GetNbins() << ", "
+              << fluxhist->GetYaxis()->GetNbins() << " = "
+              << (fluxhist->GetXaxis()->GetNbins() *
+                  fluxhist->GetYaxis()->GetNbins())
+              << ", where every " << NEBins << " is a new energy bin. "
+              << std::endl;
 
     delete fluxhist;
 
     if (InputFarDetFileName.size()) {
+      NEBins = 0;
       ss.str("");
       ss << GetSpeciesName(species) << "_flux_2D";
-      TH2D* far_fluxhist = GetHistogram<TH2D>(InputFileName, ss.str());
+      TH2D* far_fluxhist = GetHistogram<TH2D>(InputFarDetFileName, ss.str());
 
       if (BinMergeSchemeX && BinMergeSchemeY) {
         far_fluxhist->Rebin2D(BinMergeSchemeX + 1, BinMergeSchemeY + 1);
@@ -340,6 +361,8 @@ FlatHistTMatrixD BuildFluxVector(std::string const& InputFileName,
       for (Int_t y_it = 1; y_it < far_fluxhist->GetYaxis()->GetNbins() + 1;
            ++y_it) {
         double ble_x = far_fluxhist->GetYaxis()->GetBinLowEdge(y_it);
+        double bue_x = far_fluxhist->GetYaxis()->GetBinUpEdge(y_it);
+        double bc_x = far_fluxhist->GetYaxis()->GetBinCenter(y_it);
         if ((fabs(ble_x - MaxAbsoluteOffset) < 1E-5) ||
             (ble_x > MaxAbsoluteOffset)) {
           break;
@@ -348,11 +371,13 @@ FlatHistTMatrixD BuildFluxVector(std::string const& InputFileName,
         for (Int_t x_it = 1; x_it < far_fluxhist->GetXaxis()->GetNbins() + 1;
              ++x_it) {
           double ble_e = far_fluxhist->GetXaxis()->GetBinLowEdge(x_it);
+          double bue_e = far_fluxhist->GetXaxis()->GetBinUpEdge(x_it);
+          double bc_e = far_fluxhist->GetXaxis()->GetBinCenter(x_it);
 
           if (x_it == 1) {
             EOffset = ble_e;
           }
-          bue = far_fluxhist->GetXaxis()->GetBinUpEdge(x_it);
+          BW = far_fluxhist->GetXaxis()->GetBinWidth(x_it);
 
           if ((fabs(ble_e - MaxEnergy) < 1E-5) || (ble_e > MaxEnergy)) {
             break;
@@ -363,37 +388,52 @@ FlatHistTMatrixD BuildFluxVector(std::string const& InputFileName,
               NeatBinLabels.push_back(std::string("FD, ") +
                                       GetSpeciesName(species));
             } else if (x_it == 1) {
-              NeatBinLabels.push_back(to_str(ble_x) + ", " + to_str(ble_e));
+              NeatBinLabels.push_back(std::string("Offset: ") + to_str(bc_x) +
+                                      ", E:" + to_str(bc_e));
             } else {
-              NeatBinLabels.push_back(to_str(ble_e));
+              NeatBinLabels.push_back(to_str(bc_e));
             }
             NeatBinEdges.push_back(ble_e + XOffset - EOffset);
+
+            std::cout << "[VERBOSE]: Added Neat bin[" << NeatBinEdges.size()
+                      << "], X {" << ble_x << "," << bue_x << "}, E {" << ble_e
+                      << "," << bue_e
+                      << "}. Neat binning Low: " << NeatBinEdges.back()
+                      << ", XOffset: " << XOffset << ", EOffset: " << EOffset
+                      << std::endl;
           }
+
           Int_t GBin = far_fluxhist->GetBin(x_it, y_it, dummy);
           content.push_back(far_fluxhist->GetBinContent(GBin));
           errors.push_back(far_fluxhist->GetBinError(GBin));
         }
 
         if (Building_NeatBinEdges) {
-          XOffset += bue;
+          XOffset = (NeatBinEdges.back() + BW);
         }
       }
 
       std::cout << "[INFO]: Build flux vector out of " << ss.str() << " with "
-                << ((fluxhist->GetXaxis()->GetNbins() + 2) *
-                    (fluxhist->GetYaxis()->GetNbins() + 2))
+                << far_fluxhist->GetXaxis()->GetNbins() << ", "
+                << far_fluxhist->GetYaxis()->GetNbins() << " = "
+                << (far_fluxhist->GetXaxis()->GetNbins() *
+                    far_fluxhist->GetYaxis()->GetNbins())
                 << ", where every " << NEBins << " is a new energy bin. "
                 << std::endl;
-
       delete far_fluxhist;
     }
   }
 
   if (Building_NeatBinEdges) {
-    NeatBinEdges.push_back(bue + XOffset - EOffset);
+    NeatBinEdges.push_back(NeatBinEdges.back() + BW);
+    std::cout << "[VERBOSE]: Added top neat bin edge at: "
+              << NeatBinEdges.back() << std::endl;
   }
 
   FlatHistTMatrixD fh(content.size());
+
+  std::cout << "[INFO]: Read total input flux vector with " << content.size()
+            << " bins." << std::endl;
 
   for (size_t i = 0; i < content.size(); ++i) {
     fh.Set(i, content[i]);
@@ -568,7 +608,7 @@ int main(int argc, char const* argv[]) {
       NeatH->SetBinContent(GBin, (*TotalMatrix)[y_it][x_it]);
     }
   }
-  NeatH->Write("Total_Uncertainty", TObject::kOverwrite);
+  NeatH->Write("Total_Uncertainty_neat", TObject::kOverwrite);
 
   of->Write();
   of->Close();

@@ -4,6 +4,7 @@
 #include "TFile.h"
 #include "TGraph.h"
 #include "TH1D.h"
+#include "TH2D.h"
 #include "TKey.h"
 #include "TRegexp.h"
 #include "TXMLEngine.h"
@@ -108,8 +109,8 @@ inline std::vector<double> BuildDoubleList(std::string const &str) {
   return rtn;
 }
 
-inline TFile *CheckOpenFile(std::string const &fname, char const *opts="") {
-  TFile *inpF = new TFile(fname.c_str(),opts);
+inline TFile *CheckOpenFile(std::string const &fname, char const *opts = "") {
+  TFile *inpF = new TFile(fname.c_str(), opts);
   if (!inpF || !inpF->IsOpen()) {
     std::cout << "[ERROR]: Couldn't open input file: " << fname << std::endl;
     exit(1);
@@ -152,7 +153,7 @@ inline TH *GetHistogram(std::string const &fname, std::string const &hname) {
 
 template <class TH>
 inline std::vector<TH *> GetHistograms(std::string const &fname,
-                                         std::string const &hnamePattern) {
+                                       std::string const &hnamePattern) {
   std::vector<TH *> histos;
 
   TFile *inpF = CheckOpenFile(fname);
@@ -178,6 +179,28 @@ inline std::vector<TH *> GetHistograms(std::string const &fname,
   delete inpF;
 
   return histos;
+}
+
+inline std::vector<TH1D *> SplitTH2D(TH2D *t2, bool AlongY,
+                              double min = -std::numeric_limits<double>::max(),
+                              double max = std::numeric_limits<double>::max()) {
+  std::vector<TH1D *> split;
+
+  for (Int_t bi_it = 1;
+       bi_it < (AlongY ? t2->GetYaxis() : t2->GetXaxis())->GetNbins() + 1;
+       ++bi_it) {
+    if (((AlongY ? t2->GetYaxis() : t2->GetXaxis())->GetBinCenter(bi_it) <
+         min) ||
+        (AlongY ? t2->GetYaxis() : t2->GetXaxis())->GetBinCenter(bi_it) > max) {
+      continue;
+    }
+
+    split.push_back((AlongY ? t2->ProjectionX(to_str(bi_it).c_str(), bi_it, bi_it)
+                            : t2->ProjectionY(to_str(bi_it).c_str(), bi_it, bi_it)));
+    split.back()->SetDirectory(NULL);
+  }
+
+  return split;
 }
 
 inline void SumHistograms(TH1D *summed, double *coeffs,

@@ -18,6 +18,7 @@
 #include <vector>
 
 std::string FluxesFile, inpFluxHistsPattern;
+std::string FluxHist2DName;
 std::string inpFile, inpHistName;
 std::string oupFile;
 std::string oupDir;
@@ -187,100 +188,105 @@ void TargetSumGauss(int &nDim, double *gout, double &result, double coeffs[],
 }
 
 void SayUsage(char const *argv[]) {
-  std::cout << "[USAGE]: " << argv[0]
-            << "\n"
-               "  Input options:                                               "
-               "           \n"
-               "\n"
-               "\t-f <ROOT file[,hist name pattern]> : The input flux "
-               "histograms used in  \n"
-               "\t                                     the fit. If a pattern "
-               "is not       \n"
-               "\t                                     passed, then all TH1Ds "
-               "in the input\n"
-               "\t                                     are used.               "
-               "           \n"
-               "\t-r <RunPlan.XML>                   : An XML file specifying "
-               "a run plan  \n"
-               "\t                                     to make event rate "
-               "predictions and \n"
-               "\t                                     measured spectra for. "
-               "See          \n"
-               "\t                                     documentation for XML "
-               "structure.   \n"
-               "\n"
-               "  Target options:                                              "
-               "           \n"
-               "\t-t <ROOT file,hist name>           : The histogram of the "
-               "target flux to\n"
-               "\t                                     fit.                    "
-               "           \n"
-               "\n"
-               "\t-g <mean,width>                    : Use a gaussian target "
-               "distribution \n"
-               "\t                                     instead of a target "
-               "flux shape.    \n"
-               "\n"
-               "\t-[o|a] <ROOT file>                 : The output root file. "
-               "Using -o will\n"
-               "\t                                     overwrite a file of the "
-               "same name, \n"
-               "\t                                     -a will append the fit "
-               "result to   \n"
-               "\t                                     the file.               "
-               "           \n"
-               "\n"
-               "\t-d <directory name>                : If passed, fit result "
-               "will be put  \n"
-               "\t                                     into a subdirectory of "
-               "the root    \n"
-               "\t                                     file.                   "
-               "           \n"
-               "\n"
-               "\t-n <MaxCalls=50000>                : The maximum number of "
-               "MINUIT       \n"
-               "\t                                     evaluations before "
-               "giving up the   \n"
-               "\t                                     fit."
-               "\n"
-               "\t-c <CoeffLimit=30>                 : Parameter limits of "
-               "flux component \n"
-               "\t                                     coefficients.           "
-               "           \n"
-               "\t-x <ROOT file, hist name>          : Add xsec component for "
-               "making event\n"
-               "\t                                     rate predictions.       "
-               "           \n"
-               "\n"
-               "\t-rg <regularisation factor>        : Adds neighbouring       "
-               "coefficient\n"
-               "\t                                     regularisation.         "
-               "           \n"
-               "\n"
-               "\t-l <min val, max val>              : Fit between min and max."
-               "Outside \n"
-               "\t                                     of this range, -m       "
-               "determines\n"
-               "\t                                     behavior.             \n"
-               "\n"
-               "\t-m <0,1,2>                         : Out of range behavior.  "
-               "          \n"
-               "\t                                     0: Ignore out of range "
-               "bins.      \n"
-               "\t                                     1: Force out of range "
-               "bins to 0.  \n"
-               "\t                                     2: exponential decay "
-               "outside fit  \n"
-               "\t                                        region. decay rate "
-               "is          \n"
-               "\t                                        determined by -ed."
-               "\n"
-               "\t-ed <decay rate>                   : For -m 2, controls "
-               "decay rate.    \n"
-               "\t                                     Default = 3, larger is "
-               "faster     \n"
-               "\t                                     decay."
-            << std::endl;
+  std::cout
+      << "[USAGE]: " << argv[0]
+      << "\n"
+         "  Input options:                                               "
+         "           \n"
+         "\n"
+         "\t-f <ROOT file[,hist name pattern]> : The input flux "
+         "histograms used in  \n"
+         "\t                                     the fit. If a pattern "
+         "is not       \n"
+         "\t                                     passed, then all TH1Ds "
+         "in the input\n"
+         "\t                                     are used.               "
+         "           \n"
+         "\t-h <HistName>                      : Input 2D flux histogram,"
+         " Y bins \n"
+         "\t                                     correspond to different "
+         "fluxes.\n"
+         "\t-r <RunPlan.XML>                   : An XML file specifying "
+         "a run plan  \n"
+         "\t                                     to make event rate "
+         "predictions and \n"
+         "\t                                     measured spectra for. "
+         "See          \n"
+         "\t                                     documentation for XML "
+         "structure.   \n"
+         "\n"
+         "  Target options:                                              "
+         "           \n"
+         "\t-t <ROOT file,hist name>           : The histogram of the "
+         "target flux to\n"
+         "\t                                     fit.                    "
+         "           \n"
+         "\n"
+         "\t-g <mean,width>                    : Use a gaussian target "
+         "distribution \n"
+         "\t                                     instead of a target "
+         "flux shape.    \n"
+         "\n"
+         "\t-[o|a] <ROOT file>                 : The output root file. "
+         "Using -o will\n"
+         "\t                                     overwrite a file of the "
+         "same name, \n"
+         "\t                                     -a will append the fit "
+         "result to   \n"
+         "\t                                     the file.               "
+         "           \n"
+         "\n"
+         "\t-d <directory name>                : If passed, fit result "
+         "will be put  \n"
+         "\t                                     into a subdirectory of "
+         "the root    \n"
+         "\t                                     file.                   "
+         "           \n"
+         "\n"
+         "\t-n <MaxCalls=50000>                : The maximum number of "
+         "MINUIT       \n"
+         "\t                                     evaluations before "
+         "giving up the   \n"
+         "\t                                     fit."
+         "\n"
+         "\t-c <CoeffLimit=30>                 : Parameter limits of "
+         "flux component \n"
+         "\t                                     coefficients.           "
+         "           \n"
+         "\t-x <ROOT file, hist name>          : Add xsec component for "
+         "making event\n"
+         "\t                                     rate predictions.       "
+         "           \n"
+         "\n"
+         "\t-rg <regularisation factor>        : Adds neighbouring       "
+         "coefficient\n"
+         "\t                                     regularisation.         "
+         "           \n"
+         "\n"
+         "\t-l <min val>,<max val>              : Fit between min and max."
+         "Outside \n"
+         "\t                                     of this range, -m       "
+         "determines\n"
+         "\t                                     behavior.             \n"
+         "\n"
+         "\t-m <0,1,2>                         : Out of range behavior.  "
+         "          \n"
+         "\t                                     0: Ignore out of range "
+         "bins.      \n"
+         "\t                                     1: Force out of range "
+         "bins to 0.  \n"
+         "\t                                     2: exponential decay "
+         "outside fit  \n"
+         "\t                                        region. decay rate "
+         "is          \n"
+         "\t                                        determined by -ed."
+         "\n"
+         "\t-ed <decay rate>                   : For -m 2, controls "
+         "decay rate.    \n"
+         "\t                                     Default = 3, larger is "
+         "faster     \n"
+         "\t                                     decay."
+      << std::endl;
 }
 
 void handleOpts(int argc, char const *argv[]) {
@@ -360,6 +366,8 @@ void handleOpts(int argc, char const *argv[]) {
       for (size_t xs_it = 1; xs_it < params.size(); ++xs_it) {
         XSecComponentInputs.push_back(std::make_pair(params[0], params[xs_it]));
       }
+    } else if (std::string(argv[opt]) == "-h") {
+      FluxHist2DName = argv[++opt];
     } else if (std::string(argv[opt]) == "-rg") {
       RegFactor = str2T<double>(argv[++opt]);
     } else if (std::string(argv[opt]) == "-ed") {
@@ -499,7 +507,24 @@ int main(int argc, char const *argv[]) {
 
       ifl->Close();
       delete ifl;
-    } else {
+    } else if (FluxHist2DName.size()) {
+      TH2D *Flux2D = GetHistogram<TH2D>(FluxesFile, FluxHist2DName);
+      if (!Flux2D) {
+        std::cout << "[ERROR]: Found no input flux with name: \""
+                  << FluxHist2DName << "\" in file: \"" << FluxesFile << "\"."
+                  << std::endl;
+        exit(1);
+      }
+
+      Fluxes = SplitTH2D(Flux2D, true, 0);
+      if (!Fluxes.size()) {
+        std::cout << "[ERROR]: Couldn't find any fluxes in split TH2D."
+                  << std::endl;
+        exit(1);
+      }
+      std::cout << "[INFO]: Found " << Fluxes.size() << " input fluxes."
+                << std::endl;
+    } else if (inpFluxHistsPattern.size()) {
       Fluxes = GetHistograms<TH1D>(FluxesFile, inpFluxHistsPattern);
       if (!Fluxes.size()) {
         std::cout << "[ERROR]: Found no input fluxes matching pattern: \""
@@ -513,7 +538,7 @@ int main(int argc, char const *argv[]) {
     }
 
   } else {
-    std::cout << "[ERROR]: Expected either -f or -r options to be passed."
+    std::cout << "[ERROR]: Expected either -f (h) or -r options to be passed."
               << std::endl;
     exit(1);
   }
@@ -640,16 +665,18 @@ int main(int argc, char const *argv[]) {
   oupD->cd();
 
   std::stringstream ss("");
-  TGraph peak_coeffs(1);
-  peak_coeffs.Set(Fluxes.size());
-  for (size_t flux_it = 0; flux_it < Fluxes.size(); flux_it++) {
-    peak_coeffs.SetPoint(
-        flux_it,
-        detStops[UsedDetStopSlices[flux_it].first].GetAbsoluteOffsetOfSlice(
-            UsedDetStopSlices[flux_it].second),
-        coeffs[flux_it]);
+  if (detStops.size()) {
+    TGraph peak_coeffs(1);
+    peak_coeffs.Set(Fluxes.size());
+    for (size_t flux_it = 0; flux_it < Fluxes.size(); flux_it++) {
+      peak_coeffs.SetPoint(
+          flux_it,
+          detStops[UsedDetStopSlices[flux_it].first].GetAbsoluteOffsetOfSlice(
+              UsedDetStopSlices[flux_it].second),
+          coeffs[flux_it]);
+    }
+    peak_coeffs.Write("coeffs_OAA");
   }
-  peak_coeffs.Write("coeffs_OAA");
 
   oupD->cd();
 

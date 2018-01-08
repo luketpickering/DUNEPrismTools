@@ -11,6 +11,8 @@ INPUTLIST=""
 LIFETIME_EXP="30m"
 DISK_EXP="1GB"
 MEM_EXP="2GB"
+BINNING_DESCRIPTOR="0,0.5,1_3:0.25,3_4:0.5,4_10:1,10_20:2"
+REUSEPARENTS="1"
 
 while [[ ${#} -gt 0 ]]; do
 
@@ -101,6 +103,24 @@ while [[ ${#} -gt 0 ]]; do
       shift # past argument
       ;;
 
+      -b|--binning)
+
+      if [[ ${#} -lt 2 ]]; then
+        echo "[ERROR]: ${1} expected a value."
+        exit 1
+      fi
+
+      BINNING_DESCRIPTOR="$2"
+      echo "[OPT]: Using binning descriptor: \"${BINNING_DESCRIPTOR}\"."
+      shift # past argument
+      ;;
+
+      -P|--no-reuse-parents)
+
+      REUSEPARENTS="0"
+      echo "[OPT]: Will use each decay parent once."
+      ;;
+
       --expected-walltime)
 
       if [[ ${#} -lt 2 ]]; then
@@ -147,6 +167,7 @@ while [[ ${#} -gt 0 ]]; do
       echo -e "\t-I|--dk2nu-input-file-list : Newline separated list of files to use as input. Must be located on dcache."
       echo -e "\t-r|--runplan               : Run Plan XML file describing detector stops."
       echo -e "\t-n|--n-per-job             : Number of files to run per job. (default: 10)"
+      echo -e "\t-b|--binning               : dp_BuildFluxes variable binning descriptor. (default: 0,0.5,1_3:0.25,3_4:0.5,4_10:1,10_20:2)"
       echo -e "\t-N|--NMAXJobs              : Maximum number of jobs to submit."
       echo -e "\t--expected-disk            : Expected disk usage to pass to jobsub -- approx 100MB* the value passed to -\'n\' (default: 1GB)"
       echo -e "\t--expected-mem             : Expected mem usage to pass to jobsub -- Scales with the number of detector stops in the xml passed to \'--r\' (default: 2GB)"
@@ -272,7 +293,7 @@ cp ${RUN_PLAN_XML} ./runplan.xml
 
 tar -zcvf apps.@DUNEPrismTools_VERSION_STRING@.tar.gz dp_* inputs.list runplan.xml
 
-JID=$(jobsub_submit --group=${EXPERIMENT} --jobid-output-only --resource-provides=usage_model=OPPORTUNISTIC --expected-lifetime=${LIFETIME_EXP} --disk=${DISK_EXP} -N ${NJOBSTORUN} --memory=${MEM_EXP} --cpu=1 --OS=SL6 --tar_file_name=dropbox://apps.@DUNEPrismTools_VERSION_STRING@.tar.gz file://${DUNEPRISMTOOLSROOT}/scripts/BuildFluxJob.sh ${DET_DIST_CM} ${PNFS_PATH_APPEND} ${NPERJOB})
+JID=$(jobsub_submit --group=${EXPERIMENT} --jobid-output-only --resource-provides=usage_model=OPPORTUNISTIC --expected-lifetime=${LIFETIME_EXP} --disk=${DISK_EXP} -N ${NJOBSTORUN} --memory=${MEM_EXP} --cpu=1 --OS=SL6 --tar_file_name=dropbox://apps.@DUNEPrismTools_VERSION_STRING@.tar.gz file://${DUNEPRISMTOOLSROOT}/scripts/BuildFluxJob.sh ${DET_DIST_CM} ${BINNING_DESCRIPTOR} ${REUSEPARENTS} ${PNFS_PATH_APPEND} ${NPERJOB})
 
 cd ../
 rm -r sub_tmp

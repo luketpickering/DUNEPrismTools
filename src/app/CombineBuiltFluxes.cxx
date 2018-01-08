@@ -183,10 +183,6 @@ int main(int argc, char const *argv[]) {
         double BinLowEdge = detStops[ds_it].GetAbsoluteOffsetOfSlice(ms_it) -
                             (detStops[ds_it].MeasurementRegionWidth / 2.0);
 
-        if (BinLowEdge < 0) {
-          continue;
-        }
-
         if (!OAABinEdges.size() ||
             (fabs(OAABinEdges.back() - BinLowEdge) > 1E-5)) {
           OAABinEdges.push_back(BinLowEdge);
@@ -197,9 +193,7 @@ int main(int argc, char const *argv[]) {
       double BinUpEdge = (detStops[ds_it].GetAbsoluteOffsetOfSlice(
                               detStops[ds_it].GetNMeasurementSlices() - 1) +
                           (detStops[ds_it].MeasurementRegionWidth / 2.0));
-      if (BinUpEdge < 0) {
-        continue;
-      }
+
       OAABinEdges.push_back(BinUpEdge);
     }
 
@@ -224,7 +218,7 @@ int main(int argc, char const *argv[]) {
 
     for (Int_t enu_bi_it = 0; enu_bi_it < NXBins; ++enu_bi_it) {
       XBins[enu_bi_it] =
-          Fluxes.front()->GetXaxis()->GetBinUpEdge(enu_bi_it + 1);
+          Fluxes.front()->GetXaxis()->GetBinLowEdge(enu_bi_it + 1);
     }
     XBins[NXBins] = Fluxes.front()->GetXaxis()->GetBinUpEdge(NXBins);
 

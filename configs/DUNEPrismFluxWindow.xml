@@ -55,7 +55,7 @@
     <reuse> 10 </reuse>
   </param_set>
 
-  <param_set name="LArDUNEFV_25.8mx23.8mx56.6m_1287km">
+  <param_set name="LArDUNEFV_25.8mx22.6mx56.6m_1287km">
     <units> m </units>
 
     <beamdir type="series">

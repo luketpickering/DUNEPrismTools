@@ -1,6 +1,6 @@
 <DUNEPrism>
   <RunPlan Name="LArDUNEFV_25.8mx23.8mx56.6m">
-    <Detector MeasurementRegionWidth_m="25.8" DetectorFiducialWidth_m="25.8" DetectorFiducialHeight_m="23.8" DetectorFiducialDepth_m="56.6" FiducialVolumeDensity_kgm3="1396" />
+    <Detector MeasurementRegionWidth_m="25.8" DetectorFiducialWidth_m="25.8" DetectorFiducialHeight_m="22.6" DetectorFiducialDepth_m="56.6" FiducialVolumeDensity_kgm3="1396" />
     <Stops>
       <Stop LateralOffset_m="0" POTExposure="7.35E21"/>
     </Stops>
