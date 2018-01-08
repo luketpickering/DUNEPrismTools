@@ -569,8 +569,9 @@ int main(int argc, char const *argv[]) {
   }
 
   double *coeffs;
+  TFitter *minimizer = nullptr;
   if (!InpCoeffFile.size()) {
-    TFitter *minimizer = new TFitter(Fluxes.size());
+    minimizer = new TFitter(Fluxes.size());
 
     if (!IsGauss) {
       // Rescale the target to a similar size to the fluxes.
@@ -696,12 +697,15 @@ int main(int argc, char const *argv[]) {
     cl->SetDirectory(wD);
   }
 
-  TH1D *coeffsH = new TH1D("Coeffs", "Coeffs;Off-axis bin;Weight",
-                           Fluxes.size(), 0, Fluxes.size());
-  for (size_t flux_it = 0; flux_it < Fluxes.size(); flux_it++) {
-    coeffsH->SetBinContent(flux_it + 1, coeffs[(Fluxes.size() - 1) - flux_it]);
-    coeffsH->SetBinError(flux_it + 1,
-                         minimizer->GetParError((Fluxes.size() - 1) - flux_it));
+  if (minimizer) {
+    TH1D *coeffsH = new TH1D("Coeffs", "Coeffs;Off-axis bin;Weight",
+                             Fluxes.size(), 0, Fluxes.size());
+    for (size_t flux_it = 0; flux_it < Fluxes.size(); flux_it++) {
+      coeffsH->SetBinContent(flux_it + 1,
+                             coeffs[(Fluxes.size() - 1) - flux_it]);
+      coeffsH->SetBinError(
+          flux_it + 1, minimizer->GetParError((Fluxes.size() - 1) - flux_it));
+    }
   }
 
   oupD->cd();
