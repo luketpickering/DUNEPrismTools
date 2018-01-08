@@ -25,6 +25,7 @@ std::string oupDir;
 std::vector<DetectorStop> detStops;
 std::vector<std::pair<size_t, size_t> > UsedDetStopSlices;
 std::string runPlanCfg;
+std::string InpCoeffFile;
 
 bool UPDATEOutputFile = false;
 
@@ -337,6 +338,8 @@ void handleOpts(int argc, char const *argv[]) {
       }
       inpFile = params[0];
       inpHistName = params[1];
+    } else if (std::string(argv[opt]) == "-A") {
+      InpCoeffFile = argv[++opt];
     } else if (std::string(argv[opt]) == "-o") {
       oupFile = argv[++opt];
       UPDATEOutputFile = false;
@@ -565,79 +568,105 @@ int main(int argc, char const *argv[]) {
     }
   }
 
-  TFitter *minimizer = new TFitter(Fluxes.size());
+  double *coeffs;
+  if (!InpCoeffFile.size()) {
+    TFitter *minimizer = new TFitter(Fluxes.size());
 
-  //Rescale the target to a similar size to the fluxes.
-  double OnAxisPeak = Fluxes[0]->GetMaximum();
-  double TargetMax = TargetFlux->GetMaximum();
-  TargetFlux->Scale(OnAxisPeak / TargetMax);
-
-  double targetenu = IsGauss ? GaussC : TargetFlux->GetXaxis()->GetBinCenter(
-                                            TargetFlux->GetMaximumBin());
-
-  size_t flux_with_closest_peak_it = -1;
-  double flux_peak_dist = std::numeric_limits<double>::max();
-  for (size_t flux_it = 0; flux_it < Fluxes.size(); flux_it++) {
-    double maxenu = Fluxes[flux_it]->GetXaxis()->GetBinCenter(
-        Fluxes[flux_it]->GetMaximumBin());
-    double peak_difference = fabs(maxenu - targetenu);
-    if (peak_difference < flux_peak_dist) {
-      flux_peak_dist = peak_difference;
-      flux_with_closest_peak_it = flux_it;
+    if (!IsGauss) {
+      // Rescale the target to a similar size to the fluxes.
+      double OnAxisPeak = Fluxes[0]->GetMaximum();
+      double TargetMax = TargetFlux->GetMaximum();
+      TargetFlux->Scale(OnAxisPeak / TargetMax);
     }
-  }
 
-  std::cout << "[INFO]: flux_with_closest_peak_it: "
-            << flux_with_closest_peak_it
-            << ", flux_peak_dist = " << flux_peak_dist << std::endl;
-  for (size_t flux_it = 0; flux_it < Fluxes.size(); flux_it++) {
-    std::cout << "[INFO]: fluxpar" << flux_it
-              << " uses flux: " << Fluxes[flux_it]->GetName() << std::endl;
+    double targetenu = IsGauss ? GaussC : TargetFlux->GetXaxis()->GetBinCenter(
+                                              TargetFlux->GetMaximumBin());
 
-    std::stringstream ss("");
-    ss << "fluxpar" << flux_it;
-
-    if (abs(flux_it - flux_with_closest_peak_it) ==
-        1) {  // Neighbours are negative
-      minimizer->SetParameter(flux_it, ss.str().c_str(), -0.35, 0.1,
-                              -CoeffLimit, CoeffLimit);
-    } else if (abs(flux_it - flux_with_closest_peak_it) == 0) {
-      minimizer->SetParameter(flux_it, ss.str().c_str(), 1., 0.1, -CoeffLimit,
-                              CoeffLimit);
-      TargetPeakNorm = Fluxes[flux_it]->GetMaximum();
-    } else {  // Others start free
-      minimizer->SetParameter(flux_it, ss.str().c_str(), 0., 0.1, -CoeffLimit,
-                              CoeffLimit);
+    size_t flux_with_closest_peak_it = -1;
+    double flux_peak_dist = std::numeric_limits<double>::max();
+    for (size_t flux_it = 0; flux_it < Fluxes.size(); flux_it++) {
+      double maxenu = Fluxes[flux_it]->GetXaxis()->GetBinCenter(
+          Fluxes[flux_it]->GetMaximumBin());
+      double peak_difference = fabs(maxenu - targetenu);
+      if (peak_difference < flux_peak_dist) {
+        flux_peak_dist = peak_difference;
+        flux_with_closest_peak_it = flux_it;
+      }
     }
-  }
 
-  if (IsGauss) {
-    TargetGauss->SetParameter(0, TargetPeakNorm);
-    TargetGauss->SetParameter(1, GaussC);
-    TargetGauss->SetParameter(2, GaussW);
-    std::cout << "[INFO]: Peak: " << TargetPeakNorm
-              << ", Central value: " << GaussC << ", width: " << GaussW
-              << std::endl;
-  }
+    std::cout << "[INFO]: flux_with_closest_peak_it: "
+              << flux_with_closest_peak_it
+              << ", flux_peak_dist = " << flux_peak_dist << std::endl;
+    for (size_t flux_it = 0; flux_it < Fluxes.size(); flux_it++) {
+      std::cout << "[INFO]: fluxpar" << flux_it
+                << " uses flux: " << Fluxes[flux_it]->GetName() << std::endl;
 
-  minimizer->SetMaxIterations(MaxMINUITCalls);
-  minimizer->GetMinuit()->SetPrintLevel(0);
+      std::stringstream ss("");
+      ss << "fluxpar" << flux_it;
 
-  minimizer->SetFCN(IsGauss ? TargetSumGauss : TargetSumChi2);
+      if (abs(flux_it - flux_with_closest_peak_it) ==
+          1) {  // Neighbours are negative
+        minimizer->SetParameter(flux_it, ss.str().c_str(), -0.35, 0.1,
+                                -CoeffLimit, CoeffLimit);
+      } else if (abs(flux_it - flux_with_closest_peak_it) == 0) {
+        minimizer->SetParameter(flux_it, ss.str().c_str(), 1., 0.1, -CoeffLimit,
+                                CoeffLimit);
+        TargetPeakNorm = Fluxes[flux_it]->GetMaximum();
+      } else {  // Others start free
+        minimizer->SetParameter(flux_it, ss.str().c_str(), 0., 0.1, -CoeffLimit,
+                                CoeffLimit);
+      }
+    }
 
-  double alist[2] = {double(MaxMINUITCalls), 1E-5 * TargetPeakNorm};
+    if (IsGauss) {
+      TargetGauss->SetParameter(0, TargetPeakNorm);
+      TargetGauss->SetParameter(1, GaussC);
+      TargetGauss->SetParameter(2, GaussW);
+      std::cout << "[INFO]: Peak: " << TargetPeakNorm
+                << ", Central value: " << GaussC << ", width: " << GaussW
+                << std::endl;
+    }
 
-  int status = minimizer->ExecuteCommand("MIGRAD", alist, 2);
-  if (status) {
-    std::cout << "[WARN]: Failed to find minimum (STATUS: " << status << ")."
-              << std::endl;
+    minimizer->SetMaxIterations(MaxMINUITCalls);
+    minimizer->GetMinuit()->SetPrintLevel(0);
+
+    minimizer->SetFCN(IsGauss ? TargetSumGauss : TargetSumChi2);
+
+    double alist[2] = {double(MaxMINUITCalls), 1E-5 * TargetPeakNorm};
+
+    int status = minimizer->ExecuteCommand("MIGRAD", alist, 2);
+    if (status) {
+      std::cout << "[WARN]: Failed to find minimum (STATUS: " << status << ")."
+                << std::endl;
+    } else {
+      minimizer->PrintResults(1, 0);
+    }
+
+    coeffs = new double[Fluxes.size()];
+    for (size_t flux_it = 0; flux_it < Fluxes.size(); flux_it++) {
+      coeffs[flux_it] = minimizer->GetParameter(flux_it);
+    }
   } else {
-    minimizer->PrintResults(1, 0);
-  }
+    TFile *icf = new TFile(InpCoeffFile.c_str(), "READ");
+    if (!icf || !icf->IsOpen()) {
+      std::cout << "[ERROR]: Couldn't open coeff input file: " << InpCoeffFile
+                << std::endl;
+      exit(1);
+    }
 
-  double *coeffs = new double[Fluxes.size()];
-  for (size_t flux_it = 0; flux_it < Fluxes.size(); flux_it++) {
-    coeffs[flux_it] = minimizer->GetParameter(flux_it);
+    TGraph *cg = dynamic_cast<TGraph *>(icf->Get("coeffs"));
+    if (!cg) {
+      std::cout << "[ERROR]: Couldn't get TGraph \'coeffs\' from output file: "
+                << InpCoeffFile << std::endl;
+      exit(1);
+    }
+
+    coeffs = new double[Fluxes.size()];
+    for (size_t flux_it = 0; flux_it < Fluxes.size(); flux_it++) {
+      double x, y;
+      cg->GetPoint(flux_it, x, y);
+      coeffs[flux_it] = y;
+    }
   }
 
   SumHistograms(SummedFlux, coeffs, Fluxes);
@@ -688,7 +717,14 @@ int main(int argc, char const *argv[]) {
               UsedDetStopSlices[flux_it].second),
           coeffs[flux_it]);
     }
-    peak_coeffs.Write("coeffs_OAA");
+    peak_coeffs.Write("coeffs");
+  } else {
+    TGraph peak_coeffs(1);
+    peak_coeffs.Set(Fluxes.size());
+    for (size_t flux_it = 0; flux_it < Fluxes.size(); flux_it++) {
+      peak_coeffs.SetPoint(flux_it, flux_it, coeffs[flux_it]);
+    }
+    peak_coeffs.Write("coeffs");
   }
 
   oupD->cd();

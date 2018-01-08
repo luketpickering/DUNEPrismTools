@@ -6,8 +6,9 @@
 
 # dp_CombineBuiltFluxes -r ${DUNEPRISMTOOLSROOT}/configs/RunPlan.39mLAr.3mFV.10cm.2.5x4m.xml -i "/pnfs/dune/persistent/users/picker24/HC_m1_5E8/DUNEPrismFluxes/ForPRISMFits/FHC/flux/Fluxes.*.root" -o HC_m1.FHC.ForFits.root
 
-dp_CombineBuiltFluxes -r ${DUNEPRISMTOOLSROOT}/configs/RunPlan.39mLAr.3mFV.10cm.2.5x4m.xml -i "/pnfs/dune/persistent/users/picker24/nominal_7.5E8/DUNEPrismFluxes/ForPRISMFits/FHC_noreuse/flux/Fluxes.*.root" -o nominal.FHC.ForFits.noreuse.root
+# dp_CombineBuiltFluxes -r ${DUNEPRISMTOOLSROOT}/configs/RunPlan.39mLAr.3mFV.10cm.2.5x4m.xml -i "/pnfs/dune/persistent/users/picker24/nominal_7.5E8/DUNEPrismFluxes/ForPRISMFits/FHC_noreuse/flux/Fluxes.*.root" -o nominal.FHC.ForFits.noreuse.root
 
+dp_CombineBuiltFluxes -r ${DUNEPRISMTOOLSROOT}/configs/RunPlan.LArDUNEFV_25.8mx23.8mx56.6m.xml -i "/pnfs/dune/persistent/users/picker24/nominal_5E8_FD/DUNEPrismFluxes/ForPRISMFits/FHC_FD/flux/Fluxes.*.root" -o nominal.FHC.ForFits.FarDet.root
 
 ###########################
 
@@ -62,12 +63,12 @@ dp_CombineBuiltFluxes -r ${DUNEPRISMTOOLSROOT}/configs/RunPlan.39mLAr.3mFV.10cm.
 
 
 
-dp_CombineBuiltFluxes -r ${DUNEPRISMTOOLSROOT}/configs/RunPlan.LArDUNEFV_25.8mx23.8mx56.6m.xml -i "/pnfs/dune/persistent/users/picker24/DecayPipeR_m1_5E8/DUNEPrismFluxes/FHC_FD/flux/Fluxes.*.root" -o DecayPipeR_m1.FHC.FarDet.root
+# dp_CombineBuiltFluxes -r ${DUNEPRISMTOOLSROOT}/configs/RunPlan.LArDUNEFV_25.8mx23.8mx56.6m.xml -i "/pnfs/dune/persistent/users/picker24/DecayPipeR_m1_5E8/DUNEPrismFluxes/FHC_FD/flux/Fluxes.*.root" -o DecayPipeR_m1.FHC.FarDet.root
 
 # dp_CombineBuiltFluxes -r ${DUNEPRISMTOOLSROOT}/configs/RunPlan.LArDUNEFV_25.8mx23.8mx56.6m.xml -i "/pnfs/dune/persistent/users/picker24/DecayPipeR_m1_5E8/DUNEPrismFluxes/RHC_FD/flux/Fluxes.*.root" -o DecayPipeR_m1.RHC.FarDet.root
 
 
-dp_CombineBuiltFluxes -r ${DUNEPRISMTOOLSROOT}/configs/RunPlan.LArDUNEFV_25.8mx23.8mx56.6m.xml -i "/pnfs/dune/persistent/users/picker24/DecayPipeR_p1_5E8/DUNEPrismFluxes/FHC_FD/flux/Fluxes.*.root" -o DecayPipeR_p1.FHC.FarDet.root
+# dp_CombineBuiltFluxes -r ${DUNEPRISMTOOLSROOT}/configs/RunPlan.LArDUNEFV_25.8mx23.8mx56.6m.xml -i "/pnfs/dune/persistent/users/picker24/DecayPipeR_p1_5E8/DUNEPrismFluxes/FHC_FD/flux/Fluxes.*.root" -o DecayPipeR_p1.FHC.FarDet.root
 
 # dp_CombineBuiltFluxes -r ${DUNEPRISMTOOLSROOT}/configs/RunPlan.LArDUNEFV_25.8mx23.8mx56.6m.xml -i "/pnfs/dune/persistent/users/picker24/DecayPipeR_p1_5E8/DUNEPrismFluxes/RHC_FD/flux/Fluxes.*.root" -o DecayPipeR_p1.RHC.FarDet.root
 
