@@ -151,13 +151,17 @@ void TargetSumChi2(int &nDim, double *gout, double &result, double coeffs[],
         err;
   }
 
+  double reg = 0;
   if (RegFactor != 0xdeadbeef) {
     for (size_t i = 0; i < Fluxes.size(); i++) {
-      sumdiff += pow((coeffs[i] - coeffs[i + 1]) / RegFactor, 2);
+      reg += pow((coeffs[i] - coeffs[i + 1]) / RegFactor, 2);
     }
   }
 
-  result = sumdiff;
+  result = sumdiff + reg;
+
+  std::cout << "[INFO]: Target flux chi2: " << result << " (reg = " << reg
+            << " )." << std::endl;
 }
 
 void TargetSumGauss(int &nDim, double *gout, double &result, double coeffs[],
