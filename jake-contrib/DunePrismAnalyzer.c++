@@ -731,7 +731,7 @@ void DunePrismAnalyzer::AnalyzeStops(){
       
         if(chain[track[i]] == 0){//Primary
         //  std::cout << "primary" << std::endl;
-          if(PID[i] == lepPDG.at(stop_num)){//lepton
+          if(PID[i] == lepPDGFull){//lepton
         //    std::cout << "lepton" << std::endl;
             if( xe[i] >= xBins.at(0) && xe[i] <= xBins.at(xBins.size() - 1) 
                &&  ye[i] >= yBins.at(0) && ye[i] <= yBins.at(3)
