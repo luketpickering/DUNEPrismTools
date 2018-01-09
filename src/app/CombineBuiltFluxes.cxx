@@ -17,15 +17,33 @@ std::string runPlanCfg = "", runPlanName = "";
 std::vector<std::string> input_patterns;
 std::string outputfile = "";
 
+int NBins = 50;
+double BLow = 0;
+double BUp = 10;
+std::vector<double> varBin;
+bool VariableBinning = false;
+bool Rebin = false;
+
 void SayUsage(char const *argv[]) {
   std::cout << "[USAGE]: " << argv[0] << std::endl;
   std::cout << "\t-f <RunPlan[,RunPlanName]> : Run plan configuration xml, "
                "optionally with a specified plan. If none is specified, the "
                "first one in the file is used."
             << std::endl;
-  std::cout << "\t-i <Input search pattern>  : Search pattern to find input "
-               "files. Can be specified multiple times."
-            << std::endl;
+  std::cout
+      << "\t-i <Input search pattern>  : Search pattern to find input "
+         "files. Can be specified multiple times.\n"
+         "Rebinning options:\n"
+         "\t-b <NBins>,<Low>,<High>        : Use uniform binning for flux "
+         "histograms.\n"
+         "\n"
+         "\t-vb <bin0low>,<bin1low>_<binXUp>:step,..,<binYlow>,<binYup> "
+         ": Use       \n"
+         "\t                                variable binning specified "
+         "by bin edges \n"
+         "\t                                and step ranges.             "
+         "           \n"
+      << std::endl;
   std::cout
       << "\t-o <Output file name>      : File to write combined output to."
       << std::endl;
@@ -49,6 +67,44 @@ void handleOpts(int argc, char const *argv[]) {
       input_patterns.push_back(argv[++opt]);
     } else if (std::string(argv[opt]) == "-o") {
       outputfile = argv[++opt];
+    } else if (std::string(argv[opt]) == "-b") {
+      std::vector<double> binning = ParseToVect<double>(argv[++opt], ",");
+      if (binning.size() != 3) {
+        std::cout << "[ERROR]: Recieved " << binning.size()
+                  << " entrys for -b, expected 3." << std::endl;
+        exit(1);
+      }
+      NBins = int(binning[0]);
+      BLow = binning[1];
+      BUp = binning[2];
+      Rebin = true;
+    } else if (std::string(argv[opt]) == "-vb") {
+      std::vector<std::string> vbDescriptors =
+          ParseToVect<std::string>(argv[++opt], ",");
+      varBin.clear();
+      for (size_t vbd_it = 0; vbd_it < vbDescriptors.size(); ++vbd_it) {
+        AppendVect(varBin, BuildDoubleList(vbDescriptors[vbd_it]));
+      }
+
+      for (size_t bin_it = 1; bin_it < varBin.size(); ++bin_it) {
+        if (varBin[bin_it] == varBin[bin_it - 1]) {
+          std::cout << "[INFO]: Removing duplciate bin low edge " << bin_it
+                    << " low edge: " << varBin[bin_it] << std::endl;
+          varBin.erase(varBin.begin() + bin_it);
+        }
+      }
+
+      for (size_t bin_it = 1; bin_it < varBin.size(); ++bin_it) {
+        if (varBin[bin_it] < varBin[bin_it - 1]) {
+          std::cout << "[ERROR]: Bin " << bin_it
+                    << " low edge: " << varBin[bin_it]
+                    << " is smaller than bin " << (bin_it - 1)
+                    << " low edge: " << varBin[bin_it - 1] << std::endl;
+          exit(1);
+        }
+      }
+      VariableBinning = true;
+      Rebin = true;
     } else if (std::string(argv[opt]) == "-?") {
       SayUsage(argv);
       exit(0);
@@ -94,76 +150,99 @@ int main(int argc, char const *argv[]) {
     return 1;
   }
 
-  size_t NFilesAdded = 0;
+  if (!Rebin) {
+    size_t NFilesAdded = 0;
 
-  for (size_t ip_it = 0; ip_it < input_patterns.size(); ++ip_it) {
-    std::string input_pattern = input_patterns[ip_it];
-    size_t AsteriskPos = input_pattern.find_last_of('*');
-    if (AsteriskPos == std::string::npos) {
-      std::cout << "[ERROR]: Expected to find a wildcard in the argument of "
-                   "the -i parameter. This executable just joins the output of "
-                   "dp_BuildFluxes, if you only have a single input, something "
-                   "is wrong."
-                << std::endl;
-      return 1;
-    }
-
-    DIR *dir;
-    struct dirent *ent;
-    size_t lastFSlash = input_pattern.find_last_of('/');
-    std::string matchPat = input_pattern.substr(lastFSlash + 1);
-    std::string dirpath = "";
-    if (lastFSlash == std::string::npos) {
-      char *cwd = new char[1000];
-      getcwd(cwd, sizeof(char) * 1000);
-      std::cout << "\t--Looking in current directory (" << cwd
-                << ") for matching (\"" << matchPat << "\") files."
-                << std::endl;
-      dirpath = "./";
-      delete cwd;
-    } else {
-      if (AsteriskPos < lastFSlash) {
-        std::cout << "[ERROR]: Currently cannot handle a wildcard in the "
-                     "directory structure. Please put input files in the same "
-                     "directory. Expected -i \"../some/rel/path/*.root\""
-                  << std::endl;
+    for (size_t ip_it = 0; ip_it < input_patterns.size(); ++ip_it) {
+      std::string input_pattern = input_patterns[ip_it];
+      size_t AsteriskPos = input_pattern.find_last_of('*');
+      if (AsteriskPos == std::string::npos) {
+        std::cout
+            << "[ERROR]: Expected to find a wildcard in the argument of "
+               "the -i parameter. This executable just joins the output of "
+               "dp_BuildFluxes, if you only have a single input, something "
+               "is wrong."
+            << std::endl;
         return 1;
       }
-      dirpath = input_pattern.substr(0, lastFSlash + 1);
-      std::cout << "\t--Looking in directory (" << dirpath
-                << ") for matching files." << std::endl;
-    }
-    dir = opendir(dirpath.c_str());
 
-    if (dir != NULL) {
-      TRegexp matchExp(matchPat.c_str(), true);
-      /* print all the files and directories within directory */
-      Ssiz_t len = 0;
-      while ((ent = readdir(dir)) != NULL) {
-        if (matchExp.Index(TString(ent->d_name), &len) != Ssiz_t(-1)) {
-          std::cout << "\t\t\tAdding matching file: " << ent->d_name
-                    << std::endl;
-
-          TFile *ifl = CheckOpenFile(dirpath + ent->d_name);
-
-          for (size_t ds_it = 0; ds_it < detStops.size(); ++ds_it) {
-            detStops[ds_it].Read(ifl, true);
-          }
-
-          NFilesAdded++;
-          ifl->Close();
-          delete ifl;
+      DIR *dir;
+      struct dirent *ent;
+      size_t lastFSlash = input_pattern.find_last_of('/');
+      std::string matchPat = input_pattern.substr(lastFSlash + 1);
+      std::string dirpath = "";
+      if (lastFSlash == std::string::npos) {
+        char *cwd = new char[1000];
+        getcwd(cwd, sizeof(char) * 1000);
+        std::cout << "\t--Looking in current directory (" << cwd
+                  << ") for matching (\"" << matchPat << "\") files."
+                  << std::endl;
+        dirpath = "./";
+        delete cwd;
+      } else {
+        if (AsteriskPos < lastFSlash) {
+          std::cout
+              << "[ERROR]: Currently cannot handle a wildcard in the "
+                 "directory structure. Please put input files in the same "
+                 "directory. Expected -i \"../some/rel/path/*.root\""
+              << std::endl;
+          return 1;
         }
+        dirpath = input_pattern.substr(0, lastFSlash + 1);
+        std::cout << "\t--Looking in directory (" << dirpath
+                  << ") for matching files." << std::endl;
       }
-      closedir(dir);
-    } else {
-      /* could not open directory */
-      perror("");
-      return false;
-    }
-  }
+      dir = opendir(dirpath.c_str());
 
-  std::cout << "[INFO]: Added " << NFilesAdded << " files." << std::endl;
+      if (dir != NULL) {
+        TRegexp matchExp(matchPat.c_str(), true);
+        /* print all the files and directories within directory */
+        Ssiz_t len = 0;
+        while ((ent = readdir(dir)) != NULL) {
+          if (matchExp.Index(TString(ent->d_name), &len) != Ssiz_t(-1)) {
+            std::cout << "\t\t\tAdding matching file: " << ent->d_name
+                      << std::endl;
+
+            TFile *ifl = CheckOpenFile(dirpath + ent->d_name);
+
+            for (size_t ds_it = 0; ds_it < detStops.size(); ++ds_it) {
+              detStops[ds_it].Read(ifl, true);
+            }
+
+            NFilesAdded++;
+            ifl->Close();
+            delete ifl;
+          }
+        }
+        closedir(dir);
+      } else {
+        /* could not open directory */
+        perror("");
+        return false;
+      }
+    }
+    std::cout << "[INFO]: Added " << NFilesAdded << " files." << std::endl;
+  } else {
+    TH1D *TemplateHist =
+        VariableBinning
+            ? new TH1D(
+                  "TEMPLATE",
+                  ";#it{E}_{#nu} (GeV);#Phi_{#nu} (GeV^{-1}cm^{-2} per POT)",
+                  varBin.size() - 1, varBin.data())
+            : new TH1D(
+                  "TEMPLATE",
+                  ";#it{E}_{#nu} (GeV);#Phi_{#nu} (GeV^{-1}cm^{-2} per POT)",
+                  NBins, BLow, BUp);
+    TemplateHist->SetDirectory(nullptr);
+    for (size_t ip_it = 0; ip_it < input_patterns.size(); ++ip_it) {
+      std::string input_pattern = input_patterns[ip_it];
+      for (size_t ds_it = 0; ds_it < detStops.size(); ++ds_it) {
+        detStops[ds_it].BuildFluxesFromNeutrinoTrees(input_pattern,
+                                                     TemplateHist, true);
+      }
+    }
+    delete TemplateHist;
+  }
 
   TFile *ofl = CheckOpenFile(outputfile, "RECREATE");
   ofl->cd();

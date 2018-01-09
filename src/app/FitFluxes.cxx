@@ -148,8 +148,7 @@ void TargetSumChi2(int &nDim, double *gout, double &result, double coeffs[],
             : 1;
 
     sumdiff +=
-        (MultiplyChi2ContribByBinWidth ? pow(SummedFlux->GetBinWidth(bi_it), 2)
-                                       : 1) *
+        (MultiplyChi2ContribByBinWidth ? SummedFlux->GetBinWidth(bi_it) : 1) *
         ((TargetFlux->GetBinContent(bi_it) - SummedFlux->GetBinContent(bi_it)) *
          (TargetFlux->GetBinContent(bi_it) - SummedFlux->GetBinContent(bi_it)) /
          err);

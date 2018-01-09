@@ -3,9 +3,11 @@
 
 #include "Utils.hxx"
 
+#include "TChain.h"
 #include "TH1D.h"
 #include "TH2D.h"
 #include "TProfile.h"
+#include "TTree.h"
 #include "TXMLEngine.h"
 
 #include <array>
@@ -38,11 +40,14 @@ struct DetectorStop {
   double LateralOffset;
   double POTExposure;
 
-  std::map<int, std::vector<TH1D *> > Fluxes;
-  std::map<int, std::vector<TH2D *> > Divergences;
-  std::map<int, std::map<std::string, std::vector<TH1D *> > > EventRates;
+  std::map<int, std::vector<TH1D *>> Fluxes;
+  std::map<int, std::vector<TH2D *>> Divergences;
+  std::map<int, std::map<std::string, std::vector<TH1D *>>> EventRates;
 
-  std::map<int, std::vector<size_t> > NFluxesAveraged;
+  std::map<int, std::vector<size_t>> NFluxesAveraged;
+
+  std::map<int, std::vector<TTree *>> NeutrinoTrees;
+  std::map<int, std::vector<std::pair<double, double>>> NeutrinoFillVars;
 
   DetectorStop()
       : MeasurementRegionWidth(0xdeadbeef),
@@ -54,7 +59,9 @@ struct DetectorStop {
         POTExposure(0xdeadbeef),
         Fluxes(),
         EventRates(),
-        NFluxesAveraged() {}
+        NFluxesAveraged(),
+        NeutrinoTrees(),
+        NeutrinoFillVars() {}
 
   bool ConfigureDetector(XMLNodePointer_t node) {
     std::array<bool, 5> found;
@@ -165,10 +172,6 @@ struct DetectorStop {
       Fluxes[species][i]->Add(flux);
       Fluxes[species][i]->Scale(1.0 / double(NFluxesAveraged[species][i]));
 
-      // std::cout << "[INFO]: Already have an entry for Species: " << species
-      //           << ", Slice: " << i << ". Adding this one (#"
-      //           << NFluxesAveraged[species][i] << ")." << std::endl;
-
       double integ = Fluxes[species][i]->Integral();
       if (!std::isnormal(integ)) {
         std::cerr << "[ERROR]: Flux now has bad integral." << std::endl;
@@ -203,6 +206,45 @@ struct DetectorStop {
 
   std::vector<TH1D *> GetFluxesForSpecies(int species) {
     return Fluxes[species];
+  }
+
+  void FillNeutrino(size_t i, int species, double Enu, double w) {
+    if (i >= GetNMeasurementSlices()) {
+      std::cout << "[WARN]: Requested position of slice: " << i
+                << ", but current detector configuration only specifies: "
+                << GetNMeasurementSlices() << std::endl;
+      return;
+    }
+
+    if (!NeutrinoTrees.count(species)) {
+      NeutrinoTrees[species] = std::vector<TTree *>();
+      NeutrinoFillVars[species] = std::vector<std::pair<double, double>>();
+    }
+
+    if (NeutrinoTrees[species].size() < (i + 1)) {
+      size_t osize = NeutrinoTrees[species].size();
+      NeutrinoTrees[species].resize(i + 1);
+      NeutrinoFillVars[species].resize(i + 1);
+      std::stringstream ss("");
+      for (size_t tree_ctr = osize; tree_ctr < NeutrinoTrees[species].size();
+           ++tree_ctr) {
+        ss.str("");
+        ss << GetSpeciesName(species) << "_neutrino_tree_"
+           << GetAbsoluteOffsetOfSlice(tree_ctr) << "_m";
+        NeutrinoTrees[species][tree_ctr] = new TTree(ss.str().c_str(), "");
+        NeutrinoTrees[species][tree_ctr]->SetDirectory(nullptr);
+
+        NeutrinoTrees[species][tree_ctr]->Branch(
+            "enu", NeutrinoFillVars[species][tree_ctr].first);
+        NeutrinoTrees[species][tree_ctr]->Branch(
+            "weight", NeutrinoFillVars[species][tree_ctr].second);
+      }
+    }
+
+    NeutrinoFillVars[species][i].first = Enu;
+    NeutrinoFillVars[species][i].second = w;
+
+    NeutrinoTrees[species][i]->Fill();
   }
 
   TH1D *GetFluxForSpecies(size_t i, int species) {
@@ -380,7 +422,7 @@ struct DetectorStop {
         if (!EventRates.count(species)) {
           continue;
         }
-        for (std::map<std::string, std::vector<TH1D *> >::iterator evr_it =
+        for (std::map<std::string, std::vector<TH1D *>>::iterator evr_it =
                  EventRates[species].begin();
              evr_it != EventRates[species].end(); ++evr_it) {
           if (evr_it->first == "total") {
@@ -397,6 +439,75 @@ struct DetectorStop {
             evr->SetDirectory(nullptr);
           }
         }
+      }
+    }
+
+    if (NeutrinoTrees.size()) {
+      for (int species : {-14, -12, 12, 14}) {
+        if (!NeutrinoTrees.count(species)) {
+          continue;
+        }
+
+        for (size_t t_it = 0; t_it < NeutrinoTrees[species].size(); ++t_it) {
+          NeutrinoTrees[species][t_it]->Write(
+              NeutrinoTrees[species][t_it]->GetName());
+        }
+      }
+    }
+    if (ogDir) {
+      ogDir->cd();
+    }
+  }
+
+  void BuildFluxesFromNeutrinoTrees(std::string TChainDescriptor,
+                                    TH1D *FluxHistoTemplate,
+                                    bool CanAdd = false) {
+    TDirectory *ogDir = gDirectory;
+
+    std::stringstream ss("");
+
+    for (int species : {-14, -12, 12, 14}) {
+      for (size_t t_it = 0; t_it < GetNMeasurementSlices(); ++t_it) {
+        ss.str("");
+        ss << "stop_" << LateralOffset << "_m/" << GetSpeciesName(species)
+           << "_neutrino_tree_" << GetAbsoluteOffsetOfSlice(t_it) << "_m";
+
+        TChain *t = new TChain(ss.str().c_str());
+        t->Add(TChainDescriptor.c_str());
+
+        if (!t || !t->GetEntries()) {
+          std::cout
+              << "[ERROR]: Could not find expected flux prediction tree: \""
+              << ss.str()
+              << "\" in the input file descriptor: " << TChainDescriptor
+              << std::endl;
+          throw;
+        }
+
+        TH1D *fl = static_cast<TH1D *>(FluxHistoTemplate->Clone());
+        fl->Reset();
+        ss.str("");
+        ss << "stop_" << LateralOffset << "_m_" << GetSpeciesName(species)
+           << "_flux_" << GetAbsoluteOffsetOfSlice(t_it) << "_m";
+        fl->SetName(ss.str().c_str());
+        fl->SetDirectory(nullptr);
+
+        double enu, weight;
+
+        t->SetBranchAddress("enu", &enu);
+        t->SetBranchAddress("weight", &weight);
+
+        Long64_t NEnts = t->GetEntries();
+
+        for (Long64_t ent = 0; ent < NEnts; ++ent) {
+          t->GetEntry(ent);
+          fl->Fill(enu, weight);
+        }
+
+        AddSliceFlux(t_it, species, fl, CanAdd);
+
+        delete fl;
+        delete t;
       }
     }
     if (ogDir) {

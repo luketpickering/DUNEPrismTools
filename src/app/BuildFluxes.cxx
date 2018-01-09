@@ -158,6 +158,8 @@ int NMaxNeutrinos = -1;
 std::vector<double> varBin;
 bool VariableBinning = false;
 
+bool FillStopNeutrinoTree = false;
+
 std::string outputFile;
 
 std::string runPlanCfg, runPlanName = "";
@@ -224,6 +226,9 @@ void SayUsage(char const *argv[]) {
                "\n"
                "\t-P                            : Only use each decaying parent"
                " once.       \n"
+               "\t-F                            : Fill tree of neutrino "
+               "energies that can be used to \n"
+               "\t                                rebin flux.\n"
                "\n"
             << std::endl;
 }
@@ -319,6 +324,8 @@ void handleOpts(int argc, char const *argv[]) {
       ZDist = str2T<double>(argv[++opt]);
     } else if (std::string(argv[opt]) == "-P") {
       ReUseParents = false;
+    }else if (std::string(argv[opt]) == "-F") {
+      FillStopNeutrinoTree = false;
     } else {
       std::cout << "[ERROR]: Unknown option: " << argv[opt] << std::endl;
       SayUsage(argv);
@@ -524,6 +531,7 @@ void CalculateFluxesForRunPlan(DK2NuReader &dk2nuRdr, double TotalPOT,
   std::vector<double> MeasurementHalfWidths;
   std::vector<double> MeasurementHalfHeights;
   std::vector<TVector3> detPositions;
+  std::vector<std::pair<size_t, size_t> > SliceToStopSliceMap;
 
   std::vector<std::map<int, TH1D *> > Fluxes;
   std::vector<std::map<int, TH2D *> > Divergences;
@@ -546,6 +554,7 @@ void CalculateFluxesForRunPlan(DK2NuReader &dk2nuRdr, double TotalPOT,
 
       detPositions.push_back(
           TVector3(MeasurementsOffsets.back() * 100.0, 0, ZDist));
+      SliceToStopSliceMap.push_back(std::make_pair(ds_it, ms_it));
 
       std::map<int, TH1D *> fluxhistos;
       std::map<int, TH2D *> divhistos;
@@ -626,6 +635,13 @@ void CalculateFluxesForRunPlan(DK2NuReader &dk2nuRdr, double TotalPOT,
         Divergences[slice_it][dk2nuRdr.decay_ntype]->Fill(
             std::get<0>(nuStats), std::get<1>(nuStats) * (180.0 / TMath::Pi()),
             w);
+
+        if (FillStopNeutrinoTree) {
+          std::pair<size_t, size_t> dsms = SliceToStopSliceMap[slice_it];
+
+          detStops[dsms.first].FillNeutrino(dsms.second, std::get<0>(nuStats),
+                                            dk2nuRdr.decay_ntype, w);
+        }
       }
     } else {
       slice_it = (slice_it + 1) % NSlices;
@@ -652,6 +668,13 @@ void CalculateFluxesForRunPlan(DK2NuReader &dk2nuRdr, double TotalPOT,
       Divergences[slice_it][dk2nuRdr.decay_ntype]->Fill(
           std::get<0>(nuStats), std::get<1>(nuStats) * (180.0 / TMath::Pi()),
           w);
+
+      if (FillStopNeutrinoTree) {
+        std::pair<size_t, size_t> dsms = SliceToStopSliceMap[slice_it];
+
+        detStops[dsms.first].FillNeutrino(dsms.second, std::get<0>(nuStats),
+                                          dk2nuRdr.decay_ntype, w);
+      }
     }
   }
 
