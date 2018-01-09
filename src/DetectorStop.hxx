@@ -235,9 +235,9 @@ struct DetectorStop {
         NeutrinoTrees[species][tree_ctr]->SetDirectory(nullptr);
 
         NeutrinoTrees[species][tree_ctr]->Branch(
-            "enu", NeutrinoFillVars[species][tree_ctr].first);
+            "enu", &NeutrinoFillVars[species][tree_ctr].first);
         NeutrinoTrees[species][tree_ctr]->Branch(
-            "weight", NeutrinoFillVars[species][tree_ctr].second);
+            "weight", &NeutrinoFillVars[species][tree_ctr].second);
       }
     }
 
@@ -245,6 +245,10 @@ struct DetectorStop {
     NeutrinoFillVars[species][i].second = w;
 
     NeutrinoTrees[species][i]->Fill();
+
+    // std::cout << "[INFO]: Filling " << NeutrinoFillVars[species][i].first
+    //           << ", " << NeutrinoFillVars[species][i].second
+    //           << std::endl;
   }
 
   TH1D *GetFluxForSpecies(size_t i, int species) {

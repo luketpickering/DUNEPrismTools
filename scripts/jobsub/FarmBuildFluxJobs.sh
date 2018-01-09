@@ -13,6 +13,7 @@ DISK_EXP="1GB"
 MEM_EXP="2GB"
 BINNING_DESCRIPTOR="0,0.5,1_3:0.25,3_4:0.5,4_10:1,10_20:2"
 REUSEPARENTS="1"
+SPECARG="0"
 
 while [[ ${#} -gt 0 ]]; do
 
@@ -112,6 +113,18 @@ while [[ ${#} -gt 0 ]]; do
 
       BINNING_DESCRIPTOR="$2"
       echo "[OPT]: Using binning descriptor: \"${BINNING_DESCRIPTOR}\"."
+      shift # past argument
+      ;;
+
+      -S|--species)
+
+      if [[ ${#} -lt 2 ]]; then
+        echo "[ERROR]: ${1} expected a value."
+        exit 1
+      fi
+
+      SPECARG="$2"
+      echo "[OPT]: Only running for species, PDG = \"${SPECARG}\"."
       shift # past argument
       ;;
 
@@ -293,7 +306,7 @@ cp ${RUN_PLAN_XML} ./runplan.xml
 
 tar -zcvf apps.@DUNEPrismTools_VERSION_STRING@.tar.gz dp_* inputs.list runplan.xml
 
-JID=$(jobsub_submit --group=${EXPERIMENT} --jobid-output-only --resource-provides=usage_model=OPPORTUNISTIC --expected-lifetime=${LIFETIME_EXP} --disk=${DISK_EXP} -N ${NJOBSTORUN} --memory=${MEM_EXP} --cpu=1 --OS=SL6 --tar_file_name=dropbox://apps.@DUNEPrismTools_VERSION_STRING@.tar.gz file://${DUNEPRISMTOOLSROOT}/scripts/BuildFluxJob.sh ${DET_DIST_CM} ${BINNING_DESCRIPTOR} ${REUSEPARENTS} ${PNFS_PATH_APPEND} ${NPERJOB})
+JID=$(jobsub_submit --group=${EXPERIMENT} --jobid-output-only --resource-provides=usage_model=OPPORTUNISTIC --expected-lifetime=${LIFETIME_EXP} --disk=${DISK_EXP} -N ${NJOBSTORUN} --memory=${MEM_EXP} --cpu=1 --OS=SL6 --tar_file_name=dropbox://apps.@DUNEPrismTools_VERSION_STRING@.tar.gz file://${DUNEPRISMTOOLSROOT}/scripts/BuildFluxJob.sh ${DET_DIST_CM} ${BINNING_DESCRIPTOR} ${REUSEPARENTS} ${SPECARG} ${PNFS_PATH_APPEND} ${NPERJOB})
 
 cd ../
 rm -r sub_tmp

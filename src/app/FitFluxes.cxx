@@ -390,7 +390,8 @@ void handleOpts(int argc, char const *argv[]) {
       ExpDecayRate = str2T<double>(argv[++opt]);
     } else if (std::string(argv[opt]) == "-B") {
       MultiplyChi2ContribByBinWidth = true;
-    } else if (std::string(argv[opt]) == "-?") {
+    } else if ((std::string(argv[opt]) == "-?") ||
+               std::string(argv[opt]) == "--help") {
       SayUsage(argv);
       exit(0);
     } else {

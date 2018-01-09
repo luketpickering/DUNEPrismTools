@@ -159,10 +159,13 @@ std::vector<double> varBin;
 bool VariableBinning = false;
 
 bool FillStopNeutrinoTree = false;
+bool DoDivergence = false;
 
 std::string outputFile;
 
 std::string runPlanCfg, runPlanName = "";
+
+int OnlySpecies = 0;
 
 void SayUsage(char const *argv[]) {
   std::cout << "[USAGE]: " << argv[0] << "\n"
@@ -229,6 +232,9 @@ void SayUsage(char const *argv[]) {
                "\t-F                            : Fill tree of neutrino "
                "energies that can be used to \n"
                "\t                                rebin flux.\n"
+               "\t-S <species PDG>              : Only fill information for "
+               "neutrinos of a given species.\n"
+               "\t-D                            : Calculate flux divergences.\n"
                "\n"
             << std::endl;
 }
@@ -324,8 +330,12 @@ void handleOpts(int argc, char const *argv[]) {
       ZDist = str2T<double>(argv[++opt]);
     } else if (std::string(argv[opt]) == "-P") {
       ReUseParents = false;
-    }else if (std::string(argv[opt]) == "-F") {
-      FillStopNeutrinoTree = false;
+    } else if (std::string(argv[opt]) == "-F") {
+      FillStopNeutrinoTree = true;
+    } else if (std::string(argv[opt]) == "-S") {
+      OnlySpecies = str2T<int>(argv[++opt]);
+    } else if (std::string(argv[opt]) == "-D") {
+      DoDivergence = true;
     } else {
       std::cout << "[ERROR]: Unknown option: " << argv[opt] << std::endl;
       SayUsage(argv);
@@ -357,6 +367,9 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
   Hists.resize(NAngs);
 
   std::vector<int> NuPDGTargets = {-12, 12, -14, 14};
+  if (OnlySpecies) {
+    NuPDGTargets = std::vector<int>{OnlySpecies};
+  }
   std::vector<std::string> NuNames = {"nueb", "nue", "numub", "numu"};
 
   for (size_t ang_it = 0; ang_it < NAngs; ++ang_it) {
@@ -560,6 +573,10 @@ void CalculateFluxesForRunPlan(DK2NuReader &dk2nuRdr, double TotalPOT,
       std::map<int, TH2D *> divhistos;
 
       for (int species : {-14, -12, 12, 14}) {
+        if (OnlySpecies && (OnlySpecies != species)) {
+          continue;
+        }
+
         ss.str("");
         ss << GetSpeciesName(species) << "_flux_stop_" << ds_it << "_slice_"
            << ms_it << "_" << MeasurementsOffsets.back() << "_m";
@@ -575,19 +592,23 @@ void CalculateFluxesForRunPlan(DK2NuReader &dk2nuRdr, double TotalPOT,
                                              NBins, BLow, BUp);
         fluxhistos[species]->SetDirectory(nullptr);
 
-        ss.str("");
-        ss << GetSpeciesName(species) << "_divergence_stop_" << ds_it
-           << "_slice_" << ms_it << "_" << MeasurementsOffsets.back() << "_m";
-        divhistos[species] =
-            new TH2D(ss.str().c_str(),
-                     ";#it{E}_{#nu} (GeV);#theta_{#nu} (degrees);#Phi_{#nu} "
-                     "per POT",
-                     80, BLow, BUp, 240, 0, 6);
-        divhistos[species]->SetDirectory(nullptr);
+        if (DoDivergence) {
+          ss.str("");
+          ss << GetSpeciesName(species) << "_divergence_stop_" << ds_it
+             << "_slice_" << ms_it << "_" << MeasurementsOffsets.back() << "_m";
+          divhistos[species] =
+              new TH2D(ss.str().c_str(),
+                       ";#it{E}_{#nu} (GeV);#theta_{#nu} (degrees);#Phi_{#nu} "
+                       "per POT",
+                       80, BLow, BUp, 240, 0, 6);
+          divhistos[species]->SetDirectory(nullptr);
+        }
       }
 
       Fluxes.push_back(fluxhistos);
-      Divergences.push_back(divhistos);
+      if (DoDivergence) {
+        Divergences.push_back(divhistos);
+      }
     }
   }
 
@@ -608,6 +629,10 @@ void CalculateFluxesForRunPlan(DK2NuReader &dk2nuRdr, double TotalPOT,
     }
 
     dk2nuRdr.GetEntry(nu_it);
+
+    if (OnlySpecies && (OnlySpecies != dk2nuRdr.decay_ntype)) {
+      continue;
+    }
 
     double wF = (dk2nuRdr.decay_nimpwt / TMath::Pi()) * (1.0 / FluxNormPOT);
 
@@ -632,15 +657,17 @@ void CalculateFluxesForRunPlan(DK2NuReader &dk2nuRdr, double TotalPOT,
         }
 
         Fluxes[slice_it][dk2nuRdr.decay_ntype]->Fill(std::get<0>(nuStats), w);
-        Divergences[slice_it][dk2nuRdr.decay_ntype]->Fill(
-            std::get<0>(nuStats), std::get<1>(nuStats) * (180.0 / TMath::Pi()),
-            w);
+        if (DoDivergence) {
+          Divergences[slice_it][dk2nuRdr.decay_ntype]->Fill(
+              std::get<0>(nuStats),
+              std::get<1>(nuStats) * (180.0 / TMath::Pi()), w);
+        }
 
         if (FillStopNeutrinoTree) {
           std::pair<size_t, size_t> dsms = SliceToStopSliceMap[slice_it];
 
-          detStops[dsms.first].FillNeutrino(dsms.second, std::get<0>(nuStats),
-                                            dk2nuRdr.decay_ntype, w);
+          detStops[dsms.first].FillNeutrino(dsms.second, dk2nuRdr.decay_ntype,
+                                            std::get<0>(nuStats), w);
         }
       }
     } else {
@@ -665,15 +692,17 @@ void CalculateFluxesForRunPlan(DK2NuReader &dk2nuRdr, double TotalPOT,
       }
 
       Fluxes[slice_it][dk2nuRdr.decay_ntype]->Fill(std::get<0>(nuStats), w);
-      Divergences[slice_it][dk2nuRdr.decay_ntype]->Fill(
-          std::get<0>(nuStats), std::get<1>(nuStats) * (180.0 / TMath::Pi()),
-          w);
+      if (DoDivergence) {
+        Divergences[slice_it][dk2nuRdr.decay_ntype]->Fill(
+            std::get<0>(nuStats), std::get<1>(nuStats) * (180.0 / TMath::Pi()),
+            w);
+      }
 
       if (FillStopNeutrinoTree) {
         std::pair<size_t, size_t> dsms = SliceToStopSliceMap[slice_it];
 
-        detStops[dsms.first].FillNeutrino(dsms.second, std::get<0>(nuStats),
-                                          dk2nuRdr.decay_ntype, w);
+        detStops[dsms.first].FillNeutrino(dsms.second, dk2nuRdr.decay_ntype,
+                                          std::get<0>(nuStats), w);
       }
     }
   }
@@ -683,9 +712,14 @@ void CalculateFluxesForRunPlan(DK2NuReader &dk2nuRdr, double TotalPOT,
     DetectorStop &ds = detStops[ds_it];
     for (size_t ms_it = 0; ms_it < ds.GetNMeasurementSlices(); ++ms_it) {
       for (int species : {-14, -12, 12, 14}) {
+        if (OnlySpecies && (OnlySpecies != species)) {
+          continue;
+        }
         Fluxes[slice_it][species]->Scale(1E-4, "width");
         ds.AddSliceFlux(ms_it, species, Fluxes[slice_it][species]);
-        ds.AddSliceDivergence(ms_it, species, Divergences[slice_it][species]);
+        if (DoDivergence) {
+          ds.AddSliceDivergence(ms_it, species, Divergences[slice_it][species]);
+        }
       }
       slice_it++;
     }
@@ -702,6 +736,9 @@ void CalculateFluxesForRunPlan(DK2NuReader &dk2nuRdr, double TotalPOT,
     DetectorStop &ds = detStops[ds_it];
     for (size_t ms_it = 0; ms_it < ds.GetNMeasurementSlices(); ++ms_it) {
       for (int species : {-14, -12, 12, 14}) {
+        if (OnlySpecies && (OnlySpecies != species)) {
+          continue;
+        }
         double sliceOffset = ds.GetAbsoluteOffsetOfSlice(ms_it);
         double theta_rad = atan(sliceOffset / ZDist);
         FluxNorms[species].SetPoint(
@@ -713,6 +750,9 @@ void CalculateFluxesForRunPlan(DK2NuReader &dk2nuRdr, double TotalPOT,
   }
 
   for (int species : {-14, -12, 12, 14}) {
+    if (OnlySpecies && (OnlySpecies != species)) {
+      continue;
+    }
     FluxNorms[species].GetXaxis()->SetTitle("Off-axis angle (Degrees)");
     FluxNorms[species].GetYaxis()->SetTitle(
         "#Phi_{#nu}^{Total} per m^{2} per POT");

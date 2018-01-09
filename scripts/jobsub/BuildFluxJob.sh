@@ -42,19 +42,34 @@ fi
 REUSEPARENTS=${3}
 
 RUPARG=""
-if [ "${REUSEPARENTS}" == "1" ]; then
+if [ "${REUSEPARENTS}" == "0" ]; then
   RUPARG="-P"
+  echo "[INFO]: Not re-using decay parents."
+else
+  echo "[INFO]: Re-using decay parents."
+fi
+
+if [ -z ${4} ]; then
+  echo "[ERROR]: Couldn't find species descriptor."
+  exit 6
+fi
+ONLYSPECIES=${4}
+
+SPECARG=""
+if [ "${ONLYSPECIES}" != "0" ]; then
+  SPECARG="-S ${ONLYSPECIES}"
+  echo "[INFO]: Only building for species ${ONLYSPECIES}."
 fi
 
 PNFS_PATH_APPEND=""
-if [ ! -z ${4} ]; then
+if [ ! -z ${5} ]; then
   echo "[INFO]: Appending path to pnfs outdir: ${3}"
-  PNFS_PATH_APPEND=${4}
+  PNFS_PATH_APPEND=${5}
 fi
 
 NFILES_TO_READ=1
-if [ ! -z ${5} ]; then
-  NFILES_TO_READ=${5}
+if [ ! -z ${6} ]; then
+  NFILES_TO_READ=${6}
 fi
 
 echo "[INFO]: Reading ${NFILES_TO_READ} files."

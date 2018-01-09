@@ -26,10 +26,22 @@ BINNING_DESCRIPTOR_UNCERTS="0,0.5,1_3:0.25,3_4:0.5,4_10:1,10_20:2"
 #   --expected-mem 1536MB -b ${BINNING_DESCRIPTOR_FITS} -P \
 #   -p nominal_7.5E8/DUNEPrismFluxes/ForPRISMFits/FHC_noreuse -d 57400 -i /pnfs/dune/persistent/users/picker24/nominal_7.5E8/v3r5p4/QGSP_BERT/OptimizedEngineeredSept2017Review/neutrino/flux/ -n 10
 
+# ${DUNEPRISMTOOLSROOT}/scripts/FarmBuildFluxJobs.sh --expected-walltime 30m --expected-disk 1536MB \
+#   --expected-mem 512MB -b ${BINNING_DESCRIPTOR_FITS} \
+#   -p nominal_5E8_FD/DUNEPrismFluxes/ForPRISMFits/FHC_FD -r ${DUNEPRISMTOOLSROOT}/configs/RunPlan.LArDUNEFV_25.8mx23.8mx56.6m.xml -d 128700000 -i /pnfs/dune/persistent/users/picker24/nominal_5E8_FD/v3r5p4/QGSP_BERT/OptimizedEngineeredSept2017Review/neutrino/flux/ -n 10
+
+##Unif
+${DUNEPRISMTOOLSROOT}/scripts/FarmBuildFluxJobs.sh --expected-walltime 30m --expected-disk 1536MB \
+  --expected-mem 1536MB -S 14 -b "0_10:0.025" \
+  -p nominal_2.5E8/DUNEPrismFluxes/ForPRISMFits/FHC_unif -d 57400 -i /pnfs/dune/persistent/users/picker24/nominal_2.5E8/v3r5p4/QGSP_BERT/OptimizedEngineeredSept2017Review/neutrino/flux/ -n 10
 
 ${DUNEPRISMTOOLSROOT}/scripts/FarmBuildFluxJobs.sh --expected-walltime 30m --expected-disk 1536MB \
-  --expected-mem 512MB -b ${BINNING_DESCRIPTOR_FITS} \
-  -p nominal_5E8_FD/DUNEPrismFluxes/ForPRISMFits/FHC_FD -r ${DUNEPRISMTOOLSROOT}/configs/RunPlan.LArDUNEFV_25.8mx23.8mx56.6m.xml -d 128700000 -i /pnfs/dune/persistent/users/picker24/nominal_5E8_FD/v3r5p4/QGSP_BERT/OptimizedEngineeredSept2017Review/neutrino/flux/ -n 10
+  --expected-mem 1536MB -S 14 -b "0_10:0.025" \
+  -p nominal_7.5E8/DUNEPrismFluxes/ForPRISMFits/FHC_unif -d 57400 -i /pnfs/dune/persistent/users/picker24/nominal_7.5E8/v3r5p4/QGSP_BERT/OptimizedEngineeredSept2017Review/neutrino/flux/ -n 10
+
+${DUNEPRISMTOOLSROOT}/scripts/FarmBuildFluxJobs.sh --expected-walltime 30m --expected-disk 1536MB \
+  --expected-mem 512MB -S 14 -b "0_10:0.025" \
+  -p nominal_5E8_FD/DUNEPrismFluxes/FHC_FD_unif -r ${DUNEPRISMTOOLSROOT}/configs/RunPlan.LArDUNEFV_25.8mx23.8mx56.6m.xml -d 128700000 -i /pnfs/dune/persistent/users/picker24/nominal_5E8_FD/v3r5p4/QGSP_BERT/OptimizedEngineeredSept2017Review/neutrino/flux/ -n 10
 
 
 ##### Near Det
