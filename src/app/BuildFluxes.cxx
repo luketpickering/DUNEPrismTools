@@ -137,7 +137,7 @@ std::tuple<double, double, double> GetNuWeight(DK2NuReader &dk2nuRdr,
     nu_wght *= wt_ratio;
   }
 
-  if (!isnormal(nu_energy) || !isnormal(nu_wght)) {
+  if (!std::isnormal(nu_energy) || !std::isnormal(nu_wght)) {
     std::cout << "[ERROR]: Calculated bad nustats." << std::endl;
     exit(1);
   }
@@ -501,7 +501,7 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
       std::cout << "[VERBOSE]: " << ang_it << ", " << nuPDG_it << ", "
                 << std::get<0>(nuStats) << ", " << w << std::endl;
 
-      if ((!isnormal(std::get<0>(nuStats)) || (!isnormal(w)))) {
+      if ((!std::isnormal(std::get<0>(nuStats)) || (!std::isnormal(w)))) {
         std::cout << std::get<0>(nuStats) << ", " << w << "("
                   << std::get<2>(nuStats) << "*" << dk2nuRdr.decay_nimpwt
                   << "/(" << TMath::Pi() << "*" << TotalPOT << ")."
@@ -711,7 +711,7 @@ void CalculateFluxesForRunPlan(DK2NuReader &dk2nuRdr, double TotalPOT,
 
       double w = std::get<2>(nuStats) * wF;
 
-      if ((!isnormal(std::get<0>(nuStats)) || (!isnormal(w)))) {
+      if ((!std::isnormal(std::get<0>(nuStats)) || (!std::isnormal(w)))) {
         std::cout << std::get<0>(nuStats) << ", " << w << "("
                   << std::get<2>(nuStats) << "*" << dk2nuRdr.decay_nimpwt
                   << "/(" << TMath::Pi() << "*" << TotalPOT << ")."
