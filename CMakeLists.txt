@@ -52,6 +52,8 @@ LIST(APPEND INCLUDE_DIRECTORIES ${CMAKE_SOURCE_DIR}/src)
 
 add_subdirectory(src/app)
 
+add_subdirectory(jake-contrib)
+
 configure_file(cmake/setup.sh.in
   "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/setup.sh" @ONLY)
 install(FILES

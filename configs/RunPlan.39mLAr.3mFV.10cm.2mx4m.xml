@@ -1,6 +1,6 @@
 <DUNEPrism>
-  <RunPlan Name="RunPlan.39mLAr.3mFV.10cm.2.5x4m">
-    <Detector MeasurementRegionWidth_m="0.1" DetectorFiducialWidth_m="3" DetectorFiducialHeight_m="2.5" DetectorFiducialDepth_m="4" FiducialVolumeDensity_kgm3="1396" />
+  <RunPlan Name="RunPlan.39mLAr.3mFV.10cm.2mx4m">
+    <Detector MeasurementRegionWidth_m="0.1" DetectorFiducialWidth_m="3" DetectorFiducialHeight_m="2" DetectorFiducialDepth_m="4" FiducialVolumeDensity_kgm3="1396" />
     <Stops>
       <Stop LateralOffset_m="0" POTExposure="9.166666667E19"/>
       <Stop LateralOffset_m="3" POTExposure="9.166666667E19"/>

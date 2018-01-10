@@ -137,6 +137,10 @@ std::tuple<double, double, double> GetNuWeight(DK2NuReader &dk2nuRdr,
     nu_wght *= wt_ratio;
   }
 
+  if (!isnormal(nu_energy) || !isnormal(nu_wght)) {
+    std::cout << "[ERROR]: Calculated bad nustats." << std::endl;
+    exit(1);
+  }
   return std::make_tuple(nu_energy, nuRay.Theta(), nu_wght);
 }
 
@@ -151,6 +155,7 @@ double BUp = 10;
 double detector_width = 0;
 double detector_height = 0;
 bool ReUseParents = true;
+bool DK2NULite = false;
 
 double ZDist = 57400;
 int NMaxNeutrinos = -1;
@@ -235,6 +240,7 @@ void SayUsage(char const *argv[]) {
                "\t-S <species PDG>              : Only fill information for "
                "neutrinos of a given species.\n"
                "\t-D                            : Calculate flux divergences.\n"
+               "\t-L                            : Expect dk2nulite inputs.\n"
                "\n"
             << std::endl;
 }
@@ -336,6 +342,8 @@ void handleOpts(int argc, char const *argv[]) {
       OnlySpecies = str2T<int>(argv[++opt]);
     } else if (std::string(argv[opt]) == "-D") {
       DoDivergence = true;
+    } else if (std::string(argv[opt]) == "-L") {
+      DK2NULite = true;
     } else {
       std::cout << "[ERROR]: Unknown option: " << argv[opt] << std::endl;
       SayUsage(argv);
@@ -458,6 +466,10 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
 
     dk2nuRdr.GetEntry(nu_it);
 
+    if (OnlySpecies && (OnlySpecies != dk2nuRdr.decay_ntype)) {
+      continue;
+    }
+
     double wF = (dk2nuRdr.decay_nimpwt / TMath::Pi()) * (1.0 / TotalPOT);
     for (size_t ang_it = 0; ang_it < NAngs; ++ang_it) {
       TVector3 det_point = detPoses[ang_it];
@@ -486,9 +498,14 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
       }
 
       Hists[ang_it][nuPDG_it][0]->Fill(std::get<0>(nuStats), w);
+      std::cout << "[VERBOSE]: " << ang_it << ", " << nuPDG_it << ", "
+                << std::get<0>(nuStats) << ", " << w << std::endl;
 
-      if ((std::get<0>(nuStats) != std::get<0>(nuStats)) || (w != w)) {
-        std::cout << std::get<0>(nuStats) << ", " << w << std::endl;
+      if ((!isnormal(std::get<0>(nuStats)) || (!isnormal(w)))) {
+        std::cout << std::get<0>(nuStats) << ", " << w << "("
+                  << std::get<2>(nuStats) << "*" << dk2nuRdr.decay_nimpwt
+                  << "/(" << TMath::Pi() << "*" << TotalPOT << ")."
+                  << std::endl;
         throw;
       }
 
@@ -512,6 +529,14 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
 
   for (size_t ang_it = 0; ang_it < NAngs; ++ang_it) {
     for (size_t nuPDG_it = 0; nuPDG_it < NuPDGTargets.size(); ++nuPDG_it) {
+      double integ = Hists[ang_it][nuPDG_it][0]->Integral();
+      if (!std::isnormal(integ)) {
+        std::cerr << "[ERROR]: Flux @ angular point: " << ang_it
+                  << " for PDG: " << NuPDGTargets[nuPDG_it]
+                  << " has bad integral." << std::endl;
+        throw;
+      }
+
       Hists[ang_it][nuPDG_it][0]->Scale(1E-4, "width");
       if (DoExtra) {
         Hists[ang_it][nuPDG_it][1]->Scale(1E-4, "width");
@@ -686,8 +711,11 @@ void CalculateFluxesForRunPlan(DK2NuReader &dk2nuRdr, double TotalPOT,
 
       double w = std::get<2>(nuStats) * wF;
 
-      if ((std::get<0>(nuStats) != std::get<0>(nuStats)) || (w != w)) {
-        std::cout << std::get<0>(nuStats) << ", " << w << std::endl;
+      if ((!isnormal(std::get<0>(nuStats)) || (!isnormal(w)))) {
+        std::cout << std::get<0>(nuStats) << ", " << w << "("
+                  << std::get<2>(nuStats) << "*" << dk2nuRdr.decay_nimpwt
+                  << "/(" << TMath::Pi() << "*" << TotalPOT << ")."
+                  << std::endl;
         throw;
       }
 
@@ -784,14 +812,16 @@ int main(int argc, char const *argv[]) {
     mrads.push_back(0);
   }
 
-  DK2NuReader *dk2nuRdr = new DK2NuReader("dk2nuTree", inpDir);
+  DK2NuReader *dk2nuRdr = new DK2NuReader(
+      DK2NULite ? "dk2nuTree_lite" : "dk2nuTree", inpDir, DK2NULite);
 
   if (!dk2nuRdr->GetEntries()) {
     std::cout << "No valid input files found." << std::endl;
     return 1;
   }
 
-  DKMetaReader *dkmRdr = new DKMetaReader("dkmetaTree", inpDir);
+  DKMetaReader *dkmRdr = new DKMetaReader(
+      DK2NULite ? "dkmetaTree_lite" : "dkmetaTree", inpDir, DK2NULite);
 
   int metaNEntries = dkmRdr->GetEntries();
 

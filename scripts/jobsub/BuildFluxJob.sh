@@ -201,7 +201,7 @@ echo "---------------"
 
 OUT_FILENAME=Fluxes.${CLUSTER}.${PROCESS}.root
 
-echo "[INFO]: Writing output to: ${OUT_FILENAME_FINE}, ${OUT_FILENAME_COARSE} "
+echo "[INFO]: Writing output to: ${OUT_FILENAME} "
 
 echo "Building fluxes @ $(date)"
 

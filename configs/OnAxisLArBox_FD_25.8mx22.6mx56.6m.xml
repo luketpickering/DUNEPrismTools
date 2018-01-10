@@ -1,0 +1,60 @@
+<?xml version="1.0"?>
+<gdml xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://service-spi.web.cern.ch/service-spi/app/releases/GDML/schema/gdml.xsd">
+  <define>
+    <position name="LAr_1inToppos" x="0" y="0" z="0" unit="cm"/>
+  </define>
+  <materials>
+    <element Z="6" formula="C" name="carbon">
+      <atom value="12.0107"/>
+    </element>
+    <element Z="7" formula="N" name="nitrogen">
+      <atom value="14.0671"/>
+    </element>
+    <element Z="8" formula="O" name="oxygen">
+      <atom value="15.999"/>
+    </element>
+    <element Z="18" formula="Ar" name="argon">
+      <atom value="39.948"/>
+    </element>
+
+    <material formula="" name="CO2">
+      <D value="1.562"/>
+      <composite n="1" ref="carbon"/>
+      <composite n="2" ref="oxygen"/>
+    </material>
+
+    <material formula="" name="Air">
+      <D value="0.001225"/>
+      <fraction n="0.781154" ref="nitrogen"/>
+      <fraction n="0.209476" ref="oxygen"/>
+      <fraction n="0.00934" ref="argon"/>
+    </material>
+
+    <material formula="" name="LAr">
+      <D value="1.4"/>
+      <composite n="1" ref="argon"/>
+    </material>
+  </materials>
+  <solids>
+    <box name="Top" x="2581" y="2261" z="5661" lunit="cm"/>
+    <box name="LAr0x2" x="2580" y="2260" z="5660" lunit="cm"/>
+  </solids>
+  <structure>
+    <volume name="LAr0x1">
+      <auxiliary auxtype="SensDet" auxvalue="LArBlob"/>
+      <materialref ref="LAr"/>
+      <solidref ref="LAr0x2"/>
+    </volume>
+    <volume name="Top">
+      <materialref ref="Air"/>
+      <solidref ref="Top"/>
+      <physvol name="LAr_1" copynumber="1">
+        <volumeref ref="LAr0x1"/>
+        <positionref ref="LAr_1inToppos"/>
+      </physvol>
+    </volume>
+  </structure>
+  <setup name="default" version="1.0">
+    <world ref="Top"/>
+  </setup>
+</gdml>
