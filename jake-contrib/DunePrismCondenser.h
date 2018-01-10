@@ -26,23 +26,17 @@ const int maxInit = 100;
 const int maxTracks = 100000;
 const int maxNQ = 10000000;
 
-class DunePrismAnalyzer{
+class DunePrismCondenser{
   public:
 
     //Functions
-    DunePrismAnalyzer(std::string inFileName, std::string outFileName, double det[3], double fid[3], double off,int N);
-    DunePrismAnalyzer(std::string inFileName, std::string outFileName, std::vector<DetectorStop> detStops, DetectorStop * fullDet, int N);
-    virtual ~DunePrismAnalyzer(){}; 
+    DunePrismCondenser(std::string inFileName, std::string outFileName, DetectorStop * fullDet, int N);
+    virtual ~DunePrismCondenser(){}; 
     //void Analyze();
-    void AnalyzeStops();
+    void Condense();
     void Finalize();
-    void FinalizeStops();
-    void SetBranches();
     void SetInBranches();
-    void SetOutBranches( int stop);
-    void InitVarsStop();
     void InitDetector();
-    int * GetBins(double x, double y, double z);
     int GetBinX(double x);
     int GetBinY(double y);
     int GetBinZ(double z);
@@ -102,81 +96,22 @@ class DunePrismAnalyzer{
 
 
     //Output
-    std::vector<int> eventNum;
-    std::vector<int> nuPDG;
-    std::vector<int> lepPDG;
-    std::vector<int> flagCC; 
-    std::vector<double> Enu;
-    std::vector<double> vtx_X;
-    std::vector<double> vtx_Y;
-    std::vector<double> vtx_Z;
-
-    std::vector<int> flagExitBack;
-    std::vector<int> flagExitFront;
-    std::vector<int> flagExitY;
-    std::vector<int> flagExitXHigh;
-    std::vector<int> flagExitXLow;
-    std::vector<int> flagNoEHadOut;
-    std::vector<int> flagLepContained; 
-
-    std::vector<double> lepExitingPX;
-    std::vector<double> lepExitingPY;
-    std::vector<double> lepExitingPZ;
-
-    std::vector<double> eLepPrimaryDep;
-    std::vector<double> eLepSecondaryDep;
-
-    std::vector<double> eHadPrimaryDepIn;
-    std::vector<double> eHadPrimaryDepOut;
-    std::vector<double> eHadSecondaryDepIn;
-    std::vector<double> eHadSecondaryDepOut;
-    
-    std::vector<double> eProtonPrimaryDepIn;
-    std::vector<double> eProtonPrimaryDepOut;
-    std::vector<double> eProtonSecondaryDepIn;
-    std::vector<double> eProtonSecondaryDepOut;
-
-    std::vector<double> eNeutronPrimaryDepIn;
-    std::vector<double> eNeutronPrimaryDepOut;
-    std::vector<double> eNeutronSecondaryDepIn;
-    std::vector<double> eNeutronSecondaryDepOut;
-
-    std::vector<double> ePiCPrimaryDepIn;
-    std::vector<double> ePiCPrimaryDepOut;
-    std::vector<double> ePiCSecondaryDepIn;
-    std::vector<double> ePiCSecondaryDepOut;
-
-    std::vector<double> eGammaPrimaryDepIn;
-    std::vector<double> eGammaPrimaryDepOut;
-    std::vector<double> eGammaSecondaryDepIn;
-    std::vector<double> eGammaSecondaryDepOut;
-
-    std::vector<double> ePi0PrimaryDepIn;
-    std::vector<double> ePi0PrimaryDepOut;
-    std::vector<double> ePi0SecondaryDepIn;
-    std::vector<double> ePi0SecondaryDepOut;
-
-    std::vector<double> eReco;
-    std::vector<double> eOtherDepIn;
-    std::vector<double> eOtherDepOut;
-    std::vector<double> eTotalDep;
-
     //Positional Deposits
-    double eLepPrimaryDepFull[4000][3][3];
-    double eHadPrimaryDep[4000][3][3];//4000XSegmengs/9YZ
-    double eProtonPrimaryDep[4000][3][3];
-    double eNeutronPrimaryDep[4000][3][3];
-    double ePiCPrimaryDep[4000][3][3];
-    double ePi0PrimaryDep[4000][3][3];
-    double eOtherPrimaryDep[4000][3][3];
+    double eLepPrimaryDepFull[400][3][3];
+    double eHadPrimaryDep[400][3][3];//400XSegmengs/9YZ
+    double eProtonPrimaryDep[400][3][3];
+    double eNeutronPrimaryDep[400][3][3];
+    double ePiCPrimaryDep[400][3][3];
+    double ePi0PrimaryDep[400][3][3];
+    double eOtherPrimaryDep[400][3][3];
 
-    double eLepSecondaryDepFull[4000][3][3];
-    double eHadSecondaryDep[4000][3][3];//4000XSegmengs/9YZ
-    double eProtonSecondaryDep[4000][3][3];
-    double eNeutronSecondaryDep[4000][3][3];
-    double ePiCSecondaryDep[4000][3][3];
-    double ePi0SecondaryDep[4000][3][3];
-    double eOtherSecondaryDep[4000][3][3];
+    double eLepSecondaryDepFull[400][3][3];
+    double eHadSecondaryDep[400][3][3];//400XSegmengs/9YZ
+    double eProtonSecondaryDep[400][3][3];
+    double eNeutronSecondaryDep[400][3][3];
+    double ePiCSecondaryDep[400][3][3];
+    double ePi0SecondaryDep[400][3][3];
+    double eOtherSecondaryDep[400][3][3];
     std::vector<double> xBins;
     std::vector<double> yBins;
     std::vector<double> zBins;
@@ -213,30 +148,6 @@ class DunePrismAnalyzer{
 
     //////////////////////
 
-    std::vector<double> eHadTrueCharged;
-    std::vector<double> eHadTrueTotal;
-    std::vector<double> eLepTrue;
-
-    std::vector<double> eProtonTrue;
-    std::vector<double> eNeutronTrue;
-    std::vector<double> ePiCTrue;
-    std::vector<double> ePi0True;
-
-    std::vector<double> eGammaTrue;
-    std::vector<double> pLepTrueX;
-    std::vector<double> pLepTrueY;
-    std::vector<double> pLepTrueZ;
-
-    std::vector<double> Q2True;
-    std::vector<double> yTrue;
-    std::vector<double> W_rest;
-
-    std::vector<int> nLep;
-    std::vector<int> nGamma;
-    std::vector<int> nPi0;
-    std::vector<int> nPiC;
-    std::vector<int> nProton;
-    std::vector<int> nNeutron;
 
   private:
 };
@@ -252,7 +163,6 @@ double offset;
 std::string inFileName;
 std::string outFileName;
 int nEntries;
-std::vector<DetectorStop> detStops;
 DetectorStop * fullDet;
 
 
@@ -291,9 +201,6 @@ void parse_args_xml(int argc, char* argv[]){
 
     else if(flag == "-x"){
       std::cout << argv[i+1] << std::endl;
-      detStops = ReadDetectorStopConfig(argv[i+1]);
-      std::cout << "size "<<  detStops.size() << std::endl;
-
       fullDet = GetFullDetectorConfig(argv[i+1]);
       std::cout << "fullDet: " << fullDet << std::endl;
     }
