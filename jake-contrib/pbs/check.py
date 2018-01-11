@@ -14,9 +14,9 @@ new_sub_files = []
 files = 0
 extra = 0
 newsub = open(setting + '_new_submit_0.list','w')
-subdir = setting + '/1.8.2018/'
-output = listdir('/home/calcuttj/DUNEPrismSim/' + setting + '/1.8.2018/')
-submit = listdir(setting + '/1.8.2018/')
+subdir = setting + '/condenser_1.8.2018/'
+output = listdir('/home/calcuttj/DUNEPrismSim/' + setting + '/condenser_1.8.2018/')
+submit = listdir(setting + '/condenser_1.8.2018/')
 
 strip_output = []
 strip_submit = []

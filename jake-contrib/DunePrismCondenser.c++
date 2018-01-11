@@ -201,6 +201,7 @@ void DunePrismCondenser::Condense(){
       for(int it = 0; it < xBins.size() - 1; ++it){
         for(int jt = 0; jt < yBins.size() - 1; ++jt){
           for(int kt = 0; kt < zBins.size() - 1; ++kt){
+            eLepPrimaryDepFull[it][jt][kt] = 0.;
             eHadPrimaryDep[it][jt][kt] = 0.;
             eProtonPrimaryDep[it][jt][kt] = 0.;
             eNeutronPrimaryDep[it][jt][kt] = 0.;
@@ -208,6 +209,7 @@ void DunePrismCondenser::Condense(){
             ePi0PrimaryDep[it][jt][kt] = 0.;
             eOtherPrimaryDep[it][jt][kt] = 0.;
 
+            eLepSecondaryDepFull[it][jt][kt] = 0.;
             eHadSecondaryDep[it][jt][kt] = 0.;
             eProtonSecondaryDep[it][jt][kt] = 0.;
             eNeutronSecondaryDep[it][jt][kt] = 0.;
