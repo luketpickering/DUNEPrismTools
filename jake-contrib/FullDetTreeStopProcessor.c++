@@ -33,6 +33,7 @@ struct EDep {
   double ProtonDep_FV;
   double ProtonDep_veto;
   double NeutronDep_FV;
+  double NeutronDep_secondary_FV;
   double NeutronDep_veto;
   double PiCDep_FV;
   double PiCDep_veto;
@@ -340,6 +341,10 @@ int main(int argc, char const *argv[]) {
     stoptree->Branch("NeutronDep_FV",
                      &std::get<1>(Detectors[d_it]).NeutronDep_FV,
                      "NeutronDep_FV/D");
+    stoptree->Branch("NeutronDep_secondary_FV",
+                     &std::get<1>(Detectors.back()).NeutronDep_secondary_FV,
+                     "NeutronDep_secondary_FV/D");
+
     stoptree->Branch("NeutronDep_veto",
                      &std::get<1>(Detectors[d_it]).NeutronDep_veto,
                      "NeutronDep_veto/D");
@@ -434,6 +439,11 @@ int main(int argc, char const *argv[]) {
                       std::get<0>(db).X_fv[1], 0) +
           Jaccumulate(rdr->eNeutronSecondaryDep, std::get<0>(db).X_fv[0],
                       std::get<0>(db).X_fv[1], 0);
+
+      std::get<1>(db).NeutronDep_secondary_FV =
+          Jaccumulate(rdr->eNeutronSecondaryDep, std::get<0>(db).X_fv[0],
+                      std::get<0>(db).X_fv[1], 0);
+
       std::get<1>(db).NeutronDep_veto =
           Jaccumulate(rdr->eNeutronPrimaryDep, std::get<0>(db).X_veto_left[0],
                       std::get<0>(db).X_veto_left[1], 0, true, true) +
