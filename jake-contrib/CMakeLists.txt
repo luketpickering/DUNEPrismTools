@@ -1,16 +1,11 @@
-SET(APPS BuildFluxes
-  FitFluxes
-  OscillateFlux
-  PredictRunPlanEventRates
-  CombineBuiltFluxes
-  BuildUncertaintyMatrix
-  MakeLitedk2nu)
+SET(APPS DunePrismAnalyzer DunePrismCondenser FullDetTreeStopProcessor)
 
-  include_directories(${INCLUDE_DIRECTORIES})
+include_directories(${INCLUDE_DIRECTORIES})
+include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 foreach(a ${APPS})
 
-  add_executable(dp_${a} ${a}.cxx)
+  add_executable(dp_${a} ${a}.c++)
 
   target_link_libraries(dp_${a} ${MODULETargets})
   target_link_libraries(dp_${a} ${ROOT_LIBS})

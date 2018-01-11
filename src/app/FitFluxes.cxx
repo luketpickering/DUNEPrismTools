@@ -18,12 +18,14 @@
 #include <vector>
 
 std::string FluxesFile, inpFluxHistsPattern;
+std::string FluxHist2DName;
 std::string inpFile, inpHistName;
 std::string oupFile;
 std::string oupDir;
 std::vector<DetectorStop> detStops;
 std::vector<std::pair<size_t, size_t> > UsedDetStopSlices;
 std::string runPlanCfg;
+std::string InpCoeffFile;
 
 bool UPDATEOutputFile = false;
 
@@ -44,6 +46,7 @@ int MaxMINUITCalls = 50000;
 
 double FitBetween_low = 0xdeadbeef, FitBetween_high = 0xdeadbeef;
 int binLow, binHigh;
+bool MultiplyChi2ContribByBinWidth = false;
 
 double referencePOT = std::numeric_limits<double>::min();
 std::vector<double> MeasurementFactor;
@@ -145,18 +148,23 @@ void TargetSumChi2(int &nDim, double *gout, double &result, double coeffs[],
             : 1;
 
     sumdiff +=
-        (TargetFlux->GetBinContent(bi_it) - SummedFlux->GetBinContent(bi_it)) *
-        (TargetFlux->GetBinContent(bi_it) - SummedFlux->GetBinContent(bi_it)) /
-        err;
+        (MultiplyChi2ContribByBinWidth ? SummedFlux->GetBinWidth(bi_it) : 1) *
+        ((TargetFlux->GetBinContent(bi_it) - SummedFlux->GetBinContent(bi_it)) *
+         (TargetFlux->GetBinContent(bi_it) - SummedFlux->GetBinContent(bi_it)) /
+         err);
   }
 
+  double reg = 0;
   if (RegFactor != 0xdeadbeef) {
     for (size_t i = 0; i < Fluxes.size(); i++) {
-      sumdiff += pow((coeffs[i] - coeffs[i + 1]) / RegFactor, 2);
+      reg += pow((coeffs[i] - coeffs[i + 1]) / RegFactor, 2);
     }
   }
 
-  result = sumdiff;
+  result = sumdiff + reg;
+
+  std::cout << "[INFO]: Target flux chi2: " << result << " (reg = " << reg
+            << " )." << std::endl;
 }
 
 void TargetSumGauss(int &nDim, double *gout, double &result, double coeffs[],
@@ -170,7 +178,10 @@ void TargetSumGauss(int &nDim, double *gout, double &result, double coeffs[],
     double GaussEval = TargetGauss->Eval(bi_c_E);
     double SummedBinContent = SummedFlux->GetBinContent(bi_it);
     double Uncert = pow(GaussEval / 20.0, 2) + pow(TargetPeakNorm / 30.0, 2);
-    sumdiff += pow(GaussEval - SummedBinContent, 2) / Uncert;
+    sumdiff +=
+        (MultiplyChi2ContribByBinWidth ? pow(SummedFlux->GetBinWidth(bi_it), 2)
+                                       : 1) *
+        (pow(GaussEval - SummedBinContent, 2) / Uncert);
   }
 
   double reg = 0;
@@ -187,100 +198,109 @@ void TargetSumGauss(int &nDim, double *gout, double &result, double coeffs[],
 }
 
 void SayUsage(char const *argv[]) {
-  std::cout << "[USAGE]: " << argv[0]
-            << "\n"
-               "  Input options:                                               "
-               "           \n"
-               "\n"
-               "\t-f <ROOT file[,hist name pattern]> : The input flux "
-               "histograms used in  \n"
-               "\t                                     the fit. If a pattern "
-               "is not       \n"
-               "\t                                     passed, then all TH1Ds "
-               "in the input\n"
-               "\t                                     are used.               "
-               "           \n"
-               "\t-r <RunPlan.XML>                   : An XML file specifying "
-               "a run plan  \n"
-               "\t                                     to make event rate "
-               "predictions and \n"
-               "\t                                     measured spectra for. "
-               "See          \n"
-               "\t                                     documentation for XML "
-               "structure.   \n"
-               "\n"
-               "  Target options:                                              "
-               "           \n"
-               "\t-t <ROOT file,hist name>           : The histogram of the "
-               "target flux to\n"
-               "\t                                     fit.                    "
-               "           \n"
-               "\n"
-               "\t-g <mean,width>                    : Use a gaussian target "
-               "distribution \n"
-               "\t                                     instead of a target "
-               "flux shape.    \n"
-               "\n"
-               "\t-[o|a] <ROOT file>                 : The output root file. "
-               "Using -o will\n"
-               "\t                                     overwrite a file of the "
-               "same name, \n"
-               "\t                                     -a will append the fit "
-               "result to   \n"
-               "\t                                     the file.               "
-               "           \n"
-               "\n"
-               "\t-d <directory name>                : If passed, fit result "
-               "will be put  \n"
-               "\t                                     into a subdirectory of "
-               "the root    \n"
-               "\t                                     file.                   "
-               "           \n"
-               "\n"
-               "\t-n <MaxCalls=50000>                : The maximum number of "
-               "MINUIT       \n"
-               "\t                                     evaluations before "
-               "giving up the   \n"
-               "\t                                     fit."
-               "\n"
-               "\t-c <CoeffLimit=30>                 : Parameter limits of "
-               "flux component \n"
-               "\t                                     coefficients.           "
-               "           \n"
-               "\t-x <ROOT file, hist name>          : Add xsec component for "
-               "making event\n"
-               "\t                                     rate predictions.       "
-               "           \n"
-               "\n"
-               "\t-rg <regularisation factor>        : Adds neighbouring       "
-               "coefficient\n"
-               "\t                                     regularisation.         "
-               "           \n"
-               "\n"
-               "\t-l <min val, max val>              : Fit between min and max."
-               "Outside \n"
-               "\t                                     of this range, -m       "
-               "determines\n"
-               "\t                                     behavior.             \n"
-               "\n"
-               "\t-m <0,1,2>                         : Out of range behavior.  "
-               "          \n"
-               "\t                                     0: Ignore out of range "
-               "bins.      \n"
-               "\t                                     1: Force out of range "
-               "bins to 0.  \n"
-               "\t                                     2: exponential decay "
-               "outside fit  \n"
-               "\t                                        region. decay rate "
-               "is          \n"
-               "\t                                        determined by -ed."
-               "\n"
-               "\t-ed <decay rate>                   : For -m 2, controls "
-               "decay rate.    \n"
-               "\t                                     Default = 3, larger is "
-               "faster     \n"
-               "\t                                     decay."
-            << std::endl;
+  std::cout
+      << "[USAGE]: " << argv[0]
+      << "\n"
+         "  Input options:                                               "
+         "           \n"
+         "\n"
+         "\t-f <ROOT file[,hist name pattern]> : The input flux "
+         "histograms used in  \n"
+         "\t                                     the fit. If a pattern "
+         "is not       \n"
+         "\t                                     passed, then all TH1Ds "
+         "in the input\n"
+         "\t                                     are used.               "
+         "           \n"
+         "\t-h <HistName>                      : Input 2D flux histogram,"
+         " Y bins \n"
+         "\t                                     correspond to different "
+         "fluxes.\n"
+         "\t-r <RunPlan.XML>                   : An XML file specifying "
+         "a run plan  \n"
+         "\t                                     to make event rate "
+         "predictions and \n"
+         "\t                                     measured spectra for. "
+         "See          \n"
+         "\t                                     documentation for XML "
+         "structure.   \n"
+         "\t-A <FitOutput.root>                : Applys a previous fit results "
+         "to a new set of \n"
+         "\t                                     input fluxes. Will not run a "
+         "fit.\n"
+         "\n"
+         "  Target options:                                              "
+         "           \n"
+         "\t-t <ROOT file,hist name>           : The histogram of the "
+         "target flux to\n"
+         "\t                                     fit.                    "
+         "           \n"
+         "\n"
+         "\t-g <mean,width>                    : Use a gaussian target "
+         "distribution \n"
+         "\t                                     instead of a target "
+         "flux shape.    \n"
+         "\n"
+         "\t-[o|a] <ROOT file>                 : The output root file. "
+         "Using -o will\n"
+         "\t                                     overwrite a file of the "
+         "same name, \n"
+         "\t                                     -a will append the fit "
+         "result to   \n"
+         "\t                                     the file.               "
+         "           \n"
+         "\n"
+         "\t-d <directory name>                : If passed, fit result "
+         "will be put  \n"
+         "\t                                     into a subdirectory of "
+         "the root    \n"
+         "\t                                     file.                   "
+         "           \n"
+         "\n"
+         "\t-n <MaxCalls=50000>                : The maximum number of "
+         "MINUIT       \n"
+         "\t                                     evaluations before "
+         "giving up the   \n"
+         "\t                                     fit."
+         "\n"
+         "\t-c <CoeffLimit=30>                 : Parameter limits of "
+         "flux component \n"
+         "\t                                     coefficients.           "
+         "           \n"
+         "\t-x <ROOT file, hist name>          : Add xsec component for "
+         "making event\n"
+         "\t                                     rate predictions.       "
+         "           \n"
+         "\n"
+         "\t-rg <regularisation factor>        : Adds neighbouring       "
+         "coefficient\n"
+         "\t                                     regularisation.         "
+         "           \n"
+         "\n"
+         "\t-l <min val>,<max val>              : Fit between min and max."
+         "Outside \n"
+         "\t                                     of this range, -m       "
+         "determines\n"
+         "\t                                     behavior.             \n"
+         "\n"
+         "\t-m <0,1,2>                         : Out of range behavior.  "
+         "          \n"
+         "\t                                     0: Ignore out of range "
+         "bins.      \n"
+         "\t                                     1: Force out of range "
+         "bins to 0.  \n"
+         "\t                                     2: exponential decay "
+         "outside fit  \n"
+         "\t                                        region. decay rate "
+         "is          \n"
+         "\t                                        determined by -ed."
+         "\n"
+         "\t-ed <decay rate>                   : For -m 2, controls "
+         "decay rate.    \n"
+         "\t                                     Default = 3, larger is "
+         "faster     \n"
+         "\t                                     decay."
+      << std::endl;
 }
 
 void handleOpts(int argc, char const *argv[]) {
@@ -323,6 +343,8 @@ void handleOpts(int argc, char const *argv[]) {
       }
       inpFile = params[0];
       inpHistName = params[1];
+    } else if (std::string(argv[opt]) == "-A") {
+      InpCoeffFile = argv[++opt];
     } else if (std::string(argv[opt]) == "-o") {
       oupFile = argv[++opt];
       UPDATEOutputFile = false;
@@ -360,11 +382,16 @@ void handleOpts(int argc, char const *argv[]) {
       for (size_t xs_it = 1; xs_it < params.size(); ++xs_it) {
         XSecComponentInputs.push_back(std::make_pair(params[0], params[xs_it]));
       }
+    } else if (std::string(argv[opt]) == "-h") {
+      FluxHist2DName = argv[++opt];
     } else if (std::string(argv[opt]) == "-rg") {
       RegFactor = str2T<double>(argv[++opt]);
     } else if (std::string(argv[opt]) == "-ed") {
       ExpDecayRate = str2T<double>(argv[++opt]);
-    } else if (std::string(argv[opt]) == "-?") {
+    } else if (std::string(argv[opt]) == "-B") {
+      MultiplyChi2ContribByBinWidth = true;
+    } else if ((std::string(argv[opt]) == "-?") ||
+               std::string(argv[opt]) == "--help") {
       SayUsage(argv);
       exit(0);
     } else {
@@ -391,7 +418,7 @@ int main(int argc, char const *argv[]) {
   }
 
   if (!IsGauss) {
-    OscFlux = GetHistogram(inpFile, inpHistName);
+    OscFlux = GetHistogram<TH1D>(inpFile, inpHistName);
 
     if (FitBetween_low == 0xdeadbeef) {
       binLow = 1;
@@ -499,8 +526,25 @@ int main(int argc, char const *argv[]) {
 
       ifl->Close();
       delete ifl;
-    } else {
-      Fluxes = GetHistograms(FluxesFile, inpFluxHistsPattern);
+    } else if (FluxHist2DName.size()) {
+      TH2D *Flux2D = GetHistogram<TH2D>(FluxesFile, FluxHist2DName);
+      if (!Flux2D) {
+        std::cout << "[ERROR]: Found no input flux with name: \""
+                  << FluxHist2DName << "\" in file: \"" << FluxesFile << "\"."
+                  << std::endl;
+        exit(1);
+      }
+
+      Fluxes = SplitTH2D(Flux2D, true, 0);
+      if (!Fluxes.size()) {
+        std::cout << "[ERROR]: Couldn't find any fluxes in split TH2D."
+                  << std::endl;
+        exit(1);
+      }
+      std::cout << "[INFO]: Found " << Fluxes.size() << " input fluxes."
+                << std::endl;
+    } else if (inpFluxHistsPattern.size()) {
+      Fluxes = GetHistograms<TH1D>(FluxesFile, inpFluxHistsPattern);
       if (!Fluxes.size()) {
         std::cout << "[ERROR]: Found no input fluxes matching pattern: \""
                   << inpFluxHistsPattern << "\" in file: \"" << FluxesFile
@@ -513,7 +557,7 @@ int main(int argc, char const *argv[]) {
     }
 
   } else {
-    std::cout << "[ERROR]: Expected either -f or -r options to be passed."
+    std::cout << "[ERROR]: Expected either -f (h) or -r options to be passed."
               << std::endl;
     exit(1);
   }
@@ -532,74 +576,106 @@ int main(int argc, char const *argv[]) {
     }
   }
 
-  TFitter *minimizer = new TFitter(Fluxes.size());
+  double *coeffs;
+  TFitter *minimizer = nullptr;
+  if (!InpCoeffFile.size()) {
+    minimizer = new TFitter(Fluxes.size());
 
-  double targetenu = IsGauss ? GaussC : TargetFlux->GetXaxis()->GetBinCenter(
-                                            TargetFlux->GetMaximumBin());
-
-  size_t flux_with_closest_peak_it = -1;
-  double flux_peak_dist = std::numeric_limits<double>::max();
-  for (size_t flux_it = 0; flux_it < Fluxes.size(); flux_it++) {
-    double maxenu = Fluxes[flux_it]->GetXaxis()->GetBinCenter(
-        Fluxes[flux_it]->GetMaximumBin());
-    double peak_difference = fabs(maxenu - targetenu);
-    if (peak_difference < flux_peak_dist) {
-      flux_peak_dist = peak_difference;
-      flux_with_closest_peak_it = flux_it;
+    if (!IsGauss) {
+      // Rescale the target to a similar size to the fluxes.
+      double OnAxisPeak = Fluxes[0]->GetMaximum();
+      double TargetMax = TargetFlux->GetMaximum();
+      TargetFlux->Scale(OnAxisPeak / TargetMax);
     }
-  }
 
-  std::cout << "[INFO]: flux_with_closest_peak_it: "
-            << flux_with_closest_peak_it
-            << ", flux_peak_dist = " << flux_peak_dist << std::endl;
-  for (size_t flux_it = 0; flux_it < Fluxes.size(); flux_it++) {
-    std::cout << "[INFO]: fluxpar" << flux_it
-              << " uses flux: " << Fluxes[flux_it]->GetName() << std::endl;
+    double targetenu = IsGauss ? GaussC : TargetFlux->GetXaxis()->GetBinCenter(
+                                              TargetFlux->GetMaximumBin());
 
-    std::stringstream ss("");
-    ss << "fluxpar" << flux_it;
-
-    if (abs(flux_it - flux_with_closest_peak_it) ==
-        1) {  // Neighbours are negative
-      minimizer->SetParameter(flux_it, ss.str().c_str(), -0.35, 0.1,
-                              -CoeffLimit, CoeffLimit);
-    } else if (abs(flux_it - flux_with_closest_peak_it) == 0) {
-      minimizer->SetParameter(flux_it, ss.str().c_str(), 1., 0.1, -CoeffLimit,
-                              CoeffLimit);
-      TargetPeakNorm = Fluxes[flux_it]->GetMaximum();
-    } else {  // Others start free
-      minimizer->SetParameter(flux_it, ss.str().c_str(), 0., 0.1, -CoeffLimit,
-                              CoeffLimit);
+    size_t flux_with_closest_peak_it = -1;
+    double flux_peak_dist = std::numeric_limits<double>::max();
+    for (size_t flux_it = 0; flux_it < Fluxes.size(); flux_it++) {
+      double maxenu = Fluxes[flux_it]->GetXaxis()->GetBinCenter(
+          Fluxes[flux_it]->GetMaximumBin());
+      double peak_difference = fabs(maxenu - targetenu);
+      if (peak_difference < flux_peak_dist) {
+        flux_peak_dist = peak_difference;
+        flux_with_closest_peak_it = flux_it;
+      }
     }
-  }
 
-  if (IsGauss) {
-    TargetGauss->SetParameter(0, TargetPeakNorm);
-    TargetGauss->SetParameter(1, GaussC);
-    TargetGauss->SetParameter(2, GaussW);
-    std::cout << "[INFO]: Peak: " << TargetPeakNorm
-              << ", Central value: " << GaussC << ", width: " << GaussW
-              << std::endl;
-  }
+    std::cout << "[INFO]: flux_with_closest_peak_it: "
+              << flux_with_closest_peak_it
+              << ", flux_peak_dist = " << flux_peak_dist << std::endl;
+    for (size_t flux_it = 0; flux_it < Fluxes.size(); flux_it++) {
+      std::cout << "[INFO]: fluxpar" << flux_it
+                << " uses flux: " << Fluxes[flux_it]->GetName() << std::endl;
 
-  minimizer->SetMaxIterations(MaxMINUITCalls);
-  minimizer->GetMinuit()->SetPrintLevel(0);
+      std::stringstream ss("");
+      ss << "fluxpar" << flux_it;
 
-  minimizer->SetFCN(IsGauss ? TargetSumGauss : TargetSumChi2);
+      if (abs(flux_it - flux_with_closest_peak_it) ==
+          1) {  // Neighbours are negative
+        minimizer->SetParameter(flux_it, ss.str().c_str(), -0.35, 0.1,
+                                -CoeffLimit, CoeffLimit);
+      } else if (abs(flux_it - flux_with_closest_peak_it) == 0) {
+        minimizer->SetParameter(flux_it, ss.str().c_str(), 1., 0.1, -CoeffLimit,
+                                CoeffLimit);
+        TargetPeakNorm = Fluxes[flux_it]->GetMaximum();
+      } else {  // Others start free
+        minimizer->SetParameter(flux_it, ss.str().c_str(), 0., 0.1, -CoeffLimit,
+                                CoeffLimit);
+      }
+    }
 
-  double alist[2] = {double(MaxMINUITCalls), 1E-5 * TargetPeakNorm};
+    if (IsGauss) {
+      TargetGauss->SetParameter(0, TargetPeakNorm);
+      TargetGauss->SetParameter(1, GaussC);
+      TargetGauss->SetParameter(2, GaussW);
+      std::cout << "[INFO]: Peak: " << TargetPeakNorm
+                << ", Central value: " << GaussC << ", width: " << GaussW
+                << std::endl;
+    }
 
-  int status = minimizer->ExecuteCommand("MIGRAD", alist, 2);
-  if (status) {
-    std::cout << "[WARN]: Failed to find minimum (STATUS: " << status << ")."
-              << std::endl;
+    minimizer->SetMaxIterations(MaxMINUITCalls);
+    minimizer->GetMinuit()->SetPrintLevel(0);
+
+    minimizer->SetFCN(IsGauss ? TargetSumGauss : TargetSumChi2);
+
+    double alist[2] = {double(MaxMINUITCalls), 1E-5 * TargetPeakNorm};
+
+    int status = minimizer->ExecuteCommand("MIGRAD", alist, 2);
+    if (status) {
+      std::cout << "[WARN]: Failed to find minimum (STATUS: " << status << ")."
+                << std::endl;
+    } else {
+      minimizer->PrintResults(1, 0);
+    }
+
+    coeffs = new double[Fluxes.size()];
+    for (size_t flux_it = 0; flux_it < Fluxes.size(); flux_it++) {
+      coeffs[flux_it] = minimizer->GetParameter(flux_it);
+    }
   } else {
-    minimizer->PrintResults(1, 0);
-  }
+    TFile *icf = new TFile(InpCoeffFile.c_str(), "READ");
+    if (!icf || !icf->IsOpen()) {
+      std::cout << "[ERROR]: Couldn't open coeff input file: " << InpCoeffFile
+                << std::endl;
+      exit(1);
+    }
 
-  double *coeffs = new double[Fluxes.size()];
-  for (size_t flux_it = 0; flux_it < Fluxes.size(); flux_it++) {
-    coeffs[flux_it] = minimizer->GetParameter(flux_it);
+    TGraph *cg = dynamic_cast<TGraph *>(icf->Get("coeffs"));
+    if (!cg) {
+      std::cout << "[ERROR]: Couldn't get TGraph \'coeffs\' from output file: "
+                << InpCoeffFile << std::endl;
+      exit(1);
+    }
+
+    coeffs = new double[Fluxes.size()];
+    for (size_t flux_it = 0; flux_it < Fluxes.size(); flux_it++) {
+      double x, y;
+      cg->GetPoint(flux_it, x, y);
+      coeffs[flux_it] = y;
+    }
   }
 
   SumHistograms(SummedFlux, coeffs, Fluxes);
@@ -629,27 +705,39 @@ int main(int argc, char const *argv[]) {
     cl->SetDirectory(wD);
   }
 
-  TH1D *coeffsH = new TH1D("Coeffs", "Coeffs;Off-axis bin;Weight",
-                           Fluxes.size(), 0, Fluxes.size());
-  for (size_t flux_it = 0; flux_it < Fluxes.size(); flux_it++) {
-    coeffsH->SetBinContent(flux_it + 1, coeffs[(Fluxes.size() - 1) - flux_it]);
-    coeffsH->SetBinError(flux_it + 1,
-                         minimizer->GetParError((Fluxes.size() - 1) - flux_it));
+  if (minimizer) {
+    TH1D *coeffsH = new TH1D("Coeffs", "Coeffs;Off-axis bin;Weight",
+                             Fluxes.size(), 0, Fluxes.size());
+    for (size_t flux_it = 0; flux_it < Fluxes.size(); flux_it++) {
+      coeffsH->SetBinContent(flux_it + 1,
+                             coeffs[(Fluxes.size() - 1) - flux_it]);
+      coeffsH->SetBinError(
+          flux_it + 1, minimizer->GetParError((Fluxes.size() - 1) - flux_it));
+    }
   }
 
   oupD->cd();
 
   std::stringstream ss("");
-  TGraph peak_coeffs(1);
-  peak_coeffs.Set(Fluxes.size());
-  for (size_t flux_it = 0; flux_it < Fluxes.size(); flux_it++) {
-    peak_coeffs.SetPoint(
-        flux_it,
-        detStops[UsedDetStopSlices[flux_it].first].GetAbsoluteOffsetOfSlice(
-            UsedDetStopSlices[flux_it].second),
-        coeffs[flux_it]);
+  if (detStops.size()) {
+    TGraph peak_coeffs(1);
+    peak_coeffs.Set(Fluxes.size());
+    for (size_t flux_it = 0; flux_it < Fluxes.size(); flux_it++) {
+      peak_coeffs.SetPoint(
+          flux_it,
+          detStops[UsedDetStopSlices[flux_it].first].GetAbsoluteOffsetOfSlice(
+              UsedDetStopSlices[flux_it].second),
+          coeffs[flux_it]);
+    }
+    peak_coeffs.Write("coeffs");
+  } else {
+    TGraph peak_coeffs(1);
+    peak_coeffs.Set(Fluxes.size());
+    for (size_t flux_it = 0; flux_it < Fluxes.size(); flux_it++) {
+      peak_coeffs.SetPoint(flux_it, flux_it, coeffs[flux_it]);
+    }
+    peak_coeffs.Write("coeffs");
   }
-  peak_coeffs.Write("coeffs_OAA");
 
   oupD->cd();
 
@@ -735,7 +823,7 @@ int main(int argc, char const *argv[]) {
 
   if (XSecComponentInputs.size() && detStops.size()) {
     for (std::pair<std::string, std::string> hdescript : XSecComponentInputs) {
-      TH1D *hist = GetHistogram(hdescript.first, hdescript.second);
+      TH1D *hist = GetHistogram<TH1D>(hdescript.first, hdescript.second);
       std::cout << "[INFO]: Got XSec component: " << hist->GetName()
                 << std::endl;
       XSecComponents[hist->GetName()] = static_cast<TH1D *>(hist->Clone());
@@ -859,6 +947,10 @@ int main(int argc, char const *argv[]) {
   oupF->Write();
   oupF->Close();
 
+  int dum1, dum4 = 0;
+  double dum2, dum3;
+  IsGauss ? TargetSumGauss(dum1, &dum2, dum3, coeffs, dum4)
+          : TargetSumChi2(dum1, &dum2, dum3, coeffs, dum4);
   std::cout << "Used " << Fluxes.size() << " fluxes to fit "
             << (binHigh - binLow) << " bins." << std::endl;
 }

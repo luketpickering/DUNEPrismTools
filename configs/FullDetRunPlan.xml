@@ -1,0 +1,14 @@
+<DUNEPrism>
+  <RunPlan Name="FullDetMeasurement">
+    <Detector MeasurementRegionWidth_m="5" DetectorFiducialWidth_m="5" DetectorFiducialHeight_m="2.5" DetectorFiducialDepth_m="4" FiducialVolumeDensity_kgm3="1396" />
+    <Stops>
+      <Stop LateralOffset_m="0" POTExposure="1.05E20"/>
+      <Stop LateralOffset_m="5" POTExposure="1.05E20"/>
+      <Stop LateralOffset_m="10" POTExposure="1.05E20"/>
+      <Stop LateralOffset_m="15" POTExposure="1.05E20"/>
+      <Stop LateralOffset_m="20" POTExposure="1.05E20"/>
+      <Stop LateralOffset_m="25" POTExposure="1.05E20"/>
+      <Stop LateralOffset_m="30" POTExposure="1.05E20"/>
+    </Stops>
+  </RunPlan>
+</DUNEPrism>

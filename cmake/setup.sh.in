@@ -41,9 +41,9 @@ function add_to_LD_LIBRARY_PATH () {
   done
 }
 
-add_to_PATH "@CMAKE_INSTALL_PREFIX@/bin"
+export DUNEPRISMTOOLSROOT="@CMAKE_INSTALL_PREFIX@"
 
-# add_to_LD_LIBRARY_PATH "@CMAKE_INSTALL_PREFIX@/lib"
+add_to_PATH "${DUNEPRISMTOOLSROOT}/bin"
 
 if [ ! "${ROOTSYS}" ]; then
   echo "[INFO]: Sourcing ROOT from: @CMAKE_ROOTSYS@"

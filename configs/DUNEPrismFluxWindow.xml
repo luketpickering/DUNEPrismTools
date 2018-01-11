@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<gdk2nu_config>
+ <param_set name="DUNEPrismFluxWindow">
+    <units> m </units>
+
+    <beamdir type="series">
+       <rotation axis="x" units="deg"> -5.8 </rotation>
+    </beamdir>
+
+    <beampos> 0, 58.1, -575.0 </beampos>
+
+    <window>
+      <point coord="det"> -37.51, -1.51, -2.51 </point>
+      <point coord="det"> 1.51, -1.51, -2.51 </point>
+      <point coord="det"> -37.51, 2.1, -2.51 </point>
+    </window>
+
+    <enumax> 120. 1.05 1.05 2500000 </enumax>
+    <reuse> 10 </reuse>
+  </param_set>
+ <param_set name="OnAxisFluxWindow">
+    <units> m </units>
+
+    <beamdir type="series">
+       <rotation axis="x" units="deg"> -5.8 </rotation>
+    </beamdir>
+
+    <beampos> 0, 58.1, -575.0 </beampos>
+
+    <window>
+      <point coord="det"> -2.51, -2, -2.01 </point>
+      <point coord="det"> 2.51, -2, -2.01 </point>
+      <point coord="det"> -2.51, 2, -2.01 </point>
+    </window>
+
+    <enumax> 120. 1.05 1.05 2500000 </enumax>
+    <reuse> 10 </reuse>
+  </param_set>
+ <param_set name="OnAxisFluxWindow1m3">
+    <units> m </units>
+
+    <beamdir type="series">
+       <rotation axis="x" units="deg"> -5.8 </rotation>
+    </beamdir>
+
+    <beampos> 0, 58.1, -575.0 </beampos>
+
+    <window>
+      <point coord="det"> -0.51, -0.51, -0.51 </point>
+      <point coord="det"> 0.51, -0.51, -0.51 </point>
+      <point coord="det"> -0.51, 1, -0.51 </point>
+    </window>
+
+    <enumax> 120. 1.05 1.05 2500000 </enumax>
+    <reuse> 10 </reuse>
+  </param_set>
+
+  <param_set name="LArDUNEFV_25.8mx22.6mx56.6m_1287km">
+    <units> m </units>
+
+    <beamdir type="series">
+       <rotation axis="x" units="deg"> -5.8 </rotation>
+    </beamdir>
+
+    <beampos> (0, 0, 0 ) = ( 0, 0, 1287000.0 ) </beampos>
+
+    <window>
+      <point coord="det"> -13, -12, -28.4 </point>
+      <point coord="det"> 13, -12, -28.4 </point>
+      <point coord="det"> -13, 12.5, -28.4 </point>
+    </window>
+
+    <enumax> 120. 1.05 1.05 2500000 </enumax>
+    <reuse> 10 </reuse>
+  </param_set>
+</gdk2nu_config>

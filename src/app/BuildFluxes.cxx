@@ -137,6 +137,10 @@ std::tuple<double, double, double> GetNuWeight(DK2NuReader &dk2nuRdr,
     nu_wght *= wt_ratio;
   }
 
+  if (!std::isnormal(nu_energy) || !std::isnormal(nu_wght)) {
+    std::cout << "[ERROR]: Calculated bad nustats." << std::endl;
+    exit(1);
+  }
   return std::make_tuple(nu_energy, nuRay.Theta(), nu_wght);
 }
 
@@ -150,17 +154,23 @@ double BLow = 0;
 double BUp = 10;
 double detector_width = 0;
 double detector_height = 0;
+bool ReUseParents = true;
+bool DK2NULite = false;
 
 double ZDist = 57400;
-double PotPerFile = 1E5;
 int NMaxNeutrinos = -1;
 
 std::vector<double> varBin;
 bool VariableBinning = false;
 
+bool FillStopNeutrinoTree = false;
+bool DoDivergence = false;
+
 std::string outputFile;
 
 std::string runPlanCfg, runPlanName = "";
+
+int OnlySpecies = 0;
 
 void SayUsage(char const *argv[]) {
   std::cout << "[USAGE]: " << argv[0] << "\n"
@@ -222,7 +232,15 @@ void SayUsage(char const *argv[]) {
                "\n"
                "\t-z <ZDist>                    : Detector ZDist (cm).       \n"
                "\n"
-               "\t-P <POTPerFile>               : The POT per input file.    \n"
+               "\t-P                            : Only use each decaying parent"
+               " once.       \n"
+               "\t-F                            : Fill tree of neutrino "
+               "energies that can be used to \n"
+               "\t                                rebin flux.\n"
+               "\t-S <species PDG>              : Only fill information for "
+               "neutrinos of a given species.\n"
+               "\t-D                            : Calculate flux divergences.\n"
+               "\t-L                            : Expect dk2nulite inputs.\n"
                "\n"
             << std::endl;
 }
@@ -317,7 +335,15 @@ void handleOpts(int argc, char const *argv[]) {
     } else if (std::string(argv[opt]) == "-z") {
       ZDist = str2T<double>(argv[++opt]);
     } else if (std::string(argv[opt]) == "-P") {
-      PotPerFile = str2T<double>(argv[++opt]);
+      ReUseParents = false;
+    } else if (std::string(argv[opt]) == "-F") {
+      FillStopNeutrinoTree = true;
+    } else if (std::string(argv[opt]) == "-S") {
+      OnlySpecies = str2T<int>(argv[++opt]);
+    } else if (std::string(argv[opt]) == "-D") {
+      DoDivergence = true;
+    } else if (std::string(argv[opt]) == "-L") {
+      DK2NULite = true;
     } else {
       std::cout << "[ERROR]: Unknown option: " << argv[opt] << std::endl;
       SayUsage(argv);
@@ -349,6 +375,9 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
   Hists.resize(NAngs);
 
   std::vector<int> NuPDGTargets = {-12, 12, -14, 14};
+  if (OnlySpecies) {
+    NuPDGTargets = std::vector<int>{OnlySpecies};
+  }
   std::vector<std::string> NuNames = {"nueb", "nue", "numub", "numu"};
 
   for (size_t ang_it = 0; ang_it < NAngs; ++ang_it) {
@@ -437,6 +466,10 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
 
     dk2nuRdr.GetEntry(nu_it);
 
+    if (OnlySpecies && (OnlySpecies != dk2nuRdr.decay_ntype)) {
+      continue;
+    }
+
     double wF = (dk2nuRdr.decay_nimpwt / TMath::Pi()) * (1.0 / TotalPOT);
     for (size_t ang_it = 0; ang_it < NAngs; ++ang_it) {
       TVector3 det_point = detPoses[ang_it];
@@ -465,9 +498,14 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
       }
 
       Hists[ang_it][nuPDG_it][0]->Fill(std::get<0>(nuStats), w);
+      std::cout << "[VERBOSE]: " << ang_it << ", " << nuPDG_it << ", "
+                << std::get<0>(nuStats) << ", " << w << std::endl;
 
-      if ((std::get<0>(nuStats) != std::get<0>(nuStats)) || (w != w)) {
-        std::cout << std::get<0>(nuStats) << ", " << w << std::endl;
+      if ((!std::isnormal(std::get<0>(nuStats)) || (!std::isnormal(w)))) {
+        std::cout << std::get<0>(nuStats) << ", " << w << "("
+                  << std::get<2>(nuStats) << "*" << dk2nuRdr.decay_nimpwt
+                  << "/(" << TMath::Pi() << "*" << TotalPOT << ")."
+                  << std::endl;
         throw;
       }
 
@@ -491,6 +529,14 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
 
   for (size_t ang_it = 0; ang_it < NAngs; ++ang_it) {
     for (size_t nuPDG_it = 0; nuPDG_it < NuPDGTargets.size(); ++nuPDG_it) {
+      double integ = Hists[ang_it][nuPDG_it][0]->Integral();
+      if (!std::isnormal(integ)) {
+        std::cerr << "[ERROR]: Flux @ angular point: " << ang_it
+                  << " for PDG: " << NuPDGTargets[nuPDG_it]
+                  << " has bad integral." << std::endl;
+        throw;
+      }
+
       Hists[ang_it][nuPDG_it][0]->Scale(1E-4, "width");
       if (DoExtra) {
         Hists[ang_it][nuPDG_it][1]->Scale(1E-4, "width");
@@ -513,9 +559,9 @@ void CalculateFluxesForRunPlan(DK2NuReader &dk2nuRdr, double TotalPOT,
                     : std::min(NMaxNeutrinos, int(dk2nuRdr.GetEntries()));
   TotalPOT = TotalPOT * (double(nNus) / double(dk2nuRdr.GetEntries()));
   std::cout << "Only using the first " << nNus << " events out of "
-            << dk2nuRdr.GetEntries() << ", scaling POT to " << TotalPOT
+            << dk2nuRdr.GetEntries() << ", scaling totla POT to " << TotalPOT
             << std::endl;
-  std::cout << "Reding " << nNus << " Dk2Nu entries." << std::endl;
+  std::cout << "Reading " << nNus << " Dk2Nu entries." << std::endl;
 
   TFile *outfile = new TFile(outputFile.c_str(), "RECREATE");
 
@@ -523,6 +569,7 @@ void CalculateFluxesForRunPlan(DK2NuReader &dk2nuRdr, double TotalPOT,
   std::vector<double> MeasurementHalfWidths;
   std::vector<double> MeasurementHalfHeights;
   std::vector<TVector3> detPositions;
+  std::vector<std::pair<size_t, size_t> > SliceToStopSliceMap;
 
   std::vector<std::map<int, TH1D *> > Fluxes;
   std::vector<std::map<int, TH2D *> > Divergences;
@@ -545,11 +592,16 @@ void CalculateFluxesForRunPlan(DK2NuReader &dk2nuRdr, double TotalPOT,
 
       detPositions.push_back(
           TVector3(MeasurementsOffsets.back() * 100.0, 0, ZDist));
+      SliceToStopSliceMap.push_back(std::make_pair(ds_it, ms_it));
 
       std::map<int, TH1D *> fluxhistos;
       std::map<int, TH2D *> divhistos;
 
       for (int species : {-14, -12, 12, 14}) {
+        if (OnlySpecies && (OnlySpecies != species)) {
+          continue;
+        }
+
         ss.str("");
         ss << GetSpeciesName(species) << "_flux_stop_" << ds_it << "_slice_"
            << ms_it << "_" << MeasurementsOffsets.back() << "_m";
@@ -565,24 +617,37 @@ void CalculateFluxesForRunPlan(DK2NuReader &dk2nuRdr, double TotalPOT,
                                              NBins, BLow, BUp);
         fluxhistos[species]->SetDirectory(nullptr);
 
-        ss.str("");
-        ss << GetSpeciesName(species) << "_divergence_stop_" << ds_it
-           << "_slice_" << ms_it << "_" << MeasurementsOffsets.back() << "_m";
-        divhistos[species] =
-            new TH2D(ss.str().c_str(),
-                     ";#it{E}_{#nu} (GeV);#theta_{#nu} (degrees);#Phi_{#nu} "
-                     "per POT",
-                     80, BLow, BUp, 240, 0, 6);
-        divhistos[species]->SetDirectory(nullptr);
+        if (DoDivergence) {
+          ss.str("");
+          ss << GetSpeciesName(species) << "_divergence_stop_" << ds_it
+             << "_slice_" << ms_it << "_" << MeasurementsOffsets.back() << "_m";
+          divhistos[species] =
+              new TH2D(ss.str().c_str(),
+                       ";#it{E}_{#nu} (GeV);#theta_{#nu} (degrees);#Phi_{#nu} "
+                       "per POT",
+                       80, BLow, BUp, 240, 0, 6);
+          divhistos[species]->SetDirectory(nullptr);
+        }
       }
 
       Fluxes.push_back(fluxhistos);
-      Divergences.push_back(divhistos);
+      if (DoDivergence) {
+        Divergences.push_back(divhistos);
+      }
     }
+  }
+
+  double FluxNormPOT = TotalPOT;
+  if (!ReUseParents) {
+    FluxNormPOT /= Fluxes.size();
+    std::cout
+        << "[INFO]: Each decay parent may only be used once -- POT per slice: "
+        << FluxNormPOT << std::endl;
   }
 
   size_t NSlices = detPositions.size();
   size_t updateStep = nNus / 10 ? nNus / 10 : 1;
+  size_t slice_it = 0;
   for (size_t nu_it = 0; nu_it < nNus; ++nu_it) {
     if (!(nu_it % updateStep)) {
       std::cout << "--" << nu_it << "/" << nNus << std::endl;
@@ -590,8 +655,49 @@ void CalculateFluxesForRunPlan(DK2NuReader &dk2nuRdr, double TotalPOT,
 
     dk2nuRdr.GetEntry(nu_it);
 
-    double wF = (dk2nuRdr.decay_nimpwt / TMath::Pi()) * (1.0 / TotalPOT);
-    for (size_t slice_it = 0; slice_it < NSlices; ++slice_it) {
+    if (OnlySpecies && (OnlySpecies != dk2nuRdr.decay_ntype)) {
+      continue;
+    }
+
+    double wF = (dk2nuRdr.decay_nimpwt / TMath::Pi()) * (1.0 / FluxNormPOT);
+
+    if (ReUseParents) {
+      for (slice_it = 0; slice_it < NSlices; ++slice_it) {
+        TVector3 det_point = detPositions[slice_it];
+
+        det_point[0] += (2.0 * rnjesus.Uniform() - 1.0) *
+                        MeasurementHalfWidths[slice_it] * 100.0;
+
+        det_point[1] += (2.0 * rnjesus.Uniform() - 1.0) *
+                        MeasurementHalfHeights[slice_it] * 100.0;
+
+        std::tuple<double, double, double> nuStats =
+            GetNuWeight(dk2nuRdr, det_point);
+
+        double w = std::get<2>(nuStats) * wF;
+
+        if ((std::get<0>(nuStats) != std::get<0>(nuStats)) || (w != w)) {
+          std::cout << std::get<0>(nuStats) << ", " << w << std::endl;
+          throw;
+        }
+
+        Fluxes[slice_it][dk2nuRdr.decay_ntype]->Fill(std::get<0>(nuStats), w);
+        if (DoDivergence) {
+          Divergences[slice_it][dk2nuRdr.decay_ntype]->Fill(
+              std::get<0>(nuStats),
+              std::get<1>(nuStats) * (180.0 / TMath::Pi()), w);
+        }
+
+        if (FillStopNeutrinoTree) {
+          std::pair<size_t, size_t> dsms = SliceToStopSliceMap[slice_it];
+
+          detStops[dsms.first].FillNeutrino(dsms.second, dk2nuRdr.decay_ntype,
+                                            std::get<0>(nuStats), w);
+        }
+      }
+    } else {
+      slice_it = (slice_it + 1) % NSlices;
+
       TVector3 det_point = detPositions[slice_it];
 
       det_point[0] += (2.0 * rnjesus.Uniform() - 1.0) *
@@ -605,26 +711,43 @@ void CalculateFluxesForRunPlan(DK2NuReader &dk2nuRdr, double TotalPOT,
 
       double w = std::get<2>(nuStats) * wF;
 
-      if ((std::get<0>(nuStats) != std::get<0>(nuStats)) || (w != w)) {
-        std::cout << std::get<0>(nuStats) << ", " << w << std::endl;
+      if ((!std::isnormal(std::get<0>(nuStats)) || (!std::isnormal(w)))) {
+        std::cout << std::get<0>(nuStats) << ", " << w << "("
+                  << std::get<2>(nuStats) << "*" << dk2nuRdr.decay_nimpwt
+                  << "/(" << TMath::Pi() << "*" << TotalPOT << ")."
+                  << std::endl;
         throw;
       }
 
       Fluxes[slice_it][dk2nuRdr.decay_ntype]->Fill(std::get<0>(nuStats), w);
-      Divergences[slice_it][dk2nuRdr.decay_ntype]->Fill(
-          std::get<0>(nuStats), std::get<1>(nuStats) * (180.0 / TMath::Pi()),
-          w);
+      if (DoDivergence) {
+        Divergences[slice_it][dk2nuRdr.decay_ntype]->Fill(
+            std::get<0>(nuStats), std::get<1>(nuStats) * (180.0 / TMath::Pi()),
+            w);
+      }
+
+      if (FillStopNeutrinoTree) {
+        std::pair<size_t, size_t> dsms = SliceToStopSliceMap[slice_it];
+
+        detStops[dsms.first].FillNeutrino(dsms.second, dk2nuRdr.decay_ntype,
+                                          std::get<0>(nuStats), w);
+      }
     }
   }
 
-  size_t slice_it = 0;
+  slice_it = 0;
   for (size_t ds_it = 0; ds_it < detStops.size(); ++ds_it) {
     DetectorStop &ds = detStops[ds_it];
     for (size_t ms_it = 0; ms_it < ds.GetNMeasurementSlices(); ++ms_it) {
       for (int species : {-14, -12, 12, 14}) {
+        if (OnlySpecies && (OnlySpecies != species)) {
+          continue;
+        }
         Fluxes[slice_it][species]->Scale(1E-4, "width");
         ds.AddSliceFlux(ms_it, species, Fluxes[slice_it][species]);
-        ds.AddSliceDivergence(ms_it, species, Divergences[slice_it][species]);
+        if (DoDivergence) {
+          ds.AddSliceDivergence(ms_it, species, Divergences[slice_it][species]);
+        }
       }
       slice_it++;
     }
@@ -641,6 +764,9 @@ void CalculateFluxesForRunPlan(DK2NuReader &dk2nuRdr, double TotalPOT,
     DetectorStop &ds = detStops[ds_it];
     for (size_t ms_it = 0; ms_it < ds.GetNMeasurementSlices(); ++ms_it) {
       for (int species : {-14, -12, 12, 14}) {
+        if (OnlySpecies && (OnlySpecies != species)) {
+          continue;
+        }
         double sliceOffset = ds.GetAbsoluteOffsetOfSlice(ms_it);
         double theta_rad = atan(sliceOffset / ZDist);
         FluxNorms[species].SetPoint(
@@ -652,6 +778,9 @@ void CalculateFluxesForRunPlan(DK2NuReader &dk2nuRdr, double TotalPOT,
   }
 
   for (int species : {-14, -12, 12, 14}) {
+    if (OnlySpecies && (OnlySpecies != species)) {
+      continue;
+    }
     FluxNorms[species].GetXaxis()->SetTitle("Off-axis angle (Degrees)");
     FluxNorms[species].GetYaxis()->SetTitle(
         "#Phi_{#nu}^{Total} per m^{2} per POT");
@@ -683,14 +812,16 @@ int main(int argc, char const *argv[]) {
     mrads.push_back(0);
   }
 
-  DK2NuReader *dk2nuRdr = new DK2NuReader("dk2nuTree", inpDir);
+  DK2NuReader *dk2nuRdr = new DK2NuReader(
+      DK2NULite ? "dk2nuTree_lite" : "dk2nuTree", inpDir, DK2NULite);
 
   if (!dk2nuRdr->GetEntries()) {
     std::cout << "No valid input files found." << std::endl;
     return 1;
   }
 
-  DKMetaReader *dkmRdr = new DKMetaReader("dkmetaTree", inpDir);
+  DKMetaReader *dkmRdr = new DKMetaReader(
+      DK2NULite ? "dkmetaTree_lite" : "dkmetaTree", inpDir, DK2NULite);
 
   int metaNEntries = dkmRdr->GetEntries();
 

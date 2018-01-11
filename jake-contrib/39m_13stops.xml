@@ -15,6 +15,6 @@
   <Detector detectorSizeX="3." detectorSizeY="3." detectorSizeZ="5." fiducialGapX="0.5" fiducialGapY="0.5" fiducialGapZ="0.5" shift="-36" />
  </RunPlan>
  <Full Name="FullDet">
-   <Detector detectorSizeX="39." detectorSizeY="3." detectorSizeZ="5." fiducialGapX="0.5" fiducialGapY="0.5" fiducialGapZ="0.5" shift="-18." />
+   <Detector detectorSizeX="40." detectorSizeY="3." detectorSizeZ="5." fiducialGapX="0.5" fiducialGapY="0.5" fiducialGapZ="0.5" shift="-18." />
  </Full>
 </DUNEPrism>

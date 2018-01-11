@@ -2,7 +2,7 @@
 /edep/random/timeRandomSeed
 
 ## Replace this with the name of a GENIE rooTracker file
-/generator/kinematics/rooTracker/input GENIE.rt.root
+/generator/kinematics/rooTracker/input gntp.10000.nrt.root
 
 ## Use the rooTracker input format.  This is directly supported by GENIE.
 /generator/kinematics/set rooTracker
