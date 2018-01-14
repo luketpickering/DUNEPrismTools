@@ -98,6 +98,17 @@ void DunePrismCondenser::Condense(){
         nNeutronFull = 0;
         eGammaTrueFull = 0.;
         nGammaFull = 0;  
+        lepExitingPosX = 0;  
+        lepExitingPosY = 0;
+        lepExitingPosZ = 0;
+        lepExitingMomX = 0;
+        lepExitingMomY = 0;
+        lepExitingMomZ = 0;
+ 
+        flagLepExit = false;    
+        flagLepExitBack = false;
+        flagLepExitFront = false;
+        flagLepExitY = false;
 
         std::map<int,int> chain;
 
@@ -216,11 +227,22 @@ void DunePrismCondenser::Condense(){
             ePiCSecondaryDep[it][jt][kt] = 0.;
             ePi0SecondaryDep[it][jt][kt] = 0.;
             eOtherSecondaryDep[it][jt][kt] = 0.;
+
+            neutronPrimaryTimeDep[it][jt][kt] = 0.;
+            neutronSecondaryTimeDep[it][jt][kt] = 0.;
           }
         }
       }
 
-     // std::cout << "Steps\n";
+/*      for(int it = 0; it < 1000; ++it){
+        lepTrackX[it] = 0.;
+        lepTrackY[it] = 0.;
+        lepTrackZ[it] = 0.;
+        lepTrackMomX[it] = 0.;
+        lepTrackMomY[it] = 0.;
+        lepTrackMomZ[it] = 0.;
+      }*/
+     // int  lepStep = 0;
       for(int i = 0; i < nstep; ++i){
         if(chain.find(track[i]) == chain.end()){//Not in chain
         
@@ -232,26 +254,44 @@ void DunePrismCondenser::Condense(){
         }
       
         if(chain[track[i]] == 0){//Primary
-        //  std::cout << "primary" << std::endl;
-          if(PID[i] == lepPDGFull){//lepton
-        //    std::cout << "lepton" << std::endl;
-            if( xe[i] >= xBins.at(0) && xe[i] <= xBins.at(xBins.size() - 1) 
-               &&  ye[i] >= yBins.at(0) && ye[i] <= yBins.at(3)
-               &&  ze[i] >= zBins.at(0) && ze[i] <= zBins.at(3)){  
+          if(PID[i] == lepPDGFull && !flagLepExit &&  xe[i] >= xBins.at(0) && xe[i] <= xBins.at(xBins.size() - 1) ){//lepton
+            if( ye[i] >= yBins.at(0) && ye[i] <= yBins.at(3)
+               &&  ze[i] >= zBins.at(0) && ze[i] <= zBins.at(3)){ 
                int bins[3] = {
                   GetBinX(xe[i]),
                   GetBinY(ye[i]),
                   GetBinZ(ze[i])};
                eLepPrimaryDepFull[bins[0]][bins[1]][bins[2]] += edep[i];
-               std::cout << ev << " " << bins[0] << " " << bins[1] << " " << bins[2] << " "<< edep[i]<<"\n";
             }
+            if( ze[i] >= zBins.at(3) ){//Muon exitting back 
+              flagLepExitBack = true;
+              flagLepExit = true;
+            }
+            if( ze[i] <= zBins.at(0) ){//Muon exitting front
+              flagLepExitFront = true;
+              flagLepExit = true;
+            }
+            if( ye[i] <= yBins.at(0) || ye[i] >= yBins.at(3)){//Muon exitting y
+              flagLepExitY = true;
+              flagLepExit = true;
+            }
+            lepExitingPosX = xe[i];
+            lepExitingPosY = ye[i];
+            lepExitingPosZ = ze[i];
+            lepExitingMomX = pxe[i];
+            lepExitingMomY = pye[i];
+            lepExitingMomZ = pze[i];
+/*            lepTrackX[lepStep] = xe[i];
+            lepTrackY[lepStep] = ye[i];
+            lepTrackZ[lepStep] = ze[i];
+            lepTrackMomX[lepStep] = pxe[i];
+            lepTrackMomY[lepStep] = pye[i];
+            lepTrackMomZ[lepStep] = pze[i];
+            lepStep++;*/
           }
           else{//Hadron
             if(PID[i] == 2212 || PID[i] == 2112 || abs(PID[i]) == 211 ||
                  PID[i] == 111  || PID[i] ==   22){
-        //      std::cout << "Hadron" << std::endl;
-
-
               if( xe[i] >= xBins.at(0) && xe[i] <= xBins.at(xBins.size() - 1) 
               &&  ye[i] >= yBins.at(0) && ye[i] <= yBins.at(3)
               &&  ze[i] >= zBins.at(0) && ze[i] <= zBins.at(3)){
@@ -268,6 +308,7 @@ void DunePrismCondenser::Condense(){
                     break;
                   case 2112:
                     eNeutronPrimaryDep[bins[0]][bins[1]][bins[2]] += edep[i];
+                    neutronPrimaryTimeDep[bins[0]][bins[1]][bins[2]] += edep[i]*te[i];
                     break;
                   case  211:
                     ePiCPrimaryDep[bins[0]][bins[1]][bins[2]] += edep[i];
@@ -282,8 +323,6 @@ void DunePrismCondenser::Condense(){
 
             }
             else{
-        //      std::cout << "Other" << std::endl;
-
               if( xe[i] >= xBins.at(0) && xe[i] <= xBins.at(xBins.size() - 1) 
               &&  ye[i] >= yBins.at(0) && ye[i] <= yBins.at(3)
               &&  ze[i] >= zBins.at(0) && ze[i] <= zBins.at(3)){
@@ -340,6 +379,7 @@ void DunePrismCondenser::Condense(){
                     break;
                   case 2112:
                     eNeutronSecondaryDep[bins[0]][bins[1]][bins[2]] += edep[i];
+                    neutronSecondaryTimeDep[bins[0]][bins[1]][bins[2]] += edep[i]*te[i];
                     break;
                   case  211:
                     ePiCSecondaryDep[bins[0]][bins[1]][bins[2]] += edep[i];
@@ -369,7 +409,22 @@ void DunePrismCondenser::Condense(){
           }
         }
       }
-      //std::cout << "end Steps\n";
+      for(int it = 0; it < xBins.size() - 1; ++it){
+        for(int jt = 0; jt < yBins.size() - 1; ++jt){
+          for(int kt = 0; kt < zBins.size() - 1; ++kt){
+            if(eNeutronPrimaryDep[it][jt][kt] < 0.000000001){
+              if(!(neutronPrimaryTimeDep[it][jt][kt] < 0.0000000001)){ std::cout << "Error: different dep\n";}
+              continue;
+            }
+            neutronPrimaryTimeDep[it][jt][kt] = neutronPrimaryTimeDep[it][jt][kt]/eNeutronPrimaryDep[it][jt][kt];
+            if(eNeutronSecondaryDep[it][jt][kt] < 0.000000001){
+              if(!(neutronSecondaryTimeDep[it][jt][kt] < 0.0000000001)){ std::cout << "Error: different dep\n";}
+              continue;
+            }
+            neutronSecondaryTimeDep[it][jt][kt] = neutronSecondaryTimeDep[it][jt][kt]/eNeutronSecondaryDep[it][jt][kt];
+          }
+        }
+      }
       fullDetTree->Fill();
     
   }
@@ -406,6 +461,7 @@ void DunePrismCondenser::SetInBranches(){
   inTree->SetBranchAddress("ye",&ye);
   inTree->SetBranchAddress("zs",&zs);
   inTree->SetBranchAddress("ze",&ze);
+  inTree->SetBranchAddress("te",&te);
   inTree->SetBranchAddress("pxs",&pxs);
   inTree->SetBranchAddress("pxe",&pxe);
   inTree->SetBranchAddress("pys",&pys);
@@ -439,10 +495,10 @@ void DunePrismCondenser::InitDetector(){
 
   for(int ix = 0; ix < nBinsX + 1; ++ix){
     xBins.push_back(shift - sizeX/2. + ix*voxSize);
-    std::cout << xBins.at(ix) << " ";
+ //   std::cout << xBins.at(ix) << " ";
   }
 
-  std::cout << std::endl;
+//  std::cout << std::endl;
  
   yBins.push_back(-1*sizeY/2.);
   yBins.push_back(gapY - sizeY/2.);
@@ -454,7 +510,13 @@ void DunePrismCondenser::InitDetector(){
   zBins.push_back(sizeZ/2. - gapZ);
   zBins.push_back(sizeZ/2.);
 
-  
+  std::cout << "zBins:\n" << " \t" << 
+  zBins.at(0) << std::endl << " \t" <<
+  zBins.at(1) << std::endl << " \t" <<
+  zBins.at(2) << std::endl << " \t" <<
+  zBins.at(3) << std::endl;
+
+
   for(int i = 0; i < xBins.size() -1; ++i){
     for(int j = 0; j < yBins.size() - 1; ++j){
       for(int k = 0; k < zBins.size() - 1; ++k){
@@ -465,7 +527,7 @@ void DunePrismCondenser::InitDetector(){
         ePiCPrimaryDep[i][j][k] = 0.;
         ePi0PrimaryDep[i][j][k] = 0.;       
         eOtherPrimaryDep[i][j][k] = 0.;       
-
+        
         eLepSecondaryDepFull[i][j][k] = 0.;
         eHadSecondaryDep[i][j][k] = 0.;
         eProtonSecondaryDep[i][j][k] = 0.;
@@ -473,10 +535,19 @@ void DunePrismCondenser::InitDetector(){
         ePiCSecondaryDep[i][j][k] = 0.;
         ePi0SecondaryDep[i][j][k] = 0.;
         eOtherSecondaryDep[i][j][k] = 0.;
+        neutronPrimaryTimeDep[i][j][k] = 0.;
+        neutronSecondaryTimeDep[i][j][k] = 0.;
       }
     }
   }
-  
+  /*for(int it = 0; it < 1000; ++it){
+    lepTrackX[it] = 0.;
+    lepTrackY[it] = 0.;
+    lepTrackZ[it] = 0.;
+    lepTrackMomX[it] = 0.;
+    lepTrackMomY[it] = 0.;
+    lepTrackMomZ[it] = 0.;
+  }*/
   fullDetTree->Branch("Enu",&EnuFull);
   fullDetTree->Branch("nuPDG",&nuPDGFull);
   fullDetTree->Branch("eventNum",&eventNumFull);
@@ -489,6 +560,22 @@ void DunePrismCondenser::InitDetector(){
   fullDetTree->Branch("pLepTrueX",&pLepTrueXFull);
   fullDetTree->Branch("pLepTrueY",&pLepTrueYFull);
   fullDetTree->Branch("pLepTrueZ",&pLepTrueZFull);
+  fullDetTree->Branch("lepExitingPosX",&lepExitingPosX);
+  fullDetTree->Branch("lepExitingPosY",&lepExitingPosY);
+  fullDetTree->Branch("lepExitingPosZ",&lepExitingPosZ); 
+  fullDetTree->Branch("lepExitingMomX",&lepExitingMomX);
+  fullDetTree->Branch("lepExitingMomY",&lepExitingMomY);
+  fullDetTree->Branch("lepExitingMomZ",&lepExitingMomZ);
+/*  fullDetTree->Branch("lepTrackX",&lepTrackX,"lepTrackX[1000]/D");
+  fullDetTree->Branch("lepTrackY",&lepTrackY,"lepTrackY[1000]/D");
+  fullDetTree->Branch("lepTrackZ",&lepTrackZ,"lepTrackZ[1000]/D"); 
+  fullDetTree->Branch("lepTrackMomX",&lepTrackMomX,"lepTrackMomX[1000]/D");
+  fullDetTree->Branch("lepTrackMomY",&lepTrackMomY,"lepTrackMomY[1000]/D");
+  fullDetTree->Branch("lepTrackMomZ",&lepTrackMomZ,"lepTrackMomZ[1000]/D");*/
+  fullDetTree->Branch("flagLepExit",&flagLepExit);
+  fullDetTree->Branch("flagLepExitBack",&flagLepExitBack);
+  fullDetTree->Branch("flagLepExitFront",&flagLepExitFront);
+  fullDetTree->Branch("flagLepExitY",&flagLepExitY);
   fullDetTree->Branch("Q2True",&Q2TrueFull);
   fullDetTree->Branch("yTrue",&yTrueFull);
   fullDetTree->Branch("W_rest",&W_rest_full);
@@ -521,6 +608,8 @@ void DunePrismCondenser::InitDetector(){
   fullDetTree->Branch("ePiCSecondaryDep",&ePiCSecondaryDep,"ePiCSecondaryDep[400][3][3]/D");
   fullDetTree->Branch("ePi0SecondaryDep",&ePi0SecondaryDep,"ePi0SecondaryDep[400][3][3]/D");
   fullDetTree->Branch("eOtherSecondaryDep",&eOtherSecondaryDep,"eOtherSecondaryDep[400][3][3]/D");
+  fullDetTree->Branch("neutronPrimaryTimeDep",&neutronPrimaryTimeDep,"neutronPrimaryTimeDep[400][3][3]/D");
+  fullDetTree->Branch("neutronSecondaryTimeDep",&neutronSecondaryTimeDep,"neutronSecondaryTimeDep[400][3][3]/D");
 }
 
   

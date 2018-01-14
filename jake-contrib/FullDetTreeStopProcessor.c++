@@ -249,7 +249,7 @@ int main(int argc, char const *argv[]) {
 
   // Read in det stops
   DetectorStops = ReadDetectorStopConfig(runPlanCfg, runPlanName);
-  DetectorStops.resize(1);
+  //DetectorStops.resize(1);
 
   std::vector<double> XBins;
 

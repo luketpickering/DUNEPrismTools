@@ -2,7 +2,7 @@ from os import listdir
 from argparse import ArgumentParser
 parser = ArgumentParser()
 parser.add_argument('--setting', type=str, help='which dir', default='FHC')
-
+parser.add_argument('--subdir', type=str, help='which subdir', default='')
 print parser.parse_args().setting
 
 directory = 'sub_lists/' 
@@ -14,9 +14,9 @@ new_sub_files = []
 files = 0
 extra = 0
 newsub = open(setting + '_new_submit_0.list','w')
-subdir = setting + '/condenser_1.8.2018/'
-output = listdir('/home/calcuttj/DUNEPrismSim/' + setting + '/condenser_1.8.2018/')
-submit = listdir(setting + '/condenser_1.8.2018/')
+subdir = setting + parser.parse_args().subdir
+output = listdir('/home/calcuttj/DUNEPrismSim/' + subdir)
+submit = listdir(subdir)
 
 strip_output = []
 strip_submit = []
