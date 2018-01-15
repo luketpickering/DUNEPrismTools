@@ -60,6 +60,17 @@ struct FullDetTreeReader {
   Double_t ePi0SecondaryDep[kNXBins][kNYBins][kNZBins];
   Double_t eOtherSecondaryDep[kNXBins][kNYBins][kNZBins];
 
+  bool flagLepExitBack;
+  bool flagLepExitFront;
+  bool flagLepExitY;
+
+  double lepExitingPosX;
+  double lepExitingPosY;
+  double lepExitingPosZ;
+  double lepExitingMomX;
+  double lepExitingMomY;
+  double lepExitingMomZ;
+
   TChain *tree;
   UInt_t NFiles;
   UInt_t NEntries;
@@ -105,6 +116,16 @@ struct FullDetTreeReader {
     tree->SetBranchAddress("ePiCSecondaryDep", &ePiCSecondaryDep);
     tree->SetBranchAddress("ePi0SecondaryDep", &ePi0SecondaryDep);
     tree->SetBranchAddress("eOtherSecondaryDep", &eOtherSecondaryDep);
+
+    tree->SetBranchAddress("flagLepExitBack", &flagLepExitBack);
+    tree->SetBranchAddress("flagLepExitFront", &flagLepExitFront);
+    tree->SetBranchAddress("flagLepExitY", &flagLepExitY);
+    tree->SetBranchAddress("lepExitingPosX",&lepExitingPosX);
+    tree->SetBranchAddress("lepExitingPosY",&lepExitingPosY);
+    tree->SetBranchAddress("lepExitingPosZ",&lepExitingPosZ); 
+    tree->SetBranchAddress("lepExitingMomX",&lepExitingMomX);
+    tree->SetBranchAddress("lepExitingMomY",&lepExitingMomY);
+    tree->SetBranchAddress("lepExitingMomZ",&lepExitingMomZ);
   }
 
   void GetEntry(UInt_t e) {
