@@ -59,6 +59,11 @@ struct EDep {
   double lepExitingMomX;
   double lepExitingMomY;
   double lepExitingMomZ;
+
+  double Q2True;
+  double yTrue;
+  double W_rest;
+
 };
 
 std::vector<DetectorStop> DetectorStops;
@@ -378,6 +383,9 @@ int main(int argc, char const *argv[]) {
     stoptree->Branch("NuPDG", &std::get<1>(Detectors[d_it]).NuPDG, "NuPDG/I");
     stoptree->Branch("LepPDG", &std::get<1>(Detectors[d_it]).LepPDG,
                      "LepPDG/I");
+    stoptree->Branch("yTrue", &std::get<1>(Detectors[d_it]).yTrue, "yTrue/D");
+    stoptree->Branch("W_rest", &std::get<1>(Detectors[d_it]).W_rest, "W_rest/D");
+    stoptree->Branch("Q2True", &std::get<1>(Detectors[d_it]).Q2True, "Q2True/D");
     stoptree->Branch("flagLepExitBack", &std::get<1>(Detectors[d_it]).flagLepExitBack,"flagLepExitBack/B");
     stoptree->Branch("flagLepExitFront", &std::get<1>(Detectors[d_it]).flagLepExitFront,"flagLepExitFront/B");
     stoptree->Branch("flagLepExitY", &std::get<1>(Detectors[d_it]).flagLepExitY,"flagLepExitY/B");
@@ -483,11 +491,17 @@ int main(int argc, char const *argv[]) {
         std::get<1>(db).flagLepExitXHigh = false; 
         std::get<1>(db).flagLepExitXLow = false;                
       }
-      std::cout << std::get<1>(db).flagLepExitXHigh << " "<< std::get<1>(db).flagLepExitXLow << std::endl;      
       std::get<1>(db).lepExitingMomX = rdr->lepExitingMomX;
       std::get<1>(db).lepExitingMomY = rdr->lepExitingMomY;
       std::get<1>(db).lepExitingMomZ = rdr->lepExitingMomZ;
-
+      ////////End exiting lepton section
+     
+      //Truth info 
+      std::get<1>(db).Q2True = rdr->Q2True;
+      std::get<1>(db).yTrue = rdr->yTrue;
+      std::get<1>(db).W_rest = rdr->W_rest;
+      /////////
+      
       std::get<1>(db).LepDep_det =
           Jaccumulate(rdr->eLepPrimaryDep, std::get<0>(db).X_veto_left[0],
                       std::get<0>(db).X_veto_right[1], 0) +
