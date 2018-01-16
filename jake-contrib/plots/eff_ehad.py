@@ -20,7 +20,7 @@ for rp in config.findall('RunPlan'):
   det = rp.findall('Detector')[0]
   for stop in stops.findall('Stop'):
     det_configs.append(
-      {'shift':int(stop.get('LateralOffset_m'))*100,
+      {'shift':int(stop.get('LateralOffset_m'))*-100,
       'x':int(float(det.get('DetectorFiducialWidth_m')))*100,
       'y':int(float(det.get('DetectorFiducialHeight_m')))*100,
       'z':int(float(det.get('DetectorFiducialDepth_m')))*100}
@@ -41,7 +41,8 @@ if not os.path.isdir("OAA_events/"+setting+"/"+DIR):
 
 trees = dict()
 for dc in det_configs:
-  trees[dc['shift']] = "events_" + str(dc['x']) + "x" + str(dc['y']) + "x" + str(dc['z']) + "_50x50x50_"+str(dc['shift'])
+#  trees[dc['shift']] = "events_" + str(dc['x']) + "x" + str(dc['y']) + "x" + str(dc['z']) + "_50x50x50_"+str(dc['shift'])
+   trees[dc['shift']] = "EDep_Stop" + str(dc['shift']/-100) + "_m"
 
 default_size = str(dc['x']/100) + "x" + str(dc['y']/100) + "x" + str(dc['z']/100) +"m"
 default_x = dc['x']/100
@@ -59,7 +60,7 @@ for dc in det_configs:
 
 for f in output:
   if len(f.split('.')) == 7:
-    print f
+    #print f
     for stop in chains:
       chains[stop].Add(datadir + setting + "/" +DIR+"/"+ f)
 
@@ -105,16 +106,16 @@ gStyle.SetPalette(54)
 for stop in stops:
   #1D Section
   hEHadEvents[stop] = TH1D("hEHadEvents" + str(stop), "",50,0.,5.) 
-  chains[stop].Draw("eHadTrueTotal>>hEHadEvents"+str(stop),"lepPDG==13","colz")
+  chains[stop].Draw("eHadTrueTotal>>hEHadEvents"+str(stop),"LepPDG==13","colz")
 
   hEHadEventsAcc[stop] = TH1D("hEHadEventsAcc" + str(stop), "",50,0.,5.) 
-  chains[stop].Draw("eHadTrueTotal>>hEHadEventsAcc"+str(stop),"lepPDG==13 && flagLepContained","colz")
+  chains[stop].Draw("eHadTrueTotal>>hEHadEventsAcc"+str(stop),"LepPDG==13 && !flagLepExit","colz")
 
   hEHadEventsHadAcc[stop] = TH1D("hEHadEventsHadAcc" + str(stop), "",50,0.,5.) 
-  chains[stop].Draw("eHadTrueTotal>>hEHadEventsHadAcc"+str(stop),"lepPDG==13 && flagLepContained && (eHadPrimaryDepIn + eHadSecondaryDepIn)/(eHadPrimaryDepIn + eHadSecondaryDepIn + eHadPrimaryDepOut + eHadSecondaryDepOut) >= .95","colz")
+  chains[stop].Draw("eHadTrueTotal>>hEHadEventsHadAcc"+str(stop),"LepPDG==13 && !flagLepExit && TotalDep_veto < .01 ","colz")
 
   hEHadEventsEff[stop] = doEff(hEHadEvents[stop],hEHadEventsAcc[stop],"hEHadEventsEff"+str(stop))
-  hEHadEventsHadEff[stop] = doEff(hEHadEvents[stop],hEHadEventsHadAcc[stop],"hEHadEventsHadEff"+str(stop))
+  hEHadEventsHadEff[stop] = doEff(hEHadEventsAcc[stop],hEHadEventsHadAcc[stop],"hEHadEventsHadEff"+str(stop))
 
   hEHadEventsEff[stop].SetTitle("Mu containment - " + default_size)
   hEHadEventsEff[stop].SetXTitle("EHad (GeV)")
@@ -123,7 +124,7 @@ for stop in stops:
   hEHadEventsEff[stop].Draw("colz")
 #  c1.SaveAs("OAA_events/"+setting+"/"+DIR+"/EHad_events_eff_" + str(stop) + ".png")
 
-  hEHadEventsHadEff[stop].SetTitle("Mu + .95 EHad containment - " + default_size)
+  hEHadEventsHadEff[stop].SetTitle("EHad containment - " + default_size)
   hEHadEventsHadEff[stop].SetXTitle("EHad (GeV)")
   hEHadEventsHadEff[stop].GetXaxis().SetTitleSize(.06)
   hEHadEventsHadEff[stop].GetXaxis().SetTitleOffset(.6)
@@ -132,16 +133,16 @@ for stop in stops:
 
   #2D Section
   hOAAEHadEvents[stop] = TH2D("hOAAEHadEvents" + str(stop), "",50,0.,5., default_x*10,bins[stop][0],bins[stop][1]) 
-  chains[stop].Draw("vtx_X/1.e2:eHadTrueTotal>>hOAAEHadEvents"+str(stop),"lepPDG==13","colz")
+  chains[stop].Draw("vtx[0]/1.e2:eHadTrueTotal>>hOAAEHadEvents"+str(stop),"LepPDG==13","colz")
 
   hOAAEHadEventsAcc[stop] = TH2D("hOAAEHadEventsAcc" + str(stop), "",50,0.,5., default_x*10,bins[stop][0],bins[stop][1]) 
-  chains[stop].Draw("vtx_X/1.e2:eHadTrueTotal>>hOAAEHadEventsAcc"+str(stop),"lepPDG==13 && flagLepContained","colz")
+  chains[stop].Draw("vtx[0]/1.e2:eHadTrueTotal>>hOAAEHadEventsAcc"+str(stop),"LepPDG==13 && !flagLepExit","colz")
 
   hOAAEHadEventsHadAcc[stop] = TH2D("hOAAEHadEventsHadAcc" + str(stop), "",50,0.,5., default_x*10,bins[stop][0],bins[stop][1]) 
-  chains[stop].Draw("vtx_X/1.e2:eHadTrueTotal>>hOAAEHadEventsHadAcc"+str(stop),"lepPDG==13 && flagLepContained && (eHadPrimaryDepIn + eHadSecondaryDepIn)/(eHadPrimaryDepIn + eHadSecondaryDepIn + eHadPrimaryDepOut + eHadSecondaryDepOut) >= .95","colz")
+  chains[stop].Draw("vtx[0]/1.e2:eHadTrueTotal>>hOAAEHadEventsHadAcc"+str(stop),"LepPDG==13 && !flagLepExit && TotalDep_veto < 0.05","colz")
 
   hOAAEHadEventsEff[stop] = doEff(hOAAEHadEvents[stop],hOAAEHadEventsAcc[stop],"hOAAEHadEventsEff"+str(stop))
-  hOAAEHadEventsHadEff[stop] = doEff(hOAAEHadEvents[stop],hOAAEHadEventsHadAcc[stop],"hOAAEHadEventsHadEff"+str(stop))
+  hOAAEHadEventsHadEff[stop] = doEff(hOAAEHadEventsAcc[stop],hOAAEHadEventsHadAcc[stop],"hOAAEHadEventsHadEff"+str(stop))
 
 for stop in stops:
   for i in range(1,hOAAEHadEvents[stop].GetNbinsX()+1):

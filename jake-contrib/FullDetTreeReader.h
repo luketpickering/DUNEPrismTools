@@ -43,6 +43,7 @@ struct FullDetTreeReader {
   Double_t eProtonTrue;
   Double_t eNeutronTrue;
   Double_t eGammaTrue;
+  Double_t eHadTrueTotal;
 
   Double_t eLepPrimaryDep[kNXBins][kNYBins][kNZBins];
   Double_t eHadPrimaryDep[kNXBins][kNYBins][kNZBins];
@@ -60,6 +61,7 @@ struct FullDetTreeReader {
   Double_t ePi0SecondaryDep[kNXBins][kNYBins][kNZBins];
   Double_t eOtherSecondaryDep[kNXBins][kNYBins][kNZBins];
 
+  bool flagLepExit;
   bool flagLepExitBack;
   bool flagLepExitFront;
   bool flagLepExitY;
@@ -95,6 +97,7 @@ struct FullDetTreeReader {
     tree->SetBranchAddress("nGamma", &nGamma);
 
     tree->SetBranchAddress("eLepTrue", & eLepTrue);
+    tree->SetBranchAddress("eHadTrueTotal", & eHadTrueTotal);
     tree->SetBranchAddress("ePi0True", & ePi0True);
     tree->SetBranchAddress("ePiCTrue", & ePiCTrue);
     tree->SetBranchAddress("eProtonTrue", & eProtonTrue);
@@ -120,6 +123,7 @@ struct FullDetTreeReader {
     tree->SetBranchAddress("flagLepExitBack", &flagLepExitBack);
     tree->SetBranchAddress("flagLepExitFront", &flagLepExitFront);
     tree->SetBranchAddress("flagLepExitY", &flagLepExitY);
+    tree->SetBranchAddress("flagLepExit", &flagLepExit);
     tree->SetBranchAddress("lepExitingPosX",&lepExitingPosX);
     tree->SetBranchAddress("lepExitingPosY",&lepExitingPosY);
     tree->SetBranchAddress("lepExitingPosZ",&lepExitingPosZ); 

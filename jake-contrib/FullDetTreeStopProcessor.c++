@@ -50,6 +50,7 @@ struct EDep {
   bool flagLepExitBack;
   bool flagLepExitFront;
   bool flagLepExitY;
+  bool flagLepExit;
   bool flagLepExitXLow;
   bool flagLepExitXHigh;
 
@@ -63,6 +64,9 @@ struct EDep {
   double Q2True;
   double yTrue;
   double W_rest;
+
+  double eLepTrue;
+  double eHadTrueTotal;
 
 };
 
@@ -389,6 +393,7 @@ int main(int argc, char const *argv[]) {
     stoptree->Branch("flagLepExitBack", &std::get<1>(Detectors[d_it]).flagLepExitBack,"flagLepExitBack/B");
     stoptree->Branch("flagLepExitFront", &std::get<1>(Detectors[d_it]).flagLepExitFront,"flagLepExitFront/B");
     stoptree->Branch("flagLepExitY", &std::get<1>(Detectors[d_it]).flagLepExitY,"flagLepExitY/B");
+    stoptree->Branch("flagLepExit", &std::get<1>(Detectors[d_it]).flagLepExit,"flagLepExit/B");
     stoptree->Branch("flagLepExitXLow", &std::get<1>(Detectors[d_it]).flagLepExitXLow,"flagLepExitXLow/B");
     stoptree->Branch("flagLepExitXHigh", &std::get<1>(Detectors[d_it]).flagLepExitXHigh,"flagLepExitXHigh/B");
     stoptree->Branch("lepExitingPosX",&std::get<1>(Detectors[d_it]).lepExitingPosX,"lepExitingPosX/D");
@@ -397,6 +402,9 @@ int main(int argc, char const *argv[]) {
     stoptree->Branch("lepExitingMomX",&std::get<1>(Detectors[d_it]).lepExitingMomX,"lepExitingMomX/D");
     stoptree->Branch("lepExitingMomY",&std::get<1>(Detectors[d_it]).lepExitingMomY,"lepExitingMomY/D");
     stoptree->Branch("lepExitingMomZ",&std::get<1>(Detectors[d_it]).lepExitingMomZ,"lepExitingMomZ/D");
+
+    stoptree->Branch("eLepTrue",&std::get<1>(Detectors[d_it]).eLepTrue,"eLepTrue/D");
+    stoptree->Branch("eHadTrueTotal",&std::get<1>(Detectors[d_it]).eHadTrueTotal,"eHadTrueTotal/D");
 
     stoptree->Branch("TotalDep_FV", &std::get<1>(Detectors[d_it]).TotalDep_FV,
                      "TotalDep_FV/D");
@@ -442,14 +450,20 @@ int main(int argc, char const *argv[]) {
       double DetHigh = std::get<0>(Detectors[d_it]).XOffset +
                        std::get<0>(Detectors[d_it]).XWidth_det / 2.0;
       //Exits through the side. Should supercede exiting back/front/y
-      if(rdr->lepExitingPosX < Detlow){
+      //std::cout << "vtx: " << rdr->vtx_X << std::endl;
+      //std::cout << "\tDetLow:" << Detlow  << " Pos: "<<rdr->lepExitingPosX << " DetHigh: " << DetHigh<< std::endl;
+      if(rdr->lepExitingPosX == 0){
+        std::cout<<rdr->lepExitingPosY << " " << rdr->lepExitingPosZ << std::endl;
+      }
+     
+      if(rdr->lepExitingPosX <= Detlow){
         std::get<1>(db).flagLepExitBack = false;
         std::get<1>(db).flagLepExitFront = false;
         std::get<1>(db).flagLepExitY = false;
         std::get<1>(db).flagLepExitXLow = true;
         std::get<1>(db).flagLepExitXHigh = false;
       }
-      else if(rdr->lepExitingPosX > DetHigh){
+      else if(rdr->lepExitingPosX >= DetHigh){
         std::get<1>(db).flagLepExitBack = false;
         std::get<1>(db).flagLepExitFront = false;
         std::get<1>(db).flagLepExitY = false;
@@ -457,7 +471,7 @@ int main(int argc, char const *argv[]) {
         std::get<1>(db).flagLepExitXLow = false;        
       }
       else{
-        if(std::get<1>(Detectors[d_it]).flagLepExitBack && std::get<1>(Detectors[d_it]).flagLepExitY){
+        if(rdr->flagLepExitBack && rdr->flagLepExitY){
           if(rdr->lepExitingPosZ - std::get<0>(Detectors[d_it]).ZWidth_det / 2.0 > 
              fabs(rdr->lepExitingPosY) - std::get<0>(Detectors[d_it]).YWidth_det / 2.0){
             std::get<1>(db).flagLepExitBack = true;
@@ -470,7 +484,7 @@ int main(int argc, char const *argv[]) {
             std::get<1>(db).flagLepExitY = true; 
           }
         }
-        else if(std::get<1>(Detectors[d_it]).flagLepExitFront && std::get<1>(Detectors[d_it]).flagLepExitY){
+        else if(rdr->flagLepExitFront && rdr->flagLepExitY){
           if(fabs(rdr->lepExitingPosZ) - std::get<0>(Detectors[d_it]).ZWidth_det / 2.0 > 
              fabs(rdr->lepExitingPosY) - std::get<0>(Detectors[d_it]).YWidth_det / 2.0){
             std::get<1>(db).flagLepExitFront = true;
@@ -491,15 +505,22 @@ int main(int argc, char const *argv[]) {
         std::get<1>(db).flagLepExitXHigh = false; 
         std::get<1>(db).flagLepExitXLow = false;                
       }
+      std::get<1>(db).flagLepExit = rdr->flagLepExit;
       std::get<1>(db).lepExitingMomX = rdr->lepExitingMomX;
       std::get<1>(db).lepExitingMomY = rdr->lepExitingMomY;
       std::get<1>(db).lepExitingMomZ = rdr->lepExitingMomZ;
+      std::get<1>(db).lepExitingPosX = rdr->lepExitingPosX;
+      std::get<1>(db).lepExitingPosY = rdr->lepExitingPosY;
+      std::get<1>(db).lepExitingPosZ = rdr->lepExitingPosZ;
+
       ////////End exiting lepton section
      
       //Truth info 
       std::get<1>(db).Q2True = rdr->Q2True;
       std::get<1>(db).yTrue = rdr->yTrue;
       std::get<1>(db).W_rest = rdr->W_rest;
+      std::get<1>(db).eLepTrue = rdr->eLepTrue;
+      std::get<1>(db).eHadTrueTotal = rdr->eHadTrueTotal;
       /////////
       
       std::get<1>(db).LepDep_det =

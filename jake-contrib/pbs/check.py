@@ -1,4 +1,4 @@
-from os import listdir
+import os
 from argparse import ArgumentParser
 parser = ArgumentParser()
 parser.add_argument('--setting', type=str, help='which dir', default='FHC')
@@ -15,8 +15,21 @@ files = 0
 extra = 0
 newsub = open(setting + '_new_submit_0.list','w')
 subdir = setting + parser.parse_args().subdir
-output = listdir('/home/calcuttj/DUNEPrismSim/' + subdir)
-submit = listdir(subdir)
+#output = listdir('/home/calcuttj/DUNEPrismSim/' + subdir)
+output = [] 
+for f in os.listdir('/home/calcuttj/DUNEPrismSim/' + subdir):
+  p = os.path.join('/home/calcuttj/DUNEPrismSim/' + subdir,f)
+  if os.path.isdir(p):
+    continue
+  output.append(f)
+
+#submit = listdir(subdir)
+submit = []
+for f in os.listdir(subdir):
+  p = os.path.join(subdir,f)
+  if os.path.isdir(p):
+    continue
+  submit.append(f)
 
 strip_output = []
 strip_submit = []

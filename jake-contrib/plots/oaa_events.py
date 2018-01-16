@@ -16,12 +16,14 @@ det_configs = []
 print "Config file:\n\t",det_file 
 config = xml.etree.ElementTree.parse(det_file)
 for rp in config.findall('RunPlan'):
-  for det in rp.findall('Detector'):
+  stops = rp.findall('Stops')[0]
+  det = rp.findall('Detector')[0]
+  for stop in stops.findall('Stop'):
     det_configs.append(
-      {'shift':int(det.get('shift'))*100,
-      'x':int(float(det.get('detectorSizeX')))*100,
-      'y':int(float(det.get('detectorSizeY')))*100,
-      'z':int(float(det.get('detectorSizeZ')))*100}
+      {'shift':int(stop.get('LateralOffset_m'))*-100,
+      'x':int(float(det.get('DetectorFiducialWidth_m')))*100,
+      'y':int(float(det.get('DetectorFiducialHeight_m')))*100,
+      'z':int(float(det.get('DetectorFiducialDepth_m')))*100}
     )
 
 print det_configs    
@@ -39,7 +41,8 @@ if not os.path.isdir("OAA_events/"+setting+"/"+DIR):
 
 trees = dict()
 for dc in det_configs:
-  trees[dc['shift']] = "events_" + str(dc['x']) + "x" + str(dc['y']) + "x" + str(dc['z']) + "_50x50x50_"+str(dc['shift'])
+#  trees[dc['shift']] = "events_" + str(dc['x']) + "x" + str(dc['y']) + "x" + str(dc['z']) + "_50x50x50_"+str(dc['shift'])
+   trees[dc['shift']] = "EDep_Stop" + str(dc['shift']/-100) + "_m"
 
 default_size = str(dc['x']/100) + "x" + str(dc['y']/100) + "x" + str(dc['z']/100) +"m"
 default_x = dc['x']/100
@@ -58,7 +61,7 @@ print chains
 
 for f in output:
   if len(f.split('.')) == 7:
-    print f
+    #print f
     for stop in chains:
       chains[stop].Add(datadir + setting + "/" + DIR + "/" + f)
 
@@ -91,22 +94,22 @@ hOAAEventsMuHadEffFull = TH1D("hOAAEventsMuHadEffFull","",n_bins,start_bin,end_b
 
 for stop in stops:
   hOAAEvents[stop] = TH1D("hOAAEvents" + str(stop), "", default_x*10,bins[stop][0],bins[stop][1])
-  chains[stop].Draw("vtx_X/1.e2>>hOAAEvents" + str(stop),"lepPDG == 13")
-#  c1.SaveAs("OAA_events/"+setting+"/"+DIR+"/OAA_events_" +str(stop) + ".png")
+  chains[stop].Draw("vtx[0]/1.e2>>hOAAEvents" + str(stop),"LepPDG == 13")
+  #c1.SaveAs("OAA_events/"+setting+"/"+DIR+"/OAA_events_" +str(stop) + ".png")
 
   hOAAEventsAcc[stop] = TH1D("hOAAEventsAcc" + str(stop),"",default_x*10,bins[stop][0],bins[stop][1])
-  chains[stop].Draw("vtx_X/1.e2>>hOAAEventsAcc"+str(stop),"flagLepContained && lepPDG == 13")
-#  c1.SaveAs("OAA_events/"+setting+"/"+DIR+"/OAA_events_contained_" +str(stop) + ".png")
+  chains[stop].Draw("vtx[0]/1.e2>>hOAAEventsAcc"+str(stop),"!( flagLepExitBack || flagLepExitFront || flagLepExitY|| flagLepExitXLow || flagLepExitXHigh) && LepPDG == 13")
+  #c1.SaveAs("OAA_events/"+setting+"/"+DIR+"/OAA_events_contained_" +str(stop) + ".png")
 
   hOAAEventsMuHadAcc[stop] = TH1D("hOAAEventsMuHadAcc" + str(stop),"",default_x*10,bins[stop][0],bins[stop][1])
-  chains[stop].Draw("vtx_X/1.e2>>hOAAEventsMuHadAcc"+str(stop),"flagLepContained && lepPDG == 13 && (eHadPrimaryDepIn + eHadSecondaryDepIn)/(eHadPrimaryDepIn + eHadSecondaryDepIn + eHadPrimaryDepOut + eHadSecondaryDepOut) > .95")
-#  c1.SaveAs("OAA_events/"+setting+"/"+DIR+"/OAA_events_muHad_contained_" +str(stop) + ".png")
+  chains[stop].Draw("vtx[0]/1.e2>>hOAAEventsMuHadAcc"+str(stop),"!( flagLepExitBack || flagLepExitFront || flagLepExitY|| flagLepExitXLow || flagLepExitXHigh) && LepPDG == 13 && TotalDep_veto < 0.05")
+  #c1.SaveAs("OAA_events/"+setting+"/"+DIR+"/OAA_events_muHad_contained_" +str(stop) + ".png")
 
   hOAAEventsEff[stop] = doEff(hOAAEvents[stop],hOAAEventsAcc[stop],"hOAAEventsEff"+str(stop))
   hOAAEventsEff[stop].Draw()
-#  c1.SaveAs("OAA_events/"+setting+"/"+DIR+"/OAA_events_eff_" +str(stop) + ".png")
+  #c1.SaveAs("OAA_events/"+setting+"/"+DIR+"/OAA_events_eff_" +str(stop) + ".png")
 
-  hOAAEventsMuHadEff[stop] = doEff(hOAAEvents[stop],hOAAEventsMuHadAcc[stop],"hOAAEventsMuHadEff"+str(stop))
+  hOAAEventsMuHadEff[stop] = doEff(hOAAEventsAcc[stop],hOAAEventsMuHadAcc[stop],"hOAAEventsMuHadEff"+str(stop))
 
 for stop in stops:
   for i in range(1,hOAAEvents[stop].GetNbinsX()+1):
@@ -142,7 +145,7 @@ hOAAEventsEffFull.GetYaxis().SetTitleOffset(.6)
 hOAAEventsEffFull.Draw()
 c1.SaveAs("OAA_events/"+setting+"/"+DIR+"/OAA_events_eff_full.png")
 
-hOAAEventsMuHadEffFull.SetTitle("Mu+95% Had containment - " + default_size)
+hOAAEventsMuHadEffFull.SetTitle("Had containment - " + default_size)
 hOAAEventsMuHadEffFull.SetXTitle("Off-axis position (m)")
 hOAAEventsMuHadEffFull.SetYTitle("Efficiency")
 hOAAEventsMuHadEffFull.GetXaxis().SetTitleSize(.06)
@@ -166,10 +169,10 @@ gStyle.SetPalette(54)
 
 for stop in stops:
   hOAAEnuEvents[stop] = TH2D("hOAAEnuEvents" + str(stop), "",50,0.,5., default_x*10,bins[stop][0],bins[stop][1]) 
-  chains[stop].Draw("vtx_X/1.e2:Enu>>hOAAEnuEvents"+str(stop),"lepPDG==13","colz")
+  chains[stop].Draw("vtx[0]/1.e2:Enu>>hOAAEnuEvents"+str(stop),"LepPDG==13","colz")
 
   hOAAEnuEventsAcc[stop] = TH2D("hOAAEnuEventsAcc" + str(stop), "",50,0.,5., default_x*10,bins[stop][0],bins[stop][1]) 
-  chains[stop].Draw("vtx_X/1.e2:Enu>>hOAAEnuEventsAcc"+str(stop),"lepPDG==13 && flagLepContained","colz")
+  chains[stop].Draw("vtx[0]/1.e2:Enu>>hOAAEnuEventsAcc"+str(stop),"LepPDG==13 && !( flagLepExitBack || flagLepExitFront || flagLepExitY|| flagLepExitXLow || flagLepExitXHigh)","colz")
 
   hOAAEnuEventsEff[stop] = doEff(hOAAEnuEvents[stop],hOAAEnuEventsAcc[stop],"hOAAEnuEventsEff"+str(stop))
 
@@ -201,10 +204,10 @@ hOAAEnuEventsEffFull.GetYaxis().SetTitleOffset(.6)
 hOAAEnuEventsEffFull.Draw("colz")
 c1.SaveAs("OAA_events/"+setting+"/"+DIR+"/OAA_Enu_events_eff_full.png")
 
-hOAAEnuExit = dict()
-for stop in stops:
+#hOAAEnuExit = dict()
+#for stop in stops:
 #  hOAAEnuExit[stop] = TH2D("hOAAEnuExit" + str(stop), "", default_x*10,bins[stop][0],bins[stop][1]) 
-  chains[stop].Draw("vtx_X/1.e2>>hOAAEnuexitLow"+str(stop),"lepPDG==13 && flagExitXLow","colz")
+#  chains[stop].Draw("vtx[0]/1.e2>>hOAAEnuexitLow"+str(stop),"LepPDG==13 && flagExitXLow","colz")
 #  c1.SaveAs("OAA_events/"+setting+"/"+DIR+"/exitingleplow"+str(stop)+".png")
-  chains[stop].Draw("vtx_X/1.e2>>hOAAEnuexitHigh"+str(stop),"lepPDG==13 && flagExitXHigh","colz")
+#  chains[stop].Draw("vtx[0]/1.e2>>hOAAEnuexitHigh"+str(stop),"LepPDG==13 && flagExitXHigh","colz")
 #  c1.SaveAs("OAA_events/"+setting+"/"+DIR+"/exitinglephigh"+str(stop)+".png")
