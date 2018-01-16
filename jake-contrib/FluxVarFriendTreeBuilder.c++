@@ -77,6 +77,9 @@ void handleOpts(int argc, char const *argv[]) {
 }
 
 int main(int argc, char const *argv[]) {
+  TH1::SetDefaultSumw2();
+  handleOpts(argc, argv);
+
   if (!nominphistfile.size() || !nominphistname.size()) {
     std::cout << "[ERROR]: Expected to recieve an input nominal flux histogram "
                  "descriptor like: \"weighthist.root,weighthistname\", but "
