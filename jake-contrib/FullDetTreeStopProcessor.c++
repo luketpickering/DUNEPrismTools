@@ -27,7 +27,31 @@ struct DetBox {
 };
 
 struct EDep {
+  int stop;
+
   double vtx[3];
+
+  double Enu;
+  double yTrue;
+  double Q2True;
+  double W_rest;
+
+  int NuPDG;
+  int LepPDG;
+
+  int nPi0;
+  int nPiC;
+  int nProton;
+  int nNeutron;
+  int nGamma;
+
+  double eLepTrue;
+  double ePi0True;
+  double ePiCTrue;
+  double eProtonTrue;
+  double eNeutronTrue;
+  double eGammaTrue;
+  double TotalNonlep_eTrue;
 
   double LepDep_det;
   double ProtonDep_FV;
@@ -41,11 +65,8 @@ struct EDep {
   double OtherDep_FV;
   double OtherDep_veto;
 
-  double Enu;
-  int NuPDG;
-  int LepPDG;
-  double TotalDep_FV;
-  double TotalDep_veto;
+  double TotalNonlep_Dep_FV;
+  double TotalNonlep_Dep_veto;
 
   bool flagLepExitBack;
   bool flagLepExitFront;
@@ -59,14 +80,10 @@ struct EDep {
   double lepExitingMomX;
   double lepExitingMomY;
   double lepExitingMomZ;
-
-  double Q2True;
-  double yTrue;
-  double W_rest;
 };
 
 std::vector<DetectorStop> DetectorStops;
-std::vector<std::tuple<DetBox, EDep, TTree *> > Detectors;
+std::vector<DetBox> Detectors;
 
 std::string inpDir, outputFile;
 std::string runPlanCfg, runPlanName = "";
@@ -153,10 +170,6 @@ int BinSearch(std::vector<double> &BinEdges, double find) {
   int max = BinEdges.size() - 1;
   int min = 1;
 
-  // std::cout << "[BS]: Looking for " << find << " in binning ["
-  //           << BinEdges.front() << ", " << BinEdges.back() << "]." <<
-  //           std::endl;
-
   while (true) {
     if (min == max) {
       std::cout << "[ERROR]: Couldn't find " << find
@@ -167,32 +180,21 @@ int BinSearch(std::vector<double> &BinEdges, double find) {
 
     int bi = min + floor((max - min) / 2);
 
-    // std::cout << "[BS]: min = " << min << ", max = " << max
-    //           << ", check = " << bi << " (" << BinEdges[bi - 1]
-    //           << "), looking for = " << find << std::endl;
-
     bool eq = (fabs(find - BinEdges[bi - 1]) < 1E-4);
     if (eq) {
-      // std::cout << "[BS]\tFound equal in " << bi << " @ " << BinEdges[bi - 1]
-      //           << std::endl;
       return bi - 1;
     }
 
     bool lt = (find < BinEdges[bi - 1]);
     if (lt) {
-      // std::cout << "[BS] " << find << " < " << BinEdges[bi - 1] << std::endl;
       max = bi;
       continue;
     }
 
     bool ib = (find < BinEdges[bi]);
     if (ib) {
-      // std::cout << "[BS]\tFound in bin " << bi << " @ " << BinEdges[bi - 1]
-      //           << std::endl;
       return bi - 1;
     }
-
-    // std::cout << "[BS] " << find << " > " << BinEdges[bi] << std::endl;
 
     min = bi + 1;
     continue;
@@ -281,7 +283,6 @@ int main(int argc, char const *argv[]) {
 
   // Read in det stops
   DetectorStops = ReadDetectorStopConfig(runPlanCfg, runPlanName);
-  // DetectorStops.resize(1);
 
   std::vector<double> XBins;
 
@@ -294,153 +295,121 @@ int main(int argc, char const *argv[]) {
   size_t NDets = DetectorStops.size();
   Detectors.reserve(NDets);
 
+  EDep OutputEDep;
+  TTree *OutputTree = new TTree("EDeps", "");
+
   // translate to detboxes
   for (size_t d_it = 0; d_it < NDets; ++d_it) {
     DetBox db;
 
-    TTree *stoptree =
-        new TTree((std::string("EDep_Stop") +
-                   to_str(DetectorStops[d_it].LateralOffset) + "_m")
-                      .c_str(),
-                  "");
+    db.XOffset = -DetectorStops[d_it].LateralOffset * 100.0;
+    db.XWidth_fv = DetectorStops[d_it].DetectorFiducialWidth * 100.0;
+    db.YWidth_fv = DetectorStops[d_it].DetectorFiducialHeight * 100.0;
+    db.ZWidth_fv = DetectorStops[d_it].DetectorFiducialDepth * 100.0;
+    db.XWidth_det = db.XWidth_fv + 2 * X_Veto_cm;
+    db.YWidth_det = db.YWidth_fv + 2 * Y_Veto_cm;
+    db.ZWidth_det = db.ZWidth_fv + 2 * Z_Veto_cm;
 
-    Detectors.push_back(std::make_tuple(db, EDep(), stoptree));
+    double Detlow = db.XOffset - db.XWidth_det / 2.0;
+    double DetHigh = db.XOffset + db.XWidth_det / 2.0;
 
-    std::get<0>(Detectors[d_it]).XOffset =
-        -DetectorStops[d_it].LateralOffset * 100.0;
-    std::get<0>(Detectors[d_it]).XWidth_fv =
-        DetectorStops[d_it].DetectorFiducialWidth * 100.0;
-    std::get<0>(Detectors[d_it]).YWidth_fv =
-        DetectorStops[d_it].DetectorFiducialHeight * 100.0;
-    std::get<0>(Detectors[d_it]).ZWidth_fv =
-        DetectorStops[d_it].DetectorFiducialDepth * 100.0;
-    std::get<0>(Detectors[d_it]).XWidth_det =
-        std::get<0>(Detectors[d_it]).XWidth_fv + 2 * X_Veto_cm;
-    std::get<0>(Detectors[d_it]).YWidth_det =
-        std::get<0>(Detectors[d_it]).YWidth_fv + 2 * Y_Veto_cm;
-    std::get<0>(Detectors[d_it]).ZWidth_det =
-        std::get<0>(Detectors[d_it]).ZWidth_fv + 2 * Z_Veto_cm;
+    db.X_Range_fv[0] = db.XOffset - db.XWidth_fv / 2.0;
+    db.X_Range_fv[1] = db.XOffset + db.XWidth_fv / 2.0;
 
-    double Detlow = std::get<0>(Detectors[d_it]).XOffset -
-                    std::get<0>(Detectors[d_it]).XWidth_det / 2.0;
-    double DetHigh = std::get<0>(Detectors[d_it]).XOffset +
-                     std::get<0>(Detectors[d_it]).XWidth_det / 2.0;
+    db.Y_Range_fv[0] = -db.YWidth_fv / 2.0;
+    db.Y_Range_fv[1] = db.YWidth_fv / 2.0;
 
-    std::get<0>(Detectors[d_it]).X_Range_fv[0] =
-        std::get<0>(Detectors[d_it]).XOffset -
-        std::get<0>(Detectors[d_it]).XWidth_fv / 2.0;
-    std::get<0>(Detectors[d_it]).X_Range_fv[1] =
-        std::get<0>(Detectors[d_it]).XOffset +
-        std::get<0>(Detectors[d_it]).XWidth_fv / 2.0;
-
-    std::get<0>(Detectors[d_it]).Y_Range_fv[0] =
-        -std::get<0>(Detectors[d_it]).YWidth_fv / 2.0;
-    std::get<0>(Detectors[d_it]).Y_Range_fv[1] =
-        std::get<0>(Detectors[d_it]).YWidth_fv / 2.0;
-
-    std::get<0>(Detectors[d_it]).Z_Range_fv[0] =
-        -std::get<0>(Detectors[d_it]).ZWidth_fv / 2.0;
-    std::get<0>(Detectors[d_it]).Z_Range_fv[1] =
-        std::get<0>(Detectors[d_it]).ZWidth_fv / 2.0;
+    db.Z_Range_fv[0] = -db.ZWidth_fv / 2.0;
+    db.Z_Range_fv[1] = db.ZWidth_fv / 2.0;
 
     std::cout << "[INFO]: Det: [" << Detlow << ", " << DetHigh << "], FV: ["
-              << std::get<0>(Detectors[d_it]).X_Range_fv[0] << ", "
-              << std::get<0>(Detectors[d_it]).X_Range_fv[1] << "]."
+              << db.X_Range_fv[0] << ", " << db.X_Range_fv[1] << "]."
               << std::endl;
 
-    std::get<0>(Detectors[d_it]).X_fv[0] =
-        BinSearch(XBins, std::get<0>(Detectors[d_it]).X_Range_fv[0]);
-    std::get<0>(Detectors[d_it]).X_fv[1] =
-        BinSearch(XBins, std::get<0>(Detectors[d_it]).X_Range_fv[1]);
+    db.X_fv[0] = BinSearch(XBins, db.X_Range_fv[0]);
+    db.X_fv[1] = BinSearch(XBins, db.X_Range_fv[1]);
 
-    std::get<0>(Detectors[d_it]).X_veto_left[0] = BinSearch(XBins, Detlow);
-    std::get<0>(Detectors[d_it]).X_veto_left[1] =
-        BinSearch(XBins, Detlow + X_Veto_cm);
+    db.X_veto_left[0] = BinSearch(XBins, Detlow);
+    db.X_veto_left[1] = BinSearch(XBins, Detlow + X_Veto_cm);
 
-    std::get<0>(Detectors[d_it]).X_veto_right[0] =
-        BinSearch(XBins, DetHigh - X_Veto_cm);
-    std::get<0>(Detectors[d_it]).X_veto_right[1] = BinSearch(XBins, DetHigh);
+    db.X_veto_right[0] = BinSearch(XBins, DetHigh - X_Veto_cm);
+    db.X_veto_right[1] = BinSearch(XBins, DetHigh);
 
-    stoptree->Branch("vtx", &std::get<1>(Detectors[d_it]).vtx, "vtx[3]/D");
-    stoptree->Branch("LepDep_det", &std::get<1>(Detectors[d_it]).LepDep_det,
-                     "LepDep_det/D");
-    stoptree->Branch("ProtonDep_FV", &std::get<1>(Detectors[d_it]).ProtonDep_FV,
+    Detectors.push_back(db);
+  }
+
+  OutputTree->Branch("stop", &OutputEDep.stop, "stop/I");
+
+  OutputTree->Branch("vtx", &OutputEDep.vtx, "vtx[3]/D");
+
+  OutputTree->Branch("Enu", &OutputEDep.Enu, "Enu/D");
+  OutputTree->Branch("yTrue", &OutputEDep.yTrue, "yTrue/D");
+  OutputTree->Branch("W_rest", &OutputEDep.W_rest, "W_rest/D");
+  OutputTree->Branch("Q2True", &OutputEDep.Q2True, "Q2True/D");
+
+  OutputTree->Branch("NuPDG", &OutputEDep.NuPDG, "NuPDG/I");
+  OutputTree->Branch("LepPDG", &OutputEDep.LepPDG, "LepPDG/I");
+
+  OutputTree->Branch("nPi0", &OutputEDep.nPi0, "nPi0/I");
+  OutputTree->Branch("nPiC", &OutputEDep.nPiC, "nPiC/I");
+  OutputTree->Branch("nProton", &OutputEDep.nProton, "nProton/I");
+  OutputTree->Branch("nNeutron", &OutputEDep.nNeutron, "nNeutron/I");
+  OutputTree->Branch("nGamma", &OutputEDep.nGamma, "nGamma/I");
+
+  OutputTree->Branch("eLepTrue", &OutputEDep.eLepTrue, "eLepTrue/D");
+  OutputTree->Branch("ePi0True", &OutputEDep.ePi0True, "ePi0True/D");
+  OutputTree->Branch("ePiCTrue", &OutputEDep.ePiCTrue, "ePiCTrue/D");
+  OutputTree->Branch("eProtonTrue", &OutputEDep.eProtonTrue, "eProtonTrue/D");
+  OutputTree->Branch("eNeutronTrue", &OutputEDep.eNeutronTrue,
+                     "eNeutronTrue/D");
+  OutputTree->Branch("eGammaTrue", &OutputEDep.eGammaTrue, "eGammaTrue/D");
+
+  OutputTree->Branch("TotalNonlep_eTrue", &OutputEDep.TotalNonlep_eTrue,
+                     "TotalNonlep_eTrue/D");
+
+  OutputTree->Branch("LepDep_det", &OutputEDep.LepDep_det, "LepDep_det/D");
+  OutputTree->Branch("ProtonDep_FV", &OutputEDep.ProtonDep_FV,
                      "ProtonDep_FV/D");
-    stoptree->Branch("ProtonDep_veto",
-                     &std::get<1>(Detectors[d_it]).ProtonDep_veto,
+  OutputTree->Branch("ProtonDep_veto", &OutputEDep.ProtonDep_veto,
                      "ProtonDep_veto/D");
-    stoptree->Branch("NeutronDep_FV",
-                     &std::get<1>(Detectors[d_it]).NeutronDep_FV,
+  OutputTree->Branch("NeutronDep_FV", &OutputEDep.NeutronDep_FV,
                      "NeutronDep_FV/D");
-    stoptree->Branch("NeutronDep_veto",
-                     &std::get<1>(Detectors[d_it]).NeutronDep_veto,
+  OutputTree->Branch("NeutronDep_veto", &OutputEDep.NeutronDep_veto,
                      "NeutronDep_veto/D");
-    stoptree->Branch("PiCDep_FV", &std::get<1>(Detectors[d_it]).PiCDep_FV,
-                     "PiCDep_FV/D");
-    stoptree->Branch("PiCDep_veto", &std::get<1>(Detectors[d_it]).PiCDep_veto,
-                     "PiCDep_veto/D");
-    stoptree->Branch("Pi0Dep_FV", &std::get<1>(Detectors[d_it]).Pi0Dep_FV,
-                     "Pi0Dep_FV/D");
-    stoptree->Branch("Pi0Dep_veto", &std::get<1>(Detectors[d_it]).Pi0Dep_veto,
-                     "Pi0Dep_veto/D");
-    stoptree->Branch("OtherDep_FV", &std::get<1>(Detectors[d_it]).OtherDep_FV,
-                     "OtherDep_FV/D");
-    stoptree->Branch("OtherDep_veto",
-                     &std::get<1>(Detectors[d_it]).OtherDep_veto,
+  OutputTree->Branch("PiCDep_FV", &OutputEDep.PiCDep_FV, "PiCDep_FV/D");
+  OutputTree->Branch("PiCDep_veto", &OutputEDep.PiCDep_veto, "PiCDep_veto/D");
+  OutputTree->Branch("Pi0Dep_FV", &OutputEDep.Pi0Dep_FV, "Pi0Dep_FV/D");
+  OutputTree->Branch("Pi0Dep_veto", &OutputEDep.Pi0Dep_veto, "Pi0Dep_veto/D");
+  OutputTree->Branch("OtherDep_FV", &OutputEDep.OtherDep_FV, "OtherDep_FV/D");
+  OutputTree->Branch("OtherDep_veto", &OutputEDep.OtherDep_veto,
                      "OtherDep_veto/D");
 
-    stoptree->Branch("Enu", &std::get<1>(Detectors[d_it]).Enu, "Enu/D");
+  OutputTree->Branch("TotalNonlep_Dep_FV", &OutputEDep.TotalNonlep_Dep_FV,
+                     "TotalNonlep_Dep_FV/D");
+  OutputTree->Branch("TotalNonlep_Dep_veto", &OutputEDep.TotalNonlep_Dep_veto,
+                     "TotalNonlep_Dep_veto/D");
 
-    // std::get<1>(Detectors[d_it]).Enu = 1;
-    // std::cout << "Enu: " << &std::get<1>(Detectors[d_it]).Enu << std::endl;
-
-    stoptree->Branch("NuPDG", &std::get<1>(Detectors[d_it]).NuPDG, "NuPDG/I");
-    stoptree->Branch("LepPDG", &std::get<1>(Detectors[d_it]).LepPDG,
-                     "LepPDG/I");
-    stoptree->Branch("yTrue", &std::get<1>(Detectors[d_it]).yTrue, "yTrue/D");
-    stoptree->Branch("W_rest", &std::get<1>(Detectors[d_it]).W_rest,
-                     "W_rest/D");
-    stoptree->Branch("Q2True", &std::get<1>(Detectors[d_it]).Q2True,
-                     "Q2True/D");
-    stoptree->Branch("flagLepExitBack",
-                     &std::get<1>(Detectors[d_it]).flagLepExitBack,
-                     "flagLepExitBack/B");
-    stoptree->Branch("flagLepExitFront",
-                     &std::get<1>(Detectors[d_it]).flagLepExitFront,
-                     "flagLepExitFront/B");
-    stoptree->Branch("flagLepExitY", &std::get<1>(Detectors[d_it]).flagLepExitY,
-                     "flagLepExitY/B");
-    stoptree->Branch("flagLepExitXLow",
-                     &std::get<1>(Detectors[d_it]).flagLepExitXLow,
-                     "flagLepExitXLow/B");
-    stoptree->Branch("flagLepExitXHigh",
-                     &std::get<1>(Detectors[d_it]).flagLepExitXHigh,
-                     "flagLepExitXHigh/B");
-    stoptree->Branch("lepExitingPosX",
-                     &std::get<1>(Detectors[d_it]).lepExitingPosX,
-                     "lepExitingPosX/D");
-    stoptree->Branch("lepExitingPosY",
-                     &std::get<1>(Detectors[d_it]).lepExitingPosY,
-                     "lepExitingPosY/D");
-    stoptree->Branch("lepExitingPosZ",
-                     &std::get<1>(Detectors[d_it]).lepExitingPosZ,
-                     "lepExitingPosZ/D");
-    stoptree->Branch("lepExitingMomX",
-                     &std::get<1>(Detectors[d_it]).lepExitingMomX,
-                     "lepExitingMomX/D");
-    stoptree->Branch("lepExitingMomY",
-                     &std::get<1>(Detectors[d_it]).lepExitingMomY,
-                     "lepExitingMomY/D");
-    stoptree->Branch("lepExitingMomZ",
-                     &std::get<1>(Detectors[d_it]).lepExitingMomZ,
-                     "lepExitingMomZ/D");
-
-    stoptree->Branch("TotalDep_FV", &std::get<1>(Detectors[d_it]).TotalDep_FV,
-                     "TotalDep_FV/D");
-    stoptree->Branch("TotalDep_veto",
-                     &std::get<1>(Detectors[d_it]).TotalDep_veto,
-                     "TotalDep_veto/D");
-  }
+  OutputTree->Branch("flagLepExitBack", &OutputEDep.flagLepExitBack,
+                   "flagLepExitBack/B");
+  OutputTree->Branch("flagLepExitFront", &OutputEDep.flagLepExitFront,
+                   "flagLepExitFront/B");
+  OutputTree->Branch("flagLepExitY", &OutputEDep.flagLepExitY, "flagLepExitY/B");
+  OutputTree->Branch("flagLepExitXLow", &OutputEDep.flagLepExitXLow,
+                   "flagLepExitXLow/B");
+  OutputTree->Branch("flagLepExitXHigh", &OutputEDep.flagLepExitXHigh,
+                   "flagLepExitXHigh/B");
+  OutputTree->Branch("lepExitingPosX", &OutputEDep.lepExitingPosX,
+                   "lepExitingPosX/D");
+  OutputTree->Branch("lepExitingPosY", &OutputEDep.lepExitingPosY,
+                   "lepExitingPosY/D");
+  OutputTree->Branch("lepExitingPosZ", &OutputEDep.lepExitingPosZ,
+                   "lepExitingPosZ/D");
+  OutputTree->Branch("lepExitingMomX", &OutputEDep.lepExitingMomX,
+                   "lepExitingMomX/D");
+  OutputTree->Branch("lepExitingMomY", &OutputEDep.lepExitingMomY,
+                   "lepExitingMomY/D");
+  OutputTree->Branch("lepExitingMomZ", &OutputEDep.lepExitingMomZ,
+                   "lepExitingMomZ/D");
 
   std::cout << "[INFO]: Reading " << rdr->GetEntries() << " input entries."
             << std::endl;
@@ -458,248 +427,239 @@ int main(int argc, char const *argv[]) {
 
     // DetBox + Reader -> EDep -> Fill out tree
 
+    int stop = -1;
     for (size_t d_it = 0; d_it < NDets; ++d_it) {
-      std::tuple<DetBox, EDep, TTree *> &db = Detectors[d_it];
-      std::get<1>(db).vtx[0] = rdr->vtx_X;
-      std::get<1>(db).vtx[1] = rdr->vtx_Y;
-      std::get<1>(db).vtx[2] = rdr->vtx_Z;
+      DetBox &db = Detectors[d_it];
 
-      if ((rdr->vtx_X < std::get<0>(db).X_Range_fv[0]) ||
-          (rdr->vtx_X > std::get<0>(db).X_Range_fv[1]) ||
-          (rdr->vtx_Y < std::get<0>(db).Y_Range_fv[0]) ||
-          (rdr->vtx_Y > std::get<0>(db).Y_Range_fv[1]) ||
-          (rdr->vtx_Z < std::get<0>(db).Z_Range_fv[0]) ||
-          (rdr->vtx_Z > std::get<0>(db).Z_Range_fv[1])) {
+      if ((rdr->vtx_X < db.X_Range_fv[0]) || (rdr->vtx_X > db.X_Range_fv[1]) ||
+          (rdr->vtx_Y < db.Y_Range_fv[0]) || (rdr->vtx_Y > db.Y_Range_fv[1]) ||
+          (rdr->vtx_Z < db.Z_Range_fv[0]) || (rdr->vtx_Z > db.Z_Range_fv[1])) {
         continue;
       }
-
-      // Checking if lepton exits
-      double Detlow = std::get<0>(Detectors[d_it]).XOffset -
-                      std::get<0>(Detectors[d_it]).XWidth_det / 2.0;
-      double DetHigh = std::get<0>(Detectors[d_it]).XOffset +
-                       std::get<0>(Detectors[d_it]).XWidth_det / 2.0;
-      // Exits through the side. Should supercede exiting back/front/y
-      if (rdr->lepExitingPosX < Detlow) {
-        std::get<1>(db).flagLepExitBack = false;
-        std::get<1>(db).flagLepExitFront = false;
-        std::get<1>(db).flagLepExitY = false;
-        std::get<1>(db).flagLepExitXLow = true;
-        std::get<1>(db).flagLepExitXHigh = false;
-      } else if (rdr->lepExitingPosX > DetHigh) {
-        std::get<1>(db).flagLepExitBack = false;
-        std::get<1>(db).flagLepExitFront = false;
-        std::get<1>(db).flagLepExitY = false;
-        std::get<1>(db).flagLepExitXHigh = true;
-        std::get<1>(db).flagLepExitXLow = false;
-      } else {
-        if (std::get<1>(Detectors[d_it]).flagLepExitBack &&
-            std::get<1>(Detectors[d_it]).flagLepExitY) {
-          if (rdr->lepExitingPosZ -
-                  std::get<0>(Detectors[d_it]).ZWidth_det / 2.0 >
-              fabs(rdr->lepExitingPosY) -
-                  std::get<0>(Detectors[d_it]).YWidth_det / 2.0) {
-            std::get<1>(db).flagLepExitBack = true;
-            std::get<1>(db).flagLepExitFront = rdr->flagLepExitFront;
-            std::get<1>(db).flagLepExitY = false;
-          } else {
-            std::get<1>(db).flagLepExitBack = false;
-            std::get<1>(db).flagLepExitFront = rdr->flagLepExitFront;
-            std::get<1>(db).flagLepExitY = true;
-          }
-        } else if (std::get<1>(Detectors[d_it]).flagLepExitFront &&
-                   std::get<1>(Detectors[d_it]).flagLepExitY) {
-          if (fabs(rdr->lepExitingPosZ) -
-                  std::get<0>(Detectors[d_it]).ZWidth_det / 2.0 >
-              fabs(rdr->lepExitingPosY) -
-                  std::get<0>(Detectors[d_it]).YWidth_det / 2.0) {
-            std::get<1>(db).flagLepExitFront = true;
-            std::get<1>(db).flagLepExitBack = rdr->flagLepExitBack;
-            std::get<1>(db).flagLepExitY = false;
-          } else {
-            std::get<1>(db).flagLepExitFront = false;
-            std::get<1>(db).flagLepExitBack = rdr->flagLepExitBack;
-            std::get<1>(db).flagLepExitY = true;
-          }
-        } else {
-          std::get<1>(db).flagLepExitBack = rdr->flagLepExitBack;
-          std::get<1>(db).flagLepExitFront = rdr->flagLepExitFront;
-          std::get<1>(db).flagLepExitY = rdr->flagLepExitY;
-        }
-        std::get<1>(db).flagLepExitXHigh = false;
-        std::get<1>(db).flagLepExitXLow = false;
-      }
-      std::get<1>(db).lepExitingMomX = rdr->lepExitingMomX;
-      std::get<1>(db).lepExitingMomY = rdr->lepExitingMomY;
-      std::get<1>(db).lepExitingMomZ = rdr->lepExitingMomZ;
-      ////////End exiting lepton section
-
-      // Truth info
-      std::get<1>(db).Q2True = rdr->Q2True;
-      std::get<1>(db).yTrue = rdr->yTrue;
-      std::get<1>(db).W_rest = rdr->W_rest;
-      /////////
-
-      std::get<1>(db).LepDep_det =
-          Jaccumulate(rdr->eLepPrimaryDep, std::get<0>(db).X_veto_left[0],
-                      std::get<0>(db).X_veto_right[1], 0) +
-          Jaccumulate(rdr->eLepSecondaryDep, std::get<0>(db).X_veto_left[0],
-                      std::get<0>(db).X_veto_right[1], 0);
-
-      std::get<1>(db).ProtonDep_FV =
-          Jaccumulate(rdr->eProtonPrimaryDep, std::get<0>(db).X_fv[0],
-                      std::get<0>(db).X_fv[1], 0) +
-          Jaccumulate(rdr->eProtonSecondaryDep, std::get<0>(db).X_fv[0],
-                      std::get<0>(db).X_fv[1], 0);
-      std::get<1>(db).ProtonDep_veto =
-          Jaccumulate(rdr->eProtonPrimaryDep, std::get<0>(db).X_veto_left[0],
-                      std::get<0>(db).X_veto_left[1], 0, true, true) +
-          Jaccumulate(rdr->eProtonSecondaryDep, std::get<0>(db).X_veto_left[0],
-                      std::get<0>(db).X_veto_left[1], 0, true, true) +
-          Jaccumulate(rdr->eProtonPrimaryDep, std::get<0>(db).X_veto_right[0],
-                      std::get<0>(db).X_veto_right[1], 0, true, true) +
-          Jaccumulate(rdr->eProtonSecondaryDep, std::get<0>(db).X_veto_right[0],
-                      std::get<0>(db).X_veto_right[1], 0, true, true) +
-          Jaccumulate(rdr->eProtonPrimaryDep, std::get<0>(db).X_fv[0],
-                      std::get<0>(db).X_fv[1], 0, false, true) +
-          Jaccumulate(rdr->eProtonSecondaryDep, std::get<0>(db).X_fv[0],
-                      std::get<0>(db).X_fv[1], 0, false, true);
-
-      std::get<1>(db).NeutronDep_FV =
-          Jaccumulate(rdr->eNeutronPrimaryDep, std::get<0>(db).X_fv[0],
-                      std::get<0>(db).X_fv[1], 0) +
-          Jaccumulate(rdr->eNeutronSecondaryDep, std::get<0>(db).X_fv[0],
-                      std::get<0>(db).X_fv[1], 0);
-      std::get<1>(db).NeutronDep_veto =
-          Jaccumulate(rdr->eNeutronPrimaryDep, std::get<0>(db).X_veto_left[0],
-                      std::get<0>(db).X_veto_left[1], 0, true, true) +
-          Jaccumulate(rdr->eNeutronSecondaryDep, std::get<0>(db).X_veto_left[0],
-                      std::get<0>(db).X_veto_left[1], 0, true, true) +
-          Jaccumulate(rdr->eNeutronPrimaryDep, std::get<0>(db).X_veto_right[0],
-                      std::get<0>(db).X_veto_right[1], 0, true, true) +
-          Jaccumulate(rdr->eNeutronSecondaryDep,
-                      std::get<0>(db).X_veto_right[0],
-                      std::get<0>(db).X_veto_right[1], 0, true, true) +
-          Jaccumulate(rdr->eNeutronPrimaryDep, std::get<0>(db).X_fv[0],
-                      std::get<0>(db).X_fv[1], 0, false, true) +
-          Jaccumulate(rdr->eNeutronSecondaryDep, std::get<0>(db).X_fv[0],
-                      std::get<0>(db).X_fv[1], 0, false, true);
-
-      std::get<1>(db).PiCDep_FV =
-          Jaccumulate(rdr->ePiCPrimaryDep, std::get<0>(db).X_fv[0],
-                      std::get<0>(db).X_fv[1], 0) +
-          Jaccumulate(rdr->ePiCSecondaryDep, std::get<0>(db).X_fv[0],
-                      std::get<0>(db).X_fv[1], 0);
-      std::get<1>(db).PiCDep_veto =
-          Jaccumulate(rdr->ePiCPrimaryDep, std::get<0>(db).X_veto_left[0],
-                      std::get<0>(db).X_veto_left[1], 0, true, true) +
-          Jaccumulate(rdr->ePiCSecondaryDep, std::get<0>(db).X_veto_left[0],
-                      std::get<0>(db).X_veto_left[1], 0, true, true) +
-          Jaccumulate(rdr->ePiCPrimaryDep, std::get<0>(db).X_veto_right[0],
-                      std::get<0>(db).X_veto_right[1], 0, true, true) +
-          Jaccumulate(rdr->ePiCSecondaryDep, std::get<0>(db).X_veto_right[0],
-                      std::get<0>(db).X_veto_right[1], 0, true, true) +
-          Jaccumulate(rdr->ePiCPrimaryDep, std::get<0>(db).X_fv[0],
-                      std::get<0>(db).X_fv[1], 0, false, true) +
-          Jaccumulate(rdr->ePiCSecondaryDep, std::get<0>(db).X_fv[0],
-                      std::get<0>(db).X_fv[1], 0, false, true);
-
-      std::get<1>(db).Pi0Dep_FV =
-          Jaccumulate(rdr->ePi0PrimaryDep, std::get<0>(db).X_fv[0],
-                      std::get<0>(db).X_fv[1], 0) +
-          Jaccumulate(rdr->ePi0SecondaryDep, std::get<0>(db).X_fv[0],
-                      std::get<0>(db).X_fv[1], 0);
-      std::get<1>(db).Pi0Dep_veto =
-          Jaccumulate(rdr->ePi0PrimaryDep, std::get<0>(db).X_veto_left[0],
-                      std::get<0>(db).X_veto_left[1], 0, true, true) +
-          Jaccumulate(rdr->ePi0SecondaryDep, std::get<0>(db).X_veto_left[0],
-                      std::get<0>(db).X_veto_left[1], 0, true, true) +
-          Jaccumulate(rdr->ePi0PrimaryDep, std::get<0>(db).X_veto_right[0],
-                      std::get<0>(db).X_veto_right[1], 0, true, true) +
-          Jaccumulate(rdr->ePi0SecondaryDep, std::get<0>(db).X_veto_right[0],
-                      std::get<0>(db).X_veto_right[1], 0, true, true) +
-          Jaccumulate(rdr->ePi0PrimaryDep, std::get<0>(db).X_fv[0],
-                      std::get<0>(db).X_fv[1], 0, false, true) +
-          Jaccumulate(rdr->ePi0SecondaryDep, std::get<0>(db).X_fv[0],
-                      std::get<0>(db).X_fv[1], 0, false, true);
-
-      std::get<1>(db).OtherDep_FV =
-          Jaccumulate(rdr->eOtherPrimaryDep, std::get<0>(db).X_fv[0],
-                      std::get<0>(db).X_fv[1], 0) +
-          Jaccumulate(rdr->eOtherSecondaryDep, std::get<0>(db).X_fv[0],
-                      std::get<0>(db).X_fv[1], 0);
-      std::get<1>(db).OtherDep_veto =
-          Jaccumulate(rdr->eOtherPrimaryDep, std::get<0>(db).X_veto_left[0],
-                      std::get<0>(db).X_veto_left[1], 0, true, true) +
-          Jaccumulate(rdr->eOtherSecondaryDep, std::get<0>(db).X_veto_left[0],
-                      std::get<0>(db).X_veto_left[1], 0, true, true) +
-          Jaccumulate(rdr->eOtherPrimaryDep, std::get<0>(db).X_veto_right[0],
-                      std::get<0>(db).X_veto_right[1], 0, true, true) +
-          Jaccumulate(rdr->eOtherSecondaryDep, std::get<0>(db).X_veto_right[0],
-                      std::get<0>(db).X_veto_right[1], 0, true, true) +
-          Jaccumulate(rdr->eOtherPrimaryDep, std::get<0>(db).X_fv[0],
-                      std::get<0>(db).X_fv[1], 0, false, true) +
-          Jaccumulate(rdr->eOtherSecondaryDep, std::get<0>(db).X_fv[0],
-                      std::get<0>(db).X_fv[1], 0, false, true);
-
-      // std::cout << "\nEnu: " << &std::get<1>(Detectors[d_it]).Enu << ", " <<
-      // std::get<1>(Detectors[d_it]).Enu << std::endl;
-
-      std::get<1>(db).Enu = rdr->Enu;
-
-      // std::cout << "\nEnu: " << &std::get<1>(Detectors[d_it]).Enu << ", " <<
-      // std::get<1>(Detectors[d_it]).Enu << std::endl;
-
-      std::get<1>(db).NuPDG = rdr->nuPDG;
-      std::get<1>(db).LepPDG = rdr->lepPDG;
-      std::get<1>(db).TotalDep_FV =
-          std::get<1>(db).ProtonDep_FV + std::get<1>(db).NeutronDep_FV +
-          std::get<1>(db).PiCDep_FV + std::get<1>(db).Pi0Dep_FV +
-          std::get<1>(db).OtherDep_FV;
-
-      std::get<1>(db).TotalDep_veto =
-          std::get<1>(db).ProtonDep_veto + std::get<1>(db).NeutronDep_veto +
-          std::get<1>(db).PiCDep_veto + /*std::get<1>(db).Pi0Dep_veto +*/
-          std::get<1>(db).OtherDep_veto;
-
-      if (((std::get<1>(db).TotalDep_veto != 0) &&
-           (!std::isnormal(std::get<1>(db).TotalDep_veto))) ||
-          ((std::get<1>(db).TotalDep_FV != 0) &&
-           (!std::isnormal(std::get<1>(db).TotalDep_FV)))) {
-        std::cout << "\n[INFO] XBins: " << std::get<0>(db).X_fv[0] << " -- "
-                  << std::get<0>(db).X_fv[1]
-                  << ", Veto left: " << std::get<0>(db).X_veto_left[0] << " -- "
-                  << std::get<0>(db).X_veto_left[1]
-                  << ", Veto right: " << std::get<0>(db).X_veto_right[0]
-                  << " -- " << std::get<0>(db).X_veto_right[1] << std::endl;
-
-        std::cout << "FV -- Total: " << std::get<1>(db).TotalDep_FV
-                  << ", Proton: " << std::get<1>(db).ProtonDep_FV
-                  << ", Neutron: " << std::get<1>(db).NeutronDep_FV
-                  << ", PiC: " << std::get<1>(db).PiCDep_FV
-                  << ", Pi0: " << std::get<1>(db).Pi0Dep_FV
-                  << ", Other: " << std::get<1>(db).OtherDep_FV << std::endl;
-
-        std::cout << "Veto -- Total: " << std::get<1>(db).TotalDep_veto
-                  << ", Proton: " << std::get<1>(db).ProtonDep_veto
-                  << ", Neutron: " << std::get<1>(db).NeutronDep_veto
-                  << ", PiC: " << std::get<1>(db).PiCDep_veto
-                  << ", Pi0: " << std::get<1>(db).Pi0Dep_veto
-                  << ", Other: " << std::get<1>(db).OtherDep_veto << std::endl
-                  << std::endl;
-      }
-
-      std::get<2>(db)->Fill();
+      stop = d_it;
+      break;
     }
 
-    // break;
+    if (stop == -1) {
+      continue;
+    }
+
+    DetBox &stopBox = Detectors[stop];
+    OutputEDep.stop = stop;
+
+    OutputEDep.vtx[0] = rdr->vtx_X;
+    OutputEDep.vtx[1] = rdr->vtx_Y;
+    OutputEDep.vtx[2] = rdr->vtx_Z;
+
+    OutputEDep.Enu = rdr->Enu;
+
+    OutputEDep.yTrue = rdr->yTrue;
+
+    OutputEDep.NuPDG = rdr->nuPDG;
+    OutputEDep.LepPDG = rdr->lepPDG;
+
+    OutputEDep.nPi0 = rdr->nPi0;
+    OutputEDep.nPiC = rdr->nPiC;
+    OutputEDep.nProton = rdr->nProton;
+    OutputEDep.nNeutron = rdr->nNeutron;
+    OutputEDep.nGamma = rdr->nGamma;
+    OutputEDep.eLepTrue = rdr->eLepTrue;
+    OutputEDep.ePi0True = rdr->ePi0True;
+    OutputEDep.ePiCTrue = rdr->ePiCTrue;
+    OutputEDep.eProtonTrue = rdr->eProtonTrue;
+    OutputEDep.eNeutronTrue = rdr->eNeutronTrue;
+    OutputEDep.eGammaTrue = rdr->eGammaTrue;
+    OutputEDep.TotalNonlep_eTrue = rdr->ePi0True + rdr->ePiCTrue +
+                                   rdr->eProtonTrue + rdr->eNeutronTrue +
+                                   rdr->eGammaTrue;
+
+    // Checking if lepton exits
+    double Detlow = stopBox.XOffset - stopBox.XWidth_det / 2.0;
+    double DetHigh = stopBox.XOffset + stopBox.XWidth_det / 2.0;
+    // Exits through the side. Should supercede exiting back/front/y
+    if (rdr->lepExitingPosX < Detlow) {
+      OutputEDep.flagLepExitBack = false;
+      OutputEDep.flagLepExitFront = false;
+      OutputEDep.flagLepExitY = false;
+      OutputEDep.flagLepExitXLow = true;
+      OutputEDep.flagLepExitXHigh = false;
+    } else if (rdr->lepExitingPosX > DetHigh) {
+      OutputEDep.flagLepExitBack = false;
+      OutputEDep.flagLepExitFront = false;
+      OutputEDep.flagLepExitY = false;
+      OutputEDep.flagLepExitXHigh = true;
+      OutputEDep.flagLepExitXLow = false;
+    } else {
+      if (OutputEDep.flagLepExitBack && OutputEDep.flagLepExitY) {
+        if (rdr->lepExitingPosZ - stopBox.ZWidth_det / 2.0 >
+            fabs(rdr->lepExitingPosY) - stopBox.YWidth_det / 2.0) {
+          OutputEDep.flagLepExitBack = true;
+          OutputEDep.flagLepExitFront = rdr->flagLepExitFront;
+          OutputEDep.flagLepExitY = false;
+        } else {
+          OutputEDep.flagLepExitBack = false;
+          OutputEDep.flagLepExitFront = rdr->flagLepExitFront;
+          OutputEDep.flagLepExitY = true;
+        }
+      } else if (OutputEDep.flagLepExitFront && OutputEDep.flagLepExitY) {
+        if (fabs(rdr->lepExitingPosZ) - stopBox.ZWidth_det / 2.0 >
+            fabs(rdr->lepExitingPosY) - stopBox.YWidth_det / 2.0) {
+          OutputEDep.flagLepExitFront = true;
+          OutputEDep.flagLepExitBack = rdr->flagLepExitBack;
+          OutputEDep.flagLepExitY = false;
+        } else {
+          OutputEDep.flagLepExitFront = false;
+          OutputEDep.flagLepExitBack = rdr->flagLepExitBack;
+          OutputEDep.flagLepExitY = true;
+        }
+      } else {
+        OutputEDep.flagLepExitBack = rdr->flagLepExitBack;
+        OutputEDep.flagLepExitFront = rdr->flagLepExitFront;
+        OutputEDep.flagLepExitY = rdr->flagLepExitY;
+      }
+      OutputEDep.flagLepExitXHigh = false;
+      OutputEDep.flagLepExitXLow = false;
+    }
+    OutputEDep.lepExitingMomX = rdr->lepExitingMomX;
+    OutputEDep.lepExitingMomY = rdr->lepExitingMomY;
+    OutputEDep.lepExitingMomZ = rdr->lepExitingMomZ;
+    ////////End exiting lepton section
+
+    OutputEDep.LepDep_det =
+        Jaccumulate(rdr->eLepPrimaryDep, stopBox.X_veto_left[0],
+                    stopBox.X_veto_right[1], 0) +
+        Jaccumulate(rdr->eLepSecondaryDep, stopBox.X_veto_left[0],
+                    stopBox.X_veto_right[1], 0);
+
+    OutputEDep.ProtonDep_FV = Jaccumulate(rdr->eProtonPrimaryDep,
+                                          stopBox.X_fv[0], stopBox.X_fv[1], 0) +
+                              Jaccumulate(rdr->eProtonSecondaryDep,
+                                          stopBox.X_fv[0], stopBox.X_fv[1], 0);
+    OutputEDep.ProtonDep_veto =
+        Jaccumulate(rdr->eProtonPrimaryDep, stopBox.X_veto_left[0],
+                    stopBox.X_veto_left[1], 0, true, true) +
+        Jaccumulate(rdr->eProtonSecondaryDep, stopBox.X_veto_left[0],
+                    stopBox.X_veto_left[1], 0, true, true) +
+        Jaccumulate(rdr->eProtonPrimaryDep, stopBox.X_veto_right[0],
+                    stopBox.X_veto_right[1], 0, true, true) +
+        Jaccumulate(rdr->eProtonSecondaryDep, stopBox.X_veto_right[0],
+                    stopBox.X_veto_right[1], 0, true, true) +
+        Jaccumulate(rdr->eProtonPrimaryDep, stopBox.X_fv[0], stopBox.X_fv[1], 0,
+                    false, true) +
+        Jaccumulate(rdr->eProtonSecondaryDep, stopBox.X_fv[0], stopBox.X_fv[1],
+                    0, false, true);
+
+    OutputEDep.NeutronDep_FV =
+        Jaccumulate(rdr->eNeutronPrimaryDep, stopBox.X_fv[0], stopBox.X_fv[1],
+                    0) +
+        Jaccumulate(rdr->eNeutronSecondaryDep, stopBox.X_fv[0], stopBox.X_fv[1],
+                    0);
+    OutputEDep.NeutronDep_veto =
+        Jaccumulate(rdr->eNeutronPrimaryDep, stopBox.X_veto_left[0],
+                    stopBox.X_veto_left[1], 0, true, true) +
+        Jaccumulate(rdr->eNeutronSecondaryDep, stopBox.X_veto_left[0],
+                    stopBox.X_veto_left[1], 0, true, true) +
+        Jaccumulate(rdr->eNeutronPrimaryDep, stopBox.X_veto_right[0],
+                    stopBox.X_veto_right[1], 0, true, true) +
+        Jaccumulate(rdr->eNeutronSecondaryDep, stopBox.X_veto_right[0],
+                    stopBox.X_veto_right[1], 0, true, true) +
+        Jaccumulate(rdr->eNeutronPrimaryDep, stopBox.X_fv[0], stopBox.X_fv[1],
+                    0, false, true) +
+        Jaccumulate(rdr->eNeutronSecondaryDep, stopBox.X_fv[0], stopBox.X_fv[1],
+                    0, false, true);
+
+    OutputEDep.PiCDep_FV =
+        Jaccumulate(rdr->ePiCPrimaryDep, stopBox.X_fv[0], stopBox.X_fv[1], 0) +
+        Jaccumulate(rdr->ePiCSecondaryDep, stopBox.X_fv[0], stopBox.X_fv[1], 0);
+    OutputEDep.PiCDep_veto =
+        Jaccumulate(rdr->ePiCPrimaryDep, stopBox.X_veto_left[0],
+                    stopBox.X_veto_left[1], 0, true, true) +
+        Jaccumulate(rdr->ePiCSecondaryDep, stopBox.X_veto_left[0],
+                    stopBox.X_veto_left[1], 0, true, true) +
+        Jaccumulate(rdr->ePiCPrimaryDep, stopBox.X_veto_right[0],
+                    stopBox.X_veto_right[1], 0, true, true) +
+        Jaccumulate(rdr->ePiCSecondaryDep, stopBox.X_veto_right[0],
+                    stopBox.X_veto_right[1], 0, true, true) +
+        Jaccumulate(rdr->ePiCPrimaryDep, stopBox.X_fv[0], stopBox.X_fv[1], 0,
+                    false, true) +
+        Jaccumulate(rdr->ePiCSecondaryDep, stopBox.X_fv[0], stopBox.X_fv[1], 0,
+                    false, true);
+
+    OutputEDep.Pi0Dep_FV =
+        Jaccumulate(rdr->ePi0PrimaryDep, stopBox.X_fv[0], stopBox.X_fv[1], 0) +
+        Jaccumulate(rdr->ePi0SecondaryDep, stopBox.X_fv[0], stopBox.X_fv[1], 0);
+    OutputEDep.Pi0Dep_veto =
+        Jaccumulate(rdr->ePi0PrimaryDep, stopBox.X_veto_left[0],
+                    stopBox.X_veto_left[1], 0, true, true) +
+        Jaccumulate(rdr->ePi0SecondaryDep, stopBox.X_veto_left[0],
+                    stopBox.X_veto_left[1], 0, true, true) +
+        Jaccumulate(rdr->ePi0PrimaryDep, stopBox.X_veto_right[0],
+                    stopBox.X_veto_right[1], 0, true, true) +
+        Jaccumulate(rdr->ePi0SecondaryDep, stopBox.X_veto_right[0],
+                    stopBox.X_veto_right[1], 0, true, true) +
+        Jaccumulate(rdr->ePi0PrimaryDep, stopBox.X_fv[0], stopBox.X_fv[1], 0,
+                    false, true) +
+        Jaccumulate(rdr->ePi0SecondaryDep, stopBox.X_fv[0], stopBox.X_fv[1], 0,
+                    false, true);
+
+    OutputEDep.OtherDep_FV = Jaccumulate(rdr->eOtherPrimaryDep, stopBox.X_fv[0],
+                                         stopBox.X_fv[1], 0) +
+                             Jaccumulate(rdr->eOtherSecondaryDep,
+                                         stopBox.X_fv[0], stopBox.X_fv[1], 0);
+    OutputEDep.OtherDep_veto =
+        Jaccumulate(rdr->eOtherPrimaryDep, stopBox.X_veto_left[0],
+                    stopBox.X_veto_left[1], 0, true, true) +
+        Jaccumulate(rdr->eOtherSecondaryDep, stopBox.X_veto_left[0],
+                    stopBox.X_veto_left[1], 0, true, true) +
+        Jaccumulate(rdr->eOtherPrimaryDep, stopBox.X_veto_right[0],
+                    stopBox.X_veto_right[1], 0, true, true) +
+        Jaccumulate(rdr->eOtherSecondaryDep, stopBox.X_veto_right[0],
+                    stopBox.X_veto_right[1], 0, true, true) +
+        Jaccumulate(rdr->eOtherPrimaryDep, stopBox.X_fv[0], stopBox.X_fv[1], 0,
+                    false, true) +
+        Jaccumulate(rdr->eOtherSecondaryDep, stopBox.X_fv[0], stopBox.X_fv[1],
+                    0, false, true);
+
+    OutputEDep.TotalNonlep_Dep_FV =
+        OutputEDep.ProtonDep_FV + OutputEDep.NeutronDep_FV +
+        OutputEDep.PiCDep_FV + OutputEDep.Pi0Dep_FV + OutputEDep.OtherDep_FV;
+
+    OutputEDep.TotalNonlep_Dep_veto =
+        OutputEDep.ProtonDep_veto + OutputEDep.NeutronDep_veto +
+        OutputEDep.PiCDep_veto + OutputEDep.Pi0Dep_veto +
+        OutputEDep.OtherDep_veto;
+
+    if (((OutputEDep.TotalNonlep_Dep_veto != 0) &&
+         (!std::isnormal(OutputEDep.TotalNonlep_Dep_veto))) ||
+        ((OutputEDep.TotalNonlep_Dep_FV != 0) &&
+         (!std::isnormal(OutputEDep.TotalNonlep_Dep_FV)))) {
+      std::cout << "\n[INFO] XBins: " << stopBox.X_fv[0] << " -- "
+                << stopBox.X_fv[1] << ", Veto left: " << stopBox.X_veto_left[0]
+                << " -- " << stopBox.X_veto_left[1]
+                << ", Veto right: " << stopBox.X_veto_right[0] << " -- "
+                << stopBox.X_veto_right[1] << std::endl;
+
+      std::cout << "FV -- Total: " << OutputEDep.TotalNonlep_Dep_FV
+                << ", Proton: " << OutputEDep.ProtonDep_FV
+                << ", Neutron: " << OutputEDep.NeutronDep_FV
+                << ", PiC: " << OutputEDep.PiCDep_FV
+                << ", Pi0: " << OutputEDep.Pi0Dep_FV
+                << ", Other: " << OutputEDep.OtherDep_FV << std::endl;
+
+      std::cout << "Veto -- Total: " << OutputEDep.TotalNonlep_Dep_veto
+                << ", Proton: " << OutputEDep.ProtonDep_veto
+                << ", Neutron: " << OutputEDep.NeutronDep_veto
+                << ", PiC: " << OutputEDep.PiCDep_veto
+                << ", Pi0: " << OutputEDep.Pi0Dep_veto
+                << ", Other: " << OutputEDep.OtherDep_veto << std::endl
+                << std::endl;
+    }
+
+    OutputTree->Fill();
   }
 
   std::cout << "\r[INFO]: Read " << rdr->GetEntries() << " entries."
             << std::endl;
-
-  // for (std::tuple<DetBox, EDep, TTree *> &db : Detectors) {
-  //   std::get<2>(db)->Write(std::get<2>(db)->GetName(), TObject::kOverwrite);
-  // }
 
   outfile->Write();
   outfile->Close();
