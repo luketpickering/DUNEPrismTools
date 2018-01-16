@@ -254,9 +254,10 @@ void DunePrismCondenser::Condense(){
         }
       
         if(chain[track[i]] == 0){//Primary
-          if(PID[i] == lepPDGFull && !flagLepExit &&  xe[i] >= xBins.at(0) && xe[i] <= xBins.at(xBins.size() - 1) ){//lepton
+          if(PID[i] == lepPDGFull && !flagLepExit  ){//lepton
             if( ye[i] >= yBins.at(0) && ye[i] <= yBins.at(3)
-               &&  ze[i] >= zBins.at(0) && ze[i] <= zBins.at(3)){ 
+               &&  ze[i] >= zBins.at(0) && ze[i] <= zBins.at(3) 
+               &&  xe[i] >= xBins.at(0) && xe[i] <= xBins.at(xBins.size() - 1)){ 
                int bins[3] = {
                   GetBinX(xe[i]),
                   GetBinY(ye[i]),
@@ -267,7 +268,9 @@ void DunePrismCondenser::Condense(){
               flagLepExitBack = true;
               flagLepExit = true;
             }
-            if( ze[i] <= zBins.at(0) ){//Muon exitting front
+            else if( ze[i] <= zBins.at(0) ){//Muon exitting front
+              std::cout << ie << " lep exited front "<< std::endl << 
+              "\t"<<xe[i] <<  " " << ye[i] << " " <<ze[i] << std::endl;
               flagLepExitFront = true;
               flagLepExit = true;
             }
@@ -425,6 +428,12 @@ void DunePrismCondenser::Condense(){
           }
         }
       }
+
+      if(flagLepExitBack && flagLepExitFront){
+        std::cout << ie << " lep exited both " << std::endl;// << 
+//        "\t"<<xe[i] <<  " " << ye[i] << " " <<ze[i] << std::endl;       
+      }
+
       fullDetTree->Fill();
     
   }

@@ -19,7 +19,7 @@ for rp in config.findall('RunPlan'):
   det = rp.findall('Detector')[0]
   for stop in stops.findall('Stop'):
     det_configs.append(
-      {'shift':int(stop.get('LateralOffset_m'))*100,
+      {'shift':int(stop.get('LateralOffset_m'))*-100,
       'x':int(float(det.get('DetectorFiducialWidth_m')))*100,
       'y':int(float(det.get('DetectorFiducialHeight_m')))*100,
       'z':int(float(det.get('DetectorFiducialDepth_m')))*100}
@@ -38,7 +38,8 @@ if not os.path.isdir("ElastEnuEff/"+setting+"/"+DIR):
 
 trees = dict()
 for dc in det_configs:
-  trees[dc['shift']] = "events_" + str(dc['x']) + "x" + str(dc['y']) + "x" + str(dc['z']) + "_50x50x50_"+str(dc['shift'])
+#  trees[dc['shift']] = "events_" + str(dc['x']) + "x" + str(dc['y']) + "x" + str(dc['z']) + "_50x50x50_"+str(dc['shift'])
+   trees[dc['shift']] = "EDep_Stop" + str(dc['shift']/-100) + "_m"
 
 default_size = str(dc['x']/100) + "x" + str(dc['y']/100) + "x" + str(dc['z']/100) +"m"
 
@@ -101,14 +102,14 @@ for stop in stops:
 
 
   hElastEnuAcc[stop] = TH2D("hElastEnuAcc_" + str(stop),"",nXBins,xBins,nYBins,yBins)
-  chains[stop].Draw("(1-yTrue):Enu>>hElastEnuAcc_"+str(stop),"(eHadPrimaryDepIn + eHadSecondaryDepIn)/(eHadPrimaryDepIn + eHadSecondaryDepIn + eHadPrimaryDepOut + eHadSecondaryDepOut) >= .95","colz")
+  chains[stop].Draw("(1-yTrue):Enu>>hElastEnuAcc_"+str(stop),"TotalDep_veto < 0.05","colz")
   c1.SaveAs("ElastEnuEff/"+setting+ "/"+DIR+ "/Acc"+str(stop)+".png")
 
   c1.SetLogz(0)
   hElastEnuEff[stop] = doEff(hElastEnuTot[stop],hElastEnuAcc[stop],"hElastEnuEff_"+str(stop)) 
   hElastEnuEff[stop].SetMaximum(1.0)
   hElastEnuEff[stop].SetMinimum(0.)
-  hElastEnuEff[stop].SetTitle("95% Had Containment - " + default_size + " - " + stops[stop])
+  hElastEnuEff[stop].SetTitle(" Had Containment - " + default_size + " - " + stops[stop])
   hElastEnuEff[stop].SetXTitle("Enu (GeV)")
   hElastEnuEff[stop].SetYTitle("Elasticity (1-y)")
   hElastEnuEff[stop].GetXaxis().SetTitleSize(.06)

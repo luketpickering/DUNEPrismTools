@@ -71,6 +71,7 @@ struct EDep {
   bool flagLepExitBack;
   bool flagLepExitFront;
   bool flagLepExitY;
+  bool flagLepExit;
   bool flagLepExitXLow;
   bool flagLepExitXHigh;
 
@@ -390,26 +391,29 @@ int main(int argc, char const *argv[]) {
                      "TotalNonlep_Dep_veto/D");
 
   OutputTree->Branch("flagLepExitBack", &OutputEDep.flagLepExitBack,
-                   "flagLepExitBack/B");
+                     "flagLepExitBack/B");
   OutputTree->Branch("flagLepExitFront", &OutputEDep.flagLepExitFront,
-                   "flagLepExitFront/B");
-  OutputTree->Branch("flagLepExitY", &OutputEDep.flagLepExitY, "flagLepExitY/B");
+                     "flagLepExitFront/B");
+  OutputTree->Branch("flagLepExitY", &OutputEDep.flagLepExitY,
+                     "flagLepExitY/B");
+  OutputTree->Branch("flagLepExit", &OutputEDep.flagLepExit, "flagLepExit/B");
+
   OutputTree->Branch("flagLepExitXLow", &OutputEDep.flagLepExitXLow,
-                   "flagLepExitXLow/B");
+                     "flagLepExitXLow/B");
   OutputTree->Branch("flagLepExitXHigh", &OutputEDep.flagLepExitXHigh,
-                   "flagLepExitXHigh/B");
+                     "flagLepExitXHigh/B");
   OutputTree->Branch("lepExitingPosX", &OutputEDep.lepExitingPosX,
-                   "lepExitingPosX/D");
+                     "lepExitingPosX/D");
   OutputTree->Branch("lepExitingPosY", &OutputEDep.lepExitingPosY,
-                   "lepExitingPosY/D");
+                     "lepExitingPosY/D");
   OutputTree->Branch("lepExitingPosZ", &OutputEDep.lepExitingPosZ,
-                   "lepExitingPosZ/D");
+                     "lepExitingPosZ/D");
   OutputTree->Branch("lepExitingMomX", &OutputEDep.lepExitingMomX,
-                   "lepExitingMomX/D");
+                     "lepExitingMomX/D");
   OutputTree->Branch("lepExitingMomY", &OutputEDep.lepExitingMomY,
-                   "lepExitingMomY/D");
+                     "lepExitingMomY/D");
   OutputTree->Branch("lepExitingMomZ", &OutputEDep.lepExitingMomZ,
-                   "lepExitingMomZ/D");
+                     "lepExitingMomZ/D");
 
   std::cout << "[INFO]: Reading " << rdr->GetEntries() << " input entries."
             << std::endl;
@@ -477,20 +481,21 @@ int main(int argc, char const *argv[]) {
     double Detlow = stopBox.XOffset - stopBox.XWidth_det / 2.0;
     double DetHigh = stopBox.XOffset + stopBox.XWidth_det / 2.0;
     // Exits through the side. Should supercede exiting back/front/y
-    if (rdr->lepExitingPosX < Detlow) {
+
+    if (rdr->lepExitingPosX <= Detlow) {
       OutputEDep.flagLepExitBack = false;
       OutputEDep.flagLepExitFront = false;
       OutputEDep.flagLepExitY = false;
       OutputEDep.flagLepExitXLow = true;
       OutputEDep.flagLepExitXHigh = false;
-    } else if (rdr->lepExitingPosX > DetHigh) {
+    } else if (rdr->lepExitingPosX >= DetHigh) {
       OutputEDep.flagLepExitBack = false;
       OutputEDep.flagLepExitFront = false;
       OutputEDep.flagLepExitY = false;
       OutputEDep.flagLepExitXHigh = true;
       OutputEDep.flagLepExitXLow = false;
     } else {
-      if (OutputEDep.flagLepExitBack && OutputEDep.flagLepExitY) {
+      if (rdr->flagLepExitBack && rdr->flagLepExitY) {
         if (rdr->lepExitingPosZ - stopBox.ZWidth_det / 2.0 >
             fabs(rdr->lepExitingPosY) - stopBox.YWidth_det / 2.0) {
           OutputEDep.flagLepExitBack = true;
@@ -501,7 +506,7 @@ int main(int argc, char const *argv[]) {
           OutputEDep.flagLepExitFront = rdr->flagLepExitFront;
           OutputEDep.flagLepExitY = true;
         }
-      } else if (OutputEDep.flagLepExitFront && OutputEDep.flagLepExitY) {
+      } else if (rdr->flagLepExitFront && rdr->flagLepExitY) {
         if (fabs(rdr->lepExitingPosZ) - stopBox.ZWidth_det / 2.0 >
             fabs(rdr->lepExitingPosY) - stopBox.YWidth_det / 2.0) {
           OutputEDep.flagLepExitFront = true;
@@ -520,9 +525,14 @@ int main(int argc, char const *argv[]) {
       OutputEDep.flagLepExitXHigh = false;
       OutputEDep.flagLepExitXLow = false;
     }
+
+    OutputEDep.flagLepExit = rdr->flagLepExit;
     OutputEDep.lepExitingMomX = rdr->lepExitingMomX;
     OutputEDep.lepExitingMomY = rdr->lepExitingMomY;
     OutputEDep.lepExitingMomZ = rdr->lepExitingMomZ;
+    OutputEDep.lepExitingPosX = rdr->lepExitingPosX;
+    OutputEDep.lepExitingPosY = rdr->lepExitingPosY;
+    OutputEDep.lepExitingPosZ = rdr->lepExitingPosZ;
     ////////End exiting lepton section
 
     OutputEDep.LepDep_det =
