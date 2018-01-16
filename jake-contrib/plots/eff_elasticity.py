@@ -15,12 +15,14 @@ det_configs = []
 print "Config file:\n\t",det_file 
 config = xml.etree.ElementTree.parse(det_file)
 for rp in config.findall('RunPlan'):
-  for det in rp.findall('Detector'):
+  stops = rp.findall('Stops')[0]
+  det = rp.findall('Detector')[0]
+  for stop in stops.findall('Stop'):
     det_configs.append(
-      {'shift':int(det.get('shift'))*100,
-      'x':int(float(det.get('detectorSizeX')))*100,
-      'y':int(float(det.get('detectorSizeY')))*100,
-      'z':int(float(det.get('detectorSizeZ')))*100}
+      {'shift':int(stop.get('LateralOffset_m'))*100,
+      'x':int(float(det.get('DetectorFiducialWidth_m')))*100,
+      'y':int(float(det.get('DetectorFiducialHeight_m')))*100,
+      'z':int(float(det.get('DetectorFiducialDepth_m')))*100}
     )
 
 print det_configs    

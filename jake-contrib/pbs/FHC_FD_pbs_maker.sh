@@ -30,6 +30,7 @@ do
 
   echo source /mnt/research/NuInt/argon_box_repo/argon_box/setup.sh 4.10.00.p04 64 >> ${OUTFILE}
   echo export PATH=/mnt/research/NuInt/DUNEPrismTools/jake-contrib/:\$PATH >> ${OUTFILE}
+  echo export PATH=/mnt/research/NuInt/DUNEPrismTools/Linux/bin:\$PATH >> ${OUTFILE}
   echo module load GNU/4.9 >> ${OUTFILE}
 
   echo cp \$\{DATAPATH\}/${line} \$TMPDIR >> ${OUTFILE}
@@ -41,7 +42,7 @@ do
 
   echo cp \$\{PYOUTPUT\} /mnt/scratch/calcuttj/DunePrism/FHC_FD/ >> ${OUTFILE}
 
-  echo DunePrismAnalyzer -i \$\{PYOUTPUT\} -o ${run}.\$\{PBS_JOBID\}.DPA.root -x \$\{XMLPATH\} -n -1 >> ${OUTFILE}
+  echo dp_DunePrismAnalyzer -i \$\{PYOUTPUT\} -o ${run}.\$\{PBS_JOBID\}.DPA.root -x \$\{XMLPATH\} -n -1 >> ${OUTFILE}
  
   echo cp ${run}.\$\{PBS_JOBID\}.DPA.root ~/DUNEPrismSim/FHC_FD/$1/ >> ${OUTFILE}
 

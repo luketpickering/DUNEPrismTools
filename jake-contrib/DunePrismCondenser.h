@@ -85,6 +85,7 @@ class DunePrismCondenser{
     double ye[maxNQ];
     double zs[maxNQ];
     double ze[maxNQ];
+    double te[maxNQ];
     double pxs[maxNQ];
     double pxe[maxNQ];
     double pys[maxNQ];
@@ -93,6 +94,7 @@ class DunePrismCondenser{
     double pze[maxNQ];
     double ekin[maxNQ];
     double edep[maxNQ];
+
 
 
     //Output
@@ -112,11 +114,29 @@ class DunePrismCondenser{
     double ePiCSecondaryDep[400][3][3];
     double ePi0SecondaryDep[400][3][3];
     double eOtherSecondaryDep[400][3][3];
+    double neutronPrimaryTimeDep[400][3][3];
+    double neutronSecondaryTimeDep[400][3][3];
     std::vector<double> xBins;
     std::vector<double> yBins;
     std::vector<double> zBins;
 
     //FullDet metadata
+    double lepExitingPosX;
+    double lepExitingPosY;
+    double lepExitingPosZ;
+    double lepExitingMomX;
+    double lepExitingMomY;
+    double lepExitingMomZ;
+    bool flagLepExit;
+    bool flagLepExitBack;
+    bool flagLepExitFront;
+    bool flagLepExitY;
+    /*double lepTrackX[1000];
+    double lepTrackY[1000];
+    double lepTrackZ[1000];
+    double lepTrackMomX[1000];
+    double lepTrackMomY[1000];
+    double lepTrackMomZ[1000];*/
     double EnuFull;
     int nuPDGFull;
     double vtx_X_full;
