@@ -181,10 +181,10 @@ inline std::vector<TH *> GetHistograms(std::string const &fname,
   return histos;
 }
 
-inline std::vector<TH1D *> SplitTH2D(TH2D *t2, bool AlongY,
-                              double min = -std::numeric_limits<double>::max(),
-                              double max = std::numeric_limits<double>::max()) {
-  std::vector<TH1D *> split;
+inline std::vector<std::pair<double, TH1D *> > SplitTH2D(
+    TH2D *t2, bool AlongY, double min = -std::numeric_limits<double>::max(),
+    double max = std::numeric_limits<double>::max()) {
+  std::vector<std::pair<double, TH1D *> > split;
 
   for (Int_t bi_it = 1;
        bi_it < (AlongY ? t2->GetYaxis() : t2->GetXaxis())->GetNbins() + 1;
@@ -195,9 +195,11 @@ inline std::vector<TH1D *> SplitTH2D(TH2D *t2, bool AlongY,
       continue;
     }
 
-    split.push_back((AlongY ? t2->ProjectionX(to_str(bi_it).c_str(), bi_it, bi_it)
-                            : t2->ProjectionY(to_str(bi_it).c_str(), bi_it, bi_it)));
-    split.back()->SetDirectory(NULL);
+    split.push_back(std::make_pair(
+        (AlongY ? t2->GetYaxis() : t2->GetXaxis())->GetBinCenter(bi_it),
+        (AlongY ? t2->ProjectionX(to_str(bi_it).c_str(), bi_it, bi_it)
+                : t2->ProjectionY(to_str(bi_it).c_str(), bi_it, bi_it))));
+    split.back().second->SetDirectory(NULL);
   }
 
   return split;

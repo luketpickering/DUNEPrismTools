@@ -213,6 +213,8 @@ source /cvmfs/fermilab.opensciencegrid.org/products/common/etc/setups.sh
 setup jobsub_client
 setup ifdhc
 
+voms-proxy-info --all
+
 if [ -e sub_tmp ]; then rm -r sub_tmp; fi
 
 mkdir sub_tmp

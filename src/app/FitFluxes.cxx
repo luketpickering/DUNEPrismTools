@@ -48,6 +48,10 @@ double FitBetween_low = 0xdeadbeef, FitBetween_high = 0xdeadbeef;
 int binLow, binHigh;
 bool MultiplyChi2ContribByBinWidth = false;
 
+std::vector<std::pair<double, double> > IncludedOffAxisRange_2D_inputs;
+std::vector<double> FluxOffaxisPositions_2D_inputs;
+std::vector<bool> ApplyReg;
+
 double referencePOT = std::numeric_limits<double>::min();
 std::vector<double> MeasurementFactor;
 std::vector<TH1D *> Fluxes;
@@ -157,6 +161,9 @@ void TargetSumChi2(int &nDim, double *gout, double &result, double coeffs[],
   double reg = 0;
   if (RegFactor != 0xdeadbeef) {
     for (size_t i = 0; i < Fluxes.size(); i++) {
+      if (ApplyReg.size() && !ApplyReg[i]) {
+        continue;
+      }
       reg += pow((coeffs[i] - coeffs[i + 1]) / RegFactor, 2);
     }
   }
@@ -187,6 +194,9 @@ void TargetSumGauss(int &nDim, double *gout, double &result, double coeffs[],
   double reg = 0;
   if (RegFactor != 0xdeadbeef) {
     for (size_t i = 0; i < Fluxes.size(); i++) {
+      if (ApplyReg.size() && !ApplyReg[i]) {
+        continue;
+      }
       reg += pow((coeffs[i] - coeffs[i + 1]) / RegFactor, 2);
     }
   }
@@ -300,6 +310,10 @@ void SayUsage(char const *argv[]) {
          "\t                                     Default = 3, larger is "
          "faster     \n"
          "\t                                     decay."
+         "\t-O <OAP_min,OAP_max[,OAP_min2,OAP_max2]> : Specify regions of off "
+         "axis angle to include \n"
+         "\t                                           in fit. Will only be "
+         "applied to a `-h` style input.\n"
       << std::endl;
 }
 
@@ -390,6 +404,22 @@ void handleOpts(int argc, char const *argv[]) {
       ExpDecayRate = str2T<double>(argv[++opt]);
     } else if (std::string(argv[opt]) == "-B") {
       MultiplyChi2ContribByBinWidth = true;
+    } else if (std::string(argv[opt]) == "-O") {
+      std::vector<double> params = ParseToVect<double>(argv[++opt], ",");
+
+      if (params.size() & 1) {
+        std::cout << "[ERROR]: -O recieved: \"" << argv[opt]
+                  << "\", which contains an odd number of inputs, expected an "
+                     "even number."
+                  << std::endl;
+        exit(1);
+      }
+
+      for (size_t i = 0; i < params.size(); i += 2) {
+        IncludedOffAxisRange_2D_inputs.push_back(
+            std::make_pair(params[i], params[i + 1]));
+      }
+
     } else if ((std::string(argv[opt]) == "-?") ||
                std::string(argv[opt]) == "--help") {
       SayUsage(argv);
@@ -415,6 +445,12 @@ int main(int argc, char const *argv[]) {
   if (!oupFile.length()) {
     std::cout << "[ERROR]: No output file specified." << std::endl;
     exit(1);
+  }
+
+  if (!IncludedOffAxisRange_2D_inputs.size() && inpHistName.length()) {
+    IncludedOffAxisRange_2D_inputs.push_back(
+        std::make_pair(-std::numeric_limits<double>::max(),
+                       std::numeric_limits<double>::max()));
   }
 
   if (!IsGauss) {
@@ -535,14 +571,57 @@ int main(int argc, char const *argv[]) {
         exit(1);
       }
 
-      Fluxes = SplitTH2D(Flux2D, true, 0);
-      if (!Fluxes.size()) {
+      std::vector<std::pair<double, TH1D *> > Fluxes_and_OAPs =
+          SplitTH2D(Flux2D, true, 0);
+      if (!Fluxes_and_OAPs.size()) {
         std::cout << "[ERROR]: Couldn't find any fluxes in split TH2D."
                   << std::endl;
         exit(1);
       }
-      std::cout << "[INFO]: Found " << Fluxes.size() << " input fluxes."
-                << std::endl;
+      std::cout << "[INFO]: Found " << Fluxes_and_OAPs.size()
+                << " input fluxes." << std::endl;
+
+      size_t this_kept_range = -1,
+             last_kept_range = std::numeric_limits<size_t>::max();
+      for (size_t f_it = 0; f_it < Fluxes_and_OAPs.size(); ++f_it) {
+        bool keep = false;
+        for (size_t inc_it = 0; inc_it < IncludedOffAxisRange_2D_inputs.size();
+             ++inc_it) {
+          bool ge_low =
+              ((Fluxes_and_OAPs[f_it].first >
+                IncludedOffAxisRange_2D_inputs[inc_it].first) ||
+               (fabs(Fluxes_and_OAPs[f_it].first -
+                     IncludedOffAxisRange_2D_inputs[inc_it].first)) < 1E-5);
+          bool le_up =
+              ((Fluxes_and_OAPs[f_it].first <
+                IncludedOffAxisRange_2D_inputs[inc_it].second) ||
+               (fabs(Fluxes_and_OAPs[f_it].first -
+                     IncludedOffAxisRange_2D_inputs[inc_it].second)) < 1E-5);
+          if (ge_low && le_up) {
+            keep = true;
+            this_kept_range = inc_it;
+            break;
+          }
+        }
+        if (!keep) {
+          delete Fluxes_and_OAPs[f_it].second;
+          continue;
+        }
+
+        std::cout << "[INFO]: Keeping flux slice at "
+                  << Fluxes_and_OAPs[f_it].first << " m OAP." << std::endl;
+
+        if ((last_kept_range != std::numeric_limits<size_t>::max()) &&
+            (this_kept_range == last_kept_range)) {
+          ApplyReg.back() = false;
+        }
+
+        ApplyReg.push_back(true);
+        FluxOffaxisPositions_2D_inputs.push_back(Fluxes_and_OAPs[f_it].first);
+        Fluxes.push_back(Fluxes_and_OAPs[f_it].second);
+        last_kept_range = this_kept_range;
+      }
+
     } else if (inpFluxHistsPattern.size()) {
       Fluxes = GetHistograms<TH1D>(FluxesFile, inpFluxHistsPattern);
       if (!Fluxes.size()) {
@@ -586,6 +665,8 @@ int main(int argc, char const *argv[]) {
       double OnAxisPeak = Fluxes[0]->GetMaximum();
       double TargetMax = TargetFlux->GetMaximum();
       TargetFlux->Scale(OnAxisPeak / TargetMax);
+
+      OscFlux->Scale(OnAxisPeak / TargetMax);
     }
 
     double targetenu = IsGauss ? GaussC : TargetFlux->GetXaxis()->GetBinCenter(
@@ -734,7 +815,11 @@ int main(int argc, char const *argv[]) {
     TGraph peak_coeffs(1);
     peak_coeffs.Set(Fluxes.size());
     for (size_t flux_it = 0; flux_it < Fluxes.size(); flux_it++) {
-      peak_coeffs.SetPoint(flux_it, flux_it, coeffs[flux_it]);
+      peak_coeffs.SetPoint(flux_it,
+                           FluxOffaxisPositions_2D_inputs.size()
+                               ? FluxOffaxisPositions_2D_inputs[flux_it]
+                               : flux_it,
+                           coeffs[flux_it]);
     }
     peak_coeffs.Write("coeffs");
   }
