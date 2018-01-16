@@ -1,4 +1,5 @@
-SET(APPS DunePrismAnalyzer DunePrismCondenser FullDetTreeStopProcessor)
+SET(APPS DunePrismAnalyzer DunePrismCondenser FullDetTreeStopProcessor
+  FluxVarFriendTreeBuilder)
 
 include_directories(${INCLUDE_DIRECTORIES})
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})

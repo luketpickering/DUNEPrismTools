@@ -1,20 +1,13 @@
 #!/bin/sh
 
-DET_DIST_CM=57400
-# FD_cm 128700000
 PNFS_PATH_APPEND=""
 DK2NU_INPUT_DIR=""
-RUN_PLAN_XML="${DUNEPRISMTOOLSROOT}/configs/RunPlan.39mLAr.3mFV.10cm.2mx4m.xml"
 NMAXJOBS=""
 NPERJOB="10"
 INPUTLIST=""
 LIFETIME_EXP="30m"
 DISK_EXP="1GB"
-MEM_EXP="2GB"
-BINNING_DESCRIPTOR="0,0.5,1_3:0.25,3_4:0.5,4_10:1,10_20:2"
-REUSEPARENTS="1"
-SPECARG="0"
-DK2NULITE="0"
+MEM_EXP="1GB"
 
 while [[ ${#} -gt 0 ]]; do
 
@@ -30,18 +23,6 @@ while [[ ${#} -gt 0 ]]; do
 
       PNFS_PATH_APPEND="$2"
       echo "[OPT]: Writing output to /pnfs/dune/persistent/users/${USER}/${PNFS_PATH_APPEND}"
-      shift # past argument
-      ;;
-
-      -d|--detector-distance)
-
-      if [[ ${#} -lt 2 ]]; then
-        echo "[ERROR]: ${1} expected a value."
-        exit 1
-      fi
-
-      DET_DIST_CM="$2"
-      echo "[OPT]: Detector assumed to be at z=${DET_DIST_CM} cm in beam simulation coordinates."
       shift # past argument
       ;;
 
@@ -69,18 +50,6 @@ while [[ ${#} -gt 0 ]]; do
       shift # past argument
       ;;
 
-      -r|--runplan)
-
-      if [[ ${#} -lt 2 ]]; then
-        echo "[ERROR]: ${1} expected a value."
-        exit 1
-      fi
-
-      RUN_PLAN_XML=$(readlink -f $2)
-      echo "[OPT]: Using runplan xml file: \"${RUN_PLAN_XML}\"."
-      shift # past argument
-      ;;
-
       -n|--n-per-job)
 
       if [[ ${#} -lt 2 ]]; then
@@ -103,42 +72,6 @@ while [[ ${#} -gt 0 ]]; do
       NMAXJOBS="$2"
       echo "[OPT]: Running a maximum of: \"${NMAXJOBS}\"."
       shift # past argument
-      ;;
-
-      -b|--binning)
-
-      if [[ ${#} -lt 2 ]]; then
-        echo "[ERROR]: ${1} expected a value."
-        exit 1
-      fi
-
-      BINNING_DESCRIPTOR="$2"
-      echo "[OPT]: Using binning descriptor: \"${BINNING_DESCRIPTOR}\"."
-      shift # past argument
-      ;;
-
-      -S|--species)
-
-      if [[ ${#} -lt 2 ]]; then
-        echo "[ERROR]: ${1} expected a value."
-        exit 1
-      fi
-
-      SPECARG="$2"
-      echo "[OPT]: Only running for species, PDG = \"${SPECARG}\"."
-      shift # past argument
-      ;;
-
-      -P|--no-reuse-parents)
-
-      REUSEPARENTS="0"
-      echo "[OPT]: Will use each decay parent once."
-      ;;
-
-      -D|--dk2nu-lite)
-
-      DK2NULITE="1"
-      echo "[OPT]: Assuming input is dk2nu lite."
       ;;
 
       --expected-walltime)
@@ -185,12 +118,7 @@ while [[ ${#} -gt 0 ]]; do
       echo -e "\t-d|--detector-distance     : Detector distance from beam z=0 in cm."
       echo -e "\t-i|--dk2nu-input-directory : Input directory to search for dk2nu.root files"
       echo -e "\t-I|--dk2nu-input-file-list : Newline separated list of files to use as input. Must be located on dcache."
-      echo -e "\t-r|--runplan               : Run Plan XML file describing detector stops."
       echo -e "\t-n|--n-per-job             : Number of files to run per job. (default: 10)"
-      echo -e "\t-b|--binning               : dp_BuildFluxes variable binning descriptor. (default: 0,0.5,1_3:0.25,3_4:0.5,4_10:1,10_20:2)"
-      echo -e "\t-S|--species               : Only build fluxes for neutrino species with given PDG"
-      echo -e "\t-P|--no-reuse-parents      : Each decay parent is only used once, not once per flux prediction plane."
-      echo -e "\t-D|--dk2nu-lite            : dp_BuildFluxes will expect the input to be the dk2nu_lite format produced by dp_MakeLitedk2nu."
       echo -e "\t-N|--NMAXJobs              : Maximum number of jobs to submit."
       echo -e "\t--expected-disk            : Expected disk usage to pass to jobsub -- approx 100MB* the value passed to -\'n\' (default: 1GB)"
       echo -e "\t--expected-mem             : Expected mem usage to pass to jobsub -- Scales with the number of detector stops in the xml passed to \'--r\' (default: 2GB)"
@@ -244,7 +172,7 @@ if [ ! -z ${INPUTLIST} ]; then
 
   NINPUTS=$(cat inputs.list | wc -l)
 
-  if [ "${NINPUTS}" == "0" ]; then
+  if [ -z ${NINPUTS} ]; then
     echo "[ERROR]: Found no inputs in: ${INPUTLIST}."
     exit 1
   fi
@@ -259,9 +187,6 @@ else
   PNFS_PREFIX=${DK2NU_INPUT_DIR%%/dune*}
 
   if [ "${PNFS_PREFIX}" == "/pnfs" ]; then
-    voms-proxy-info --all
-
-    echo "[INFO]: ifdh ls ${DK2NU_INPUT_DIR}"
     ifdh ls ${DK2NU_INPUT_DIR} | grep "dk2nu.root$" > inputs.list
   else
     echo -e "import os,re\nfor x in os.listdir('${DK2NU_INPUT_DIR}'):\n if re.match('.*dk2nu.root',x):\n  print x;" | python > inputs.list
@@ -269,7 +194,7 @@ else
 
   NINPUTS=$(cat inputs.list | wc -l)
 
-  if [ "${NINPUTS}" == "0" ]; then
+  if [ -z ${NINPUTS} ]; then
     echo "[ERROR]: Found no inputs in: ${DK2NU_INPUT_DIR}."
     exit 1
   fi
@@ -282,44 +207,31 @@ fi
 
 echo "[INFO]: Found ${NINPUTS} inputs, will run ${NJOBSTORUN} jobs."
 
-if [ ! "${RUN_PLAN_XML}" ] || [ ! -e "${RUN_PLAN_XML}" ]; then
-  echo "[ERROR]: No or non-existant runplan file: \"${RUN_PLAN_XML}\"."
+if [ ! -e ${DUNEPRISMTOOLSROOT}/bin/dp_MakeLitedk2nu ]; then
+  echo "[ERROR]: It appears that DUNEPrismTools was not built, expected to find \"${DUNEPRISMTOOLSROOT}/bin/dp_MakeLitedk2nu\"."
   exit 1
 fi
 
-if [ ! -e ${DUNEPRISMTOOLSROOT}/bin/dp_BuildFluxes ]; then
-  echo "[ERROR]: It appears that DUNEPrismTools was not built, expected to find \"${DUNEPRISMTOOLSROOT}/bin/dp_BuildFluxes\"."
-  exit 1
-fi
-
-ifdh ls /pnfs/dune/persistent/users/${USER}/${PNFS_PATH_APPEND}/flux
+ifdh ls /pnfs/dune/persistent/users/${USER}/${PNFS_PATH_APPEND}/slimflux
 
 if [ $? -ne 0 ]; then
-  mkdir -p /pnfs/dune/persistent/users/${USER}/${PNFS_PATH_APPEND}/flux
-  ifdh ls /pnfs/dune/persistent/users/${USER}/${PNFS_PATH_APPEND}/flux
+  echo "Attempting to make /pnfs/dune/persistent/users/${USER}/${PNFS_PATH_APPEND}/slimflux."
+  mkdir -p /pnfs/dune/persistent/users/${USER}/${PNFS_PATH_APPEND}/slimflux
+  ifdh ls /pnfs/dune/persistent/users/${USER}/${PNFS_PATH_APPEND}/slimflux
   if [ $? -ne 0 ]; then
-    echo "Unable to make /pnfs/dune/persistent/users/${USER}/${PNFS_PATH_APPEND}/flux."
+    echo "Unable to make /pnfs/dune/persistent/users/${USER}/${PNFS_PATH_APPEND}/slimflux."
     exit 7
   fi
+  echo "Made /pnfs/dune/persistent/users/${USER}/${PNFS_PATH_APPEND}/slimflux."
 fi
 
-ifdh ls /pnfs/dune/persistent/users/${USER}/${PNFS_PATH_APPEND}/logs
+cp ${DUNEPRISMTOOLSROOT}/bin/dp_MakeLitedk2nu .
 
-if [ $? -ne 0 ]; then
-  mkdir -p /pnfs/dune/persistent/users/${USER}/${PNFS_PATH_APPEND}/logs
-  ifdh ls /pnfs/dune/persistent/users/${USER}/${PNFS_PATH_APPEND}/logs
-  if [ $? -ne 0 ]; then
-    echo "Unable to make /pnfs/dune/persistent/users/${USER}/${PNFS_PATH_APPEND}/logs."
-    exit 7
-  fi
-fi
+tar -zcvf apps.@DUNEPrismTools_VERSION_STRING@.tar.gz dp_MakeLitedk2nu inputs.list
 
-cp ${DUNEPRISMTOOLSROOT}/bin/dp_BuildFluxes .
-cp ${RUN_PLAN_XML} ./runplan.xml
-
-tar -zcvf apps.@DUNEPrismTools_VERSION_STRING@.tar.gz dp_BuildFluxes inputs.list runplan.xml
-
-JID=$(jobsub_submit --group=${EXPERIMENT} --jobid-output-only --resource-provides=usage_model=OPPORTUNISTIC --expected-lifetime=${LIFETIME_EXP} --disk=${DISK_EXP} -N ${NJOBSTORUN} --memory=${MEM_EXP} --cpu=1 --OS=SL6 --tar_file_name=dropbox://apps.@DUNEPrismTools_VERSION_STRING@.tar.gz file://${DUNEPRISMTOOLSROOT}/scripts/BuildFluxJob.sh ${DET_DIST_CM} ${BINNING_DESCRIPTOR} ${REUSEPARENTS} ${SPECARG} ${DK2NULITE} ${PNFS_PATH_APPEND} ${NPERJOB})
+echo "Submitting job: jobsub_submit --group=${EXPERIMENT} --jobid-output-only --resource-provides=usage_model=OPPORTUNISTIC --expected-lifetime=${LIFETIME_EXP} --disk=${DISK_EXP} -N ${NJOBSTORUN} --memory=${MEM_EXP} --cpu=1 --OS=SL6 --tar_file_name=dropbox://apps.@DUNEPrismTools_VERSION_STRING@.tar.gz file://${DUNEPRISMTOOLSROOT}/scripts/SlimFluxJob.sh ${PNFS_PATH_APPEND} ${NPERJOB}"
+JID=$(jobsub_submit --group=${EXPERIMENT} --jobid-output-only --resource-provides=usage_model=OPPORTUNISTIC --expected-lifetime=${LIFETIME_EXP} --disk=${DISK_EXP} -N ${NJOBSTORUN} --memory=${MEM_EXP} --cpu=1 --OS=SL6 --tar_file_name=dropbox://apps.@DUNEPrismTools_VERSION_STRING@.tar.gz file://${DUNEPRISMTOOLSROOT}/scripts/SlimFluxJob.sh ${PNFS_PATH_APPEND} ${NPERJOB})
+echo "Done."
 
 cd ../
 rm -r sub_tmp

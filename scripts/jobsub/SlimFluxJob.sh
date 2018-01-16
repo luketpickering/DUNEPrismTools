@@ -5,8 +5,8 @@ if [ -z ${INPUT_TAR_FILE} ]; then
   exit 1
 fi
 
-if [ ! -e dp_BuildFluxes ]; then
-  echo "[ERROR]: Couldn't find dp_BuildFluxes"
+if [ ! -e dp_MakeLitedk2nu ]; then
+  echo "[ERROR]: Couldn't find dp_MakeLitedk2nu"
   ls
   exit 2
 fi
@@ -17,71 +17,15 @@ if [ ! -e inputs.list ]; then
   exit 3
 fi
 
-if [ ! -e runplan.xml ]; then
-  echo "[ERROR]: Couldn't find runplan.xml"
-  ls
-  exit 4
-fi
-
-if [ -z $1 ]; then
-  echo "[ERROR]: Expected to recieve a detector distance in cm as a script argument."
-  exit 5
-fi
-DET_DIST_CM=${1}
-
-if [ -z ${2} ]; then
-  echo "[ERROR]: Couldn't find binning descriptor."
-  exit 6
-fi
-BINNING_DESCRIPTOR=${2}
-
-if [ -z ${3} ]; then
-  echo "[ERROR]: Couldn't find Reuse parent descriptor."
-  exit 6
-fi
-REUSEPARENTS=${3}
-
-RUPARG=""
-if [ "${REUSEPARENTS}" == "0" ]; then
-  RUPARG="-P"
-  echo "[INFO]: Not re-using decay parents."
-else
-  echo "[INFO]: Re-using decay parents."
-fi
-
-if [ -z ${4} ]; then
-  echo "[ERROR]: Couldn't find species descriptor."
-  exit 6
-fi
-ONLYSPECIES=${4}
-
-SPECARG=""
-if [ "${ONLYSPECIES}" != "0" ]; then
-  SPECARG="-S ${ONLYSPECIES}"
-  echo "[INFO]: Only building for species ${ONLYSPECIES}."
-fi
-
-if [ -z ${5} ]; then
-  echo "[ERROR]: Couldn't find species descriptor."
-  exit 6
-fi
-DK2NULITE=${5}
-
-DK2NU_LITE_ARG=""
-if [ "${DK2NULITE}" != "0" ]; then
-  DK2NU_LITE_ARG="-L"
-  echo "[INFO]: Expecting dk2nu_lite inputs."
-fi
-
 PNFS_PATH_APPEND=""
-if [ ! -z ${6} ]; then
-  echo "[INFO]: Appending path to pnfs outdir: ${3}"
-  PNFS_PATH_APPEND=${6}
+if [ ! -z ${1} ]; then
+  echo "[INFO]: Appending path to pnfs outdir: ${1}"
+  PNFS_PATH_APPEND=${1}
 fi
 
 NFILES_TO_READ=1
-if [ ! -z ${7} ]; then
-  NFILES_TO_READ=${7}
+if [ ! -z ${2} ]; then
+  NFILES_TO_READ=${2}
 fi
 
 echo "[INFO]: Reading ${NFILES_TO_READ} files."
@@ -116,8 +60,6 @@ if [ -z ${NINPUT_FILES_FOUND} ]; then
   exit 6
 fi
 
-echo "Detector distance: ${DET_DIST_CM} "
-
 printenv
 
 set -x #start bash debugging at this point
@@ -137,8 +79,7 @@ if [ -z ${GRID_USER} ]; then
   exit 9
 fi
 
-cp dp_BuildFluxes $_CONDOR_SCRATCH_DIR/
-cp runplan.xml $_CONDOR_SCRATCH_DIR/
+cp dp_MakeLitedk2nu $_CONDOR_SCRATCH_DIR/
 
 cd $_CONDOR_SCRATCH_DIR
 
@@ -161,18 +102,11 @@ export IFDH_CP_UNLINK_ON_ERROR=1;
 export IFDH_CP_MAXRETRIES=1;
 export IFDH_DEBUG=1;
 
-ifdh ls ${PNFS_OUTDIR}/flux
+ifdh ls ${PNFS_OUTDIR}/slimflux
 
 if [ $? -ne 0 ]; then
-  echo "Unable to read ${PNFS_OUTDIR}/flux. Make sure that you have created this directory and given it group write permission (chmod g+w ${PNFS_OUTDIR})."
+  echo "Unable to read ${PNFS_OUTDIR}/slimflux. Make sure that you have created this directory and given it group write permission (chmod g+w ${PNFS_OUTDIR})."
   exit 10
-fi
-
-ifdh ls ${PNFS_OUTDIR}/logs
-
-if [ $? -ne 0 ]; then
-  echo "Unable to read ${PNFS_OUTDIR}/logs. Make sure that you have created this directory and given it group write permission (chmod g+w ${PNFS_OUTDIR})."
-  exit 11
 fi
 
 mkdir inputs
@@ -211,24 +145,21 @@ echo "------ls-------"
 ls -lah
 echo "---------------"
 
-OUT_FILENAME=Fluxes.${CLUSTER}.${PROCESS}.root
+OUT_FILENAME=Slim.${CLUSTER}.${PROCESS}.dk2nu.root
 
 echo "[INFO]: Writing output to: ${OUT_FILENAME} "
 
-echo "Building fluxes @ $(date)"
+echo "Slimming fluxes @ $(date)"
 
-echo "./dp_BuildFluxes -i \"inputs/*.dk2nu.root\" -o ${OUT_FILENAME} -r runplan.xml -z ${DET_DIST_CM} -vb ${BINNING_DESCRIPTOR} ${RUPARG} ${DK2NU_LITE_ARG} &> dp_BuildFluxes.${CLUSTER}.${PROCESS}.log"
-./dp_BuildFluxes -i "inputs/*.dk2nu.root" -o ${OUT_FILENAME} -r runplan.xml -z ${DET_DIST_CM} -vb ${BINNING_DESCRIPTOR} ${RUPARG} ${DK2NU_LITE_ARG} &> dp_BuildFluxes.${CLUSTER}.${PROCESS}.log
+echo "./dp_MakeLitedk2nu -i \"inputs/*.dk2nu.root\" -o ${OUT_FILENAME}"
+./dp_MakeLitedk2nu -i "inputs/*.dk2nu.root" -o ${OUT_FILENAME}
 
 
 echo "Finished."
 
 echo "Copying output @ $(date)"
 
-echo "ifdh cp -D $IFDH_OPTION ${OUT_FILENAME} ${PNFS_OUTDIR}/flux/"
-ifdh cp -D $IFDH_OPTION ${OUT_FILENAME} ${PNFS_OUTDIR}/flux/
-echo "ifdh cp -D $IFDH_OPTION dp_BuildFluxes.${CLUSTER}.${PROCESS}.log ${PNFS_OUTDIR}/logs/"
-ifdh cp -D $IFDH_OPTION dp_BuildFluxes.${CLUSTER}.${PROCESS}.log ${PNFS_OUTDIR}/logs/
-
+echo "ifdh cp -D $IFDH_OPTION ${OUT_FILENAME} ${PNFS_OUTDIR}/slimflux/"
+ifdh cp -D $IFDH_OPTION ${OUT_FILENAME} ${PNFS_OUTDIR}/slimflux/
 
 echo "All stop @ $(date)"

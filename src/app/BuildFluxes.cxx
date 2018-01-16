@@ -498,8 +498,6 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
       }
 
       Hists[ang_it][nuPDG_it][0]->Fill(std::get<0>(nuStats), w);
-      std::cout << "[VERBOSE]: " << ang_it << ", " << nuPDG_it << ", "
-                << std::get<0>(nuStats) << ", " << w << std::endl;
 
       if ((!std::isnormal(std::get<0>(nuStats)) || (!std::isnormal(w)))) {
         std::cout << std::get<0>(nuStats) << ", " << w << "("

@@ -298,7 +298,13 @@ struct DK2NuReader {
 };
 
 struct DKMetaReader {
-  DKMetaReader(std::string treeName, std::string inputFiles, bool DK2NULite) {
+  DKMetaReader(std::string treeName, std::string inputFiles, bool DK2NULite)
+      /*: beamsim(0),
+        physics(0),
+        physcuts(0),
+        tgtcfg(0),
+        horncfg(0),
+        dkvolcfg(0) */{
     tree = new TChain(treeName.c_str());
     NFiles = tree->Add(inputFiles.c_str());
     NEntries = tree->GetEntries();
@@ -313,12 +319,12 @@ struct DKMetaReader {
 
   Int_t job;
   Double_t pots;
-  std::string beamsim;
-  std::string physics;
-  std::string physcuts;
-  std::string tgtcfg;
-  std::string horncfg;
-  std::string dkvolcfg;
+  // std::string *beamsim;
+  // std::string *physics;
+  // std::string *physcuts;
+  // std::string *tgtcfg;
+  // std::string *horncfg;
+  // std::string *dkvolcfg;
   Double_t beam0x;
   Double_t beam0y;
   Double_t beam0z;
@@ -330,9 +336,9 @@ struct DKMetaReader {
   Double_t location_x[kMaxlocation];  //[location_]
   Double_t location_y[kMaxlocation];  //[location_]
   Double_t location_z[kMaxlocation];  //[location_]
-  std::string location_name[kMaxlocation];
-  std::vector<std::string> vintnames;
-  std::vector<std::string> vdblnames;
+  // std::string location_name[kMaxlocation];
+  // std::vector<std::string> vintnames;
+  // std::vector<std::string> vdblnames;
 
   TChain *tree;
   UInt_t NFiles;
@@ -345,12 +351,12 @@ struct DKMetaReader {
 
       tree->SetBranchAddress("job", &job);
       tree->SetBranchAddress("pots", &pots);
-      tree->SetBranchAddress("beamsim", &beamsim);
-      tree->SetBranchAddress("physics", &physics);
-      tree->SetBranchAddress("physcuts", &physcuts);
-      tree->SetBranchAddress("tgtcfg", &tgtcfg);
-      tree->SetBranchAddress("horncfg", &horncfg);
-      tree->SetBranchAddress("dkvolcfg", &dkvolcfg);
+      // tree->SetBranchAddress("beamsim", &beamsim);
+      // tree->SetBranchAddress("physics", &physics);
+      // tree->SetBranchAddress("physcuts", &physcuts);
+      // tree->SetBranchAddress("tgtcfg", &tgtcfg);
+      // tree->SetBranchAddress("horncfg", &horncfg);
+      // tree->SetBranchAddress("dkvolcfg", &dkvolcfg);
       tree->SetBranchAddress("beam0x", &beam0x);
       tree->SetBranchAddress("beam0y", &beam0y);
       tree->SetBranchAddress("beam0z", &beam0z);
@@ -362,17 +368,17 @@ struct DKMetaReader {
       tree->SetBranchAddress("location.x", location_x);
       tree->SetBranchAddress("location.y", location_y);
       tree->SetBranchAddress("location.z", location_z);
-      tree->SetBranchAddress("location.name", location_name);
-      tree->SetBranchAddress("vintnames", &vintnames);
-      tree->SetBranchAddress("vdblnames", &vdblnames);
+      // tree->SetBranchAddress("location.name", location_name);
+      // tree->SetBranchAddress("vintnames", &vintnames);
+      // tree->SetBranchAddress("vdblnames", &vdblnames);
     } else {
       tree->SetBranchAddress("pots", &pots);
-      tree->SetBranchAddress("beamsim", &beamsim);
-      tree->SetBranchAddress("physics", &physics);
-      tree->SetBranchAddress("physcuts", &physcuts);
-      tree->SetBranchAddress("tgtcfg", &tgtcfg);
-      tree->SetBranchAddress("horncfg", &horncfg);
-      tree->SetBranchAddress("dkvolcfg", &dkvolcfg);
+      // tree->SetBranchAddress("beamsim", &beamsim);
+      // tree->SetBranchAddress("physics", &physics);
+      // tree->SetBranchAddress("physcuts", &physcuts);
+      // tree->SetBranchAddress("tgtcfg", &tgtcfg);
+      // tree->SetBranchAddress("horncfg", &horncfg);
+      // tree->SetBranchAddress("dkvolcfg", &dkvolcfg);
       tree->SetBranchAddress("beam0x", &beam0x);
       tree->SetBranchAddress("beam0y", &beam0y);
       tree->SetBranchAddress("beam0z", &beam0z);
@@ -390,12 +396,12 @@ struct DKMetaReader {
 
   void WriteOutLiteTree(TTree *outtree) {
     double _pots;
-    std::string _beamsim;
-    std::string _physics;
-    std::string _physcuts;
-    std::string _tgtcfg;
-    std::string _horncfg;
-    std::string _dkvolcfg;
+    // std::string *_beamsim;
+    // std::string *_physics;
+    // std::string *_physcuts;
+    // std::string *_tgtcfg;
+    // std::string *_horncfg;
+    // std::string *_dkvolcfg;
     double _beam0x;
     double _beam0y;
     double _beam0z;
@@ -403,12 +409,12 @@ struct DKMetaReader {
     double _beamvwidth;
 
     outtree->Branch("pots", &_pots);
-    outtree->Branch("beamsim", &_beamsim);
-    outtree->Branch("physics", &_physics);
-    outtree->Branch("physcuts", &_physcuts);
-    outtree->Branch("tgtcfg", &_tgtcfg);
-    outtree->Branch("horncfg", &_horncfg);
-    outtree->Branch("dkvolcfg", &_dkvolcfg);
+    // outtree->Branch("beamsim", &_beamsim);
+    // outtree->Branch("physics", &_physics);
+    // outtree->Branch("physcuts", &_physcuts);
+    // outtree->Branch("tgtcfg", &_tgtcfg);
+    // outtree->Branch("horncfg", &_horncfg);
+    // outtree->Branch("dkvolcfg", &_dkvolcfg);
     outtree->Branch("beam0x", &_beam0x);
     outtree->Branch("beam0y", &_beam0y);
     outtree->Branch("beam0z", &_beam0z);
@@ -419,12 +425,12 @@ struct DKMetaReader {
       tree->GetEntry(ent);
 
       _pots = pots;
-      _beamsim = beamsim;
-      _physics = physics;
-      _physcuts = physcuts;
-      _tgtcfg = tgtcfg;
-      _horncfg = horncfg;
-      _dkvolcfg = dkvolcfg;
+      // (*_beamsim) = (*beamsim);
+      // (*_physics) = (*physics);
+      // (*_physcuts) = (*physcuts);
+      // (*_tgtcfg) = (*tgtcfg);
+      // (*_horncfg) = (*horncfg);
+      // (*_dkvolcfg) = (*dkvolcfg);
       _beam0x = beam0x;
       _beam0y = beam0y;
       _beam0z = beam0z;
