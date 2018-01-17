@@ -581,48 +581,55 @@ int main(int argc, char const *argv[]) {
       std::cout << "[INFO]: Found " << Fluxes_and_OAPs.size()
                 << " input fluxes." << std::endl;
 
-      size_t this_kept_range = -1,
-             last_kept_range = std::numeric_limits<size_t>::max();
-      for (size_t f_it = 0; f_it < Fluxes_and_OAPs.size(); ++f_it) {
-        bool keep = false;
-        for (size_t inc_it = 0; inc_it < IncludedOffAxisRange_2D_inputs.size();
-             ++inc_it) {
-          bool ge_low =
-              ((Fluxes_and_OAPs[f_it].first >
-                IncludedOffAxisRange_2D_inputs[inc_it].first) ||
-               (fabs(Fluxes_and_OAPs[f_it].first -
-                     IncludedOffAxisRange_2D_inputs[inc_it].first)) < 1E-5);
-          bool le_up =
-              ((Fluxes_and_OAPs[f_it].first <
-                IncludedOffAxisRange_2D_inputs[inc_it].second) ||
-               (fabs(Fluxes_and_OAPs[f_it].first -
-                     IncludedOffAxisRange_2D_inputs[inc_it].second)) < 1E-5);
-          if (ge_low && le_up) {
-            keep = true;
-            this_kept_range = inc_it;
-            break;
+      if (!IncludedOffAxisRange_2D_inputs.size()) {
+        for (size_t f_it = 0; f_it < Fluxes_and_OAPs.size(); ++f_it) {
+          FluxOffaxisPositions_2D_inputs.push_back(Fluxes_and_OAPs[f_it].first);
+          Fluxes.push_back(Fluxes_and_OAPs[f_it].second);
+        }
+      } else {
+        size_t this_kept_range = -1,
+               last_kept_range = std::numeric_limits<size_t>::max();
+        for (size_t f_it = 0; f_it < Fluxes_and_OAPs.size(); ++f_it) {
+          bool keep = false;
+          for (size_t inc_it = 0;
+               inc_it < IncludedOffAxisRange_2D_inputs.size(); ++inc_it) {
+            bool ge_low =
+                ((Fluxes_and_OAPs[f_it].first >
+                  IncludedOffAxisRange_2D_inputs[inc_it].first) ||
+                 (fabs(Fluxes_and_OAPs[f_it].first -
+                       IncludedOffAxisRange_2D_inputs[inc_it].first)) < 1E-5);
+            bool le_up =
+                ((Fluxes_and_OAPs[f_it].first <
+                  IncludedOffAxisRange_2D_inputs[inc_it].second) ||
+                 (fabs(Fluxes_and_OAPs[f_it].first -
+                       IncludedOffAxisRange_2D_inputs[inc_it].second)) < 1E-5);
+            if (ge_low && le_up) {
+              keep = true;
+              this_kept_range = inc_it;
+              break;
+            }
           }
-        }
-        if (!keep) {
-          delete Fluxes_and_OAPs[f_it].second;
-          continue;
-        }
+          if (!keep) {
+            delete Fluxes_and_OAPs[f_it].second;
+            continue;
+          }
 
-        std::cout << "[INFO]: Keeping flux slice at "
-                  << Fluxes_and_OAPs[f_it].first << " m OAP." << std::endl;
+          std::cout << "[INFO]: Keeping flux slice at "
+                    << Fluxes_and_OAPs[f_it].first << " m OAP." << std::endl;
 
-        if ((last_kept_range != std::numeric_limits<size_t>::max()) &&
-            (this_kept_range != last_kept_range)) {
-          ApplyReg.back() = false;
-          std::cout << "[INFO]: Ignoring reg factor for flux at "
-                    << FluxOffaxisPositions_2D_inputs.back() << " m OAP."
-                    << std::endl;
+          if ((last_kept_range != std::numeric_limits<size_t>::max()) &&
+              (this_kept_range != last_kept_range)) {
+            ApplyReg.back() = false;
+            std::cout << "[INFO]: Ignoring reg factor for flux at "
+                      << FluxOffaxisPositions_2D_inputs.back() << " m OAP."
+                      << std::endl;
+          }
+
+          ApplyReg.push_back(true);
+          FluxOffaxisPositions_2D_inputs.push_back(Fluxes_and_OAPs[f_it].first);
+          Fluxes.push_back(Fluxes_and_OAPs[f_it].second);
+          last_kept_range = this_kept_range;
         }
-
-        ApplyReg.push_back(true);
-        FluxOffaxisPositions_2D_inputs.push_back(Fluxes_and_OAPs[f_it].first);
-        Fluxes.push_back(Fluxes_and_OAPs[f_it].second);
-        last_kept_range = this_kept_range;
       }
 
     } else if (inpFluxHistsPattern.size()) {
@@ -641,6 +648,11 @@ int main(int argc, char const *argv[]) {
   } else {
     std::cout << "[ERROR]: Expected either -f (h) or -r options to be passed."
               << std::endl;
+    exit(1);
+  }
+
+  if (!Fluxes.size()) {
+    std::cout << "[ERROR]: Found no input fluxes." << std::endl;
     exit(1);
   }
 
