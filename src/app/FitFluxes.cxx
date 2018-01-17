@@ -612,8 +612,10 @@ int main(int argc, char const *argv[]) {
                   << Fluxes_and_OAPs[f_it].first << " m OAP." << std::endl;
 
         if ((last_kept_range != std::numeric_limits<size_t>::max()) &&
-            (this_kept_range == last_kept_range)) {
+            (this_kept_range != last_kept_range)) {
           ApplyReg.back() = false;
+          std::cout << "[INFO]: Ignoring reg factor for flux at "
+                    << Fluxes_and_OAPs[f_it].first << " m OAP." << std::endl;
         }
 
         ApplyReg.push_back(true);
