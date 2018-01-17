@@ -615,7 +615,8 @@ int main(int argc, char const *argv[]) {
             (this_kept_range != last_kept_range)) {
           ApplyReg.back() = false;
           std::cout << "[INFO]: Ignoring reg factor for flux at "
-                    << Fluxes_and_OAPs[f_it].first << " m OAP." << std::endl;
+                    << FluxOffaxisPositions_2D_inputs.back() << " m OAP."
+                    << std::endl;
         }
 
         ApplyReg.push_back(true);
@@ -1031,8 +1032,6 @@ int main(int argc, char const *argv[]) {
     OscFlux->SetDirectory(oupD);
     OscFlux->SetName("InputFlux");
   }
-  oupF->Write();
-  oupF->Close();
 
   int dum1, dum4 = 0;
   double dum2, dum3;
@@ -1040,4 +1039,7 @@ int main(int argc, char const *argv[]) {
           : TargetSumChi2(dum1, &dum2, dum3, coeffs, dum4);
   std::cout << "Used " << Fluxes.size() << " fluxes to fit "
             << (binHigh - binLow) << " bins." << std::endl;
+
+  oupF->Write();
+  oupF->Close();
 }
