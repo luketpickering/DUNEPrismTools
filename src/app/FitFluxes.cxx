@@ -41,8 +41,6 @@ bool IsGauss = false;
 double GaussC, GaussW;
 double TargetPeakNorm;
 
-bool UseErrorsInTestStat = true;
-
 double CoeffLimit = 30;
 double RegFactor = 0xdeadbeef;
 
@@ -113,14 +111,12 @@ void BuildTargetFlux(TH1D *OscFlux) {
       TargetFlux->SetBinContent(bi_it, 0);
     }
 
-    TargetFlux->SetBinError(bi_it, TargetFlux->GetBinContent(bi_it) *
-                                       (UseErrorsInTestStat ? 0.01 : 0));
+    TargetFlux->SetBinError(bi_it, 0.01 * TargetFlux->GetBinContent(bi_it));
   }
 
   for (Int_t bi_it = binLow; bi_it < (binHigh + 1); ++bi_it) {
     TargetFlux->SetBinContent(bi_it, OscFlux->GetBinContent(bi_it));
-    TargetFlux->SetBinError(
-        bi_it, UseErrorsInTestStat ? OscFlux->GetBinError(bi_it) : 0);
+    TargetFlux->SetBinError(bi_it, 0.01 * TargetFlux->GetBinContent(bi_it));
   }
 
   for (Int_t bi_it = (binHigh + 1);
@@ -145,8 +141,7 @@ void BuildTargetFlux(TH1D *OscFlux) {
       TargetFlux->SetBinContent(bi_it, 0);
     }
 
-    TargetFlux->SetBinError(bi_it, TargetFlux->GetBinContent(bi_it) *
-                                       (UseErrorsInTestStat ? 0.01 : 0));
+    TargetFlux->SetBinError(bi_it, 0.01 * TargetFlux->GetBinContent(bi_it));
   }
 }
 
@@ -229,8 +224,13 @@ void TargetSumGauss(int &nDim, double *gout, double &result, double coeffs[],
 
     double GaussEval = TargetGauss->Eval(bi_c_E);
     double SummedBinContent = SummedFlux->GetBinContent(bi_it);
-    double Uncert = pow(GaussEval / 20.0, 2) + pow(TargetPeakNorm / 30.0, 2);
-    sumdiff += (pow(GaussEval - SummedBinContent, 2) / Uncert);
+    double GUncert = pow(0.01 * GaussEval, 2);
+
+    double err =
+        (GUncert +
+         SummedFlux->GetBinError(bi_it) * SummedFlux->GetBinError(bi_it));
+
+    sumdiff += (pow(GaussEval - SummedBinContent, 2) / err);
   }
 
   double reg = 0;
@@ -768,7 +768,7 @@ int main(int argc, char const *argv[]) {
       exit(1);
     }
 
-    if(InpCoeffDir.size() && (InpCoeffDir.back() != '/')){
+    if (InpCoeffDir.size() && (InpCoeffDir.back() != '/')) {
       InpCoeffDir += "/";
     }
 
