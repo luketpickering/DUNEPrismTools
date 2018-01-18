@@ -224,7 +224,8 @@ void TargetSumGauss(int &nDim, double *gout, double &result, double coeffs[],
 
     double GaussEval = TargetGauss->Eval(bi_c_E);
     double SummedBinContent = SummedFlux->GetBinContent(bi_it);
-    double GUncert = pow(0.01 * GaussEval, 2);
+    double GUncert =
+        pow(0.0001 * GaussEval, 2) + pow(0.00005 * TargetPeakNorm, 2);
 
     double err =
         (GUncert +
@@ -759,7 +760,7 @@ int main(int argc, char const *argv[]) {
     }
   }
 
-  double *coeffs;
+  double *coeffs = new double[Fluxes.size()];
   if (InpCoeffFile.size()) {
     TFile *icf = new TFile(InpCoeffFile.c_str(), "READ");
     if (!icf || !icf->IsOpen()) {
@@ -780,11 +781,14 @@ int main(int argc, char const *argv[]) {
       exit(1);
     }
 
-    coeffs = new double[Fluxes.size()];
     for (size_t flux_it = 0; flux_it < Fluxes.size(); flux_it++) {
       double x, y;
       cg->GetPoint(flux_it, x, y);
       coeffs[flux_it] = y;
+    }
+  } else {
+    for (size_t flux_it = 0; flux_it < Fluxes.size(); flux_it++) {
+      coeffs[flux_it] = 0;
     }
   }
 
@@ -887,14 +891,11 @@ int main(int argc, char const *argv[]) {
   TDirectory *oupD = oupF;
 
   if (oupDir.length()) {
-    oupF->mkdir(oupDir.c_str());
-    oupF->cd(oupDir.c_str());
-    oupD = oupF->GetDirectory(oupDir.c_str());
+    oupD = oupF->mkdir(oupDir.c_str());
   }
 
-  oupD->mkdir("weighted_fluxes");
-  oupD->cd("weighted_fluxes");
-  TDirectory *wD = oupD->GetDirectory("weighted_fluxes");
+  TDirectory *wD = oupD->mkdir("weighted_fluxes");
+  wD->cd();
 
   for (size_t flux_it = 0; flux_it < Fluxes.size(); flux_it++) {
     TH1D *cl = static_cast<TH1D *>(Fluxes[flux_it]->Clone());
@@ -942,9 +943,8 @@ int main(int argc, char const *argv[]) {
 
   oupD->cd();
 
-  oupD->mkdir("flux_build_unordered");
-  oupD->cd("flux_build_unordered");
-  wD = oupD->GetDirectory("flux_build_unordered");
+  wD = oupD->mkdir("flux_build_unordered");
+  wD->cd();
 
   TH1D *cl_0 = static_cast<TH1D *>(Fluxes[0]->Clone());
   cl_0->Scale(coeffs[0]);
@@ -967,9 +967,8 @@ int main(int argc, char const *argv[]) {
 
   oupD->cd();
 
-  oupD->mkdir("flux_build_ordered");
-  oupD->cd("flux_build_ordered");
-  wD = oupD->GetDirectory("flux_build_ordered");
+  wD = oupD->mkdir("flux_build_ordered");
+  wD->cd();
 
   std::vector<double> order_coeff;
   std::vector<size_t> order_idxs;
@@ -1052,9 +1051,8 @@ int main(int argc, char const *argv[]) {
 
     oupD->cd();
 
-    oupD->mkdir("evr_build_unordered");
-    oupD->cd("evr_build_unordered");
-    wD = oupD->GetDirectory("evr_build_unordered");
+    wD = oupD->mkdir("evr_build_unordered");
+    wD->cd();
 
     TH1D *ev_0 = static_cast<TH1D *>(EvrRates[0]->Clone());
     ev_0->Scale(evrcoeffs[0]);
@@ -1094,15 +1092,26 @@ int main(int argc, char const *argv[]) {
 
       gxr.Read(GXMLFile);
 
-      GENIEXSecs = gxr.GetTGraphs();
+      GENIEXSecs = gxr.GetTGraphs(Fluxes[0]->GetXaxis()->GetBinCenter(1),
+                                  Fluxes[0]->GetXaxis()->GetBinCenter(
+                                      Fluxes[0]->GetXaxis()->GetNbins()));
 
       oupD->cd();
 
-      oupD->mkdir("GENIE_evr");
-      oupD->cd("GENIE_evr");
-      wD = oupD->GetDirectory("GENIE_evr");
+      wD = oupD->mkdir("GENIE_evr");
+      wD->cd();
+
+      for (size_t xsec_it = 0; xsec_it < GENIEXSecs.size(); ++xsec_it) {
+        GENIEXSecs[xsec_it].second.Write(GENIEXSecs[xsec_it].first.c_str(),
+                                         TObject::kOverwrite);
+      }
 
       std::vector<TH1D *> CCIncEvr;
+
+      static double const mass_proton_kg = 1.6727E-27;   // Proton mass in kg
+      static double const mass_neutron_kg = 1.6750E-27;  // Neutron mass in kg
+      static double const mass_nucleon_kg =
+          (mass_proton_kg + mass_neutron_kg) / 2.;
 
       std::stringstream ss("");
       for (size_t fl_it = 0; fl_it < Fluxes.size(); ++fl_it) {
@@ -1122,26 +1131,92 @@ int main(int argc, char const *argv[]) {
             xsec_cm2_gev += GENIEXSecs[xsec_it].second.Eval(Enu);
           }
 
-          static double const mass_proton_kg = 1.6727E-27;  // Proton mass in kg
-          static double const mass_neutron_kg =
-              1.6750E-27;  // Neutron mass in kg
-          static double const mass_nucleon_kg =
-              (mass_proton_kg + mass_neutron_kg) / 2.;
-
           double flux_pcm2_pgev_pnuc_pPOT =
               CCIncEvr.back()->GetBinContent(bi_it);
+
           double nnuc = detYZ_m * SliceXWidth_m[fl_it] * detDensity_kgm3 /
                         mass_nucleon_kg;
 
           double NEv = flux_pcm2_pgev_pnuc_pPOT * xsec_cm2_gev * nnuc * POT;
+
+          if (fl_it == 0 && bi_it == 80) {
+            std::cout << "ENu: " << Enu << ", TXSec: " << xsec_cm2_gev
+                      << ", DetMass: "
+                      << detYZ_m * SliceXWidth_m[fl_it] * detDensity_kgm3
+                      << ", POT: " << POT << ", NEv: " << NEv << std::endl;
+          }
+
           CCIncEvr.back()->SetBinContent(bi_it, NEv);
           double frac_flux_error = Fluxes[fl_it]->GetBinError(bi_it) /
                                    Fluxes[fl_it]->GetBinContent(bi_it);
           double frac_evr_error = 1.0 / sqrt(NEv);
+
+          if ((NEv < 1E-6)) {
+            frac_evr_error = 0;
+          }
+
+          if (Fluxes[fl_it]->GetBinContent(bi_it) < 1E-15) {
+            frac_flux_error = 0;
+          }
+
           CCIncEvr.back()->SetBinError(
               bi_it, NEv * sqrt(frac_evr_error * frac_evr_error +
                                 frac_flux_error * frac_flux_error));
         }
+      }
+
+      TH1D *evr = static_cast<TH1D *>(SummedFlux->Clone());
+      SumHistograms(evr, coeffs, CCIncEvr);
+      evr->SetDirectory(wD);
+      evr->GetYaxis()->SetTitle("Events / GeV");
+      evr->SetName("PredictedMeasurement");
+
+      TH1D *target = static_cast<TH1D *>(SummedFlux->Clone());
+      target->SetDirectory(wD);
+      target->GetYaxis()->SetTitle("Events / GeV");
+      target->SetName("PredictedTargetMeasurement");
+
+      target->Reset();
+
+      for (Int_t bi_it = 1; bi_it < target->GetXaxis()->GetNbins() + 1;
+           ++bi_it) {
+        if (IsGauss) {
+          target->SetBinContent(
+              bi_it,
+              TargetGauss->Eval(target->GetXaxis()->GetBinCenter(bi_it)));
+        } else {
+          target->SetBinContent(bi_it, OscFlux->GetBinContent(bi_it));
+        }
+
+        double xsec_cm2_gev = 0;
+        double Enu = target->GetXaxis()->GetBinCenter(bi_it);
+
+        for (size_t xsec_it = 0; xsec_it < GENIEXSecs.size(); ++xsec_it) {
+          xsec_cm2_gev += GENIEXSecs[xsec_it].second.Eval(Enu);
+        }
+
+        double flux_pcm2_pgev_pnuc_pPOT = target->GetBinContent(bi_it);
+
+        double nnuc =
+            detYZ_m * SliceXWidth_m[0] * detDensity_kgm3 / mass_nucleon_kg;
+
+        double NEv = flux_pcm2_pgev_pnuc_pPOT * xsec_cm2_gev * nnuc * POT;
+        target->SetBinContent(bi_it, NEv);
+        double frac_flux_error =
+            target->GetBinError(bi_it) / target->GetBinContent(bi_it);
+        double frac_evr_error = 1.0 / sqrt(NEv);
+
+        if ((NEv < 1E-6)) {
+          frac_evr_error = 0;
+        }
+
+        if (target->GetBinContent(bi_it) < 1E-15) {
+          frac_flux_error = 0;
+        }
+
+        target->SetBinError(bi_it,
+                            NEv * sqrt(frac_evr_error * frac_evr_error +
+                                       frac_flux_error * frac_flux_error));
       }
 
       oupD->cd();

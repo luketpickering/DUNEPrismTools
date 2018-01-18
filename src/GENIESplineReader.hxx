@@ -485,7 +485,6 @@ class GENIESplineGetter : public SSAX {
       std::cout << "[GENIESplineGetter]: Finished reading spline element: "
                 << SplineNames[InSplineElement] << std::endl;
 
-
       SplinesRead[InSplineElement] = true;
       InSplineElement = NSplinesToRead;
       NSplinesRead++;
@@ -587,38 +586,34 @@ struct GENIEXSecReader {
 
   void Read(std::string gxmlfile) { saxParser->ParseFile(gxmlfile.c_str()); }
 
-  std::vector<std::pair<std::string, TGraph>> GetTGraphs() {
+  std::vector<std::pair<std::string, TGraph>> GetTGraphs(double min, double max) {
     std::vector<TGraph> splines = saxParser->GetTGraphs();
 
     std::vector<std::pair<std::string, TGraph>> rtn;
 
     size_t tc = 0;
-    bool isfirst = true;
     for (size_t c_it = 0; c_it < XSecComponents.size(); ++c_it) {
-      TGraph Sum(0);
+      size_t Np = 1000;
+
+      TGraph Sum(1000);
+
+      double step = (max - min) / double(Np);
+
+      for (Int_t p_it = 0; p_it < Sum.GetN(); ++p_it) {
+        Sum.SetPoint(p_it, min + p_it * step,0);
+      }
 
       for (size_t s_it = 0; s_it < XSecComponents[c_it].second.size(); ++s_it) {
-        if (isfirst) {
-          Sum.Set(splines[tc].GetN());
+
+        for (Int_t p_it = 0; p_it < Sum.GetN(); ++p_it) {
+          double x1, y1, ev;
+          Sum.GetPoint(p_it, x1, y1);
+
+          ev = splines[tc].Eval(x1);
+
+          Sum.SetPoint(p_it, x1, y1 + ev);
         }
 
-        for (Int_t p_it = 0; p_it < splines[tc].GetN(); ++p_it) {
-          double x1, y1, x2, y2;
-          splines[tc].GetPoint(p_it, x1, y1);
-          Sum.GetPoint(p_it, x2, y2);
-
-          if (!isfirst) {
-            if (x1 != x2) {
-              std::cout << "[ERROR]: Spline knot positions differ: " << x1
-                        << " != " << x2 << std::endl;
-              throw;
-            }
-          }
-
-          Sum.SetPoint(p_it, x2, y1 + y2);
-        }
-
-        isfirst = false;
         tc++;
       }
 
