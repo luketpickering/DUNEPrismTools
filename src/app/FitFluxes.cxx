@@ -1,4 +1,5 @@
 #include "DetectorStop.hxx"
+#include "GENIESplineReader.hxx"
 #include "Utils.hxx"
 
 #include "TF1.h"
@@ -25,7 +26,10 @@ std::string oupDir;
 std::vector<DetectorStop> detStops;
 std::vector<std::pair<size_t, size_t> > UsedDetStopSlices;
 std::string runPlanCfg;
-std::string InpCoeffFile;
+std::string InpCoeffFile, InpCoeffDir;
+
+std::string InpGConfigFile;
+std::string GXMLFile;
 
 bool UPDATEOutputFile = false;
 
@@ -48,9 +52,14 @@ double FitBetween_low = 0xdeadbeef, FitBetween_high = 0xdeadbeef;
 int binLow, binHigh;
 bool MultiplyChi2ContribByBinWidth = false;
 
+double detYZ_m = 0xdeadbeef;
+double detDensity_kgm3 = 0xdeadbeef;
+double POT = 0xdeadbeef;
+
 std::vector<std::pair<double, double> > IncludedOffAxisRange_2D_inputs;
 std::vector<double> FluxOffaxisPositions_2D_inputs;
 std::vector<bool> ApplyReg;
+std::vector<double> SliceXWidth_m;
 
 double referencePOT = std::numeric_limits<double>::min();
 std::vector<double> MeasurementFactor;
@@ -63,20 +72,30 @@ TH1D *OscFlux;
 
 TF1 *TargetGauss;
 
+std::vector<std::pair<std::string, TGraph> > GENIEXSecs;
+
 enum OutOfRangeModeEnum { kIgnore = 0, kZero, kExponentialDecay };
 /// If using a FitBetween mode:
 /// 0: Ignore all bins outside range
 /// 1: Try to force bins to 0
 /// 2: Exponential decay from target flux at closest kept bin.
 int OutOfRangeMode = kZero;
+enum OutOfRangeSideEnum { kBoth = 0, kLeft, kRight };
+/// If using an OOR mode:
+/// 0: Include both out of ranges
+/// 1: Only include out of range to the left of the range
+/// 2: Only include out of range to the right of the range
+int OutOfRangeSide = kBoth;
 double ExpDecayRate = 3;
+double OORFactor = 1;
 
 void BuildTargetFlux(TH1D *OscFlux) {
   TargetFlux = static_cast<TH1D *>(OscFlux->Clone());
   TargetFlux->SetDirectory(NULL);
 
   for (Int_t bi_it = 1; bi_it < binLow; ++bi_it) {
-    if (OutOfRangeMode) {
+    if ((OutOfRangeMode != kIgnore) &&
+        (OutOfRangeSide == kBoth || OutOfRangeSide == kLeft)) {
       double target = 0;
       if (OutOfRangeMode == kExponentialDecay) {
         double enu_first_counted_bin =
@@ -106,7 +125,8 @@ void BuildTargetFlux(TH1D *OscFlux) {
 
   for (Int_t bi_it = (binHigh + 1);
        bi_it < TargetFlux->GetXaxis()->GetNbins() + 1; ++bi_it) {
-    if (OutOfRangeMode) {
+    if ((OutOfRangeMode != kIgnore) &&
+        (OutOfRangeSide == kBoth || OutOfRangeSide == kRight)) {
       double target = 0;
       if (OutOfRangeMode == kExponentialDecay) {
         double enu_last_counted_bin =
@@ -135,24 +155,49 @@ void TargetSumChi2(int &nDim, double *gout, double &result, double coeffs[],
   SumHistograms(SummedFlux, coeffs, Fluxes);
 
   double sumdiff = 0;
+  double OOR = 0;
 
-  static size_t NTargBins = TargetFlux->GetXaxis()->GetNbins();
+  if ((OutOfRangeMode != kIgnore)) {
+    if ((OutOfRangeSide == kBoth || OutOfRangeSide == kLeft)) {
+      for (Int_t bi_it = 1; bi_it < binLow; ++bi_it) {
+        double err =
+            (TargetFlux->GetBinError(bi_it) * TargetFlux->GetBinError(bi_it) +
+             SummedFlux->GetBinError(bi_it) * SummedFlux->GetBinError(bi_it));
 
-  for (size_t bi_it = 1; bi_it < NTargBins; ++bi_it) {
-    if ((TargetFlux->GetBinContent(bi_it) <
-         std::numeric_limits<double>::min()) &&
-        (OutOfRangeMode ==
-         kZero)) {  // Skip bins if ignoring out of fit range bins.
-      continue;
+        double diff = OORFactor * ((TargetFlux->GetBinContent(bi_it) -
+                                    SummedFlux->GetBinContent(bi_it)) *
+                                   (TargetFlux->GetBinContent(bi_it) -
+                                    SummedFlux->GetBinContent(bi_it)) /
+                                   err);
+        sumdiff += diff;
+        OOR += diff;
+      }
     }
+
+    if ((OutOfRangeSide == kBoth || OutOfRangeSide == kRight)) {
+      for (Int_t bi_it = (binHigh + 1);
+           bi_it < TargetFlux->GetXaxis()->GetNbins() + 1; ++bi_it) {
+        double err =
+            (TargetFlux->GetBinError(bi_it) * TargetFlux->GetBinError(bi_it) +
+             SummedFlux->GetBinError(bi_it) * SummedFlux->GetBinError(bi_it));
+
+        double diff = OORFactor * ((TargetFlux->GetBinContent(bi_it) -
+                                    SummedFlux->GetBinContent(bi_it)) *
+                                   (TargetFlux->GetBinContent(bi_it) -
+                                    SummedFlux->GetBinContent(bi_it)) /
+                                   err);
+        sumdiff += diff;
+        OOR += diff;
+      }
+    }
+  }
+
+  for (Int_t bi_it = binLow; bi_it < (binHigh + 1); ++bi_it) {
     double err =
-        (TargetFlux->GetBinError(bi_it) > std::numeric_limits<double>::min())
-            ? (TargetFlux->GetBinError(bi_it) * TargetFlux->GetBinError(bi_it) +
-               SummedFlux->GetBinError(bi_it) * SummedFlux->GetBinError(bi_it))
-            : 1;
+        (TargetFlux->GetBinError(bi_it) * TargetFlux->GetBinError(bi_it) +
+         SummedFlux->GetBinError(bi_it) * SummedFlux->GetBinError(bi_it));
 
     sumdiff +=
-        (MultiplyChi2ContribByBinWidth ? SummedFlux->GetBinWidth(bi_it) : 1) *
         ((TargetFlux->GetBinContent(bi_it) - SummedFlux->GetBinContent(bi_it)) *
          (TargetFlux->GetBinContent(bi_it) - SummedFlux->GetBinContent(bi_it)) /
          err);
@@ -171,7 +216,7 @@ void TargetSumChi2(int &nDim, double *gout, double &result, double coeffs[],
   result = sumdiff + reg;
 
   std::cout << "[INFO]: Target flux chi2: " << result << " (reg = " << reg
-            << " )." << std::endl;
+            << ", OOR = " << OOR << " )." << std::endl;
 }
 
 void TargetSumGauss(int &nDim, double *gout, double &result, double coeffs[],
@@ -185,10 +230,7 @@ void TargetSumGauss(int &nDim, double *gout, double &result, double coeffs[],
     double GaussEval = TargetGauss->Eval(bi_c_E);
     double SummedBinContent = SummedFlux->GetBinContent(bi_it);
     double Uncert = pow(GaussEval / 20.0, 2) + pow(TargetPeakNorm / 30.0, 2);
-    sumdiff +=
-        (MultiplyChi2ContribByBinWidth ? pow(SummedFlux->GetBinWidth(bi_it), 2)
-                                       : 1) *
-        (pow(GaussEval - SummedBinContent, 2) / Uncert);
+    sumdiff += (pow(GaussEval - SummedBinContent, 2) / Uncert);
   }
 
   double reg = 0;
@@ -234,10 +276,11 @@ void SayUsage(char const *argv[]) {
          "See          \n"
          "\t                                     documentation for XML "
          "structure.   \n"
-         "\t-A <FitOutput.root>                : Applys a previous fit results "
-         "to a new set of \n"
-         "\t                                     input fluxes. Will not run a "
-         "fit.\n"
+         "\t-A <FitOutput.root[,dirname]>      : Start a new fit from the "
+         "results of an old fit. Optional dirname corresponds to -d option.\n"
+         "\t                                     (Tip: set -n 0 to apply "
+         "previous results to new inputs\n"
+         "\t                                     without running a fit.)\n"
          "\n"
          "  Target options:                                              "
          "           \n"
@@ -310,10 +353,32 @@ void SayUsage(char const *argv[]) {
          "\t                                     Default = 3, larger is "
          "faster     \n"
          "\t                                     decay."
+         "\t-of <out of range factor>          : Allow out of range to "
+         "contribute less to the chi2\n "
+         "\t                                     by this factor.\n"
+         "\t-ms <out of range side>            : 0 = Include both low and high "
+         "out of range E, \n"
+         "\t                                     1 = include low E, 2 = "
+         "include "
+         "high E.\n"
          "\t-O <OAP_min,OAP_max[,OAP_min2,OAP_max2]> : Specify regions of off "
          "axis angle to include \n"
          "\t                                           in fit. Will only be "
          "applied to a `-h` style input.\n"
+         "\t-gc <geniexsecconfig.xml>          : A xml config file containing "
+         "xsec categories built from GENIE\n"
+         "\t                                     spline names. An example "
+         "should be found in \n"
+         "\t                                     "
+         "${DUNEPRISMTOOLSROOT}/configs/gxsec.conf.xml\n"
+         "\t-gx <gxml.xml>                     : The GENIE XML file to read the"
+         " splines from.\n"
+         "\t-dYZ                               : YZ cross-sectional area of "
+         "the detector (for event rate predictions).\n"
+         "\t-dD                                : Detector target density (in "
+         "kg_m3).\n"
+         "\t-P                                 : POT exposure (for event rate "
+         "predictions).\n"
       << std::endl;
 }
 
@@ -358,7 +423,14 @@ void handleOpts(int argc, char const *argv[]) {
       inpFile = params[0];
       inpHistName = params[1];
     } else if (std::string(argv[opt]) == "-A") {
-      InpCoeffFile = argv[++opt];
+      std::vector<std::string> params =
+          ParseToVect<std::string>(argv[++opt], ",");
+      InpCoeffFile = params[0];
+      if (params.size() > 1) {
+        InpCoeffDir = params[1];
+      } else {
+        InpCoeffDir = "";
+      }
     } else if (std::string(argv[opt]) == "-o") {
       oupFile = argv[++opt];
       UPDATEOutputFile = false;
@@ -419,7 +491,20 @@ void handleOpts(int argc, char const *argv[]) {
         IncludedOffAxisRange_2D_inputs.push_back(
             std::make_pair(params[i], params[i + 1]));
       }
-
+    } else if (std::string(argv[opt]) == "-of") {
+      OORFactor = str2T<double>(argv[++opt]);
+    } else if (std::string(argv[opt]) == "-ms") {
+      OutOfRangeSide = str2T<int>(argv[++opt]);
+    } else if (std::string(argv[opt]) == "-gc") {
+      InpGConfigFile = argv[++opt];
+    } else if (std::string(argv[opt]) == "-gx") {
+      GXMLFile = argv[++opt];
+    } else if (std::string(argv[opt]) == "-dYZ") {
+      detYZ_m = str2T<double>(argv[++opt]);
+    } else if (std::string(argv[opt]) == "-dD") {
+      detDensity_kgm3 = str2T<double>(argv[++opt]);
+    } else if (std::string(argv[opt]) == "-P") {
+      POT = str2T<double>(argv[++opt]);
     } else if ((std::string(argv[opt]) == "-?") ||
                std::string(argv[opt]) == "--help") {
       SayUsage(argv);
@@ -628,6 +713,10 @@ int main(int argc, char const *argv[]) {
           ApplyReg.push_back(true);
           FluxOffaxisPositions_2D_inputs.push_back(Fluxes_and_OAPs[f_it].first);
           Fluxes.push_back(Fluxes_and_OAPs[f_it].second);
+
+          Int_t ybi_it =
+              Flux2D->GetYaxis()->FindFixBin(Fluxes_and_OAPs[f_it].first);
+          SliceXWidth_m.push_back(Flux2D->GetYaxis()->GetBinWidth(ybi_it));
           last_kept_range = this_kept_range;
         }
       }
@@ -671,18 +760,47 @@ int main(int argc, char const *argv[]) {
   }
 
   double *coeffs;
-  TFitter *minimizer = nullptr;
-  if (!InpCoeffFile.size()) {
-    minimizer = new TFitter(Fluxes.size());
-
-    if (!IsGauss) {
-      // Rescale the target to a similar size to the fluxes.
-      double OnAxisPeak = Fluxes[0]->GetMaximum();
-      double TargetMax = TargetFlux->GetMaximum();
-      TargetFlux->Scale(OnAxisPeak / TargetMax);
-
-      OscFlux->Scale(OnAxisPeak / TargetMax);
+  if (InpCoeffFile.size()) {
+    TFile *icf = new TFile(InpCoeffFile.c_str(), "READ");
+    if (!icf || !icf->IsOpen()) {
+      std::cout << "[ERROR]: Couldn't open coeff input file: " << InpCoeffFile
+                << std::endl;
+      exit(1);
     }
+
+    if(InpCoeffDir.size() && (InpCoeffDir.back() != '/')){
+      InpCoeffDir += "/";
+    }
+
+    TGraph *cg =
+        dynamic_cast<TGraph *>(icf->Get((InpCoeffDir + "coeffs").c_str()));
+    if (!cg) {
+      std::cout << "[ERROR]: Couldn't get TGraph \'coeffs\' from output file: "
+                << InpCoeffFile << std::endl;
+      exit(1);
+    }
+
+    coeffs = new double[Fluxes.size()];
+    for (size_t flux_it = 0; flux_it < Fluxes.size(); flux_it++) {
+      double x, y;
+      cg->GetPoint(flux_it, x, y);
+      coeffs[flux_it] = y;
+    }
+  }
+
+  if (!IsGauss) {
+    // Rescale the target to a similar size to the fluxes.
+    double OnAxisPeak = Fluxes[0]->GetMaximum();
+    double TargetMax = TargetFlux->GetMaximum();
+    TargetFlux->Scale(OnAxisPeak / TargetMax);
+    OscFlux->Scale(OnAxisPeak / TargetMax);
+  }
+
+  TFitter *minimizer = nullptr;
+  int fitstatus = -1;
+
+  if (MaxMINUITCalls != 0) {
+    minimizer = new TFitter(Fluxes.size());
 
     double targetenu = IsGauss ? GaussC : TargetFlux->GetXaxis()->GetBinCenter(
                                               TargetFlux->GetMaximumBin());
@@ -702,6 +820,21 @@ int main(int argc, char const *argv[]) {
     std::cout << "[INFO]: flux_with_closest_peak_it: "
               << flux_with_closest_peak_it
               << ", flux_peak_dist = " << flux_peak_dist << std::endl;
+
+    if (!InpCoeffFile.size()) {
+      for (size_t flux_it = 0; flux_it < Fluxes.size(); flux_it++) {
+        if (abs(flux_it - flux_with_closest_peak_it) ==
+            1) {  // Neighbours are negative
+          coeffs[flux_it] = -0.35;
+        } else if (abs(flux_it - flux_with_closest_peak_it) == 0) {
+          coeffs[flux_it] = 1;
+          TargetPeakNorm = Fluxes[flux_it]->GetMaximum();
+        } else {  // Others start free
+          coeffs[flux_it] = 0;
+        }
+      }
+    }
+
     for (size_t flux_it = 0; flux_it < Fluxes.size(); flux_it++) {
       std::cout << "[INFO]: fluxpar" << flux_it
                 << " uses flux: " << Fluxes[flux_it]->GetName() << std::endl;
@@ -709,18 +842,8 @@ int main(int argc, char const *argv[]) {
       std::stringstream ss("");
       ss << "fluxpar" << flux_it;
 
-      if (abs(flux_it - flux_with_closest_peak_it) ==
-          1) {  // Neighbours are negative
-        minimizer->SetParameter(flux_it, ss.str().c_str(), -0.35, 0.1,
-                                -CoeffLimit, CoeffLimit);
-      } else if (abs(flux_it - flux_with_closest_peak_it) == 0) {
-        minimizer->SetParameter(flux_it, ss.str().c_str(), 1., 0.1, -CoeffLimit,
-                                CoeffLimit);
-        TargetPeakNorm = Fluxes[flux_it]->GetMaximum();
-      } else {  // Others start free
-        minimizer->SetParameter(flux_it, ss.str().c_str(), 0., 0.1, -CoeffLimit,
-                                CoeffLimit);
-      }
+      minimizer->SetParameter(flux_it, ss.str().c_str(), coeffs[flux_it], 0.1,
+                              -CoeffLimit, CoeffLimit);
     }
 
     if (IsGauss) {
@@ -739,38 +862,16 @@ int main(int argc, char const *argv[]) {
 
     double alist[2] = {double(MaxMINUITCalls), 1E-5 * TargetPeakNorm};
 
-    int status = minimizer->ExecuteCommand("MIGRAD", alist, 2);
-    if (status) {
-      std::cout << "[WARN]: Failed to find minimum (STATUS: " << status << ")."
-                << std::endl;
+    fitstatus = minimizer->ExecuteCommand("MIGRAD", alist, 2);
+    if (fitstatus) {
+      std::cout << "[WARN]: Failed to find minimum (STATUS: " << fitstatus
+                << ")." << std::endl;
     } else {
       minimizer->PrintResults(1, 0);
     }
 
-    coeffs = new double[Fluxes.size()];
     for (size_t flux_it = 0; flux_it < Fluxes.size(); flux_it++) {
       coeffs[flux_it] = minimizer->GetParameter(flux_it);
-    }
-  } else {
-    TFile *icf = new TFile(InpCoeffFile.c_str(), "READ");
-    if (!icf || !icf->IsOpen()) {
-      std::cout << "[ERROR]: Couldn't open coeff input file: " << InpCoeffFile
-                << std::endl;
-      exit(1);
-    }
-
-    TGraph *cg = dynamic_cast<TGraph *>(icf->Get("coeffs"));
-    if (!cg) {
-      std::cout << "[ERROR]: Couldn't get TGraph \'coeffs\' from output file: "
-                << InpCoeffFile << std::endl;
-      exit(1);
-    }
-
-    coeffs = new double[Fluxes.size()];
-    for (size_t flux_it = 0; flux_it < Fluxes.size(); flux_it++) {
-      double x, y;
-      cg->GetPoint(flux_it, x, y);
-      coeffs[flux_it] = y;
     }
   }
 
@@ -982,6 +1083,71 @@ int main(int argc, char const *argv[]) {
     evr->Write("PredictedMeasurement");
   }
 
+  if (InpGConfigFile.size() && GXMLFile.size()) {
+    if ((detYZ_m == 0xdeadbeef) || (detDensity_kgm3 == 0xdeadbeef) ||
+        (POT == 0xdeadbeef)) {
+      std::cout << "[WARN]: Cannot produce evrate predictions as detector and "
+                   "POT are not set."
+                << std::endl;
+    } else {
+      GENIEXSecReader gxr(InpGConfigFile);
+
+      gxr.Read(GXMLFile);
+
+      GENIEXSecs = gxr.GetTGraphs();
+
+      oupD->cd();
+
+      oupD->mkdir("GENIE_evr");
+      oupD->cd("GENIE_evr");
+      wD = oupD->GetDirectory("GENIE_evr");
+
+      std::vector<TH1D *> CCIncEvr;
+
+      std::stringstream ss("");
+      for (size_t fl_it = 0; fl_it < Fluxes.size(); ++fl_it) {
+        CCIncEvr.push_back(static_cast<TH1D *>(Fluxes[fl_it]->Clone()));
+        ss.str("");
+        ss << Fluxes[fl_it]->GetName() << "_GCCInc";
+        CCIncEvr.back()->SetNameTitle(ss.str().c_str(),
+                                      "E_{#nu} (GeV);CCInc Event Rate;");
+        CCIncEvr.back()->SetDirectory(wD);
+
+        for (Int_t bi_it = 1;
+             bi_it < CCIncEvr.back()->GetXaxis()->GetNbins() + 1; ++bi_it) {
+          double xsec_cm2_gev = 0;
+          double Enu = CCIncEvr.back()->GetXaxis()->GetBinCenter(bi_it);
+
+          for (size_t xsec_it = 0; xsec_it < GENIEXSecs.size(); ++xsec_it) {
+            xsec_cm2_gev += GENIEXSecs[xsec_it].second.Eval(Enu);
+          }
+
+          static double const mass_proton_kg = 1.6727E-27;  // Proton mass in kg
+          static double const mass_neutron_kg =
+              1.6750E-27;  // Neutron mass in kg
+          static double const mass_nucleon_kg =
+              (mass_proton_kg + mass_neutron_kg) / 2.;
+
+          double flux_pcm2_pgev_pnuc_pPOT =
+              CCIncEvr.back()->GetBinContent(bi_it);
+          double nnuc = detYZ_m * SliceXWidth_m[fl_it] * detDensity_kgm3 /
+                        mass_nucleon_kg;
+
+          double NEv = flux_pcm2_pgev_pnuc_pPOT * xsec_cm2_gev * nnuc * POT;
+          CCIncEvr.back()->SetBinContent(bi_it, NEv);
+          double frac_flux_error = Fluxes[fl_it]->GetBinError(bi_it) /
+                                   Fluxes[fl_it]->GetBinContent(bi_it);
+          double frac_evr_error = 1.0 / sqrt(NEv);
+          CCIncEvr.back()->SetBinError(
+              bi_it, NEv * sqrt(frac_evr_error * frac_evr_error +
+                                frac_flux_error * frac_flux_error));
+        }
+      }
+
+      oupD->cd();
+    }
+  }
+
   SummedFlux->SetDirectory(oupD);
   SummedFlux->SetName("BestFit");
   if (IsGauss) {
@@ -1051,6 +1217,11 @@ int main(int argc, char const *argv[]) {
           : TargetSumChi2(dum1, &dum2, dum3, coeffs, dum4);
   std::cout << "Used " << Fluxes.size() << " fluxes to fit "
             << (binHigh - binLow) << " bins." << std::endl;
+
+  if (fitstatus > 0) {
+    std::cout << "[WARN]: Failed to find minimum (STATUS: " << fitstatus << ")."
+              << std::endl;
+  }
 
   oupF->Write();
   oupF->Close();
