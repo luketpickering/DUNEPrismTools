@@ -87,6 +87,8 @@ int OutOfRangeSide = kBoth;
 double ExpDecayRate = 3;
 double OORFactor = 1;
 
+bool UseNuPrismChi2 = false;
+
 void BuildTargetFlux(TH1D *OscFlux) {
   TargetFlux = static_cast<TH1D *>(OscFlux->Clone());
   TargetFlux->SetDirectory(NULL);
@@ -155,15 +157,27 @@ void TargetSumChi2(int &nDim, double *gout, double &result, double coeffs[],
   if ((OutOfRangeMode != kIgnore)) {
     if ((OutOfRangeSide == kBoth || OutOfRangeSide == kLeft)) {
       for (Int_t bi_it = 1; bi_it < binLow; ++bi_it) {
-        double err =
-            (TargetFlux->GetBinError(bi_it) * TargetFlux->GetBinError(bi_it) +
-             SummedFlux->GetBinError(bi_it) * SummedFlux->GetBinError(bi_it));
+        double diff;
+        if (!UseNuPrismChi2) {
+          double err =
+              (TargetFlux->GetBinError(bi_it) * TargetFlux->GetBinError(bi_it) +
+               SummedFlux->GetBinError(bi_it) * SummedFlux->GetBinError(bi_it));
 
-        double diff = OORFactor * ((TargetFlux->GetBinContent(bi_it) -
-                                    SummedFlux->GetBinContent(bi_it)) *
-                                   (TargetFlux->GetBinContent(bi_it) -
-                                    SummedFlux->GetBinContent(bi_it)) /
-                                   err);
+          diff = OORFactor * ((TargetFlux->GetBinContent(bi_it) -
+                               SummedFlux->GetBinContent(bi_it)) *
+                              (TargetFlux->GetBinContent(bi_it) -
+                               SummedFlux->GetBinContent(bi_it)) /
+                              err);
+
+        } else {
+          diff = OORFactor * ((TargetFlux->GetBinContent(bi_it) -
+                               SummedFlux->GetBinContent(bi_it)) *
+                              (TargetFlux->GetBinContent(bi_it) -
+                               SummedFlux->GetBinContent(bi_it)) /
+                              (0.0001 * SummedFlux->GetBinContent(bi_it) *
+                               SummedFlux->GetBinContent(bi_it)));
+        }
+
         sumdiff += diff;
         OOR += diff;
       }
@@ -172,15 +186,27 @@ void TargetSumChi2(int &nDim, double *gout, double &result, double coeffs[],
     if ((OutOfRangeSide == kBoth || OutOfRangeSide == kRight)) {
       for (Int_t bi_it = (binHigh + 1);
            bi_it < TargetFlux->GetXaxis()->GetNbins() + 1; ++bi_it) {
-        double err =
-            (TargetFlux->GetBinError(bi_it) * TargetFlux->GetBinError(bi_it) +
-             SummedFlux->GetBinError(bi_it) * SummedFlux->GetBinError(bi_it));
+        double diff;
+        if (!UseNuPrismChi2) {
+          double err =
+              (TargetFlux->GetBinError(bi_it) * TargetFlux->GetBinError(bi_it) +
+               SummedFlux->GetBinError(bi_it) * SummedFlux->GetBinError(bi_it));
 
-        double diff = OORFactor * ((TargetFlux->GetBinContent(bi_it) -
-                                    SummedFlux->GetBinContent(bi_it)) *
-                                   (TargetFlux->GetBinContent(bi_it) -
-                                    SummedFlux->GetBinContent(bi_it)) /
-                                   err);
+          diff = OORFactor * ((TargetFlux->GetBinContent(bi_it) -
+                               SummedFlux->GetBinContent(bi_it)) *
+                              (TargetFlux->GetBinContent(bi_it) -
+                               SummedFlux->GetBinContent(bi_it)) /
+                              err);
+
+        } else {
+          diff = OORFactor * ((TargetFlux->GetBinContent(bi_it) -
+                               SummedFlux->GetBinContent(bi_it)) *
+                              (TargetFlux->GetBinContent(bi_it) -
+                               SummedFlux->GetBinContent(bi_it)) /
+                              (0.0001 * SummedFlux->GetBinContent(bi_it) *
+                               SummedFlux->GetBinContent(bi_it)));
+        }
+
         sumdiff += diff;
         OOR += diff;
       }
@@ -188,14 +214,24 @@ void TargetSumChi2(int &nDim, double *gout, double &result, double coeffs[],
   }
 
   for (Int_t bi_it = binLow; bi_it < (binHigh + 1); ++bi_it) {
-    double err =
-        (TargetFlux->GetBinError(bi_it) * TargetFlux->GetBinError(bi_it) +
-         SummedFlux->GetBinError(bi_it) * SummedFlux->GetBinError(bi_it));
+    if (!UseNuPrismChi2) {
+      double err =
+          (TargetFlux->GetBinError(bi_it) * TargetFlux->GetBinError(bi_it) +
+           SummedFlux->GetBinError(bi_it) * SummedFlux->GetBinError(bi_it));
 
-    sumdiff +=
-        ((TargetFlux->GetBinContent(bi_it) - SummedFlux->GetBinContent(bi_it)) *
-         (TargetFlux->GetBinContent(bi_it) - SummedFlux->GetBinContent(bi_it)) /
-         err);
+      sumdiff += ((TargetFlux->GetBinContent(bi_it) -
+                   SummedFlux->GetBinContent(bi_it)) *
+                  (TargetFlux->GetBinContent(bi_it) -
+                   SummedFlux->GetBinContent(bi_it)) /
+                  err);
+    } else {
+      sumdiff += ((TargetFlux->GetBinContent(bi_it) -
+                   SummedFlux->GetBinContent(bi_it)) *
+                  (TargetFlux->GetBinContent(bi_it) -
+                   SummedFlux->GetBinContent(bi_it)) /
+                  (0.0001 * SummedFlux->GetBinContent(bi_it) *
+                   SummedFlux->GetBinContent(bi_it)));
+    }
   }
 
   double reg = 0;
@@ -224,14 +260,15 @@ void TargetSumGauss(int &nDim, double *gout, double &result, double coeffs[],
 
     double GaussEval = TargetGauss->Eval(bi_c_E);
     double SummedBinContent = SummedFlux->GetBinContent(bi_it);
-    double GUncert =
-        pow(0.0001 * GaussEval, 2) + pow(0.00005 * TargetPeakNorm, 2);
 
-    double err =
-        (GUncert +
-         SummedFlux->GetBinError(bi_it) * SummedFlux->GetBinError(bi_it));
-
-    sumdiff += (pow(GaussEval - SummedBinContent, 2) / err);
+    if (!UseNuPrismChi2) {
+      double Uncert = pow(GaussEval / 20.0, 2) + pow(TargetPeakNorm / 30.0, 2);
+      sumdiff += (pow(GaussEval - SummedBinContent, 2) / Uncert);
+    } else {
+      double GUncert =
+          pow(0.0001 * GaussEval, 2) + pow(0.00005 * TargetPeakNorm, 2);
+      sumdiff += (pow(GaussEval - SummedBinContent, 2) / GUncert);
+    }
   }
 
   double reg = 0;
@@ -265,10 +302,12 @@ void SayUsage(char const *argv[]) {
          "in the input\n"
          "\t                                     are used.               "
          "           \n"
+         "\n"
          "\t-h <HistName>                      : Input 2D flux histogram,"
          " Y bins \n"
          "\t                                     correspond to different "
          "fluxes.\n"
+         "\n"
          "\t-r <RunPlan.XML>                   : An XML file specifying "
          "a run plan  \n"
          "\t                                     to make event rate "
@@ -277,11 +316,15 @@ void SayUsage(char const *argv[]) {
          "See          \n"
          "\t                                     documentation for XML "
          "structure.   \n"
+         "\n"
          "\t-A <FitOutput.root[,dirname]>      : Start a new fit from the "
-         "results of an old fit. Optional dirname corresponds to -d option.\n"
-         "\t                                     (Tip: set -n 0 to apply "
-         "previous results to new inputs\n"
-         "\t                                     without running a fit.)\n"
+         "results of an \n"
+         "\t                                     old fit. Optional dirname "
+         "corresponds to \n"
+         "\t                                     -d option. (Tip: set -n 0 "
+         "to apply previous \n"
+         "\t                                     results to new inputs without "
+         "running a fit.)\n"
          "\n"
          "  Target options:                                              "
          "           \n"
@@ -317,10 +360,12 @@ void SayUsage(char const *argv[]) {
          "giving up the   \n"
          "\t                                     fit."
          "\n"
+         "\n"
          "\t-c <CoeffLimit=30>                 : Parameter limits of "
          "flux component \n"
          "\t                                     coefficients.           "
          "           \n"
+         "\n"
          "\t-x <ROOT file, hist name>          : Add xsec component for "
          "making event\n"
          "\t                                     rate predictions.       "
@@ -349,37 +394,48 @@ void SayUsage(char const *argv[]) {
          "is          \n"
          "\t                                        determined by -ed."
          "\n"
+         "\n"
          "\t-ed <decay rate>                   : For -m 2, controls "
          "decay rate.    \n"
          "\t                                     Default = 3, larger is "
          "faster     \n"
-         "\t                                     decay."
+         "\t                                     decay.\n"
+         "\n"
          "\t-of <out of range factor>          : Allow out of range to "
          "contribute less to the chi2\n "
          "\t                                     by this factor.\n"
+         "\n"
          "\t-ms <out of range side>            : 0 = Include both low and high "
          "out of range E, \n"
          "\t                                     1 = include low E, 2 = "
          "include "
          "high E.\n"
+         "\n"
          "\t-O <OAP_min,OAP_max[,OAP_min2,OAP_max2]> : Specify regions of off "
          "axis angle to include \n"
          "\t                                           in fit. Will only be "
          "applied to a `-h` style input.\n"
+         "\n"
          "\t-gc <geniexsecconfig.xml>          : A xml config file containing "
          "xsec categories built from GENIE\n"
          "\t                                     spline names. An example "
          "should be found in \n"
          "\t                                     "
          "${DUNEPRISMTOOLSROOT}/configs/gxsec.conf.xml\n"
+         "\n"
          "\t-gx <gxml.xml>                     : The GENIE XML file to read the"
          " splines from.\n"
+         "\n"
          "\t-dYZ                               : YZ cross-sectional area of "
          "the detector (for event rate predictions).\n"
+         "\n"
          "\t-dD                                : Detector target density (in "
          "kg_m3).\n"
+         "\n"
          "\t-P                                 : POT exposure (for event rate "
          "predictions).\n"
+         "\n"
+         "\t-C                                 : Use NuPrism tools Chi2.\n"
       << std::endl;
 }
 
@@ -506,6 +562,8 @@ void handleOpts(int argc, char const *argv[]) {
       detDensity_kgm3 = str2T<double>(argv[++opt]);
     } else if (std::string(argv[opt]) == "-P") {
       POT = str2T<double>(argv[++opt]);
+    }else if (std::string(argv[opt]) == "-C") {
+      UseNuPrismChi2 = true;
     } else if ((std::string(argv[opt]) == "-?") ||
                std::string(argv[opt]) == "--help") {
       SayUsage(argv);
