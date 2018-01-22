@@ -109,6 +109,13 @@ inline std::vector<double> BuildDoubleList(std::string const &str) {
   return rtn;
 }
 
+void chomp(std::string &str) {
+  size_t lnf = str.find_last_not_of("\r\n");
+  if(lnf != std::string::npos){
+    str = str.substr(0, lnf+1);
+  }
+}
+
 inline TFile *CheckOpenFile(std::string const &fname, char const *opts = "") {
   TFile *inpF = new TFile(fname.c_str(), opts);
   if (!inpF || !inpF->IsOpen()) {
