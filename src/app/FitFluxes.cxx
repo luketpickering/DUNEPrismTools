@@ -142,7 +142,7 @@ void TargetSumChi2(int &nDim, double *gout, double &result, double coeffs[],
     if ((TargetFlux->GetBinContent(bi_it) <
          std::numeric_limits<double>::min()) &&
         (OutOfRangeMode ==
-         kZero)) {  // Skip bins if ignoring out of fit range bins.
+         kIgnore)) {  // Skip bins if ignoring out of fit range bins.
       continue;
     }
     double err =

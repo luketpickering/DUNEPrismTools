@@ -194,12 +194,8 @@ void SayUsage(char const *argv[]) {
                "\t                                deg = <step_deg>.           "
                "           \n"
                "\n"
-               "\t-x <step_x>,<max_x>           : Calculate fluxes from lateral"
-               " offset =  \n"
-               "\t                                x = <max_x> in steps of "
-               "           \n"
-               "\t                                x = <step_x>. x in cm.       "
-               "           \n"
+               "\t-x <x1>[,<x2>,...]            : Calculate flux at each xn "
+               "offset.\n"
                "\n"
                "\t-r <RunPlan.XML>              : An XML file specifying a run "
                "plan  \n"
@@ -223,7 +219,7 @@ void SayUsage(char const *argv[]) {
                "\t                                and step ranges.             "
                "           \n"
                "\n"
-               "\t-w <DetectorWidth=0           : Width of detector plane (cm)."
+               "\t-w <DetectorWidth=0>          : Width of detector plane (cm)."
                "\n\n"
                "\t-h <DetectorHeight=0>         : Height of detector plane (cm)"
                ".\n"
@@ -557,7 +553,7 @@ void CalculateFluxesForRunPlan(DK2NuReader &dk2nuRdr, double TotalPOT,
                     : std::min(NMaxNeutrinos, int(dk2nuRdr.GetEntries()));
   TotalPOT = TotalPOT * (double(nNus) / double(dk2nuRdr.GetEntries()));
   std::cout << "Only using the first " << nNus << " events out of "
-            << dk2nuRdr.GetEntries() << ", scaling totla POT to " << TotalPOT
+            << dk2nuRdr.GetEntries() << ", scaling total POT to " << TotalPOT
             << std::endl;
   std::cout << "Reading " << nNus << " Dk2Nu entries." << std::endl;
 

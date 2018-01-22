@@ -5,37 +5,53 @@ BINNING_DESCRIPTOR_UNCERTS="0,0.5,1_3:0.25,3_4:0.5,4_10:1,10_20:2"
 
 ### Fits
 
+### Separate
+
+${DUNEPRISMTOOLSROOT}/scripts/FarmBuildFluxJobs.sh \
+  --expected-walltime 75m --expected-disk 1GB \
+  --expected-mem 1536MB -b ${BINNING_DESCRIPTOR_FITS} \
+  -p nominal_1E9/DUNEPrismFluxes/FHC_ND_NoReuse/uniform_binning -d 57400 \
+  -i /pnfs/dune/persistent/users/picker24/nominal_1E9/v3r5p4/QGSP_BERT/OptimizedEngineeredSept2017Review/neutrino/slimflux/ \
+  -n 3 -D -S 14 -P
+
+${DUNEPRISMTOOLSROOT}/scripts/FarmBuildFluxJobs.sh \
+  --expected-walltime 75m --expected-disk 1GB \
+  --expected-mem 1536MB -b ${BINNING_DESCRIPTOR_FITS} \
+  -p nominal_5E8_FD/DUNEPrismFluxes/FHC_ND_NoReuse/uniform_binning -d 57400 \
+  -i /pnfs/dune/persistent/users/picker24/nominal_5E8_FD/v3r5p4/QGSP_BERT/OptimizedEngineeredSept2017Review/neutrino/slimflux/ \
+  -n 3 -D -S 14 -P
+
 # ND
 
-${DUNEPRISMTOOLSROOT}/scripts/FarmBuildFluxJobs.sh \
-  --expected-walltime 60m --expected-disk 1GB \
-  --expected-mem 1536MB -b ${BINNING_DESCRIPTOR_FITS} \
-  -p nominal_1E9/DUNEPrismFluxes/FHC/uniform_binning -d 57400 \
-  -i /pnfs/dune/persistent/users/picker24/nominal_1E9/v3r5p4/QGSP_BERT/OptimizedEngineeredSept2017Review/neutrino/slimflux/ \
-  -n 3 -D
+# ${DUNEPRISMTOOLSROOT}/scripts/FarmBuildFluxJobs.sh \
+#   --expected-walltime 60m --expected-disk 1GB \
+#   --expected-mem 1536MB -b ${BINNING_DESCRIPTOR_FITS} \
+#   -p nominal_1E9/DUNEPrismFluxes/FHC/uniform_binning -d 57400 \
+#   -i /pnfs/dune/persistent/users/picker24/nominal_1E9/v3r5p4/QGSP_BERT/OptimizedEngineeredSept2017Review/neutrino/slimflux/ \
+#   -n 3 -D
 
-${DUNEPRISMTOOLSROOT}/scripts/FarmBuildFluxJobs.sh \
-  --expected-walltime 60m --expected-disk 1GB \
-  --expected-mem 1536MB -b ${BINNING_DESCRIPTOR_FITS} \
-  -p nominal_1E9/DUNEPrismFluxes/RHC/uniform_binning -d 57400 \
-  -i /pnfs/dune/persistent/users/picker24/nominal_1E9/v3r5p4/QGSP_BERT/OptimizedEngineeredSept2017Review/antineutrino/slimflux/ \
-  -n 3 -D
+# ${DUNEPRISMTOOLSROOT}/scripts/FarmBuildFluxJobs.sh \
+#   --expected-walltime 60m --expected-disk 1GB \
+#   --expected-mem 1536MB -b ${BINNING_DESCRIPTOR_FITS} \
+#   -p nominal_1E9/DUNEPrismFluxes/RHC/uniform_binning -d 57400 \
+#   -i /pnfs/dune/persistent/users/picker24/nominal_1E9/v3r5p4/QGSP_BERT/OptimizedEngineeredSept2017Review/antineutrino/slimflux/ \
+#   -n 3 -D
 
 # FD
 
-${DUNEPRISMTOOLSROOT}/scripts/FarmBuildFluxJobs.sh \
-  --expected-walltime 60m --expected-disk 1GB \
-  --expected-mem 1536MB -b ${BINNING_DESCRIPTOR_FITS} \
-  -p nominal_5E8_FD/DUNEPrismFluxes/FHC/uniform_binning -d 57400 \
-  -i /pnfs/dune/persistent/users/picker24/nominal_5E8_FD/v3r5p4/QGSP_BERT/OptimizedEngineeredSept2017Review/neutrino/slimflux/ \
-  -n 3 -D
+# ${DUNEPRISMTOOLSROOT}/scripts/FarmBuildFluxJobs.sh \
+#   --expected-walltime 60m --expected-disk 1GB \
+#   --expected-mem 1536MB -b ${BINNING_DESCRIPTOR_FITS} \
+#   -p nominal_5E8_FD/DUNEPrismFluxes/FHC/uniform_binning -d 128700000 \
+#   -i /pnfs/dune/persistent/users/picker24/nominal_5E8_FD/v3r5p4/QGSP_BERT/OptimizedEngineeredSept2017Review/neutrino/slimflux/ \
+#   -n 3 -D -r ${DUNEPRISMTOOLSROOT}/configs/RunPlan.LArDUNEFV_25.8mx23.8mx56.6m.xml
 
-${DUNEPRISMTOOLSROOT}/scripts/FarmBuildFluxJobs.sh \
-  --expected-walltime 60m --expected-disk 1GB \
-  --expected-mem 1536MB -b ${BINNING_DESCRIPTOR_FITS} \
-  -p nominal_5E8_FD/DUNEPrismFluxes/RHC/uniform_binning -d 57400 \
-  -i /pnfs/dune/persistent/users/picker24/nominal_5E8_FD/v3r5p4/QGSP_BERT/OptimizedEngineeredSept2017Review/antineutrino/slimflux/ \
-  -n 3 -D
+# ${DUNEPRISMTOOLSROOT}/scripts/FarmBuildFluxJobs.sh \
+#   --expected-walltime 60m --expected-disk 1GB \
+#   --expected-mem 1536MB -b ${BINNING_DESCRIPTOR_FITS} \
+#   -p nominal_5E8_FD/DUNEPrismFluxes/RHC/uniform_binning -d 128700000 \
+#   -i /pnfs/dune/persistent/users/picker24/nominal_5E8_FD/v3r5p4/QGSP_BERT/OptimizedEngineeredSept2017Review/antineutrino/slimflux/ \
+#   -n 3 -D -r ${DUNEPRISMTOOLSROOT}/configs/RunPlan.LArDUNEFV_25.8mx23.8mx56.6m.xml
 
 
 ### Variations
@@ -212,18 +228,18 @@ ${DUNEPRISMTOOLSROOT}/scripts/FarmBuildFluxJobs.sh \
 
 # For syst variations
 
-${DUNEPRISMTOOLSROOT}/scripts/FarmBuildFluxJobs.sh \
-  --expected-walltime 60m --expected-disk 1GB \
-  --expected-mem 1536MB -b ${BINNING_DESCRIPTOR_FITS} \
-  -p WaterLayer_p1_5E8/DUNEPrismFluxes/FHC/uniform_binning -d 57400 \
-  -i /pnfs/dune/persistent/users/picker24/WaterLayer_p1_5E8/v3r5p4/QGSP_BERT/OptimizedEngineeredSept2017Review_WaterLayer_p1/neutrino/slimflux/ \
-  -n 3 -D
-${DUNEPRISMTOOLSROOT}/scripts/FarmBuildFluxJobs.sh \
-  --expected-walltime 60m --expected-disk 1GB \
-  --expected-mem 1536MB -b ${BINNING_DESCRIPTOR_FITS} \
-  -p WaterLayer_m1_5E8/DUNEPrismFluxes/FHC/uniform_binning -d 57400 \
-  -i /pnfs/dune/persistent/users/picker24/WaterLayer_m1_5E8/v3r5p4/QGSP_BERT/OptimizedEngineeredSept2017Review_WaterLayer_m1/neutrino/slimflux/ \
-  -n 3 -D
+# ${DUNEPRISMTOOLSROOT}/scripts/FarmBuildFluxJobs.sh \
+#   --expected-walltime 60m --expected-disk 1GB \
+#   --expected-mem 1536MB -b ${BINNING_DESCRIPTOR_FITS} \
+#   -p WaterLayer_p1_5E8/DUNEPrismFluxes/FHC/uniform_binning -d 57400 \
+#   -i /pnfs/dune/persistent/users/picker24/WaterLayer_p1_5E8/v3r5p4/QGSP_BERT/OptimizedEngineeredSept2017Review_WaterLayer_p1/neutrino/slimflux/ \
+#   -n 3 -D
+# ${DUNEPRISMTOOLSROOT}/scripts/FarmBuildFluxJobs.sh \
+#   --expected-walltime 60m --expected-disk 1GB \
+#   --expected-mem 1536MB -b ${BINNING_DESCRIPTOR_FITS} \
+#   -p WaterLayer_m1_5E8/DUNEPrismFluxes/FHC/uniform_binning -d 57400 \
+#   -i /pnfs/dune/persistent/users/picker24/WaterLayer_m1_5E8/v3r5p4/QGSP_BERT/OptimizedEngineeredSept2017Review_WaterLayer_m1/neutrino/slimflux/ \
+#   -n 3 -D
 
 # ${DUNEPRISMTOOLSROOT}/scripts/FarmBuildFluxJobs.sh \
 #   --expected-walltime 60m --expected-disk 1GB \
