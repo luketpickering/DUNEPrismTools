@@ -70,7 +70,8 @@ struct EDep {
 
   bool flagLepExitBack;
   bool flagLepExitFront;
-  bool flagLepExitY;
+  bool flagLepExitYLow;
+  bool flagLepExitYHigh;
   bool flagLepExit;
   bool flagLepExitXLow;
   bool flagLepExitXHigh;
@@ -81,6 +82,9 @@ struct EDep {
   double lepExitingMomX;
   double lepExitingMomY;
   double lepExitingMomZ;
+
+  double eElectronShowerDepInside;
+  double eElectronShowerDepOutside;
 };
 
 std::vector<DetectorStop> DetectorStops;
@@ -394,8 +398,10 @@ int main(int argc, char const *argv[]) {
                      "flagLepExitBack/B");
   OutputTree->Branch("flagLepExitFront", &OutputEDep.flagLepExitFront,
                      "flagLepExitFront/B");
-  OutputTree->Branch("flagLepExitY", &OutputEDep.flagLepExitY,
-                     "flagLepExitY/B");
+  OutputTree->Branch("flagLepExitYLow", &OutputEDep.flagLepExitYLow,
+                     "flagLepExitYLow/B");
+  OutputTree->Branch("flagLepExitYHigh", &OutputEDep.flagLepExitYHigh,
+                     "flagLepExitYHigh/B");
   OutputTree->Branch("flagLepExit", &OutputEDep.flagLepExit, "flagLepExit/B");
 
   OutputTree->Branch("flagLepExitXLow", &OutputEDep.flagLepExitXLow,
@@ -414,6 +420,13 @@ int main(int argc, char const *argv[]) {
                      "lepExitingMomY/D");
   OutputTree->Branch("lepExitingMomZ", &OutputEDep.lepExitingMomZ,
                      "lepExitingMomZ/D");
+  OutputTree->Branch("eElectronShowerDepInside", 
+                     &OutputEDep.eElectronShowerDepInside,
+                     "eElectronShowerDepInside/D");
+  OutputTree->Branch("eElectronShowerDepOutside", 
+                     &OutputEDep.eElectronShowerDepOutside,
+                     "eElectronShowerDepOutside/D");
+
 
   std::cout << "[INFO]: Reading " << rdr->GetEntries() << " input entries."
             << std::endl;
@@ -476,65 +489,147 @@ int main(int argc, char const *argv[]) {
     OutputEDep.TotalNonlep_eTrue = rdr->ePi0True + rdr->ePiCTrue +
                                    rdr->eProtonTrue + rdr->eNeutronTrue +
                                    rdr->eGammaTrue;
+    OutputEDep.eElectronShowerDepInside = 0.;
+    OutputEDep.eElectronShowerDepOutside = 0.;
+    double DetXLow  = stopBox.XOffset - stopBox.XWidth_det / 2.0;
+    double DetXHigh = stopBox.XOffset + stopBox.XWidth_det / 2.0;
+    double DetYLow  = 0. - stopBox.YWidth_det / 2.0;
+    double DetYHigh = stopBox.YWidth_det / 2.0;
+    double DetZLow  = 0. - stopBox.ZWidth_det / 2.0;
+    double DetZHigh = stopBox.ZWidth_det / 2.0;
 
-    // Checking if lepton exits
-    double Detlow = stopBox.XOffset - stopBox.XWidth_det / 2.0;
-    double DetHigh = stopBox.XOffset + stopBox.XWidth_det / 2.0;
-    // Exits through the side. Should supercede exiting back/front/y
+    // Checking if lepton exits -- muon only
+    if(abs(rdr->lepPDG) == 13){
 
-    if (rdr->lepExitingPosX <= Detlow) {
-      OutputEDep.flagLepExitBack = false;
-      OutputEDep.flagLepExitFront = false;
-      OutputEDep.flagLepExitY = false;
-      OutputEDep.flagLepExitXLow = true;
-      OutputEDep.flagLepExitXHigh = false;
-    } else if (rdr->lepExitingPosX >= DetHigh) {
-      OutputEDep.flagLepExitBack = false;
-      OutputEDep.flagLepExitFront = false;
-      OutputEDep.flagLepExitY = false;
-      OutputEDep.flagLepExitXHigh = true;
-      OutputEDep.flagLepExitXLow = false;
-    } else {
-      if (rdr->flagLepExitBack && rdr->flagLepExitY) {
-        if (rdr->lepExitingPosZ - stopBox.ZWidth_det / 2.0 >
-            fabs(rdr->lepExitingPosY) - stopBox.YWidth_det / 2.0) {
-          OutputEDep.flagLepExitBack = true;
-          OutputEDep.flagLepExitFront = rdr->flagLepExitFront;
-          OutputEDep.flagLepExitY = false;
-        } else {
+      for(int i = 0; i < 1000; ++i){
+        double posX = rdr->lepTrackX[i];
+        double posY = rdr->lepTrackY[i];
+        double posZ = rdr->lepTrackZ[i];
+        
+        double dX = 0., dY = 0., dZ = 0.;
+        bool exitX = false, exitY = false, exitZ = false;
+
+        if(posX <= DetXLow || posX >= DetXHigh){
+          dX = fabs(DetXLow - posX);
+          exitX = true;
+        }
+        else{
+          exitX = false;       
+        }
+
+        if(posY <= DetYLow || posY >= DetYHigh){
+          dY = fabs(DetYLow - posY);
+          exitY = true;
+        }
+        else{
+          exitY = false;       
+        }
+
+        if(posZ <= DetZLow || posZ >= DetZHigh){
+          dZ = fabs(DetZLow - posZ);
+          exitZ = true;
+        }
+        else{
+          exitZ = false;       
+        }
+
+        if(exitX || exitY || exitZ){
+          if(dX > dY && dX > dZ){
+            OutputEDep.flagLepExitBack = false;
+            OutputEDep.flagLepExitFront = false;
+            OutputEDep.flagLepExitYLow = false;
+            OutputEDep.flagLepExitYHigh = false;
+
+            if(posX <= DetXLow){
+              OutputEDep.flagLepExitXLow = true;
+              OutputEDep.flagLepExitXHigh = false; 
+            }
+            else if(posX >= DetXHigh){
+              OutputEDep.flagLepExitXLow = false;
+              OutputEDep.flagLepExitXHigh = true; 
+            }
+            else{
+              std::cout << "ERROR X" << std::endl;           
+            }
+          }
+          else if(dY > dX && dY > dZ){
+            OutputEDep.flagLepExitBack = false;
+            OutputEDep.flagLepExitFront = false;
+            OutputEDep.flagLepExitXLow = false;
+            OutputEDep.flagLepExitXHigh = false;
+
+            if(posY <= DetYLow){
+              OutputEDep.flagLepExitYLow = true;
+              OutputEDep.flagLepExitYHigh = false; 
+            }
+            else if(posY >= DetYHigh){
+              OutputEDep.flagLepExitYLow = false;
+              OutputEDep.flagLepExitYHigh = true; 
+            }
+            else{
+              std::cout << "ERROR Y" << std::endl;           
+            }
+          }
+          else if(dZ > dX && dZ > dY){
+            OutputEDep.flagLepExitXLow = false;
+            OutputEDep.flagLepExitXHigh = false;
+            OutputEDep.flagLepExitYLow = false;
+            OutputEDep.flagLepExitYHigh = false;
+
+            if(posZ <= DetZLow){
+              OutputEDep.flagLepExitBack = false;
+              OutputEDep.flagLepExitFront = true;
+            }
+            else if(posZ >= DetZHigh){
+              OutputEDep.flagLepExitFront = false;
+              OutputEDep.flagLepExitBack = true; 
+            }
+            else{
+              std::cout << "ERROR Z" << std::endl;           
+            }
+          }
+          OutputEDep.flagLepExit = true;
+          OutputEDep.lepExitingMomX = rdr->lepTrackMomX[i];
+          OutputEDep.lepExitingMomY = rdr->lepTrackMomY[i];
+          OutputEDep.lepExitingMomZ = rdr->lepTrackMomZ[i];
+          OutputEDep.lepExitingPosX = rdr->lepTrackX[i];
+          OutputEDep.lepExitingPosY = rdr->lepTrackY[i];
+          OutputEDep.lepExitingPosZ = rdr->lepTrackZ[i];
+          break;
+        }
+        else{
           OutputEDep.flagLepExitBack = false;
-          OutputEDep.flagLepExitFront = rdr->flagLepExitFront;
-          OutputEDep.flagLepExitY = true;
-        }
-      } else if (rdr->flagLepExitFront && rdr->flagLepExitY) {
-        if (fabs(rdr->lepExitingPosZ) - stopBox.ZWidth_det / 2.0 >
-            fabs(rdr->lepExitingPosY) - stopBox.YWidth_det / 2.0) {
-          OutputEDep.flagLepExitFront = true;
-          OutputEDep.flagLepExitBack = rdr->flagLepExitBack;
-          OutputEDep.flagLepExitY = false;
-        } else {
           OutputEDep.flagLepExitFront = false;
-          OutputEDep.flagLepExitBack = rdr->flagLepExitBack;
-          OutputEDep.flagLepExitY = true;
+          OutputEDep.flagLepExitYLow = false;
+          OutputEDep.flagLepExitYHigh = false;
+          OutputEDep.flagLepExitXLow = false;
+          OutputEDep.flagLepExitXHigh = false; 
+          OutputEDep.flagLepExit = false;
         }
-      } else {
-        OutputEDep.flagLepExitBack = rdr->flagLepExitBack;
-        OutputEDep.flagLepExitFront = rdr->flagLepExitFront;
-        OutputEDep.flagLepExitY = rdr->flagLepExitY;
       }
-      OutputEDep.flagLepExitXHigh = false;
-      OutputEDep.flagLepExitXLow = false;
     }
-
-    OutputEDep.flagLepExit = rdr->flagLepExit;
-    OutputEDep.lepExitingMomX = rdr->lepExitingMomX;
-    OutputEDep.lepExitingMomY = rdr->lepExitingMomY;
-    OutputEDep.lepExitingMomZ = rdr->lepExitingMomZ;
-    OutputEDep.lepExitingPosX = rdr->lepExitingPosX;
-    OutputEDep.lepExitingPosY = rdr->lepExitingPosY;
-    OutputEDep.lepExitingPosZ = rdr->lepExitingPosZ;
     ////////End exiting lepton section
+    //
+    //
+    //
+    //Splitting up electron shower deposits
+    else if(abs(rdr->lepPDG) == 11){
+      for(int i = 0; i < 400; ++i){
+         double posLow = -3800. + i*10.; 
+         double posHigh = -3800. + (i+1)*10.;
 
+         if (posLow < DetXLow || posHigh > DetXHigh){
+           OutputEDep.eElectronShowerDepOutside += rdr->eElectronShowerDepInside[i];
+         }
+         else{
+           OutputEDep.eElectronShowerDepInside += rdr->eElectronShowerDepInside[i];
+         }
+      }
+      OutputEDep.eElectronShowerDepOutside += rdr->eElectronShowerDepOutside;
+    }
+    ///////End electron shower deposits
+    
+        
     OutputEDep.LepDep_det =
         Jaccumulate(rdr->eLepPrimaryDep, stopBox.X_veto_left[0],
                     stopBox.X_veto_right[1], 0) +

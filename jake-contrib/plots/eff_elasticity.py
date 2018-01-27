@@ -28,8 +28,10 @@ for rp in config.findall('RunPlan'):
 print det_configs    
 datadir = '/home/calcuttj/DUNEPrismSim/'
 setting = args.setting
+veto = args.veto
 
 DIR = args.DIR
+
 output = os.listdir(datadir + setting + "/"+DIR)
 
 print "DIR:\n\t", DIR
@@ -85,7 +87,7 @@ yBins = array('d',[0.,.1,.2,.3,.4,.5,.6,.7,.8,.9,1.0])
 hElastEnuTot = dict();
 hElastEnuAcc = dict();
 hElastEnuEff = dict();
-
+DIR = DIR + args.extra
 for stop in stops:
   c1.SetLogz()
   hElastEnuTot[stop] = TH2D("hElastEnuTot_" + str(stop),"",nXBins,xBins,nYBins,yBins)
@@ -102,14 +104,14 @@ for stop in stops:
 
 
   hElastEnuAcc[stop] = TH2D("hElastEnuAcc_" + str(stop),"",nXBins,xBins,nYBins,yBins)
-  chains[stop].Draw("(1-yTrue):Enu>>hElastEnuAcc_"+str(stop),"TotalDep_veto < 0.05","colz")
-  c1.SaveAs("ElastEnuEff/"+setting+ "/"+DIR+ "/Acc"+str(stop)+".png")
+  chains[stop].Draw("(1-yTrue):Enu>>hElastEnuAcc_"+str(stop),"(flagLepExitBack) && sqrt(lepExitingMomX*lepExitingMomX + lepExitingMomY*lepExitingMomY + lepExitingMomZ*lepExitingMomZ ) > 0.114 && (TotalDep_veto + Pi0Dep_veto) <= " + str(veto),"colz")
+  #c1.SaveAs("ElastEnuEff/"+setting+ "/"+DIR+ "/Acc"+str(stop)+".png")
 
   c1.SetLogz(0)
   hElastEnuEff[stop] = doEff(hElastEnuTot[stop],hElastEnuAcc[stop],"hElastEnuEff_"+str(stop)) 
   hElastEnuEff[stop].SetMaximum(1.0)
   hElastEnuEff[stop].SetMinimum(0.)
-  hElastEnuEff[stop].SetTitle(" Had Containment - " + default_size + " - " + stops[stop])
+  hElastEnuEff[stop].SetTitle(str(veto) + " had energy veto - " + default_size + " - " + stops[stop])
   hElastEnuEff[stop].SetXTitle("Enu (GeV)")
   hElastEnuEff[stop].SetYTitle("Elasticity (1-y)")
   hElastEnuEff[stop].GetXaxis().SetTitleSize(.06)

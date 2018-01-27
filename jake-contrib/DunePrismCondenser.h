@@ -116,6 +116,8 @@ class DunePrismCondenser{
     double eOtherSecondaryDep[400][3][3];
     double neutronPrimaryTimeDep[400][3][3];
     double neutronSecondaryTimeDep[400][3][3];
+    double eElectronShowerDepInside[400];
+    double eElectronShowerDepOutside;
     std::vector<double> xBins;
     std::vector<double> yBins;
     std::vector<double> zBins;
@@ -131,12 +133,12 @@ class DunePrismCondenser{
     bool flagLepExitBack;
     bool flagLepExitFront;
     bool flagLepExitY;
-    /*double lepTrackX[1000];
+    double lepTrackX[1000];
     double lepTrackY[1000];
     double lepTrackZ[1000];
     double lepTrackMomX[1000];
     double lepTrackMomY[1000];
-    double lepTrackMomZ[1000];*/
+    double lepTrackMomZ[1000];
     double EnuFull;
     int nuPDGFull;
     double vtx_X_full;

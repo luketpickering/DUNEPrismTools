@@ -61,6 +61,16 @@ struct FullDetTreeReader {
   Double_t ePi0SecondaryDep[kNXBins][kNYBins][kNZBins];
   Double_t eOtherSecondaryDep[kNXBins][kNYBins][kNZBins];
 
+  Double_t eElectronShowerDepInside[kNXBins];
+  Double_t eElectronShowerDepOutside;
+
+  Double_t lepTrackX[1000];
+  Double_t lepTrackY[1000];
+  Double_t lepTrackZ[1000];
+  Double_t lepTrackMomX[1000];
+  Double_t lepTrackMomY[1000];
+  Double_t lepTrackMomZ[1000];
+
   bool flagLepExit;
   bool flagLepExitBack;
   bool flagLepExitFront;
@@ -130,6 +140,14 @@ struct FullDetTreeReader {
     tree->SetBranchAddress("lepExitingMomX",&lepExitingMomX);
     tree->SetBranchAddress("lepExitingMomY",&lepExitingMomY);
     tree->SetBranchAddress("lepExitingMomZ",&lepExitingMomZ);
+    tree->SetBranchAddress("lepTrackX", &lepTrackX);
+    tree->SetBranchAddress("lepTrackY", &lepTrackY);
+    tree->SetBranchAddress("lepTrackZ", &lepTrackZ);
+    tree->SetBranchAddress("lepTrackMomX", &lepTrackMomX);
+    tree->SetBranchAddress("lepTrackMomY", &lepTrackMomY);
+    tree->SetBranchAddress("lepTrackMomZ", &lepTrackMomZ);
+    tree->SetBranchAddress("eElectronShowerDepInside", &eElectronShowerDepInside);
+    tree->SetBranchAddress("eElectronShowerDepOutside", &eElectronShowerDepOutside);
   }
 
   void GetEntry(UInt_t e) {

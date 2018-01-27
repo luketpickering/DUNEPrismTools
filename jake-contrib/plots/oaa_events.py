@@ -29,7 +29,7 @@ for rp in config.findall('RunPlan'):
 print det_configs    
 datadir = '/home/calcuttj/DUNEPrismSim/'
 setting = args.setting
-
+veto = args.veto
 
 
 DIR = args.DIR
@@ -65,7 +65,11 @@ for f in output:
     for stop in chains:
       chains[stop].Add(datadir + setting + "/" + DIR + "/" + f)
 
-print chains[0].GetEntries()
+total = 0
+for dc in det_configs:
+  total = total + chains[dc['shift']].GetEntries()
+print total 
+print "Loaded ",len(output), "files"
 
 gStyle.SetOptStat(0)
 gStyle.SetPalette(54)
@@ -73,13 +77,17 @@ c1 = TCanvas("c1","c1")
 
 bins = dict()
 for dc in det_configs:
-  bins[dc['shift']] = [dc['shift']/100. - dc['x']/200., dc['shift']/100. + dc['x']/200. ]
+  bins[-1*dc['shift']] = [-1*dc['shift']/100. - dc['x']/200., -1*dc['shift']/100. + dc['x']/200. ]
 
 hOAAEvents = dict()
 hOAAEventsAcc = dict()
 hOAAEventsEff = dict()
 hOAAEventsMuHadAcc = dict()
 hOAAEventsMuHadEff = dict()
+hOAAEventsExitAcc = dict()
+hOAAEventsExitEff = dict()
+hOAAEventsExitMuHadAcc = dict()
+hOAAEventsExitMuHadEff = dict()
 
 start_bin = (min(list(bins.keys()))/100. - default_x/2.)
 end_bin = (max(list(bins.keys()))/100. + default_x/2.)
@@ -91,73 +99,90 @@ print n_bins,start_bin,end_bin,default_x*10
 hOAAEventsFull = TH1D("hOAAEventsFull","",n_bins,start_bin,end_bin)
 hOAAEventsEffFull = TH1D("hOAAEventsEffFull","",n_bins,start_bin,end_bin)
 hOAAEventsMuHadEffFull = TH1D("hOAAEventsMuHadEffFull","",n_bins,start_bin,end_bin)
+hOAAEventsExitEffFull = TH1D("hOAAEventsExitEffFull","",n_bins,start_bin,end_bin)
+hOAAEventsExitMuHadEffFull = TH1D("hOAAEventsExitMuHadEffFull","",n_bins,start_bin,end_bin)
+
+exitcut = "(flagLepExitBack || flagLepExitXHigh || flagLepExitXLow || flagLepExitFront || flagLepExitY) && sqrt(lepExitingMomX*lepExitingMomX + lepExitingMomY*lepExitingMomY + lepExitingMomZ*lepExitingMomZ) > 0.114"
 
 for stop in stops:
-  hOAAEvents[stop] = TH1D("hOAAEvents" + str(stop), "", default_x*10,bins[stop][0],bins[stop][1])
-  chains[stop].Draw("vtx[0]/1.e2>>hOAAEvents" + str(stop),"LepPDG == 13")
-  #c1.SaveAs("OAA_events/"+setting+"/"+DIR+"/OAA_events_" +str(stop) + ".png")
+  hOAAEvents[stop] = TH1D("hOAAEvents" + str(stop), "", default_x*10,bins[-1*stop][0],bins[-1*stop][1])
+  chains[stop].Draw("vtx[0]/-1.e2>>hOAAEvents" + str(stop),"LepPDG == 13 && NuPDG == 14 && !((flagLepExitXHigh || flagLepExitXLow) && sqrt(lepExitingMomX*lepExitingMomX + lepExitingMomY*lepExitingMomY + lepExitingMomZ*lepExitingMomZ) == 0)")
 
-  hOAAEventsAcc[stop] = TH1D("hOAAEventsAcc" + str(stop),"",default_x*10,bins[stop][0],bins[stop][1])
-  chains[stop].Draw("vtx[0]/1.e2>>hOAAEventsAcc"+str(stop),"!( flagLepExitBack || flagLepExitFront || flagLepExitY|| flagLepExitXLow || flagLepExitXHigh) && LepPDG == 13")
-  #c1.SaveAs("OAA_events/"+setting+"/"+DIR+"/OAA_events_contained_" +str(stop) + ".png")
+  hOAAEventsAcc[stop] = TH1D("hOAAEventsAcc" + str(stop),"",default_x*10,bins[-1*stop][0],bins[-1*stop][1])
+  chains[stop].Draw("vtx[0]/-1.e2>>hOAAEventsAcc"+str(stop),"!(flagLepExitBack || flagLepExitFront || flagLepExitY || flagLepExitXHigh || flagLepExitXLow) && LepPDG == 13 && NuPDG == 14")
 
-  hOAAEventsMuHadAcc[stop] = TH1D("hOAAEventsMuHadAcc" + str(stop),"",default_x*10,bins[stop][0],bins[stop][1])
-  chains[stop].Draw("vtx[0]/1.e2>>hOAAEventsMuHadAcc"+str(stop),"!( flagLepExitBack || flagLepExitFront || flagLepExitY|| flagLepExitXLow || flagLepExitXHigh) && LepPDG == 13 && TotalDep_veto < 0.05")
-  #c1.SaveAs("OAA_events/"+setting+"/"+DIR+"/OAA_events_muHad_contained_" +str(stop) + ".png")
+  hOAAEventsExitAcc[stop] = TH1D("hOAAEventsExitAcc" + str(stop),"",default_x*10,bins[-1*stop][0],bins[-1*stop][1])
+  chains[stop].Draw("vtx[0]/-1.e2>>hOAAEventsExitAcc"+str(stop), exitcut + " && LepPDG == 13 && NuPDG == 14")
+
+  hOAAEventsMuHadAcc[stop] = TH1D("hOAAEventsMuHadAcc" + str(stop),"",default_x*10,bins[-1*stop][0],bins[-1*stop][1])
+  chains[stop].Draw("vtx[0]/-1.e2>>hOAAEventsMuHadAcc"+str(stop),"!(flagLepExitBack || flagLepExitFront || flagLepExitY || flagLepExitXHigh || flagLepExitXLow) && LepPDG == 13 && NuPDG == 14 && (TotalDep_veto + Pi0Dep_veto) <= " + str(veto) )
+
+  hOAAEventsExitMuHadAcc[stop] = TH1D("hOAAEventsExitMuHadAcc" + str(stop),"",default_x*10,bins[-1*stop][0],bins[-1*stop][1])
+  chains[stop].Draw("vtx[0]/-1.e2>>hOAAEventsExitMuHadAcc"+str(stop),exitcut + " && LepPDG == 13 && NuPDG == 14 && (TotalDep_veto + Pi0Dep_veto) <= " + str(veto) )
 
   hOAAEventsEff[stop] = doEff(hOAAEvents[stop],hOAAEventsAcc[stop],"hOAAEventsEff"+str(stop))
-  hOAAEventsEff[stop].Draw()
-  #c1.SaveAs("OAA_events/"+setting+"/"+DIR+"/OAA_events_eff_" +str(stop) + ".png")
-
-  hOAAEventsMuHadEff[stop] = doEff(hOAAEventsAcc[stop],hOAAEventsMuHadAcc[stop],"hOAAEventsMuHadEff"+str(stop))
+  hOAAEventsMuHadEff[stop] = doEff(hOAAEvents[stop],hOAAEventsMuHadAcc[stop],"hOAAEventsMuHadEff"+str(stop))
+  hOAAEventsExitEff[stop] = doEff(hOAAEvents[stop],hOAAEventsExitAcc[stop],"hOAAEventsExitEff"+str(stop))
+  hOAAEventsExitMuHadEff[stop] = doEff(hOAAEvents[stop],hOAAEventsExitMuHadAcc[stop],"hOAAEventsExitMuHadEff"+str(stop))
 
 for stop in stops:
   for i in range(1,hOAAEvents[stop].GetNbinsX()+1):
-    full_bin = int((stop - min(stops.keys()))/10 + i)
+    full_bin = hOAAEventsFull.GetXaxis().FindBin(hOAAEvents[stop].GetBinCenter(i))
+
     hOAAEventsFull.SetBinContent(full_bin,hOAAEvents[stop].GetBinContent(i))
-
-    hOAAEventsEffFull.SetBinContent(full_bin,hOAAEventsEff[stop].GetBinContent(i))
-     
+    hOAAEventsEffFull.SetBinContent(full_bin,hOAAEventsEff[stop].GetBinContent(i))    
     hOAAEventsMuHadEffFull.SetBinContent(full_bin,hOAAEventsMuHadEff[stop].GetBinContent(i))
+    hOAAEventsExitEffFull.SetBinContent(full_bin,hOAAEventsExitEff[stop].GetBinContent(i))    
+    hOAAEventsExitMuHadEffFull.SetBinContent(full_bin,hOAAEventsExitMuHadEff[stop].GetBinContent(i))
 
-#TGaxis.SetMaxDigits(2)
+gPad.SetTicks(1,1)
 
-hOAAEventsFull.SetTitle("Events - " + default_size)
+hOAAEventsFull.SetTitle("Events - " + default_size + " - FV (50cm veto)")
 hOAAEventsFull.SetXTitle("Off-axis position (m)")
-#hOAAEventsFull.SetYTitle("Count")
 hOAAEventsFull.GetXaxis().SetTitleSize(.06)
 hOAAEventsFull.GetXaxis().SetTitleOffset(.6)
-#hOAAEventsFull.GetYaxis().SetTitleSize(.06)
-#hOAAEventsFull.GetYaxis().SetTitleOffset(1.4)
-#hOAAEventsFull.GetYaxis().SetMaxDigits(2)
-
 hOAAEventsFull.Draw()
 c1.SaveAs("OAA_events/"+setting+"/"+DIR+"/OAA_events_full.png")
 
-hOAAEventsEffFull.SetTitle("Mu containment - " + default_size)
+hOAAEventsEffFull.SetTitle("Mu containment - " + default_size + " - FV (50cm veto)")
 hOAAEventsEffFull.SetXTitle("Off-axis position (m)")
 hOAAEventsEffFull.SetYTitle("Efficiency")
 hOAAEventsEffFull.GetXaxis().SetTitleSize(.06)
 hOAAEventsEffFull.GetXaxis().SetTitleOffset(.6)
 hOAAEventsEffFull.GetYaxis().SetTitleSize(.06)
 hOAAEventsEffFull.GetYaxis().SetTitleOffset(.6)
-#hOAAEventsEffFull.GetYaxis().SetMaxDigits(2)
 hOAAEventsEffFull.Draw()
-c1.SaveAs("OAA_events/"+setting+"/"+DIR+"/OAA_events_eff_full.png")
+c1.SaveAs("OAA_events/"+setting+"/"+DIR+"/OAA_events_lepcontainedeff_full.png")
 
-hOAAEventsMuHadEffFull.SetTitle("Had containment - " + default_size)
+hOAAEventsMuHadEffFull.SetTitle("Mu containement + <" + str(veto*1000) + "MeV in veto - " + default_size + " - FV (50cm veto)")
 hOAAEventsMuHadEffFull.SetXTitle("Off-axis position (m)")
 hOAAEventsMuHadEffFull.SetYTitle("Efficiency")
 hOAAEventsMuHadEffFull.GetXaxis().SetTitleSize(.06)
 hOAAEventsMuHadEffFull.GetXaxis().SetTitleOffset(.6)
 hOAAEventsMuHadEffFull.GetYaxis().SetTitleSize(.06)
 hOAAEventsMuHadEffFull.GetYaxis().SetTitleOffset(.6)
-#hOAAEventsMuHadEffFull.GetYaxis().SetMaxDigits(2)
 hOAAEventsMuHadEffFull.Draw()
-c1.SaveAs("OAA_events/"+setting+"/"+DIR+"/OAA_events_muHad_eff_full.png")
+c1.SaveAs("OAA_events/"+setting+"/"+DIR+"/OAA_events_muHad_lepcontainedeff_full.png")
 
+hOAAEventsExitEffFull.SetTitle("Mu exits KE > 50 MeV - " + default_size + " - FV (50cm veto)")
+hOAAEventsExitEffFull.SetXTitle("Off-axis position (m)")
+hOAAEventsExitEffFull.SetYTitle("Efficiency")
+hOAAEventsExitEffFull.GetXaxis().SetTitleSize(.06)
+hOAAEventsExitEffFull.GetXaxis().SetTitleOffset(.6)
+hOAAEventsExitEffFull.GetYaxis().SetTitleSize(.06)
+hOAAEventsExitEffFull.GetYaxis().SetTitleOffset(.6)
+hOAAEventsExitEffFull.Draw()
+c1.SaveAs("OAA_events/"+setting+"/"+DIR+"/OAA_events_lepexiteff_full.png")
 
-
+hOAAEventsExitMuHadEffFull.SetTitle("Mu exits KE > 50 MeV + <" + str(veto*1000) +"MeV in veto - " + default_size + " - FV (50cm veto)")
+hOAAEventsExitMuHadEffFull.SetXTitle("Off-axis position (m)")
+hOAAEventsExitMuHadEffFull.SetYTitle("Efficiency")
+hOAAEventsExitMuHadEffFull.GetXaxis().SetTitleSize(.06)
+hOAAEventsExitMuHadEffFull.GetXaxis().SetTitleOffset(.6)
+hOAAEventsExitMuHadEffFull.GetYaxis().SetTitleSize(.06)
+hOAAEventsExitMuHadEffFull.GetYaxis().SetTitleOffset(.6)
+hOAAEventsExitMuHadEffFull.Draw()
+c1.SaveAs("OAA_events/"+setting+"/"+DIR+"/OAA_events_muhad_lepexiteff_full.png")
 
 hOAAEnuEvents = dict()
 hOAAEnuEventsAcc = dict()
@@ -168,18 +193,19 @@ hOAAEnuEventsEffFull = TH2D("hOAAEnuEventsEffFull","",50,0,5,n_bins,start_bin,en
 gStyle.SetPalette(54)
 
 for stop in stops:
-  hOAAEnuEvents[stop] = TH2D("hOAAEnuEvents" + str(stop), "",50,0.,5., default_x*10,bins[stop][0],bins[stop][1]) 
-  chains[stop].Draw("vtx[0]/1.e2:Enu>>hOAAEnuEvents"+str(stop),"LepPDG==13","colz")
+  hOAAEnuEvents[stop] = TH2D("hOAAEnuEvents" + str(stop), "",50,0.,5., default_x*10,bins[-1*stop][0],bins[-1*stop][1]) 
+  chains[stop].Draw("vtx[0]/-1.e2:Enu>>hOAAEnuEvents"+str(stop),"LepPDG==13","colz")
 
-  hOAAEnuEventsAcc[stop] = TH2D("hOAAEnuEventsAcc" + str(stop), "",50,0.,5., default_x*10,bins[stop][0],bins[stop][1]) 
-  chains[stop].Draw("vtx[0]/1.e2:Enu>>hOAAEnuEventsAcc"+str(stop),"LepPDG==13 && !( flagLepExitBack || flagLepExitFront || flagLepExitY|| flagLepExitXLow || flagLepExitXHigh)","colz")
+  hOAAEnuEventsAcc[stop] = TH2D("hOAAEnuEventsAcc" + str(stop), "",50,0.,5., default_x*10,bins[-1*stop][0],bins[-1*stop][1]) 
+  chains[stop].Draw("vtx[0]/-1.e2:Enu>>hOAAEnuEventsAcc"+str(stop),"LepPDG==13 && !( flagLepExitBack || flagLepExitFront || flagLepExitY|| flagLepExitXLow || flagLepExitXHigh)","colz")
 
   hOAAEnuEventsEff[stop] = doEff(hOAAEnuEvents[stop],hOAAEnuEventsAcc[stop],"hOAAEnuEventsEff"+str(stop))
 
 for stop in stops:
   for i in range(1,hOAAEnuEvents[stop].GetNbinsX()+1):
     for j in range(1,hOAAEnuEvents[stop].GetNbinsY()+1):
-      full_bin = int((stop - min(stops.keys()))/10 + j)
+#      full_bin = int((stop - min(stops.keys()))/10 + j)
+      full_bin = hOAAEventsFull.GetXaxis().FindBin(hOAAEvents[stop].GetBinCenter(j))
       hOAAEnuEventsFull.SetBinContent(i,full_bin,hOAAEnuEvents[stop].GetBinContent(i,j))
 
       hOAAEnuEventsEffFull.SetBinContent(i,full_bin,hOAAEnuEventsEff[stop].GetBinContent(i,j))
