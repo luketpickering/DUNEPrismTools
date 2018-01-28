@@ -499,13 +499,23 @@ int main(int argc, char const *argv[]) {
     double DetZHigh = stopBox.ZWidth_det / 2.0;
 
     // Checking if lepton exits -- muon only
+    OutputEDep.flagLepExitBack = false;
+    OutputEDep.flagLepExitFront = false;
+    OutputEDep.flagLepExitYLow = false;
+    OutputEDep.flagLepExitYHigh = false;
+    OutputEDep.flagLepExitXLow = false;
+    OutputEDep.flagLepExitXHigh = false; 
+    OutputEDep.flagLepExit = false;
     if(abs(rdr->lepPDG) == 13){
-
+      
       for(int i = 0; i < 1000; ++i){
+         
+        if(OutputEDep.flagLepExit){break;}
+
         double posX = rdr->lepTrackX[i];
         double posY = rdr->lepTrackY[i];
         double posZ = rdr->lepTrackZ[i];
-        
+        if(posX == 0 && posY == 0 && posZ == 0){break;} 
         double dX = 0., dY = 0., dZ = 0.;
         bool exitX = false, exitY = false, exitZ = false;
 
@@ -534,6 +544,10 @@ int main(int argc, char const *argv[]) {
         }
 
         if(exitX || exitY || exitZ){
+        //std::cout << "Det: " << stop << " " << DetXHigh << " " << DetXLow << " " << DetYHigh << " " << DetYLow << " " << DetZHigh << " " << DetZLow << std::endl;
+       // std::cout  << i << " "<< posX << " "<< posY << " " << posZ << std::endl;
+//        std::cout  << "\t"<< i-1 << " "<< rdr->lepTrackX[i-1] << " "<< rdr->lepTrackY[i-1] << " " << rdr->lepTrackZ[i-1] << std::endl;
+
           if(dX > dY && dX > dZ){
             OutputEDep.flagLepExitBack = false;
             OutputEDep.flagLepExitFront = false;
@@ -596,15 +610,6 @@ int main(int argc, char const *argv[]) {
           OutputEDep.lepExitingPosY = rdr->lepTrackY[i];
           OutputEDep.lepExitingPosZ = rdr->lepTrackZ[i];
           break;
-        }
-        else{
-          OutputEDep.flagLepExitBack = false;
-          OutputEDep.flagLepExitFront = false;
-          OutputEDep.flagLepExitYLow = false;
-          OutputEDep.flagLepExitYHigh = false;
-          OutputEDep.flagLepExitXLow = false;
-          OutputEDep.flagLepExitXHigh = false; 
-          OutputEDep.flagLepExit = false;
         }
       }
     }
