@@ -5,66 +5,42 @@ from array import *
 from arg_parser import init_parser
 import xml.etree.ElementTree
 from doEff import doEff
+from stops_parser import parse_stops
 
 args = init_parser().parse_args()
          
-det_file = args.config
-
-det_configs = []
-
-print "Config file:\n\t",det_file 
-config = xml.etree.ElementTree.parse(det_file)
-for rp in config.findall('RunPlan'):
-  stops = rp.findall('Stops')[0]
-  det = rp.findall('Detector')[0]
-  for stop in stops.findall('Stop'):
-    det_configs.append(
-      {'shift':int(stop.get('LateralOffset_m'))*-100,
-      'x':int(float(det.get('DetectorFiducialWidth_m')))*100,
-      'y':int(float(det.get('DetectorFiducialHeight_m')))*100,
-      'z':int(float(det.get('DetectorFiducialDepth_m')))*100}
-    )
-
+det_file = args.config    
+det_configs = parse_stops(det_file)
 print det_configs    
+
 datadir = '/home/calcuttj/DUNEPrismSim/'
 setting = args.setting
 veto = args.veto
 
 DIR = args.DIR
-
-output = os.listdir(datadir + setting + "/"+DIR)
-
 print "DIR:\n\t", DIR
-if not os.path.isdir("ElastEnuEff/"+setting+"/"+DIR):
-  os.mkdir("ElastEnuEff/"+setting+"/"+DIR)
+output = os.listdir(datadir + setting + "/" +DIR)
+if not os.path.isdir("OAA_events/"+setting+"/"+DIR):
+  os.mkdir("OAA_events/"+setting+"/"+DIR)
 
-trees = dict()
-for dc in det_configs:
-#  trees[dc['shift']] = "events_" + str(dc['x']) + "x" + str(dc['y']) + "x" + str(dc['z']) + "_50x50x50_"+str(dc['shift'])
-   trees[dc['shift']] = "EDep_Stop" + str(dc['shift']/-100) + "_m"
-
+dc = det_configs[0]
 default_size = str(dc['x']/100) + "x" + str(dc['y']/100) + "x" + str(dc['z']/100) +"m"
+default_x = dc['x']/100
 
-print trees
-
-chains = dict()
 stops = dict()
 for dc in det_configs:
-  chains[dc['shift']] = TChain(trees[dc['shift']])
   if dc['shift'] == 0:
-    stops[dc['shift']] = "On Axis"
+    stops[dc['stop']] = "On Axis"
   else:
-    stops[dc['shift']] = str(abs(dc['shift']/100)) + "m Off Axis"
-print chains
-
+    stops[dc['stop']] = str(abs(dc['shift']/100)) + "m Off Axis"
+chain = TChain("EDeps")
 
 for f in output:
   if len(f.split('.')) == 7:
-#    print f
-    for stop in chains:
-      chains[stop].Add(datadir + setting + "/" +DIR+"/"+ f)
-
-print chains[0].GetEntries()
+    chain.Add(datadir + setting + "/" + DIR + "/" + f)
+total = chain.GetEntries()
+print total 
+print "Loaded ",len(output), "files"
 
 gStyle.SetOptStat(0)
 gStyle.SetPalette(54)
@@ -88,10 +64,17 @@ hElastEnuTot = dict();
 hElastEnuAcc = dict();
 hElastEnuEff = dict();
 DIR = DIR + args.extra
+
+flavcut = {"FHC":"LepPDG == 13 && NuPDG == 14",
+           "RHC":"LepPDG == -13 && NuPDG == -14"}
+extracut = "1"
 for stop in stops:
+
+  stopcut = "stop == " + str(stop)
+
   c1.SetLogz()
   hElastEnuTot[stop] = TH2D("hElastEnuTot_" + str(stop),"",nXBins,xBins,nYBins,yBins)
-  chains[stop].Draw("(1-yTrue):Enu>>hElastEnuTot_"+str(stop),"","colz")
+  chain.Draw("(1-yTrue):Enu>>hElastEnuTot_"+str(stop),stopcut + " && " + flavcut[setting] ,"colz")
   hElastEnuTot[stop].SetTitle("Events - " + default_size + " - " +stops[stop])
   hElastEnuTot[stop].SetXTitle("Enu (GeV)")
   hElastEnuTot[stop].SetYTitle("Elasticity (1-y)")
@@ -104,8 +87,7 @@ for stop in stops:
 
 
   hElastEnuAcc[stop] = TH2D("hElastEnuAcc_" + str(stop),"",nXBins,xBins,nYBins,yBins)
-  chains[stop].Draw("(1-yTrue):Enu>>hElastEnuAcc_"+str(stop),"(flagLepExitBack) && sqrt(lepExitingMomX*lepExitingMomX + lepExitingMomY*lepExitingMomY + lepExitingMomZ*lepExitingMomZ ) > 0.114 && (TotalDep_veto + Pi0Dep_veto) <= " + str(veto),"colz")
-  #c1.SaveAs("ElastEnuEff/"+setting+ "/"+DIR+ "/Acc"+str(stop)+".png")
+  chain.Draw("(1-yTrue):Enu>>hElastEnuAcc_"+str(stop),stopcut + " && " + extracut + " && (TotalNonlep_Dep_veto) <= " + str(veto),"colz")
 
   c1.SetLogz(0)
   hElastEnuEff[stop] = doEff(hElastEnuTot[stop],hElastEnuAcc[stop],"hElastEnuEff_"+str(stop)) 

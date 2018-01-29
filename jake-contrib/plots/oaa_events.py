@@ -5,69 +5,44 @@ from array import *
 from arg_parser import init_parser
 import xml.etree.ElementTree
 from doEff import doEff
-
+from stops_parser import parse_stops
+from load_chain import load_chain
+import numpy as np
 
 args = init_parser().parse_args()
          
-det_file = args.config
-
-det_configs = []
-
-print "Config file:\n\t",det_file 
-config = xml.etree.ElementTree.parse(det_file)
-for rp in config.findall('RunPlan'):
-  stops = rp.findall('Stops')[0]
-  det = rp.findall('Detector')[0]
-  for stop in stops.findall('Stop'):
-    det_configs.append(
-      {'shift':int(stop.get('LateralOffset_m'))*-100,
-      'x':int(float(det.get('DetectorFiducialWidth_m')))*100,
-      'y':int(float(det.get('DetectorFiducialHeight_m')))*100,
-      'z':int(float(det.get('DetectorFiducialDepth_m')))*100}
-    )
-
+det_file = args.config    
+det_configs = parse_stops(det_file)
 print det_configs    
+
 datadir = '/home/calcuttj/DUNEPrismSim/'
 setting = args.setting
 veto = args.veto
 
-
 DIR = args.DIR
 print "DIR:\n\t", DIR
 output = os.listdir(datadir + setting + "/" +DIR)
-
 if not os.path.isdir("OAA_events/"+setting+"/"+DIR):
   os.mkdir("OAA_events/"+setting+"/"+DIR)
 
-trees = dict()
-for dc in det_configs:
-#  trees[dc['shift']] = "events_" + str(dc['x']) + "x" + str(dc['y']) + "x" + str(dc['z']) + "_50x50x50_"+str(dc['shift'])
-   trees[dc['shift']] = "EDep_Stop" + str(dc['shift']/-100) + "_m"
-
+dc = det_configs[0]
 default_size = str(dc['x']/100) + "x" + str(dc['y']/100) + "x" + str(dc['z']/100) +"m"
 default_x = dc['x']/100
 
-print trees
-
-chains = dict()
 stops = dict()
 for dc in det_configs:
-  chains[dc['shift']] = TChain(trees[dc['shift']])
   if dc['shift'] == 0:
-    stops[dc['shift']] = "On Axis"
+    stops[dc['stop']] = "On Axis"
   else:
-    stops[dc['shift']] = str(abs(dc['shift']/100)) + "m Off Axis"
-print chains
+    stops[dc['stop']] = str(abs(dc['shift']/100)) + "m Off Axis"
 
-for f in output:
-  if len(f.split('.')) == 7:
-    #print f
-    for stop in chains:
-      chains[stop].Add(datadir + setting + "/" + DIR + "/" + f)
 
-total = 0
-for dc in det_configs:
-  total = total + chains[dc['shift']].GetEntries()
+#chain = TChain("EDeps")
+#for f in output:
+#  if len(f.split('.')) == 7:
+#    chain.Add(datadir + setting + "/" + DIR + "/" + f)
+chain = load_chain(output, "EDeps",datadir,setting,DIR)
+total = chain.GetEntries()
 print total 
 print "Loaded ",len(output), "files"
 
@@ -76,8 +51,30 @@ gStyle.SetPalette(54)
 c1 = TCanvas("c1","c1")
 
 bins = dict()
+full_bins = []
+#lowerbins = []
+#higherbins = []
 for dc in det_configs:
-  bins[-1*dc['shift']] = [-1*dc['shift']/100. - dc['x']/200., -1*dc['shift']/100. + dc['x']/200. ]
+  #bins[dc['stop']] = [-1*dc['shift']/100. - dc['x']/200., -1*dc['shift']/100. + dc['x']/200. ]
+  bins[dc['stop']] = [-1*dc['shift']/100. - dc['x']/200.,
+                      -1*dc['shift']/100. - dc['x']/200. + .1,
+                      -1*dc['shift']/100. - dc['x']/200. + .3,
+                      -1*dc['shift']/100. - dc['x']/200. + .7,
+                      -1*dc['shift']/100. - dc['x']/200. + 1.1,
+                      -1*dc['shift']/100. - dc['x']/200. + 1.5,
+                      -1*dc['shift']/100. - dc['x']/200. + 1.9,
+                      -1*dc['shift']/100. - dc['x']/200. + 2.3,
+                      -1*dc['shift']/100. - dc['x']/200. + 2.7,
+                      -1*dc['shift']/100. - dc['x']/200. + 2.9,
+                      -1*dc['shift']/100. + dc['x']/200.]
+  for b in bins[dc['stop']]:
+    if b not in full_bins:
+      full_bins.append(b)
+print "full: ", full_bins                                        
+                        
+  #lowerbins.append(-1*dc['shift']/100. - dc['x']/200.)
+  #higherbins.append(-1*dc['shift']/100. + dc['x']/200.)
+
 
 hOAAEvents = dict()
 hOAAEventsAcc = dict()
@@ -89,36 +86,52 @@ hOAAEventsExitEff = dict()
 hOAAEventsExitMuHadAcc = dict()
 hOAAEventsExitMuHadEff = dict()
 
-start_bin = (min(list(bins.keys()))/100. - default_x/2.)
-end_bin = (max(list(bins.keys()))/100. + default_x/2.)
+#start_bin = (min(lowerbins))
+#end_bin = (max(higherbins))
 
-n_bins = int((end_bin - start_bin)*10)
+#n_bins = int((end_bin - start_bin)*10)
+n_bins = len(full_bins) - 1
+#print n_bins,start_bin,end_bin,default_x*10
 
-print n_bins,start_bin,end_bin,default_x*10
+#hOAAEventsFull = TH1D("hOAAEventsFull","",n_bins,start_bin,end_bin)
+#hOAAEventsEffFull = TH1D("hOAAEventsEffFull","",n_bins,start_bin,end_bin)
+#hOAAEventsMuHadEffFull = TH1D("hOAAEventsMuHadEffFull","",n_bins,start_bin,end_bin)
+#hOAAEventsExitEffFull = TH1D("hOAAEventsExitEffFull","",n_bins,start_bin,end_bin)
+#hOAAEventsExitMuHadEffFull = TH1D("hOAAEventsExitMuHadEffFull","",n_bins,start_bin,end_bin)
+hOAAEventsFull = TH1D("hOAAEventsFull","",n_bins,array('d',full_bins))
+hOAAEventsEffFull = TH1D("hOAAEventsEffFull","",n_bins,array('d',full_bins))
+hOAAEventsMuHadEffFull = TH1D("hOAAEventsMuHadEffFull","",n_bins,array('d',full_bins))
+hOAAEventsExitEffFull = TH1D("hOAAEventsExitEffFull","",n_bins,array('d',full_bins))
+hOAAEventsExitMuHadEffFull = TH1D("hOAAEventsExitMuHadEffFull","",n_bins,array('d',full_bins))
 
-hOAAEventsFull = TH1D("hOAAEventsFull","",n_bins,start_bin,end_bin)
-hOAAEventsEffFull = TH1D("hOAAEventsEffFull","",n_bins,start_bin,end_bin)
-hOAAEventsMuHadEffFull = TH1D("hOAAEventsMuHadEffFull","",n_bins,start_bin,end_bin)
-hOAAEventsExitEffFull = TH1D("hOAAEventsExitEffFull","",n_bins,start_bin,end_bin)
-hOAAEventsExitMuHadEffFull = TH1D("hOAAEventsExitMuHadEffFull","",n_bins,start_bin,end_bin)
+exitcut = "(flagLepExitBack || flagLepExitXHigh || flagLepExitXLow || flagLepExitFront || flagLepExitYHigh || flagLepExitYLow) && sqrt(lepExitingMomX*lepExitingMomX + lepExitingMomY*lepExitingMomY + lepExitingMomZ*lepExitingMomZ) > 0.114"
 
-exitcut = "(flagLepExitBack || flagLepExitXHigh || flagLepExitXLow || flagLepExitFront || flagLepExitY) && sqrt(lepExitingMomX*lepExitingMomX + lepExitingMomY*lepExitingMomY + lepExitingMomZ*lepExitingMomZ) > 0.114"
+flavcut = {"FHC":"LepPDG == 13 && NuPDG == 14",
+           "RHC":"LepPDG == -13 && NuPDG == -14"}
 
 for stop in stops:
-  hOAAEvents[stop] = TH1D("hOAAEvents" + str(stop), "", default_x*10,bins[-1*stop][0],bins[-1*stop][1])
-  chains[stop].Draw("vtx[0]/-1.e2>>hOAAEvents" + str(stop),"LepPDG == 13 && NuPDG == 14 && !((flagLepExitXHigh || flagLepExitXLow) && sqrt(lepExitingMomX*lepExitingMomX + lepExitingMomY*lepExitingMomY + lepExitingMomZ*lepExitingMomZ) == 0)")
+#for stop in [0]:
+  
+  stopcut = "stop == " + str(stop)
+  print stopcut
+  print array('d',bins[stop])
+  hOAAEvents[stop] = TH1D("hOAAEvents" + str(stop), "", len(bins[stop]) - 1,array('d',bins[stop]))
+  chain.Draw("vtx[0]/-1.e2>>hOAAEvents" + str(stop),flavcut[setting] + " && " + stopcut)
+  c1.SaveAs("try" + str(stop) + ".png")
 
-  hOAAEventsAcc[stop] = TH1D("hOAAEventsAcc" + str(stop),"",default_x*10,bins[-1*stop][0],bins[-1*stop][1])
-  chains[stop].Draw("vtx[0]/-1.e2>>hOAAEventsAcc"+str(stop),"!(flagLepExitBack || flagLepExitFront || flagLepExitY || flagLepExitXHigh || flagLepExitXLow) && LepPDG == 13 && NuPDG == 14")
+  hOAAEventsAcc[stop] = TH1D("hOAAEventsAcc" + str(stop),"",len(bins[stop]) - 1,array('d',bins[stop]))
+  chain.Draw("vtx[0]/-1.e2>>hOAAEventsAcc"+str(stop),"!(flagLepExitBack || flagLepExitFront || flagLepExitYHigh || flagLepExitYLow || flagLepExitXHigh || flagLepExitXLow) && " + flavcut[setting] + " && " + stopcut)
 
-  hOAAEventsExitAcc[stop] = TH1D("hOAAEventsExitAcc" + str(stop),"",default_x*10,bins[-1*stop][0],bins[-1*stop][1])
-  chains[stop].Draw("vtx[0]/-1.e2>>hOAAEventsExitAcc"+str(stop), exitcut + " && LepPDG == 13 && NuPDG == 14")
+  print stop, "Accepted", hOAAEventsAcc[stop].Integral()
 
-  hOAAEventsMuHadAcc[stop] = TH1D("hOAAEventsMuHadAcc" + str(stop),"",default_x*10,bins[-1*stop][0],bins[-1*stop][1])
-  chains[stop].Draw("vtx[0]/-1.e2>>hOAAEventsMuHadAcc"+str(stop),"!(flagLepExitBack || flagLepExitFront || flagLepExitY || flagLepExitXHigh || flagLepExitXLow) && LepPDG == 13 && NuPDG == 14 && (TotalDep_veto + Pi0Dep_veto) <= " + str(veto) )
+  hOAAEventsExitAcc[stop] = TH1D("hOAAEventsExitAcc" + str(stop),"",len(bins[stop]) - 1,array('d',bins[stop]))
+  chain.Draw("vtx[0]/-1.e2>>hOAAEventsExitAcc"+str(stop), exitcut + " && " + flavcut[setting] + " && " + stopcut)
 
-  hOAAEventsExitMuHadAcc[stop] = TH1D("hOAAEventsExitMuHadAcc" + str(stop),"",default_x*10,bins[-1*stop][0],bins[-1*stop][1])
-  chains[stop].Draw("vtx[0]/-1.e2>>hOAAEventsExitMuHadAcc"+str(stop),exitcut + " && LepPDG == 13 && NuPDG == 14 && (TotalDep_veto + Pi0Dep_veto) <= " + str(veto) )
+  hOAAEventsMuHadAcc[stop] = TH1D("hOAAEventsMuHadAcc" + str(stop),"",len(bins[stop]) - 1,array('d',bins[stop]))
+  chain.Draw("vtx[0]/-1.e2>>hOAAEventsMuHadAcc"+str(stop),"!(flagLepExitBack || flagLepExitFront || flagLepExitYHigh || flagLepExitYLow || flagLepExitXHigh || flagLepExitXLow) && " + flavcut[setting] + " && (TotalNonlep_Dep_veto) <= " + str(veto) + " && " + stopcut)
+
+  hOAAEventsExitMuHadAcc[stop] = TH1D("hOAAEventsExitMuHadAcc" + str(stop),"",len(bins[stop]) - 1,array('d',bins[stop]))
+  chain.Draw("vtx[0]/-1.e2>>hOAAEventsExitMuHadAcc"+str(stop),exitcut + " && " + flavcut[setting] + " && (TotalNonlep_Dep_veto) <= " + str(veto) + " && " + stopcut)
 
   hOAAEventsEff[stop] = doEff(hOAAEvents[stop],hOAAEventsAcc[stop],"hOAAEventsEff"+str(stop))
   hOAAEventsMuHadEff[stop] = doEff(hOAAEvents[stop],hOAAEventsMuHadAcc[stop],"hOAAEventsMuHadEff"+str(stop))
@@ -126,6 +139,7 @@ for stop in stops:
   hOAAEventsExitMuHadEff[stop] = doEff(hOAAEvents[stop],hOAAEventsExitMuHadAcc[stop],"hOAAEventsExitMuHadEff"+str(stop))
 
 for stop in stops:
+#for stop in [0]:
   for i in range(1,hOAAEvents[stop].GetNbinsX()+1):
     full_bin = hOAAEventsFull.GetXaxis().FindBin(hOAAEvents[stop].GetBinCenter(i))
 
@@ -151,16 +165,20 @@ hOAAEventsEffFull.GetXaxis().SetTitleSize(.06)
 hOAAEventsEffFull.GetXaxis().SetTitleOffset(.6)
 hOAAEventsEffFull.GetYaxis().SetTitleSize(.06)
 hOAAEventsEffFull.GetYaxis().SetTitleOffset(.6)
+hOAAEventsEffFull.SetMaximum(1.0)
+hOAAEventsEffFull.SetMinimum(0.0)
 hOAAEventsEffFull.Draw()
 c1.SaveAs("OAA_events/"+setting+"/"+DIR+"/OAA_events_lepcontainedeff_full.png")
 
-hOAAEventsMuHadEffFull.SetTitle("Mu containement + <" + str(veto*1000) + "MeV in veto - " + default_size + " - FV (50cm veto)")
+hOAAEventsMuHadEffFull.SetTitle("Mu containment + <" + str(veto*1000) + "MeV in veto - " + default_size + " - FV (50cm veto)")
 hOAAEventsMuHadEffFull.SetXTitle("Off-axis position (m)")
 hOAAEventsMuHadEffFull.SetYTitle("Efficiency")
 hOAAEventsMuHadEffFull.GetXaxis().SetTitleSize(.06)
 hOAAEventsMuHadEffFull.GetXaxis().SetTitleOffset(.6)
 hOAAEventsMuHadEffFull.GetYaxis().SetTitleSize(.06)
 hOAAEventsMuHadEffFull.GetYaxis().SetTitleOffset(.6)
+hOAAEventsMuHadEffFull.SetMaximum(1.0)
+hOAAEventsMuHadEffFull.SetMinimum(0.0)
 hOAAEventsMuHadEffFull.Draw()
 c1.SaveAs("OAA_events/"+setting+"/"+DIR+"/OAA_events_muHad_lepcontainedeff_full.png")
 
@@ -171,6 +189,8 @@ hOAAEventsExitEffFull.GetXaxis().SetTitleSize(.06)
 hOAAEventsExitEffFull.GetXaxis().SetTitleOffset(.6)
 hOAAEventsExitEffFull.GetYaxis().SetTitleSize(.06)
 hOAAEventsExitEffFull.GetYaxis().SetTitleOffset(.6)
+hOAAEventsExitEffFull.SetMaximum(1.0)
+hOAAEventsExitEffFull.SetMinimum(0.0)
 hOAAEventsExitEffFull.Draw()
 c1.SaveAs("OAA_events/"+setting+"/"+DIR+"/OAA_events_lepexiteff_full.png")
 
@@ -181,27 +201,36 @@ hOAAEventsExitMuHadEffFull.GetXaxis().SetTitleSize(.06)
 hOAAEventsExitMuHadEffFull.GetXaxis().SetTitleOffset(.6)
 hOAAEventsExitMuHadEffFull.GetYaxis().SetTitleSize(.06)
 hOAAEventsExitMuHadEffFull.GetYaxis().SetTitleOffset(.6)
+hOAAEventsExitMuHadEffFull.SetMaximum(1.0)
+hOAAEventsExitMuHadEffFull.SetMinimum(0.0)
 hOAAEventsExitMuHadEffFull.Draw()
 c1.SaveAs("OAA_events/"+setting+"/"+DIR+"/OAA_events_muhad_lepexiteff_full.png")
 
 hOAAEnuEvents = dict()
 hOAAEnuEventsAcc = dict()
 hOAAEnuEventsEff = dict()
-hOAAEnuEventsFull = TH2D("hOAAEnuEventsFull","",50,0,5,n_bins,start_bin,end_bin)
-hOAAEnuEventsEffFull = TH2D("hOAAEnuEventsEffFull","",50,0,5,n_bins,start_bin,end_bin)
+#hOAAEnuEventsFull = TH2D("hOAAEnuEventsFull","",50,0,5,n_bins,start_bin,end_bin)
+#hOAAEnuEventsEffFull = TH2D("hOAAEnuEventsEffFull","",50,0,5,n_bins,start_bin,end_bin)
+hOAAEnuEventsFull = TH2D("hOAAEnuEventsFull","",50,np.arange(0,5.1,.1),n_bins,array('d',full_bins))
+hOAAEnuEventsEffFull = TH2D("hOAAEnuEventsEffFull","",50,np.arange(0,5.1,.1),n_bins,array('d',full_bins))
 
 gStyle.SetPalette(54)
 
 for stop in stops:
-  hOAAEnuEvents[stop] = TH2D("hOAAEnuEvents" + str(stop), "",50,0.,5., default_x*10,bins[-1*stop][0],bins[-1*stop][1]) 
-  chains[stop].Draw("vtx[0]/-1.e2:Enu>>hOAAEnuEvents"+str(stop),"LepPDG==13","colz")
+#for stop in [0]:
 
-  hOAAEnuEventsAcc[stop] = TH2D("hOAAEnuEventsAcc" + str(stop), "",50,0.,5., default_x*10,bins[-1*stop][0],bins[-1*stop][1]) 
-  chains[stop].Draw("vtx[0]/-1.e2:Enu>>hOAAEnuEventsAcc"+str(stop),"LepPDG==13 && !( flagLepExitBack || flagLepExitFront || flagLepExitY|| flagLepExitXLow || flagLepExitXHigh)","colz")
+  stopcut = "stop == " + str(stop)
+
+  hOAAEnuEvents[stop] = TH2D("hOAAEnuEvents" + str(stop), "",50,np.arange(0,5.1,.1), len(bins[stop]) - 1,array('d',bins[stop])) 
+  chain.Draw("vtx[0]/-1.e2:Enu>>hOAAEnuEvents"+str(stop),flavcut[setting],"colz")
+
+  hOAAEnuEventsAcc[stop] = TH2D("hOAAEnuEventsAcc" + str(stop), "",50,np.arange(0,5.1,.1), len(bins[stop]) - 1,array('d',bins[stop])) 
+  chain.Draw("vtx[0]/-1.e2:Enu>>hOAAEnuEventsAcc"+str(stop),flavcut[setting] + " && !( flagLepExitBack || flagLepExitFront || flagLepExitYHigh || flagLepExitYLow|| flagLepExitXLow || flagLepExitXHigh)","colz")
 
   hOAAEnuEventsEff[stop] = doEff(hOAAEnuEvents[stop],hOAAEnuEventsAcc[stop],"hOAAEnuEventsEff"+str(stop))
 
 for stop in stops:
+#for stop in [0]:
   for i in range(1,hOAAEnuEvents[stop].GetNbinsX()+1):
     for j in range(1,hOAAEnuEvents[stop].GetNbinsY()+1):
 #      full_bin = int((stop - min(stops.keys()))/10 + j)
