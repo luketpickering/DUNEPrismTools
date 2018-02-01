@@ -93,7 +93,7 @@ for stop in stops:
   hElastEnuEff[stop] = doEff(hElastEnuTot[stop],hElastEnuAcc[stop],"hElastEnuEff_"+str(stop)) 
   hElastEnuEff[stop].SetMaximum(1.0)
   hElastEnuEff[stop].SetMinimum(0.)
-  hElastEnuEff[stop].SetTitle(str(veto) + " had energy veto - " + default_size + " - " + stops[stop])
+  hElastEnuEff[stop].SetTitle("<" + str(veto*1000) + " MeV in veto - " + default_size + " - " + stops[stop])
   hElastEnuEff[stop].SetXTitle("Enu (GeV)")
   hElastEnuEff[stop].SetYTitle("Elasticity (1-y)")
   hElastEnuEff[stop].GetXaxis().SetTitleSize(.06)

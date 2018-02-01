@@ -73,12 +73,12 @@ flavcutsCC =  {14:"LepPDG == 13 && NuPDG == 14",
                -14:"LepPDG == -13 && NuPDG == -14",
                12:"LepPDG == 11 && NuPDG == 12",
                -12:"LepPDG == -11 && NuPDG == -12"}
-containcut = {14:" && !(flagLepExitBack || flagLepExitFront || flagLepExitYHigh || flagLepExitYLow || flagLepExitXHigh || flagLepExitXLow)",
-              -14:" && !(flagLepExitBack || flagLepExitFront || flagLepExitYHigh || flagLepExitYLow || flagLepExitXHigh || flagLepExitXLow)",
+containcut = {14:" && !(flagLepExit)",
+              -14:" && !(flagLepExit)",
               12:"&& eElectronShowerDepOutside/(eElectronShowerDepInside + eElectronShowerDepOutside) < 0.05",
               -12:"&& eElectronShowerDepOutside/(eElectronShowerDepInside + eElectronShowerDepOutside) < 0.05"}
 
-exitcut = " && (flagLepExitBack || flagLepExitFront || flagLepExitYHigh || flagLepExitYLow || flagLepExitXHigh || flagLepExitXLow) && sqrt(lepExitingMomX*lepExitingMomX + lepExitingMomY*lepExitingMomY + lepExitingMomZ*lepExitingMomZ) > 0.114"
+exitcut = " && (flagLepExit) && sqrt(lepExitingMomX*lepExitingMomX + lepExitingMomY*lepExitingMomY + lepExitingMomZ*lepExitingMomZ) > 0.114"
 vetocut = " && (TotalNonlep_Dep_veto) <= " +str(veto)
 flavcutsNC =  {14:"LepPDG == 14 && NuPDG == 14",
                -14:"LepPDG == -14 && NuPDG == -14",
