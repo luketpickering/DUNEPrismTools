@@ -471,6 +471,8 @@ int main(int argc, char const *argv[]) {
     OutputEDep.Enu = rdr->Enu;
 
     OutputEDep.yTrue = rdr->yTrue;
+    OutputEDep.Q2True = rdr->Q2True;
+    OutputEDep.W_rest = rdr->W_rest;
 
     OutputEDep.NuPDG = rdr->nuPDG;
     OutputEDep.LepPDG = rdr->lepPDG;
