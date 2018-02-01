@@ -111,8 +111,8 @@ inline std::vector<double> BuildDoubleList(std::string const &str) {
 
 void chomp(std::string &str) {
   size_t lnf = str.find_last_not_of("\r\n");
-  if(lnf != std::string::npos){
-    str = str.substr(0, lnf+1);
+  if (lnf != std::string::npos) {
+    str = str.substr(0, lnf + 1);
   }
 }
 
@@ -206,6 +206,32 @@ inline std::vector<std::pair<double, TH1D *> > SplitTH2D(
         (AlongY ? t2->GetYaxis() : t2->GetXaxis())->GetBinCenter(bi_it),
         (AlongY ? t2->ProjectionX(to_str(bi_it).c_str(), bi_it, bi_it)
                 : t2->ProjectionY(to_str(bi_it).c_str(), bi_it, bi_it))));
+    split.back().second->SetDirectory(NULL);
+  }
+
+  return split;
+}
+
+inline std::vector<std::pair<double, TH1D *> > InterpolateSplitTH2D(
+    TH2D *t2, bool AlongY, std::vector<double> Vals) {
+  std::vector<std::pair<double, TH1D *> > split;
+
+  for (double v : Vals) {
+    TH1D *dummyProj = (AlongY ? t2->ProjectionX(to_str(v).c_str(), 1, 1)
+                              : t2->ProjectionY(to_str(v).c_str(), 1, 1));
+    dummyProj->Reset();
+
+    for (Int_t bi_it = 1;
+         bi_it < (AlongY ? t2->GetXaxis() : t2->GetYaxis())->GetNbins() + 1;
+         ++bi_it) {
+      dummyProj->SetBinContent(
+          bi_it,
+          t2->Interpolate(
+              (AlongY ? dummyProj->GetXaxis()->GetBinCenter(bi_it) : v),
+              (AlongY ? v : dummyProj->GetXaxis()->GetBinCenter(bi_it))));
+    }
+
+    split.push_back(std::make_pair(v, dummyProj));
     split.back().second->SetDirectory(NULL);
   }
 

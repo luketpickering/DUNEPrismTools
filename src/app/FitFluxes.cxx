@@ -89,6 +89,10 @@ double OORFactor = 1;
 
 bool UseNuPrismChi2 = false;
 
+int MergeOAABins = 0, MergeENuBins = 0;
+
+std::vector<double> InterpolatedOAAValues;
+
 void BuildTargetFlux(TH1D *OscFlux) {
   TargetFlux = static_cast<TH1D *>(OscFlux->Clone());
   TargetFlux->SetDirectory(NULL);
@@ -178,6 +182,15 @@ void TargetSumChi2(int &nDim, double *gout, double &result, double coeffs[],
                                SummedFlux->GetBinContent(bi_it)));
         }
 
+        if (diff && !std::isnormal(diff)) {
+          std::cout << "[INFO]: Found invalid diff, bin " << bi_it
+                    << ", targ: " << TargetFlux->GetBinContent(bi_it) << ":"
+                    << TargetFlux->GetBinError(bi_it)
+                    << ", sum: " << TargetFlux->GetBinContent(bi_it) << ":"
+                    << TargetFlux->GetBinError(bi_it) << std::endl;
+          throw;  // exit(1);
+        }
+
         sumdiff += diff;
         OOR += diff;
       }
@@ -207,6 +220,15 @@ void TargetSumChi2(int &nDim, double *gout, double &result, double coeffs[],
                                SummedFlux->GetBinContent(bi_it)));
         }
 
+        if (diff && !std::isnormal(diff)) {
+          std::cout << "[INFO]: Found invalid diff, bin " << bi_it
+                    << ", targ: " << TargetFlux->GetBinContent(bi_it) << ":"
+                    << TargetFlux->GetBinError(bi_it)
+                    << ", sum: " << TargetFlux->GetBinContent(bi_it) << ":"
+                    << TargetFlux->GetBinError(bi_it) << std::endl;
+          throw;  // exit(1);
+        }
+
         sumdiff += diff;
         OOR += diff;
       }
@@ -231,6 +253,15 @@ void TargetSumChi2(int &nDim, double *gout, double &result, double coeffs[],
                    SummedFlux->GetBinContent(bi_it)) /
                   (0.0001 * SummedFlux->GetBinContent(bi_it) *
                    SummedFlux->GetBinContent(bi_it)));
+    }
+
+    if (sumdiff && !std::isnormal(sumdiff)) {
+      std::cout << "[INFO]: Found invalid diff, bin " << bi_it
+                << ", targ: " << TargetFlux->GetBinContent(bi_it) << ":"
+                << TargetFlux->GetBinError(bi_it)
+                << ", sum: " << TargetFlux->GetBinContent(bi_it) << ":"
+                << TargetFlux->GetBinError(bi_it) << std::endl;
+      throw;  // exit(1);
     }
   }
 
@@ -268,6 +299,14 @@ void TargetSumGauss(int &nDim, double *gout, double &result, double coeffs[],
       double GUncert =
           pow(0.0001 * GaussEval, 2) + pow(0.00005 * TargetPeakNorm, 2);
       sumdiff += (pow(GaussEval - SummedBinContent, 2) / GUncert);
+    }
+
+    if (sumdiff && !std::isnormal(sumdiff)) {
+      std::cout << "[INFO]: Found invalid diff, bin " << bi_it
+                << ", gauss: " << GaussEval << ":" << TargetPeakNorm
+                << ", sum: " << SummedFlux->GetBinContent(bi_it) << ":"
+                << SummedFlux->GetBinError(bi_it) << std::endl;
+      throw;  // exit(1);
     }
   }
 
@@ -435,7 +474,22 @@ void SayUsage(char const *argv[]) {
          "\t-P                                 : POT exposure (for event rate "
          "predictions).\n"
          "\n"
-         "\t-C                                 : Use NuPrism tools Chi2.\n"
+         "\t-C                                 : Use NuPrism tools Chi2.\n\n"
+         "\t-MY  <nbins to merge>              : Merge off-axis angle bins "
+         "before splitting into\n\n"
+         "\t                                     fluxes. Works with -h inputs.\n"
+         "\n"
+         "\t-MX  <nbins to merge>              : Merge neutrino energy bins "
+         "before splitting into\n"
+         "\t                                     fluxes. Works with -h inputs."
+         "\n\n"
+         "\t-I  <OA1>,<OA2>_<OAN>:<oa_step>,<OAN+1>,...\n "
+         "\t                                   : Interpolate off axis flux "
+         "positions from a -h \n"
+         "\t                                     input. e.g. 1,2_6:2,7 would "
+         "fit fluxes at \n"
+         "\t                                     1, 2, 4, 6, and 7 m off axis."
+         "\n"
       << std::endl;
 }
 
@@ -447,7 +501,7 @@ void handleOpts(int argc, char const *argv[]) {
       if (params.size() != 2) {
         std::cout << "[ERROR]: Recieved " << params.size()
                   << " entrys for g, expected 2." << std::endl;
-        exit(1);
+        throw;  // exit(1);
       }
       GaussC = params[0];
       GaussW = params[1];
@@ -456,7 +510,7 @@ void handleOpts(int argc, char const *argv[]) {
                   << " argument for -g, expected \"<GaussMean>,<GaussWidth>\", "
                      "where both values are > 0."
                   << std::endl;
-        exit(1);
+        throw;  // exit(1);
       }
       IsGauss = true;
       TargetGauss = new TF1("tFunc", "gaus", 0, 20);
@@ -465,7 +519,7 @@ void handleOpts(int argc, char const *argv[]) {
       if (params.size() != 2) {
         std::cout << "[ERROR]: Recieved " << params.size()
                   << " entrys for l, expected 2." << std::endl;
-        exit(1);
+        throw;  // exit(1);
       }
       FitBetween_low = params[0];
       FitBetween_high = params[1];
@@ -475,7 +529,7 @@ void handleOpts(int argc, char const *argv[]) {
       if (params.size() != 2) {
         std::cout << "[ERROR]: Recieved " << params.size()
                   << " entrys for -i, expected 2." << std::endl;
-        exit(1);
+        throw;  // exit(1);
       }
       inpFile = params[0];
       inpHistName = params[1];
@@ -520,7 +574,7 @@ void handleOpts(int argc, char const *argv[]) {
       if (params.size() < 2) {
         std::cout << "[ERROR]: Recieved " << params.size()
                   << " entrys for -x, expected at least 2." << std::endl;
-        exit(1);
+        throw;  // exit(1);
       }
       for (size_t xs_it = 1; xs_it < params.size(); ++xs_it) {
         XSecComponentInputs.push_back(std::make_pair(params[0], params[xs_it]));
@@ -541,7 +595,7 @@ void handleOpts(int argc, char const *argv[]) {
                   << "\", which contains an odd number of inputs, expected an "
                      "even number."
                   << std::endl;
-        exit(1);
+        throw;  // exit(1);
       }
 
       for (size_t i = 0; i < params.size(); i += 2) {
@@ -562,8 +616,40 @@ void handleOpts(int argc, char const *argv[]) {
       detDensity_kgm3 = str2T<double>(argv[++opt]);
     } else if (std::string(argv[opt]) == "-P") {
       POT = str2T<double>(argv[++opt]);
-    }else if (std::string(argv[opt]) == "-C") {
+    } else if (std::string(argv[opt]) == "-C") {
       UseNuPrismChi2 = true;
+    } else if (std::string(argv[opt]) == "-MY") {
+      MergeOAABins = str2T<int>(argv[++opt]);
+    } else if (std::string(argv[opt]) == "-MX") {
+      MergeENuBins = str2T<int>(argv[++opt]);
+    } else if (std::string(argv[opt]) == "-I") {
+      std::vector<std::string> interpDescriptors =
+          ParseToVect<std::string>(argv[++opt], ",");
+      InterpolatedOAAValues.clear();
+      for (size_t vbd_it = 0; vbd_it < interpDescriptors.size(); ++vbd_it) {
+        AppendVect(InterpolatedOAAValues,
+                   BuildDoubleList(interpDescriptors[vbd_it]));
+      }
+
+      for (size_t bin_it = 1; bin_it < InterpolatedOAAValues.size(); ++bin_it) {
+        if (InterpolatedOAAValues[bin_it] ==
+            InterpolatedOAAValues[bin_it - 1]) {
+          std::cout << "[INFO]: Removing duplciate interpolated oaa values ["
+                    << bin_it << "] = " << InterpolatedOAAValues[bin_it]
+                    << std::endl;
+          InterpolatedOAAValues.erase(InterpolatedOAAValues.begin() + bin_it);
+        }
+      }
+
+      for (size_t bin_it = 1; bin_it < InterpolatedOAAValues.size(); ++bin_it) {
+        if (InterpolatedOAAValues[bin_it] < InterpolatedOAAValues[bin_it - 1]) {
+          std::cout << "[ERROR]: Interpolated oaa value #" << bin_it << " = "
+                    << InterpolatedOAAValues[bin_it] << ". however, #"
+                    << (bin_it - 1) << " = "
+                    << InterpolatedOAAValues[bin_it - 1] << std::endl;
+          exit(1);
+        }
+      }
     } else if ((std::string(argv[opt]) == "-?") ||
                std::string(argv[opt]) == "--help") {
       SayUsage(argv);
@@ -571,7 +657,7 @@ void handleOpts(int argc, char const *argv[]) {
     } else {
       std::cout << "[ERROR]: Unknown option: " << argv[opt] << std::endl;
       SayUsage(argv);
-      exit(1);
+      throw;  // exit(1);
     }
     opt++;
   }
@@ -583,12 +669,12 @@ int main(int argc, char const *argv[]) {
   if (!IsGauss && (!inpFile.length() || !inpHistName.length())) {
     std::cout << "[ERROR]: No input file or input histogram name specified."
               << std::endl;
-    exit(1);
+    throw;  // exit(1);
   }
 
   if (!oupFile.length()) {
     std::cout << "[ERROR]: No output file specified." << std::endl;
-    exit(1);
+    throw;  // exit(1);
   }
 
   if (!IncludedOffAxisRange_2D_inputs.size() && inpHistName.length()) {
@@ -698,7 +784,7 @@ int main(int argc, char const *argv[]) {
       if (!Fluxes.size()) {
         std::cout << "[ERROR]: Found no input fluxes from input run plan: \""
                   << runPlanCfg << "\"." << std::endl;
-        exit(1);
+        throw;  // exit(1);
       } else {
         std::cout << "[INFO]: Found " << Fluxes.size() << " input fluxes."
                   << std::endl;
@@ -712,73 +798,97 @@ int main(int argc, char const *argv[]) {
         std::cout << "[ERROR]: Found no input flux with name: \""
                   << FluxHist2DName << "\" in file: \"" << FluxesFile << "\"."
                   << std::endl;
-        exit(1);
+        throw;  // exit(1);
       }
 
-      std::vector<std::pair<double, TH1D *> > Fluxes_and_OAPs =
-          SplitTH2D(Flux2D, true, 0);
-      if (!Fluxes_and_OAPs.size()) {
-        std::cout << "[ERROR]: Couldn't find any fluxes in split TH2D."
-                  << std::endl;
-        exit(1);
+      if (MergeOAABins) {
+        Flux2D->RebinY(MergeOAABins);
+        Flux2D->Scale(1.0 / double(MergeOAABins));
       }
-      std::cout << "[INFO]: Found " << Fluxes_and_OAPs.size()
-                << " input fluxes." << std::endl;
+      if (MergeENuBins) {
+        Flux2D->RebinX(MergeENuBins);
+        Flux2D->Scale(1.0 / double(MergeENuBins));
+      }
 
-      if (!IncludedOffAxisRange_2D_inputs.size()) {
+      std::vector<std::pair<double, TH1D *> > Fluxes_and_OAPs;
+      if (InterpolatedOAAValues.size()) {
+        Fluxes_and_OAPs =
+            InterpolateSplitTH2D(Flux2D, true, InterpolatedOAAValues);
+
         for (size_t f_it = 0; f_it < Fluxes_and_OAPs.size(); ++f_it) {
+          ApplyReg.push_back(true);
           FluxOffaxisPositions_2D_inputs.push_back(Fluxes_and_OAPs[f_it].first);
           Fluxes.push_back(Fluxes_and_OAPs[f_it].second);
         }
       } else {
-        size_t this_kept_range = -1,
-               last_kept_range = std::numeric_limits<size_t>::max();
-        for (size_t f_it = 0; f_it < Fluxes_and_OAPs.size(); ++f_it) {
-          bool keep = false;
-          for (size_t inc_it = 0;
-               inc_it < IncludedOffAxisRange_2D_inputs.size(); ++inc_it) {
-            bool ge_low =
-                ((Fluxes_and_OAPs[f_it].first >
-                  IncludedOffAxisRange_2D_inputs[inc_it].first) ||
-                 (fabs(Fluxes_and_OAPs[f_it].first -
-                       IncludedOffAxisRange_2D_inputs[inc_it].first)) < 1E-5);
-            bool le_up =
-                ((Fluxes_and_OAPs[f_it].first <
-                  IncludedOffAxisRange_2D_inputs[inc_it].second) ||
-                 (fabs(Fluxes_and_OAPs[f_it].first -
-                       IncludedOffAxisRange_2D_inputs[inc_it].second)) < 1E-5);
-            if (ge_low && le_up) {
-              keep = true;
-              this_kept_range = inc_it;
-              break;
+        Fluxes_and_OAPs = SplitTH2D(Flux2D, true, 0);
+
+        if (!IncludedOffAxisRange_2D_inputs.size()) {
+          for (size_t f_it = 0; f_it < Fluxes_and_OAPs.size(); ++f_it) {
+            ApplyReg.push_back(true);
+            FluxOffaxisPositions_2D_inputs.push_back(
+                Fluxes_and_OAPs[f_it].first);
+            Fluxes.push_back(Fluxes_and_OAPs[f_it].second);
+          }
+        } else {
+          size_t this_kept_range = -1,
+                 last_kept_range = std::numeric_limits<size_t>::max();
+          for (size_t f_it = 0; f_it < Fluxes_and_OAPs.size(); ++f_it) {
+            bool keep = false;
+            for (size_t inc_it = 0;
+                 inc_it < IncludedOffAxisRange_2D_inputs.size(); ++inc_it) {
+              bool ge_low =
+                  ((Fluxes_and_OAPs[f_it].first >
+                    IncludedOffAxisRange_2D_inputs[inc_it].first) ||
+                   (fabs(Fluxes_and_OAPs[f_it].first -
+                         IncludedOffAxisRange_2D_inputs[inc_it].first)) < 1E-5);
+              bool le_up =
+                  ((Fluxes_and_OAPs[f_it].first <
+                    IncludedOffAxisRange_2D_inputs[inc_it].second) ||
+                   (fabs(Fluxes_and_OAPs[f_it].first -
+                         IncludedOffAxisRange_2D_inputs[inc_it].second)) <
+                       1E-5);
+              if (ge_low && le_up) {
+                keep = true;
+                this_kept_range = inc_it;
+                break;
+              }
             }
+            if (!keep) {
+              delete Fluxes_and_OAPs[f_it].second;
+              continue;
+            }
+
+            std::cout << "[INFO]: Keeping flux slice at "
+                      << Fluxes_and_OAPs[f_it].first << " m OAP." << std::endl;
+
+            if ((last_kept_range != std::numeric_limits<size_t>::max()) &&
+                (this_kept_range != last_kept_range)) {
+              ApplyReg.back() = false;
+              std::cout << "[INFO]: Ignoring reg factor for flux at "
+                        << FluxOffaxisPositions_2D_inputs.back() << " m OAP."
+                        << std::endl;
+            }
+
+            ApplyReg.push_back(true);
+            FluxOffaxisPositions_2D_inputs.push_back(
+                Fluxes_and_OAPs[f_it].first);
+            Fluxes.push_back(Fluxes_and_OAPs[f_it].second);
+
+            Int_t ybi_it =
+                Flux2D->GetYaxis()->FindFixBin(Fluxes_and_OAPs[f_it].first);
+            SliceXWidth_m.push_back(Flux2D->GetYaxis()->GetBinWidth(ybi_it));
+            last_kept_range = this_kept_range;
           }
-          if (!keep) {
-            delete Fluxes_and_OAPs[f_it].second;
-            continue;
-          }
-
-          std::cout << "[INFO]: Keeping flux slice at "
-                    << Fluxes_and_OAPs[f_it].first << " m OAP." << std::endl;
-
-          if ((last_kept_range != std::numeric_limits<size_t>::max()) &&
-              (this_kept_range != last_kept_range)) {
-            ApplyReg.back() = false;
-            std::cout << "[INFO]: Ignoring reg factor for flux at "
-                      << FluxOffaxisPositions_2D_inputs.back() << " m OAP."
-                      << std::endl;
-          }
-
-          ApplyReg.push_back(true);
-          FluxOffaxisPositions_2D_inputs.push_back(Fluxes_and_OAPs[f_it].first);
-          Fluxes.push_back(Fluxes_and_OAPs[f_it].second);
-
-          Int_t ybi_it =
-              Flux2D->GetYaxis()->FindFixBin(Fluxes_and_OAPs[f_it].first);
-          SliceXWidth_m.push_back(Flux2D->GetYaxis()->GetBinWidth(ybi_it));
-          last_kept_range = this_kept_range;
         }
       }
+      if (!Fluxes_and_OAPs.size()) {
+        std::cout << "[ERROR]: Couldn't find any fluxes in split TH2D."
+                  << std::endl;
+        throw;  // exit(1);
+      }
+      std::cout << "[INFO]: Found " << Fluxes_and_OAPs.size()
+                << " input fluxes." << std::endl;
 
     } else if (inpFluxHistsPattern.size()) {
       Fluxes = GetHistograms<TH1D>(FluxesFile, inpFluxHistsPattern);
@@ -786,7 +896,7 @@ int main(int argc, char const *argv[]) {
         std::cout << "[ERROR]: Found no input fluxes matching pattern: \""
                   << inpFluxHistsPattern << "\" in file: \"" << FluxesFile
                   << "\"." << std::endl;
-        exit(1);
+        throw;  // exit(1);
       } else {
         std::cout << "[INFO]: Found " << Fluxes.size() << " input fluxes."
                   << std::endl;
@@ -796,12 +906,12 @@ int main(int argc, char const *argv[]) {
   } else {
     std::cout << "[ERROR]: Expected either -f (h) or -r options to be passed."
               << std::endl;
-    exit(1);
+    throw;  // exit(1);
   }
 
   if (!Fluxes.size()) {
     std::cout << "[ERROR]: Found no input fluxes." << std::endl;
-    exit(1);
+    throw;  // exit(1);
   }
 
   SummedFlux = static_cast<TH1D *>(Fluxes[0]->Clone());
@@ -824,7 +934,7 @@ int main(int argc, char const *argv[]) {
     if (!icf || !icf->IsOpen()) {
       std::cout << "[ERROR]: Couldn't open coeff input file: " << InpCoeffFile
                 << std::endl;
-      exit(1);
+      throw;  // exit(1);
     }
 
     if (InpCoeffDir.size() && (InpCoeffDir.back() != '/')) {
@@ -836,7 +946,7 @@ int main(int argc, char const *argv[]) {
     if (!cg) {
       std::cout << "[ERROR]: Couldn't get TGraph \'coeffs\' from output file: "
                 << InpCoeffFile << std::endl;
-      exit(1);
+      throw;  // exit(1);
     }
 
     for (size_t flux_it = 0; flux_it < Fluxes.size(); flux_it++) {
@@ -883,6 +993,8 @@ int main(int argc, char const *argv[]) {
               << flux_with_closest_peak_it
               << ", flux_peak_dist = " << flux_peak_dist << std::endl;
 
+    TargetPeakNorm = Fluxes[flux_with_closest_peak_it]->GetMaximum();
+
     if (!InpCoeffFile.size()) {
       for (size_t flux_it = 0; flux_it < Fluxes.size(); flux_it++) {
         if (abs(flux_it - flux_with_closest_peak_it) ==
@@ -890,7 +1002,6 @@ int main(int argc, char const *argv[]) {
           coeffs[flux_it] = -0.35;
         } else if (abs(flux_it - flux_with_closest_peak_it) == 0) {
           coeffs[flux_it] = 1;
-          TargetPeakNorm = Fluxes[flux_it]->GetMaximum();
         } else {  // Others start free
           coeffs[flux_it] = 0;
         }
@@ -943,7 +1054,7 @@ int main(int argc, char const *argv[]) {
       new TFile(oupFile.c_str(), UPDATEOutputFile ? "UPDATE" : "RECREATE");
   if (!oupF || !oupF->IsOpen()) {
     std::cout << "[ERROR]: Couldn't open output file: " << oupFile << std::endl;
-    exit(1);
+    throw;  // exit(1);
   }
 
   TDirectory *oupD = oupF;
