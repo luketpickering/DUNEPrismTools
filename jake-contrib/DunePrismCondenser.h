@@ -9,6 +9,8 @@
 #include "TMap.h"
 #include "TArray.h"
 #include "TROOT.h"
+#include "TObjString.h"
+#include "TLorentzVector.h"
 
 #include <array>
 #include <iostream>
@@ -30,7 +32,8 @@ class DunePrismCondenser{
   public:
 
     //Functions
-    DunePrismCondenser(std::string inFileName, std::string outFileName, DetectorStop * fullDet, int N);
+//    DunePrismCondenser(std::string inFileName, std::string outFileName, DetectorStop * fullDet, int N);
+    DunePrismCondenser(std::string inFileName, std::string outFileName, std::string codeFileName, DetectorStop * fullDet, int N);
     virtual ~DunePrismCondenser(){}; 
     //void Analyze();
     void Condense();
@@ -43,9 +46,11 @@ class DunePrismCondenser{
     ////////////////////
 
     TFile * fin;
+    TFile * fcode;
     TFile * fout;
 
     TTree * inTree;
+    TTree * codeTree;
   
     DepoLepton * FSLepton;
     std::map<int,DepoHadron *> FSHadrons;
@@ -60,6 +65,7 @@ class DunePrismCondenser{
   
     int nEntries;
     int ev;
+    TObjString * code;
     double ekina;
     double pxa;
     double pya;
@@ -98,6 +104,7 @@ class DunePrismCondenser{
 
 
     //Output
+    TObjString * eventCode;
     //Positional Deposits
     double eLepPrimaryDepFull[400][3][3];
     double eHadPrimaryDep[400][3][3];//400XSegmengs/9YZ
@@ -152,6 +159,7 @@ class DunePrismCondenser{
     double pLepTrueYFull;
     double pLepTrueZFull;
     double Q2TrueFull;
+    TLorentzVector * q;
     double yTrueFull;
     double W_rest_full;
     int flagCCFull;
@@ -184,6 +192,7 @@ double fiducialGap[3];
 double offset; 
 std::string inFileName;
 std::string outFileName;
+std::string codeFileName;
 int nEntries;
 DetectorStop * fullDet;
 
@@ -196,6 +205,7 @@ void parse_args(int argc, char* argv[]){
     if(flag == "-i") inFileName = argv[i+1];
 
     else if(flag == "-o") outFileName = argv[i+1];
+    
     else if(flag.find("--det") != std::string::npos){ 
       if(flag.back() == 'X') detector[0] = atof(argv[i+1]);
       if(flag.back() == 'Y') detector[1] = atof(argv[i+1]);
@@ -220,6 +230,8 @@ void parse_args_xml(int argc, char* argv[]){
     if(flag == "-i") inFileName = argv[i+1];
 
     else if(flag == "-o") outFileName = argv[i+1];
+
+    else if(flag == "-c") codeFileName = argv[i+1];
 
     else if(flag == "-x"){
       std::cout << argv[i+1] << std::endl;

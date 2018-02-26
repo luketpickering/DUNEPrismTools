@@ -1,4 +1,6 @@
 #include "TChain.h"
+#include "TObjString.h"
+#include "TLorentzVector.h"
 
 #include <iostream>
 #include <string>
@@ -26,9 +28,11 @@ struct FullDetTreeReader {
   Double_t vtx_Y;
   Double_t vtx_Z;
   Int_t eventNum;
+  TObjString * eventCode;
   Int_t lepPDG;
   Int_t nLep;
   Double_t Q2True;
+  TLorentzVector * qTrue;
   Double_t yTrue;
   Double_t W_rest;
   Int_t nPi0;
@@ -95,9 +99,11 @@ struct FullDetTreeReader {
     tree->SetBranchAddress("vtx_Y", &vtx_Y);
     tree->SetBranchAddress("vtx_Z", &vtx_Z);
     tree->SetBranchAddress("eventNum", &eventNum);
+    tree->SetBranchAddress("eventCode", &eventCode);
     tree->SetBranchAddress("lepPDG", &lepPDG);
     tree->SetBranchAddress("nLep", &nLep);
     tree->SetBranchAddress("Q2True", &Q2True);
+    tree->SetBranchAddress("qTrue", &qTrue);
     tree->SetBranchAddress("yTrue", &yTrue);
     tree->SetBranchAddress("W_rest", &W_rest);
     tree->SetBranchAddress("nPi0", &nPi0);

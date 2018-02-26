@@ -9,21 +9,25 @@
 int main(int argc, char* argv[]){
   parse_args_xml(argc, argv);
 
-  DunePrismCondenser dpc = DunePrismCondenser(inFileName, outFileName,  fullDet,nEntries);
+  DunePrismCondenser dpc = DunePrismCondenser(inFileName, outFileName, codeFileName, fullDet,nEntries);
   dpc.Condense();
   dpc.Finalize();
   return 0;
 }
 
 
-DunePrismCondenser::DunePrismCondenser(std::string inFileName, std::string outFileName, DetectorStop * fullDet, int N){
+DunePrismCondenser::DunePrismCondenser(std::string inFileName, std::string outFileName, std::string codeFileName, DetectorStop * fullDet, int N){
  #ifdef DEBUG
   std::cout << inFileName << std::endl;
   std::cout << outFileName << std::endl;
+  std::cout << codeFileName << std::endl;
   #endif
 
   fin = new TFile(inFileName.c_str(),"READ");
   inTree = (TTree*)fin->Get("argon"); 
+
+  fcode = new TFile(codeFileName.c_str(),"READ");
+  codeTree = (TTree*)fcode->Get("gRooTracker");
 
   if(!inTree) std::cout << "Can't get argon tree" << std::endl;
   #ifdef DEBUG
@@ -45,14 +49,14 @@ DunePrismCondenser::DunePrismCondenser(std::string inFileName, std::string outFi
   }
 
   SetInBranches();
+  std::cout << "Set In branches" << std::endl;
 }
 
 void DunePrismCondenser::Condense(){
   for (int ie = 0; ie < nEntries; ++ie){
     if(!(ie%100))std::cout<<"Entry " << ie<<std::endl;
     inTree->GetEntry(ie);
-//    if(nuPID != 14) continue;
-
+    codeTree->GetEntry(ie);
 
     double wallX[2] = {0.,0.};
     double wallY = 0.;
@@ -66,6 +70,7 @@ void DunePrismCondenser::Condense(){
       vtx_Y_full = EvtVtx[1];
       vtx_Z_full = EvtVtx[2];
       eventNumFull = ev;
+      eventCode = (TObjString*)code->Clone();
 
       if(vtx_X_full < (fullDet->shift - fullDet->detectorSizeX*.5)*100. ||
          vtx_X_full > (fullDet->shift + fullDet->detectorSizeX*.5)*100. ||
@@ -84,6 +89,7 @@ void DunePrismCondenser::Condense(){
         pLepTrueYFull = 0.;
         pLepTrueZFull = 0.;
         Q2TrueFull = 0.;
+        q->SetPxPyPzE(0.,0.,0.,0.);
         yTrueFull = 0.;
         W_rest_full = 0.;
         eHadTrueChargedFull = 0.;
@@ -135,6 +141,11 @@ void DunePrismCondenser::Condense(){
             pLepTrueXFull = pxi[ip];
             pLepTrueYFull = pyi[ip];
             pLepTrueZFull = pzi[ip];
+
+            q->SetPxPyPzE(pxa - pxi[ip],
+                          pya - pyi[ip],
+                          pza - pzi[ip],
+                          EnuFull - eLepTrueFull);
 
             Q2TrueFull = fabs( pow( (ekina - eLepTrueFull), 2 ) 
                                      - pow( (pxi[ip] - pxa), 2 )
@@ -209,9 +220,9 @@ void DunePrismCondenser::Condense(){
         }
 
      // std::cout << "Resetting bins\n";
-      for(size_t it = 0; it < xBins.size() - 1; ++it){
-        for(size_t jt = 0; jt < yBins.size() - 1; ++jt){
-          for(size_t kt = 0; kt < zBins.size() - 1; ++kt){
+      for(size_t it = 0; it < xBins.size(); ++it){
+        for(size_t jt = 0; jt < yBins.size(); ++jt){
+          for(size_t kt = 0; kt < zBins.size(); ++kt){
             eLepPrimaryDepFull[it][jt][kt] = 0.;
             eHadPrimaryDep[it][jt][kt] = 0.;
             eProtonPrimaryDep[it][jt][kt] = 0.;
@@ -259,9 +270,11 @@ void DunePrismCondenser::Condense(){
           if(PID[i] == lepPDGFull && !flagLepExit  ){//lepton
             //check if it's an electron
             if(abs(PID[i]) == 11){
-              if( xe[i] >= xBins.at(0) && xe[i] <= xBins.at(xBins.size() - 1) 
-               &&  ye[i] >= yBins.at(0) && ye[i] <= yBins.at(3)
-               &&  ze[i] >= zBins.at(0) && ze[i] <= zBins.at(3)){
+               //Place in any bin in x, but check that it's within
+               //the fiducial range in y,z
+               if( xe[i] >= xBins.at(0) && xe[i] <= xBins.at(xBins.size() -1)
+               &&  ye[i] >= yBins.at(1) && ye[i] <= yBins.at(2)
+               &&  ze[i] >= zBins.at(1) && ze[i] <= zBins.at(2)){
                  //Get x position, place inside
                  int bin = GetBinX(xe[i]);
                  eElectronShowerDepInside[bin] += edep[i];
@@ -368,16 +381,22 @@ void DunePrismCondenser::Condense(){
 
             //check if it's an electron
             if(abs(PIDi[0]) == 11){
-              if( xe[i] >= xBins.at(0) && xe[i] <= xBins.at(xBins.size() - 1) 
-               &&  ye[i] >= yBins.at(0) && ye[i] <= yBins.at(3)
-               &&  ze[i] >= zBins.at(0) && ze[i] <= zBins.at(3)){
+               //Place in any bin in x, but check that it's within
+               //the fiducial range in y,z
+               if( xe[i] >= xBins.at(0) && xe[i] <= xBins.at(xBins.size() -1)
+               &&  ye[i] >= yBins.at(1) && ye[i] <= yBins.at(2)
+               &&  ze[i] >= zBins.at(1) && ze[i] <= zBins.at(2)){
                  //Get x position, place inside
                  int bin = GetBinX(xe[i]);
                  eElectronShowerDepInside[bin] += edep[i];
 
                }
-               else{
-                 eElectronShowerDepOutside += edep[i];
+               //< Within X AND < outside in y OR outside in z > >
+               else if( (  xe[i] >= xBins.at(0) && xe[i] <= xBins.at(xBins.size() -1) ) && 
+                      ( (( ye[i] >= yBins.at(0) && ye[i] < yBins.at(1)) || (ye[i] > yBins.at(2) && ye[i] <= yBins.at(3)) ) || 
+                        (( ze[i] >= zBins.at(0) && ze[i] < zBins.at(1)) || (ze[i] > zBins.at(2) && ze[i] <= zBins.at(3)) ) )) 
+               { 
+                  eElectronShowerDepOutside += edep[i];
                }
             }
 
@@ -483,6 +502,7 @@ void DunePrismCondenser::SetInBranches(){
   inTree->SetBranchAddress("mi",&mi);
 
   inTree->SetBranchAddress("ev",&ev);
+  //inTree->SetBranchAddress("code",&code);
   inTree->SetBranchAddress("ekina",&ekina);
   inTree->SetBranchAddress("xa",&EvtVtx[0]);
   inTree->SetBranchAddress("ya",&EvtVtx[1]);
@@ -511,6 +531,8 @@ void DunePrismCondenser::SetInBranches(){
   inTree->SetBranchAddress("pze",&pze);
   inTree->SetBranchAddress("ekin",&ekin);
   inTree->SetBranchAddress("edep",&edep);
+
+  codeTree->SetBranchAddress("EvtCode",&code);
 }
 
 
@@ -558,9 +580,9 @@ void DunePrismCondenser::InitDetector(){
   zBins.at(3) << std::endl;
 
 
-  for(size_t i = 0; i < xBins.size() -1; ++i){
-    for(size_t j = 0; j < yBins.size() - 1; ++j){
-      for(size_t k = 0; k < zBins.size() - 1; ++k){
+  for(size_t i = 0; i < xBins.size(); ++i){
+    for(size_t j = 0; j < yBins.size(); ++j){
+      for(size_t k = 0; k < zBins.size(); ++k){
         eLepPrimaryDepFull[i][j][k] = 0.;
         eHadPrimaryDep[i][j][k] = 0.;
         eProtonPrimaryDep[i][j][k] = 0.;
@@ -582,7 +604,7 @@ void DunePrismCondenser::InitDetector(){
     }
     eElectronShowerDepInside[i] = 0.;
   }
-
+  
   for(size_t it = 0; it < 1000; ++it){
     lepTrackX[it] = 0.;
     lepTrackY[it] = 0.;
@@ -591,9 +613,11 @@ void DunePrismCondenser::InitDetector(){
     lepTrackMomY[it] = 0.;
     lepTrackMomZ[it] = 0.;
   }
+  q = new TLorentzVector();
   fullDetTree->Branch("Enu",&EnuFull);
   fullDetTree->Branch("nuPDG",&nuPDGFull);
   fullDetTree->Branch("eventNum",&eventNumFull);
+  fullDetTree->Branch("eventCode",&eventCode);
   fullDetTree->Branch("vtx_X",&vtx_X_full);
   fullDetTree->Branch("vtx_Y",&vtx_Y_full);
   fullDetTree->Branch("vtx_Z",&vtx_Z_full);
@@ -620,6 +644,7 @@ void DunePrismCondenser::InitDetector(){
   fullDetTree->Branch("flagLepExitFront",&flagLepExitFront);
   fullDetTree->Branch("flagLepExitY",&flagLepExitY);
   fullDetTree->Branch("Q2True",&Q2TrueFull);
+  fullDetTree->Branch("qTrue",&q);
   fullDetTree->Branch("yTrue",&yTrueFull);
   fullDetTree->Branch("W_rest",&W_rest_full);
   fullDetTree->Branch("flagCC",&flagCCFull);
@@ -656,6 +681,7 @@ void DunePrismCondenser::InitDetector(){
 
   fullDetTree->Branch("eElectronShowerDepInside", &eElectronShowerDepInside, "eElectronShowerDepInside[400]/D");
   fullDetTree->Branch("eElectronShowerDepOutside", &eElectronShowerDepOutside, "eElectronShowerDepOutside/D");
+  std::cout << "Made Branches" << std::endl;
 }
 
   

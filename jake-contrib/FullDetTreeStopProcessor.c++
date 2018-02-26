@@ -30,10 +30,11 @@ struct EDep {
   int stop;
 
   double vtx[3];
-
+  TObjString * eventCode = new TObjString();
   double Enu;
   double yTrue;
   double Q2True;
+  TLorentzVector * qTrue;
   double W_rest;
 
   int NuPDG;
@@ -343,14 +344,19 @@ int main(int argc, char const *argv[]) {
     Detectors.push_back(db);
   }
 
+  //Init qTrue 
+  OutputEDep.qTrue = new TLorentzVector();
+
   OutputTree->Branch("stop", &OutputEDep.stop, "stop/I");
 
   OutputTree->Branch("vtx", &OutputEDep.vtx, "vtx[3]/D");
+  OutputTree->Branch("eventCode", &OutputEDep.eventCode);
 
   OutputTree->Branch("Enu", &OutputEDep.Enu, "Enu/D");
   OutputTree->Branch("yTrue", &OutputEDep.yTrue, "yTrue/D");
   OutputTree->Branch("W_rest", &OutputEDep.W_rest, "W_rest/D");
   OutputTree->Branch("Q2True", &OutputEDep.Q2True, "Q2True/D");
+  OutputTree->Branch("qTrue", &OutputEDep.qTrue);
 
   OutputTree->Branch("NuPDG", &OutputEDep.NuPDG, "NuPDG/I");
   OutputTree->Branch("LepPDG", &OutputEDep.LepPDG, "LepPDG/I");
@@ -463,15 +469,16 @@ int main(int argc, char const *argv[]) {
 
     DetBox &stopBox = Detectors[stop];
     OutputEDep.stop = stop;
-
+    OutputEDep.eventCode = rdr->eventCode;
     OutputEDep.vtx[0] = rdr->vtx_X;
     OutputEDep.vtx[1] = rdr->vtx_Y;
     OutputEDep.vtx[2] = rdr->vtx_Z;
 
     OutputEDep.Enu = rdr->Enu;
-
+    
     OutputEDep.yTrue = rdr->yTrue;
     OutputEDep.Q2True = rdr->Q2True;
+    OutputEDep.qTrue = (TLorentzVector*)rdr->qTrue->Clone();
     OutputEDep.W_rest = rdr->W_rest;
 
     OutputEDep.NuPDG = rdr->nuPDG;
@@ -622,14 +629,24 @@ int main(int argc, char const *argv[]) {
     //Splitting up electron shower deposits
     else if(abs(rdr->lepPDG) == 11){
       for(int i = 0; i < 400; ++i){
-         double posLow = -3800. + i*10.; 
-         double posHigh = -3800. + (i+1)*10.;
+         if(rdr->eElectronShowerDepInside[i] > 0.){
+           double posLow = -3800. + i*10.; 
+           double posHigh = -3800. + (i+1)*10.;
 
-         if (posLow < DetXLow || posHigh > DetXHigh){
-           OutputEDep.eElectronShowerDepOutside += rdr->eElectronShowerDepInside[i];
-         }
-         else{
-           OutputEDep.eElectronShowerDepInside += rdr->eElectronShowerDepInside[i];
+           //if (posLow < DetXLow || posHigh > DetXHigh){
+           if ( (posLow < stopBox.X_Range_fv[0] && posLow >= DetXLow )     //Between edge of detector and 
+             || (posHigh > stopBox.X_Range_fv[1] && posHigh <= DetXHigh ) ){ //fiducial region -- IN VETO
+             OutputEDep.eElectronShowerDepOutside += rdr->eElectronShowerDepInside[i];
+           /*  std::cout << "OUTSIDE" << std::endl;
+             std::cout << "Low: " << DetXLow << " " << posLow << " " << stopBox.X_Range_fv[0] << std::endl;
+             std::cout << "High: " << stopBox.X_Range_fv[1] << " " << posHigh << " " << DetXHigh << std::endl;*/
+           }
+           else{
+             OutputEDep.eElectronShowerDepInside += rdr->eElectronShowerDepInside[i];
+            /* std::cout << "INSIDE" << std::endl;
+             std::cout << "Low: " << DetXLow << " " << posLow << " " << stopBox.X_Range_fv[0] << std::endl;
+             std::cout << "High: " << stopBox.X_Range_fv[1] << " " << posHigh << " " << DetXHigh << std::endl;*/
+           }
          }
       }
       OutputEDep.eElectronShowerDepOutside += rdr->eElectronShowerDepOutside;
