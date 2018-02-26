@@ -4,6 +4,7 @@
 #include "FullDetTreeReader.h"
 
 #include "TTree.h"
+#include "TRandom.h"
 
 #include <utility>
 
@@ -24,6 +25,9 @@ struct DetBox {
   size_t X_fv[2];
   size_t X_veto_left[2];
   size_t X_veto_right[2];
+
+  //Jake: adding in for overlay stops
+  double POTExposure;
 };
 
 struct EDep {
@@ -315,6 +319,7 @@ int main(int argc, char const *argv[]) {
     db.XWidth_det = db.XWidth_fv + 2 * X_Veto_cm;
     db.YWidth_det = db.YWidth_fv + 2 * Y_Veto_cm;
     db.ZWidth_det = db.ZWidth_fv + 2 * Z_Veto_cm;
+    db.POTExposure = DetectorStops[d_it].POTExposure; 
 
     double Detlow = db.XOffset - db.XWidth_det / 2.0;
     double DetHigh = db.XOffset + db.XWidth_det / 2.0;
@@ -438,6 +443,7 @@ int main(int argc, char const *argv[]) {
             << std::endl;
 
   size_t loud_every = rdr->GetEntries() / 10;
+  TRandom * rand = new TRandom();
 
   for (size_t e_it = 0; e_it < rdr->GetEntries(); ++e_it) {
     rdr->GetEntry(e_it);
@@ -449,6 +455,11 @@ int main(int argc, char const *argv[]) {
     }
 
     // DetBox + Reader -> EDep -> Fill out tree
+    //
+    //
+    //Jake: Adding in a vector of overlapping stops
+    
+    std::vector<int> overlapping_stops;
 
     int stop = -1;
     for (size_t d_it = 0; d_it < NDets; ++d_it) {
@@ -460,12 +471,53 @@ int main(int argc, char const *argv[]) {
         continue;
       }
       stop = d_it;
-      break;
+      //break; -- Jake: Taking out
+      overlapping_stops.push_back(stop);
     }
 
     if (stop == -1) {
       continue;
     }
+
+    if (overlapping_stops.size() == 0){
+      std::cout << "Error: somehow passed the stop check" << std::endl;
+      continue;
+    }
+    else if (overlapping_stops.size() > 1){
+      //Get POTExposure over these stops. Distribute events 
+      //by fractional exposure
+
+      double total_run = 0.;
+
+      for (size_t s_it = 0; s_it < overlapping_stops.size(); ++s_it){
+        total_run += Detectors.at(s_it).POTExposure;
+      }
+      
+      std::vector<std::pair<double, double>>frac_runs;
+
+      for (size_t s_it = 0; s_it < overlapping_stops.size(); ++s_it){        
+        int this_stop = overlapping_stops.at(s_it);
+        if(s_it == 0){
+          frac_runs.push_back( std::make_pair(0., (Detectors[this_stop].POTExposure) / total_run ));
+        }
+        else{
+          frac_runs.push_back( std::make_pair(frac_runs[s_it - 1].second, (( (Detectors[this_stop].POTExposure) / total_run ) + frac_runs[s_it - 1].second) ) );
+        }
+
+        std::cout << frac_runs.at(s_it).first << " " << frac_runs.at(s_it).second << std::endl; 
+      }
+      std::cout << std::endl;
+
+      double rand_val = rand->Uniform();            
+      for(size_t s_it = 0; s_it < frac_runs.size(); ++s_it){
+        if( (rand_val > frac_runs.at(s_it).first) && (rand_val < frac_runs.at(s_it).second) ){
+          stop = overlapping_stops.at(s_it);       
+          std::cout << "FOUND STOP " << stop << " " << rand_val << " " << frac_runs.at(s_it).first << " " << frac_runs.at(s_it).second << std::endl;
+          break;
+        }
+      } 
+    }
+    //else: keep stop from above
 
     DetBox &stopBox = Detectors[stop];
     OutputEDep.stop = stop;

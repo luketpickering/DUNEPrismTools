@@ -1,3 +1,4 @@
+#include <math.h>
 class DepoParticle {
  public:
   int PDG;
