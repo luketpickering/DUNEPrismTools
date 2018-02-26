@@ -1,4 +1,4 @@
-SET(APPS DunePrismAnalyzer DunePrismCondenser FullDetTreeStopProcessor
+SET(APPS DunePrismCondenser FullDetTreeStopProcessor
   FluxVarFriendTreeBuilder)
 
 include_directories(${INCLUDE_DIRECTORIES})

@@ -1,6 +1,6 @@
 #include "TChain.h"
-#include "TObjString.h"
 #include "TLorentzVector.h"
+#include "TObjString.h"
 
 #include <iostream>
 #include <string>
@@ -28,11 +28,11 @@ struct FullDetTreeReader {
   Double_t vtx_Y;
   Double_t vtx_Z;
   Int_t eventNum;
-  TObjString * eventCode;
+  TObjString *eventCode;
   Int_t lepPDG;
   Int_t nLep;
   Double_t Q2True;
-  TLorentzVector * qTrue;
+  TLorentzVector *qTrue;
   Double_t yTrue;
   Double_t W_rest;
   Int_t nPi0;
@@ -112,13 +112,13 @@ struct FullDetTreeReader {
     tree->SetBranchAddress("nNeutron", &nNeutron);
     tree->SetBranchAddress("nGamma", &nGamma);
 
-    tree->SetBranchAddress("eLepTrue", & eLepTrue);
-    tree->SetBranchAddress("eHadTrueTotal", & eHadTrueTotal);
-    tree->SetBranchAddress("ePi0True", & ePi0True);
-    tree->SetBranchAddress("ePiCTrue", & ePiCTrue);
-    tree->SetBranchAddress("eProtonTrue", & eProtonTrue);
-    tree->SetBranchAddress("eNeutronTrue", & eNeutronTrue);
-    tree->SetBranchAddress("eGammaTrue", & eGammaTrue);
+    tree->SetBranchAddress("eLepTrue", &eLepTrue);
+    tree->SetBranchAddress("eHadTrueTotal", &eHadTrueTotal);
+    tree->SetBranchAddress("ePi0True", &ePi0True);
+    tree->SetBranchAddress("ePiCTrue", &ePiCTrue);
+    tree->SetBranchAddress("eProtonTrue", &eProtonTrue);
+    tree->SetBranchAddress("eNeutronTrue", &eNeutronTrue);
+    tree->SetBranchAddress("eGammaTrue", &eGammaTrue);
 
     tree->SetBranchAddress("eLepPrimaryDepFull", &eLepPrimaryDep);
     tree->SetBranchAddress("eHadPrimaryDep", &eHadPrimaryDep);
@@ -140,20 +140,22 @@ struct FullDetTreeReader {
     tree->SetBranchAddress("flagLepExitFront", &flagLepExitFront);
     tree->SetBranchAddress("flagLepExitY", &flagLepExitY);
     tree->SetBranchAddress("flagLepExit", &flagLepExit);
-    tree->SetBranchAddress("lepExitingPosX",&lepExitingPosX);
-    tree->SetBranchAddress("lepExitingPosY",&lepExitingPosY);
-    tree->SetBranchAddress("lepExitingPosZ",&lepExitingPosZ); 
-    tree->SetBranchAddress("lepExitingMomX",&lepExitingMomX);
-    tree->SetBranchAddress("lepExitingMomY",&lepExitingMomY);
-    tree->SetBranchAddress("lepExitingMomZ",&lepExitingMomZ);
+    tree->SetBranchAddress("lepExitingPosX", &lepExitingPosX);
+    tree->SetBranchAddress("lepExitingPosY", &lepExitingPosY);
+    tree->SetBranchAddress("lepExitingPosZ", &lepExitingPosZ);
+    tree->SetBranchAddress("lepExitingMomX", &lepExitingMomX);
+    tree->SetBranchAddress("lepExitingMomY", &lepExitingMomY);
+    tree->SetBranchAddress("lepExitingMomZ", &lepExitingMomZ);
     tree->SetBranchAddress("lepTrackX", &lepTrackX);
     tree->SetBranchAddress("lepTrackY", &lepTrackY);
     tree->SetBranchAddress("lepTrackZ", &lepTrackZ);
     tree->SetBranchAddress("lepTrackMomX", &lepTrackMomX);
     tree->SetBranchAddress("lepTrackMomY", &lepTrackMomY);
     tree->SetBranchAddress("lepTrackMomZ", &lepTrackMomZ);
-    tree->SetBranchAddress("eElectronShowerDepInside", &eElectronShowerDepInside);
-    tree->SetBranchAddress("eElectronShowerDepOutside", &eElectronShowerDepOutside);
+    tree->SetBranchAddress("eElectronShowerDepInside",
+                           &eElectronShowerDepInside);
+    tree->SetBranchAddress("eElectronShowerDepOutside",
+                           &eElectronShowerDepOutside);
   }
 
   void GetEntry(UInt_t e) {
