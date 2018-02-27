@@ -34,6 +34,8 @@ struct EDep {
   int stop;
 
   double vtx[3];
+  double vtxInDetX;
+  double XOffset;
   TObjString * eventCode = new TObjString();
   double Enu;
   double yTrue;
@@ -355,6 +357,8 @@ int main(int argc, char const *argv[]) {
   OutputTree->Branch("stop", &OutputEDep.stop, "stop/I");
 
   OutputTree->Branch("vtx", &OutputEDep.vtx, "vtx[3]/D");
+  OutputTree->Branch("vtxInDetX", &OutputEDep.vtxInDetX, "vtxInDetX/D");
+  OutputTree->Branch("XOffset", &OutputEDep.XOffset, "XOffset/D");
   OutputTree->Branch("eventCode", &OutputEDep.eventCode);
 
   OutputTree->Branch("Enu", &OutputEDep.Enu, "Enu/D");
@@ -503,16 +507,12 @@ int main(int argc, char const *argv[]) {
         else{
           frac_runs.push_back( std::make_pair(frac_runs[s_it - 1].second, (( (Detectors[this_stop].POTExposure) / total_run ) + frac_runs[s_it - 1].second) ) );
         }
-
-        std::cout << frac_runs.at(s_it).first << " " << frac_runs.at(s_it).second << std::endl; 
       }
-      std::cout << std::endl;
 
       double rand_val = rand->Uniform();            
       for(size_t s_it = 0; s_it < frac_runs.size(); ++s_it){
         if( (rand_val > frac_runs.at(s_it).first) && (rand_val < frac_runs.at(s_it).second) ){
           stop = overlapping_stops.at(s_it);       
-          std::cout << "FOUND STOP " << stop << " " << rand_val << " " << frac_runs.at(s_it).first << " " << frac_runs.at(s_it).second << std::endl;
           break;
         }
       } 
@@ -525,6 +525,12 @@ int main(int argc, char const *argv[]) {
     OutputEDep.vtx[0] = rdr->vtx_X;
     OutputEDep.vtx[1] = rdr->vtx_Y;
     OutputEDep.vtx[2] = rdr->vtx_Z;
+
+    OutputEDep.vtxInDetX = rdr->vtx_X - stopBox.XOffset;
+    OutputEDep.XOffset = stopBox.XOffset;
+    if(fabs(OutputEDep.vtxInDetX) > stopBox.XWidth_det / 2.0 ){
+      std::cout << OutputEDep.vtxInDetX << std::endl;
+    }
 
     OutputEDep.Enu = rdr->Enu;
     
