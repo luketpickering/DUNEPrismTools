@@ -53,6 +53,9 @@ struct EDep {
   int nGamma;
 
   double eLepTrue;
+  double pLepTrueX;
+  double pLepTrueY;
+  double pLepTrueZ;
   double ePi0True;
   double ePiCTrue;
   double eProtonTrue;
@@ -377,6 +380,9 @@ int main(int argc, char const *argv[]) {
   OutputTree->Branch("nGamma", &OutputEDep.nGamma, "nGamma/I");
 
   OutputTree->Branch("eLepTrue", &OutputEDep.eLepTrue, "eLepTrue/D");
+  OutputTree->Branch("pLepTrueX", &OutputEDep.pLepTrueX);
+  OutputTree->Branch("pLepTrueY", &OutputEDep.pLepTrueY);
+  OutputTree->Branch("pLepTrueZ", &OutputEDep.pLepTrueZ);
   OutputTree->Branch("ePi0True", &OutputEDep.ePi0True, "ePi0True/D");
   OutputTree->Branch("ePiCTrue", &OutputEDep.ePiCTrue, "ePiCTrue/D");
   OutputTree->Branch("eProtonTrue", &OutputEDep.eProtonTrue, "eProtonTrue/D");
@@ -548,6 +554,9 @@ int main(int argc, char const *argv[]) {
     OutputEDep.nNeutron = rdr->nNeutron;
     OutputEDep.nGamma = rdr->nGamma;
     OutputEDep.eLepTrue = rdr->eLepTrue;
+    OutputEDep.pLepTrueX = rdr->pLepTrueX;
+    OutputEDep.pLepTrueY = rdr->pLepTrueY;
+    OutputEDep.pLepTrueZ = rdr->pLepTrueZ;
     OutputEDep.ePi0True = rdr->ePi0True;
     OutputEDep.ePiCTrue = rdr->ePiCTrue;
     OutputEDep.eProtonTrue = rdr->eProtonTrue;

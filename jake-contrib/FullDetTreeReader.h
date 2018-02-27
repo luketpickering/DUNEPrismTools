@@ -42,6 +42,9 @@ struct FullDetTreeReader {
   Int_t nGamma;
 
   Double_t eLepTrue;
+  Double_t pLepTrueX;
+  Double_t pLepTrueY;
+  Double_t pLepTrueZ;
   Double_t ePi0True;
   Double_t ePiCTrue;
   Double_t eProtonTrue;
@@ -113,6 +116,9 @@ struct FullDetTreeReader {
     tree->SetBranchAddress("nGamma", &nGamma);
 
     tree->SetBranchAddress("eLepTrue", &eLepTrue);
+    tree->SetBranchAddress("pLepTrueX", &pLepTrueX);
+    tree->SetBranchAddress("pLepTrueY", &pLepTrueY);
+    tree->SetBranchAddress("pLepTrueZ", &pLepTrueZ);
     tree->SetBranchAddress("eHadTrueTotal", &eHadTrueTotal);
     tree->SetBranchAddress("ePi0True", &ePi0True);
     tree->SetBranchAddress("ePiCTrue", &ePiCTrue);
