@@ -48,6 +48,10 @@ include(${CMAKE_SOURCE_DIR}/cmake/Prob3++Setup.cmake)
 ################################## COMPILER ####################################
 include(${CMAKE_SOURCE_DIR}/cmake/c++CompilerSetup.cmake)
 
+################################## DOXYGEN ####################################
+include(${CMAKE_SOURCE_DIR}/cmake/doxSetup.cmake)
+
+
 LIST(APPEND INCLUDE_DIRECTORIES ${CMAKE_SOURCE_DIR}/src)
 
 add_subdirectory(src/app)

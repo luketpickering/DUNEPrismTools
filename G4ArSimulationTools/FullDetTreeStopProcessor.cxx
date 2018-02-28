@@ -31,84 +31,324 @@ struct DetBox {
   double POTExposure;
 };
 
+/// Energy deposit and GENIE passthrough output tree
 struct EDep {
+  /// The detector stop number used, refer to input xml for stop offsets.
+  ///
+  /// N.B. When overlapping stops are defined the event is randomly placed
+  /// within one of the overlapping stops at the interaction position. The
+  /// choice is weighted by the POTExposure branch in the input run plan
+  /// xml.
   int stop;
 
+  /// [GENIE P/T]:  The vertex 3-position in cm
   double vtx[3];
+  /// [GENIE P/T]:  The X position of the vertex relative to the centre of a
+  /// stop in cm.
   double vtxInDetX;
+  /// [GENIE P/T]:  The X offset of stop, stop in cm.
   double XOffset;
+  /// [GENIE P/T]:  The GENIE interaction code.
   TObjString *EventCode;
+  /// [GENIE P/T]:  The 4-momentum of the incident neutrino in detector
+  /// coordinates.
   double nu_4mom[4];
+  /// [GENIE P/T]:  The elasticity of the interaction.
   double y_True;
+  /// [GENIE P/T]:  The square 4-momentum transfer of the interaction.
   double Q2_True;
+  /// [GENIE P/T]:  The full 4-momentum transfer of the interaction.
   double FourMomTransfer_True[4];
+  /// [GENIE P/T]:  The reconstructed invariant mass
+  ///
+  /// N.B. This assumes that the target nucleon was at rest and will not be the
+  /// same W as thrown by the event generator during the cross-section
+  /// calculation (single-pion production).
   double W_Rest;
 
+  /// [GENIE P/T]:  The PDG MC code of the neutrino.
   int nu_PDG;
+  /// [GENIE P/T]:  The PDG MC code of the primary lepton
+  ///
+  /// i.e. the one that was born when the neutrino shed/absorbed an exchange
+  /// boson
   int PrimaryLepPDG;
+  /// [GENIE P/T]:  The 4-momentum of the primary lepton
   double PrimaryLep_4mom[4];
 
+  /// [GENIE P/T]:  The number of final state leptons in the event.
   int NLep;
+  /// [GENIE P/T]:  The number of final state neutral pions in the event.
   int NPi0;
+  /// [GENIE P/T]:  The number of final state charged pions in the event.
   int NPiC;
+  /// [GENIE P/T]:  The number of final state protons in the event.
   int NProton;
+  /// [GENIE P/T]:  The number of final state neutrons in the event.
   int NNeutron;
+  /// [GENIE P/T]:  The number of final state photons in the event.
   int NGamma;
+  /// [GENIE P/T]:  The number of final state other particles in the event.
+  ///
+  /// N.B. These do not include GENIE bindinos or nuclear PDG codes.
+  /// By eye, these are most often Kaons or Lambdas.
   int NOther;
 
+  ///\brief [GENIE P/T]: The total kinetic energy of all neutral pions at the
+  /// end of the GENIE simulation.
   double EKinPi0_True;
+  ///\brief [GENIE P/T]: The total mass energy of all neutral pions at the
+  /// end of the GENIE simulation.
   double EMassPi0_True;
+  ///\brief [GENIE P/T]: The total kinetic energy of all charged pions at the
+  /// end of the GENIE simulation.
   double EKinPiC_True;
+  ///\brief [GENIE P/T]: The total mass energy of all charged pions at the
+  /// end of the GENIE simulation.
   double EMassPiC_True;
+  ///\brief [GENIE P/T]: The total kinetic energy of all protons at the
+  /// end of the GENIE simulation.
   double EKinProton_True;
+  ///\brief [GENIE P/T]: The total mass energy of all protons at the
+  /// end of the GENIE simulation.
+  ///
+  /// N.B. It is most often the case that the mass energy of nucleons was not
+  /// created during the neutrino interaction or subsequent cascade. A proxy
+  /// reconstructed neutrino energy will often not use this energy.
   double EMassProton_True;
+  ///\brief [GENIE P/T]: The total kinetic energy of all neutrons at the
+  /// end of the GENIE simulation.
   double EKinNeutron_True;
+  ///\brief [GENIE P/T]: The total mass energy of all neutrons at the
+  /// end of the GENIE simulation.
+  ///
+  /// N.B. It is most often the case that the mass energy of nucleons was not
+  /// created during the neutrino interaction or subsequent cascade. A proxy
+  /// reconstructed neutrino energy will often not use this energy.
   double EMassNeutron_True;
+  ///\brief [GENIE P/T]: The total energy of all photons at the
+  /// end of the GENIE simulation.
   double EGamma_True;
+  ///\brief [GENIE P/T]: The total energy of all other particles at the
+  /// end of the GENIE simulation.
+  ///
+  /// N.B. These do not include GENIE bindinos or nuclear PDG codes.
+  /// By eye, these are most often Kaons or Lambdas.
   double EOther_True;
+  ///\brief [GENIE P/T]: The total energy of all non-primary leptons at the
+  /// end of the GENIE simulation.
   double Total_ENonPrimaryLep_True;
 
+  ///\brief [GEANT4]: The total lepton energy deposited within the stops
+  /// fiducial volume.
+  ///
+  /// N.B. This branch rolls up all deposits by all descendent particles in
+  /// the GEANT4 simulation. i.e. This quantity will likely contain deposits
+  /// from Michel electrons from stopped primary muon decays.
   double LepDep_FV;
+  ///\brief [GEANT4]: The total lepton energy deposited within the stops
+  /// veto volume, but within the active LAr volume of the stop.
+  ///
+  /// N.B. This branch rolls up all deposits by all descendent particles in
+  /// the GEANT4 simulation. i.e. This quantity will likely contain deposits
+  /// from Michel electrons from stopped primary muon decays.
   double LepDep_veto;
+  ///\brief [GEANT4]: The total proton energy deposited within the stops
+  /// fiducial volume.
+  ///
+  /// N.B. This branch rolls up all deposits by all descendent particles in
+  /// the GEANT4 simulation.
   double ProtonDep_FV;
+  ///\brief [GEANT4]: The total proton energy deposited within the stops
+  /// veto volume, but within the active LAr volume of the stop.
+  ///
+  /// N.B. This branch rolls up all deposits by all descendent particles in
+  /// the GEANT4 simulation.
   double ProtonDep_veto;
+  ///\brief [GEANT4]: The total neutron energy deposited within the stops
+  /// fiducial volume.
+  ///
+  /// N.B. This branch rolls up all deposits by all descendent particles in
+  /// the GEANT4 simulation.
   double NeutronDep_FV;
+  ///\brief [GEANT4]: The charge-weighted average time of all neutron deposites
+  /// within the stops fiducial volume.
+  ///
+  /// N.B. This branch rolls up all deposits by all descendent particles in
+  /// the GEANT4 simulation.
   double NeutronDep_ChrgWAvgTime_FV;
+  ///\brief [GEANT4]: The total neutron energy deposited within the stops
+  /// veto volume, but within the active LAr volume of the stop.
+  ///
+  /// N.B. This branch rolls up all deposits by all descendent particles in
+  /// the GEANT4 simulation.
   double NeutronDep_veto;
+  ///\brief [GEANT4]: The charge-weighted average time of all neutron deposites
+  /// within the stops veto volume, but within the active LAr volume of the
+  /// stop.
+  ///
+  /// N.B. This branch rolls up all deposits by all descendent particles in
+  /// the GEANT4 simulation.
   double NeutronDep_ChrgWAvgTime_veto;
+  ///\brief [GEANT4]: The total charged pion energy deposited within the stops
+  /// fiducial volume.
+  ///
+  /// N.B. This branch rolls up all deposits by all descendent particles in
+  /// the GEANT4 simulation.
   double PiCDep_FV;
+  ///\brief [GEANT4]: The total charged pion energy deposited within the stops
+  /// veto volume, but within the active LAr volume of the stop.
+  ///
+  /// N.B. This branch rolls up all deposits by all descendent particles in
+  /// the GEANT4 simulation.
   double PiCDep_veto;
+  ///\brief [GEANT4]: The total neutral pion energy deposited within the stops
+  /// fiducial volume.
+  ///
+  /// N.B. This branch rolls up all deposits by all descendent particles in
+  /// the GEANT4 simulation.
   double Pi0Dep_FV;
+  ///\brief [GEANT4]: The total neutral pion energy deposited within the stops
+  /// veto volume, but within the active LAr volume of the stop.
+  ///
+  /// N.B. This branch rolls up all deposits by all descendent particles in
+  /// the GEANT4 simulation.
   double Pi0Dep_veto;
+  ///\brief [GEANT4]: The total 'other' particle energy deposited within the
+  ///  stops fiducial volume.
+  ///
+  /// N.B. This branch rolls up all deposits by all descendent particles in
+  /// the GEANT4 simulation.
   double OtherDep_FV;
+  ///\brief [GEANT4]: The total 'other' particle energy deposited within the
+  ///  stops veto volume, but within the active LAr volume of the stop.
+  ///
+  /// N.B. This branch rolls up all deposits by all descendent particles in
+  /// the GEANT4 simulation.
   double OtherDep_veto;
 
+  ///\brief [GEANT4]: The total non-GENIE-simulated-lepton particle energy
+  /// deposited within thestops veto volume, but within the active LAr volume
+  /// of the stop.
+  ///
+  /// N.B. This branch rolls up all deposits by all descendent particles in
+  /// the GEANT4 simulation.
   double TotalNonlep_Dep_FV;
+  ///\brief [GEANT4]: The total non-GENIE-simulated-lepton particle energy
+  /// deposited within thestops veto volume, but within the active LAr volume
+  /// of the stop.
+  ///
+  /// N.B. This branch rolls up all deposits by all descendent particles in
+  /// the GEANT4 simulation.
   double TotalNonlep_Dep_veto;
 
-  bool LepExitBack;
-  bool LepExitFront;
-  bool LepExitYLow;
-  bool LepExitYHigh;
+  /// [GEANT4]: Whether the primary lepton left the active stop volume.
+  ///
+  /// N.B. This will track a primary electron, but that should shower very
+  /// quickly. This branch is nominally designed for primary muons.
   bool LepExit;
+  /// [GEANT4]: Whether the primary lepton left the active stop via the +Z face.
+  ///
+  /// N.B. This will track a primary electron, but that should shower very
+  /// quickly. This branch is nominally designed for primary muons.
+  bool LepExitBack;
+  /// [GEANT4]: Whether the primary lepton left the active stop via the -Z face.
+  ///
+  /// N.B. This will track a primary electron, but that should shower very
+  /// quickly. This branch is nominally designed for primary muons.
+  bool LepExitFront;
+  /// [GEANT4]: Whether the primary lepton left the active stop via the -Y face.
+  ///
+  /// N.B. This will track a primary electron, but that should shower very
+  /// quickly. This branch is nominally designed for primary muons.
+  bool LepExitYLow;
+  /// [GEANT4]: Whether the primary lepton left the active stop via the +Y face.
+  ///
+  /// N.B. This will track a primary electron, but that should shower very
+  /// quickly. This branch is nominally designed for primary muons.
+  bool LepExitYHigh;
+  /// [GEANT4]: Whether the primary lepton left the active stop via the -X face.
+  ///
+  /// N.B. This will track a primary electron, but that should shower very
+  /// quickly. This branch is nominally designed for primary muons.
   bool LepExitXLow;
+  /// [GEANT4]: Whether the primary lepton left the active stop via the +X face.
+  ///
+  /// N.B. This will track a primary electron, but that should shower very
+  /// quickly. This branch is nominally designed for primary muons.
   bool LepExitXHigh;
+  /// [GEANT4]: The exit topology of the primary lepton.
+  ///
+  /// *  0: Did not exit
+  /// *  1: Exit Back
+  /// *  2: Exit Front
+  /// *  3: Exit Y Low
+  /// *  4: Exit Y High
+  /// *  5: Exit X Low
+  /// *  6: Exit X High
+  ///
+  /// N.B. This will track a primary electron, but that should shower very
+  /// quickly. This branch is nominally designed for primary muons.
   int LepExitTopology;
 
+  /// [GEANT4]: The exit 3-position of the primary lepton.
   double LepExitingPos[3];
+  /// [GEANT4]: The exit 3-momentum of the primary lepton.
   double LepExitingMom[3];
 
+  /// [EVENT SUMMARY]: Whether interaction involved a (anti-) muon neutrino
   bool IsNumu;
+  /// [EVENT SUMMARY]: Whether interaction an anti-neutrino
   bool IsAntinu;
+  /// [EVENT SUMMARY]: Whether interaction was charged current
   bool IsCC;
+  ///\brief [EVENT SUMMARY]: Whether the GENIE simulation produced no final
+  /// state pions.
   bool Is0Pi;
+  ///\brief [EVENT SUMMARY]: Whether the GENIE simulation produced one final
+  /// state charged pion.
   bool Is1PiC;
+  ///\brief [EVENT SUMMARY]: Whether the GENIE simulation produced one final
+  /// state neutral pion.
   bool Is1Pi0;
+  ///\brief [EVENT SUMMARY]: Whether the GENIE simulation produced one final
+  /// state pion.
   bool Is1Pi;
+  ///\brief [EVENT SUMMARY]: Whether the GENIE simulation produced multiple
+  /// final state pions.
   bool IsNPi;
+  ///\brief [EVENT SUMMARY]: Whether the GENIE simulation produced other final
+  /// state particles.
+  ///
+  /// N.B. This is often due to gamma or kaon emission.
   bool IsOther;
+  /// [EVENT SUMMARY]: The summarised event topology
+  ///
+  /// Negative numbers indicate NC interactions.
+  /// * 1 : 0Pi
+  /// * 2 : 1PiC
+  /// * 3 : 1Pi0
+  /// * 4 : NPi
+  /// * 5 : other
   int Topology;
+  ///\brief [EVENT SUMMARY]: Whether the hadronic shower is contained within the
+  /// stop fiducial volume.
+  ///
+  /// N.B. This checks whether the total veto-region deposit is greater than the
+  /// threshold passed by command line (or 10 MeV by default.). This can be
+  /// fully recalculated given a different threshold by summing over the the
+  /// XXXXDep_veto branches.
   bool HadrShowerContainedInFV;
+  ///\brief [EVENT SUMMARY]: Whether the primary lepton deposits are contained
+  ///within the stop fiducial volume.
+  ///
+  /// N.B. This is useful for checking whether electron neutrino events had
+  /// contain EM showers, it is less useful for muon neutrino interactions.
+  ///
+  /// N.B. This checks whether the total veto-region deposit is greater than the
+  /// threshold passed by command line (or 10 MeV by default.). This can be
+  /// fully recalculated given a different threshold by summing over the the
+  /// LepDep_veto branch.
   bool PrimaryLeptonContainedInFV;
 };
 
