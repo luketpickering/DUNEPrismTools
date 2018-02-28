@@ -43,7 +43,8 @@ struct EDep {
 
   /// [GENIE P/T]:  The vertex 3-position in cm
   double vtx[3];
-  /// [GENIE P/T]:  The X position of the vertex relative to the centre of a
+  ///\brief [GENIE P/T]:  The X position of the vertex relative to the centre of
+  ///a
   /// stop in cm.
   double vtxInDetX;
   /// [GENIE P/T]:  The X offset of stop, stop in cm.
@@ -88,7 +89,8 @@ struct EDep {
   int NNeutron;
   /// [GENIE P/T]:  The number of final state photons in the event.
   int NGamma;
-  ///\brief [GENIE P/T]:  The number of final state other particles in the event.
+  ///\brief [GENIE P/T]:  The number of final state other particles in the
+  ///event.
   ///
   /// N.B. These do not include GENIE bindinos or nuclear PDG codes.
   /// By eye, these are most often Kaons or Lambdas.
@@ -247,32 +249,38 @@ struct EDep {
   /// N.B. This will track a primary electron, but that should shower very
   /// quickly. This branch is nominally designed for primary muons.
   bool LepExit;
-  ///\brief [GEANT4]: Whether the primary lepton left the active stop via the +Z face.
+  ///\brief [GEANT4]: Whether the primary lepton left the active stop via the +Z
+  ///face.
   ///
   /// N.B. This will track a primary electron, but that should shower very
   /// quickly. This branch is nominally designed for primary muons.
   bool LepExitBack;
-  ///\brief [GEANT4]: Whether the primary lepton left the active stop via the -Z face.
+  ///\brief [GEANT4]: Whether the primary lepton left the active stop via the -Z
+  ///face.
   ///
   /// N.B. This will track a primary electron, but that should shower very
   /// quickly. This branch is nominally designed for primary muons.
   bool LepExitFront;
-  ///\brief [GEANT4]: Whether the primary lepton left the active stop via the -Y face.
+  ///\brief [GEANT4]: Whether the primary lepton left the active stop via the -Y
+  ///face.
   ///
   /// N.B. This will track a primary electron, but that should shower very
   /// quickly. This branch is nominally designed for primary muons.
   bool LepExitYLow;
-  ///\brief [GEANT4]: Whether the primary lepton left the active stop via the +Y face.
+  ///\brief [GEANT4]: Whether the primary lepton left the active stop via the +Y
+  ///face.
   ///
   /// N.B. This will track a primary electron, but that should shower very
   /// quickly. This branch is nominally designed for primary muons.
   bool LepExitYHigh;
-  ///\brief [GEANT4]: Whether the primary lepton left the active stop via the -X face.
+  ///\brief [GEANT4]: Whether the primary lepton left the active stop via the -X
+  ///face.
   ///
   /// N.B. This will track a primary electron, but that should shower very
   /// quickly. This branch is nominally designed for primary muons.
   bool LepExitXLow;
-  ///\brief [GEANT4]: Whether the primary lepton left the active stop via the +X face.
+  ///\brief [GEANT4]: Whether the primary lepton left the active stop via the +X
+  ///face.
   ///
   /// N.B. This will track a primary electron, but that should shower very
   /// quickly. This branch is nominally designed for primary muons.
@@ -296,7 +304,8 @@ struct EDep {
   /// [GEANT4]: The exit 3-momentum of the primary lepton.
   double LepExitingMom[3];
 
-  ///\brief [EVENT SUMMARY]: Whether interaction involved a (anti-) muon neutrino
+  ///\brief [EVENT SUMMARY]: Whether interaction involved a (anti-) muon
+  ///neutrino
   bool IsNumu;
   ///\brief [EVENT SUMMARY]: Whether interaction an anti-neutrino
   bool IsAntinu;

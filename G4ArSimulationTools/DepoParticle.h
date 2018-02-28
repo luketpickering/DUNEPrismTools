@@ -211,11 +211,11 @@ struct DepoTracked : public DepoParticle {
 
   void AddStep(double *x, double *p) {
     if (NSteps == kMaxTrackedSteps) {
-      std::cout << "[ERROR]: Tried to add step number " << NSteps
+      std::cout << "[WARN]: Tried to add step number " << NSteps
                 << ", but this exceeds the maximum number of steps. Please "
                    "increase DepoTracked::kMaxTrackedSteps and re-run."
                 << std::endl;
-      exit(1);
+      return;
     }
 
     Position[NSteps][0] = x[0];
