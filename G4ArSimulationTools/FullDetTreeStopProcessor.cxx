@@ -33,7 +33,7 @@ struct DetBox {
 
 /// Energy deposit and GENIE passthrough output tree
 struct EDep {
-  /// The detector stop number used, refer to input xml for stop offsets.
+  ///\brief The detector stop number used, refer to input xml for stop offsets.
   ///
   /// N.B. When overlapping stops are defined the event is randomly placed
   /// within one of the overlapping stops at the interaction position. The
@@ -59,7 +59,7 @@ struct EDep {
   double Q2_True;
   /// [GENIE P/T]:  The full 4-momentum transfer of the interaction.
   double FourMomTransfer_True[4];
-  /// [GENIE P/T]:  The reconstructed invariant mass
+  ///\brief [GENIE P/T]:  The reconstructed invariant mass
   ///
   /// N.B. This assumes that the target nucleon was at rest and will not be the
   /// same W as thrown by the event generator during the cross-section
@@ -68,7 +68,7 @@ struct EDep {
 
   /// [GENIE P/T]:  The PDG MC code of the neutrino.
   int nu_PDG;
-  /// [GENIE P/T]:  The PDG MC code of the primary lepton
+  ///\brief [GENIE P/T]:  The PDG MC code of the primary lepton
   ///
   /// i.e. the one that was born when the neutrino shed/absorbed an exchange
   /// boson
@@ -88,7 +88,7 @@ struct EDep {
   int NNeutron;
   /// [GENIE P/T]:  The number of final state photons in the event.
   int NGamma;
-  /// [GENIE P/T]:  The number of final state other particles in the event.
+  ///\brief [GENIE P/T]:  The number of final state other particles in the event.
   ///
   /// N.B. These do not include GENIE bindinos or nuclear PDG codes.
   /// By eye, these are most often Kaons or Lambdas.
@@ -242,42 +242,42 @@ struct EDep {
   /// the GEANT4 simulation.
   double TotalNonlep_Dep_veto;
 
-  /// [GEANT4]: Whether the primary lepton left the active stop volume.
+  ///\brief [GEANT4]: Whether the primary lepton left the active stop volume.
   ///
   /// N.B. This will track a primary electron, but that should shower very
   /// quickly. This branch is nominally designed for primary muons.
   bool LepExit;
-  /// [GEANT4]: Whether the primary lepton left the active stop via the +Z face.
+  ///\brief [GEANT4]: Whether the primary lepton left the active stop via the +Z face.
   ///
   /// N.B. This will track a primary electron, but that should shower very
   /// quickly. This branch is nominally designed for primary muons.
   bool LepExitBack;
-  /// [GEANT4]: Whether the primary lepton left the active stop via the -Z face.
+  ///\brief [GEANT4]: Whether the primary lepton left the active stop via the -Z face.
   ///
   /// N.B. This will track a primary electron, but that should shower very
   /// quickly. This branch is nominally designed for primary muons.
   bool LepExitFront;
-  /// [GEANT4]: Whether the primary lepton left the active stop via the -Y face.
+  ///\brief [GEANT4]: Whether the primary lepton left the active stop via the -Y face.
   ///
   /// N.B. This will track a primary electron, but that should shower very
   /// quickly. This branch is nominally designed for primary muons.
   bool LepExitYLow;
-  /// [GEANT4]: Whether the primary lepton left the active stop via the +Y face.
+  ///\brief [GEANT4]: Whether the primary lepton left the active stop via the +Y face.
   ///
   /// N.B. This will track a primary electron, but that should shower very
   /// quickly. This branch is nominally designed for primary muons.
   bool LepExitYHigh;
-  /// [GEANT4]: Whether the primary lepton left the active stop via the -X face.
+  ///\brief [GEANT4]: Whether the primary lepton left the active stop via the -X face.
   ///
   /// N.B. This will track a primary electron, but that should shower very
   /// quickly. This branch is nominally designed for primary muons.
   bool LepExitXLow;
-  /// [GEANT4]: Whether the primary lepton left the active stop via the +X face.
+  ///\brief [GEANT4]: Whether the primary lepton left the active stop via the +X face.
   ///
   /// N.B. This will track a primary electron, but that should shower very
   /// quickly. This branch is nominally designed for primary muons.
   bool LepExitXHigh;
-  /// [GEANT4]: The exit topology of the primary lepton.
+  ///\brief [GEANT4]: The exit topology of the primary lepton.
   ///
   /// *  0: Did not exit
   /// *  1: Exit Back
@@ -296,11 +296,11 @@ struct EDep {
   /// [GEANT4]: The exit 3-momentum of the primary lepton.
   double LepExitingMom[3];
 
-  /// [EVENT SUMMARY]: Whether interaction involved a (anti-) muon neutrino
+  ///\brief [EVENT SUMMARY]: Whether interaction involved a (anti-) muon neutrino
   bool IsNumu;
-  /// [EVENT SUMMARY]: Whether interaction an anti-neutrino
+  ///\brief [EVENT SUMMARY]: Whether interaction an anti-neutrino
   bool IsAntinu;
-  /// [EVENT SUMMARY]: Whether interaction was charged current
+  ///\brief [EVENT SUMMARY]: Whether interaction was charged current
   bool IsCC;
   ///\brief [EVENT SUMMARY]: Whether the GENIE simulation produced no final
   /// state pions.
@@ -322,7 +322,7 @@ struct EDep {
   ///
   /// N.B. This is often due to gamma or kaon emission.
   bool IsOther;
-  /// [EVENT SUMMARY]: The summarised event topology
+  ///\brief [EVENT SUMMARY]: The summarised event topology
   ///
   /// Negative numbers indicate NC interactions.
   /// * 1 : 0Pi
@@ -340,7 +340,7 @@ struct EDep {
   /// XXXXDep_veto branches.
   bool HadrShowerContainedInFV;
   ///\brief [EVENT SUMMARY]: Whether the primary lepton deposits are contained
-  ///within the stop fiducial volume.
+  /// within the stop fiducial volume.
   ///
   /// N.B. This is useful for checking whether electron neutrino events had
   /// contain EM showers, it is less useful for muon neutrino interactions.
