@@ -33,6 +33,9 @@ LIST(APPEND ROOT_LIBS
   XMLIO
   Hist
   Tree
+  Graf
+  Graf3d
+  Gpad
   MathCore
   Matrix
   Physics

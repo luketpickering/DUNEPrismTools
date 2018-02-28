@@ -528,7 +528,7 @@ void handleOpts(int argc, char const *argv[]) {
           ParseToVect<std::string>(argv[++opt], ",");
       if (params.size() != 2) {
         std::cout << "[ERROR]: Recieved " << params.size()
-                  << " entrys for -i, expected 2." << std::endl;
+                  << " entrys for -t, expected 2." << std::endl;
         throw;  // exit(1);
       }
       inpFile = params[0];
