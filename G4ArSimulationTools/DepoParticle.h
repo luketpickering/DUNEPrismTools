@@ -170,6 +170,10 @@ struct DepoTracked : public DepoParticle {
     _Position = new double[kMaxTrackedSteps * 3];
     _Momentum = new double[kMaxTrackedSteps * 3];
 
+    if(NMaxTrackSteps == 0){
+      throw;
+    }
+
     std::fill_n(_Position, kMaxTrackedSteps * 3, 0xdeadbeef);
     std::fill_n(_Momentum, kMaxTrackedSteps * 3, 0xdeadbeef);
 
@@ -187,6 +191,7 @@ struct DepoTracked : public DepoParticle {
   DepoTracked &operator=(DepoTracked const &) = delete;
 
   void Swap(DepoTracked &&other) {
+    kMaxTrackedSteps = other.kMaxTrackedSteps;
     _Position = other._Position;
     _Momentum = other._Momentum;
     Position = other.Position;
@@ -212,7 +217,9 @@ struct DepoTracked : public DepoParticle {
   void AddStep(double *x, double *p) {
     if (NSteps == kMaxTrackedSteps) {
       std::cout << "[WARN]: Tried to add step number " << NSteps
-                << ", but this exceeds the maximum number of steps. Please "
+                << ", but this exceeds the maximum number of steps ("
+                << kMaxTrackedSteps
+                << "). Please "
                    "increase DepoTracked::kMaxTrackedSteps and re-run."
                 << std::endl;
       return;

@@ -1,5 +1,5 @@
 SET(APPS DunePrismCondenser FullDetTreeStopProcessor
-  FluxVarFriendTreeBuilder G4ArEventDisplay)
+  FluxVarFriendTreeBuilder XSecVarFriendTreeBuilder G4ArEventDisplay)
 
 include_directories(${INCLUDE_DIRECTORIES})
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})

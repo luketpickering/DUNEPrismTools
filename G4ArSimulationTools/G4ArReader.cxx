@@ -195,7 +195,7 @@ bool G4ArReader::SetBranchAddresses() {
 }
 
 bool G4ArReader::GetNextEvent() {
-  if (Entry == NInputEntries) {
+  if (Entry == (NInputEntries-1)) {
     return false;
   }
   Entry++;
