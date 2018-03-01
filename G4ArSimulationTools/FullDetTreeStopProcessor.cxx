@@ -38,6 +38,7 @@ std::vector<DetBox> Detectors;
 std::string inpDir, outputFile;
 std::string runPlanCfg, runPlanName = "";
 double VetoThreshold = 0.001;
+bool WriteOutNonStop = false;
 
 void SayUsage(char const *argv[]) {
   std::cout
@@ -55,6 +56,9 @@ void SayUsage(char const *argv[]) {
          "\t-v <veto threshold>           : Threshold energy deposit in "
          "veto region to pass \n"
          "\t                                selection {default = 10 MeV}.\n"
+         "\t-A                            : Write out all events regardless "
+         "of whether they\n"
+         "\t                                fall within a stop."
       << std::endl;
 }
 
@@ -79,6 +83,8 @@ void handleOpts(int argc, char const *argv[]) {
       }
     } else if (std::string(argv[opt]) == "-v") {
       VetoThreshold = str2T<double>(argv[++opt]);
+    } else if (std::string(argv[opt]) == "-A") {
+      WriteOutNonStop = true;
     } else {
       std::cout << "[ERROR]: Unknown option: " << argv[opt] << std::endl;
       SayUsage(argv);
@@ -349,10 +355,31 @@ int main(int argc, char const *argv[]) {
     OutputEDep->EGamma_True = rdr->EGamma_True;
     OutputEDep->Total_ENonPrimaryLep_True = rdr->ENonPrimaryLep_True;
 
-    if(stop == -1){
-      OutputTree->Fill();
+    OutputEDep->IsNumu = (abs(rdr->nu_PDG) == 14);
+    OutputEDep->IsAntinu = (rdr->nu_PDG < 0);
+    OutputEDep->IsCC = !(abs(rdr->nu_PDG) - abs(rdr->PrimaryLepPDG) - 1);
+    OutputEDep->Is0Pi =
+        ((rdr->NPiC + rdr->NPi0 + rdr->NGamma + rdr->NOther) == 0);
+    OutputEDep->Is1PiC =
+        ((rdr->NGamma + rdr->NOther + rdr->NPi0) == 0) && (rdr->NPiC == 1);
+    OutputEDep->Is1Pi0 =
+        ((rdr->NGamma + rdr->NOther + rdr->NPiC) == 0) && (rdr->NPi0 == 1);
+    OutputEDep->Is1Pi = OutputEDep->Is1PiC || OutputEDep->Is1Pi0;
+    OutputEDep->IsNPi =
+        ((rdr->NGamma + rdr->NOther) == 0) && ((rdr->NPiC + rdr->NPi0) > 1);
+    OutputEDep->IsOther = (rdr->NGamma + rdr->NOther);
+    OutputEDep->Topology = (OutputEDep->IsCC ? 1 : -1) *
+                           (1 * OutputEDep->Is0Pi + 2 * OutputEDep->Is1PiC +
+                            3 * OutputEDep->Is1Pi0 + 4 * OutputEDep->IsNPi +
+                            5 * OutputEDep->IsOther);
+
+    if (stop == -1) {
+      if (WriteOutNonStop) {
+        OutputTree->Fill();
+        NFills++;
+      }
       OutputEDep->Reset();
-      NFills++;
+
       continue;
     }
 
@@ -659,24 +686,6 @@ int main(int argc, char const *argv[]) {
                 << ", Other: " << OutputEDep->OtherDep_veto << std::endl
                 << std::endl;
     }
-
-    OutputEDep->IsNumu = (abs(rdr->nu_PDG) == 14);
-    OutputEDep->IsAntinu = (rdr->nu_PDG < 0);
-    OutputEDep->IsCC = !(abs(rdr->nu_PDG) - abs(rdr->PrimaryLepPDG) - 1);
-    OutputEDep->Is0Pi =
-        ((rdr->NPiC + rdr->NPi0 + rdr->NGamma + rdr->NOther) == 0);
-    OutputEDep->Is1PiC =
-        ((rdr->NGamma + rdr->NOther + rdr->NPi0) == 0) && (rdr->NPiC == 1);
-    OutputEDep->Is1Pi0 =
-        ((rdr->NGamma + rdr->NOther + rdr->NPiC) == 0) && (rdr->NPi0 == 1);
-    OutputEDep->Is1Pi = OutputEDep->Is1PiC || OutputEDep->Is1Pi0;
-    OutputEDep->IsNPi =
-        ((rdr->NGamma + rdr->NOther) == 0) && ((rdr->NPiC + rdr->NPi0) > 1);
-    OutputEDep->IsOther = (rdr->NGamma + rdr->NOther);
-    OutputEDep->Topology = (OutputEDep->IsCC ? 1 : -1) *
-                           (1 * OutputEDep->Is0Pi + 2 * OutputEDep->Is1PiC +
-                            3 * OutputEDep->Is1Pi0 + 4 * OutputEDep->IsNPi +
-                            5 * OutputEDep->IsOther);
 
     OutputEDep->HadrShowerContainedInFV =
         (OutputEDep->TotalNonlep_Dep_veto < VetoThreshold);

@@ -83,6 +83,7 @@ GetDialValueVector(VALORModel::TrueClass te) {
   X(kDIS)       \
   X(kCOH)       \
   X(kNuEEL)     \
+  X(kIMD)     \
   X(kUnknown)
 
 #define X(A) A,
@@ -102,6 +103,7 @@ inline std::ostream &operator<<(std::ostream &os, VALORModel::TrueChannel te) {
 struct GENIECodeStringParser {
   int nu_PDG;
   VALORModel::TrueChannel channel;
+  bool IsCC;
 
   GENIECodeStringParser(std::string const &evc) {
     std::vector<std::string> split_evc = ParseToVect<std::string>(evc, ",");
@@ -123,8 +125,20 @@ struct GENIECodeStringParser {
       channel = VALORModel::TrueChannel::kCOH;
     } else if (evc.find("NuEEL") != std::string::npos) {
       channel = VALORModel::TrueChannel::kNuEEL;
+    }else if (evc.find("IMD") != std::string::npos) {
+      channel = VALORModel::TrueChannel::kIMD;
     } else {
       std::cout << "[ERROR]: Unaccounted for channel string in: " << evc
+                << std::endl;
+      throw;
+    }
+
+    if (evc.find("[CC]") != std::string::npos) {
+      IsCC = true;
+    } else if (evc.find("[NC]") != std::string::npos) {
+      IsCC = false;
+    } else {
+      std::cout << "[ERROR]: Couldn't find CC/NC in ev code: " << evc
                 << std::endl;
       throw;
     }
@@ -139,10 +153,28 @@ std::vector<VALORModel::TrueClass> GetApplicableDials(EDep const &ed) {
   GENIECodeStringParser gcp(ed.EventCode->GetString().Data());
 
   if (gcp.nu_PDG != ed.nu_PDG) {
-    std::cout << "[ERROR]: Failed GENIE passthrough: from G4Ar = " << ed.nu_PDG
-              << " from GENIE event string = " << gcp.nu_PDG << std::endl;
+    std::cout << "[ERROR]: Failed GENIE passthrough: nu-PDG from G4Ar = "
+              << ed.nu_PDG << " from GENIE event string = " << gcp.nu_PDG
+              << std::endl;
     throw;
   }
+
+  if (gcp.IsCC != ed.IsCC) {
+    std::cout << "[ERROR]: Failed GENIE passthrough: IsCC from G4Ar = "
+              << ed.IsCC << "(nu: " << ed.nu_PDG
+              << ", lep: " << ed.PrimaryLepPDG
+              << ") from GENIE event string = " << gcp.IsCC << std::endl;
+    throw;
+  }
+
+  if (ed.IsAntinu != (gcp.nu_PDG < 0)) {
+    std::cout << "[ERROR]: Failed GENIE passthrough: IsAntiNu from G4Ar = "
+              << ed.IsAntinu << " from GENIE event string = " << gcp.nu_PDG
+              << std::endl;
+    throw;
+  }
+
+  //Not good enough to get post FSI NPi. Need to work out from channel.
 
   // Q2_True
   // IsAntinu
@@ -184,6 +216,7 @@ std::vector<VALORModel::TrueClass> GetApplicableDials(EDep const &ed) {
                                          : VALORModel::TrueClass::kNu_1PiC_3);
         }
       } else {
+        std::cout << "[INFO]: Not 1pi RES event = " << ed.NPiC << ", " << ed.NPi0 << std::endl;
       }
       break;
     }
@@ -206,6 +239,9 @@ std::vector<VALORModel::TrueClass> GetApplicableDials(EDep const &ed) {
       break;
     }
     case VALORModel::TrueChannel::kNuEEL: {
+      break;
+    }
+    case VALORModel::TrueChannel::kIMD: {
       break;
     }
     default: { throw; }

@@ -278,7 +278,8 @@
   TH1D* lep_exit_x =
       new TH1D("lep_exit_x", ";LepExit_{x} (cm);Count", 4400, -4000, 400);
 
-  EDeps->Draw("LepExitingPos[0] >> lep_exit_x", "stop >= 0", "GOFF");
+  EDeps->Draw("LepExitingPos[0] >> lep_exit_x", "(stop >= 0)&&(LepExit==1)",
+              "GOFF");
 
   lep_exit_x->Draw();
 
@@ -289,7 +290,8 @@
   TH1D* lep_exit_y =
       new TH1D("lep_exit_y", ";LepExit_{y} (cm);Count", 400, -200, 200);
 
-  EDeps->Draw("LepExitingPos[1] >> lep_exit_y", "stop >= 0", "GOFF");
+  EDeps->Draw("LepExitingPos[1] >> lep_exit_y", "(stop >= 0)&&(LepExit==1)",
+              "GOFF");
 
   lep_exit_y->Draw();
 
@@ -300,7 +302,8 @@
   TH1D* lep_exit_z =
       new TH1D("lep_exit_z", ";LepExit_{z} (cm);Count", 600, -300, 300);
 
-  EDeps->Draw("LepExitingPos[2] >> lep_exit_z", "stop >= 0", "GOFF");
+  EDeps->Draw("LepExitingPos[2] >> lep_exit_z", "(stop >= 0)&&(LepExit==1)",
+              "GOFF");
 
   lep_exit_z->Draw();
 

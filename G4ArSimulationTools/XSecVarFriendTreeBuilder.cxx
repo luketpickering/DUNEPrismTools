@@ -63,6 +63,13 @@ int main(int argc, char const *argv[]) {
   for (Long64_t e_it = 0; e_it < NEntries; ++e_it) {
     edr.GetEntry(e_it);
 
+    if(edr.stop == -1){
+      xsecweights[0] = 1;
+      NFills++;
+      friendtree->Fill();
+      continue;
+    }
+
     if (loud_every && !(e_it % loud_every)) {
       std::cout << "\r[INFO]: Read " << e_it << " entries... ( vtx: {"
                 << edr.vtx[0] << ", " << edr.vtx[1] << ", " << edr.vtx[2]
