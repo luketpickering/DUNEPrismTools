@@ -95,7 +95,7 @@ void handleOpts(int argc, char const *argv[]) {
     } else if (std::string(argv[opt]) == "-L") {
       double baseline_cm = str2T<double>(argv[++opt]) * 1E4;
 
-      DipAngle = asin(baseline_cm / (2.0 * REarth_cm));
+      DipAngle = asin(baseline_cm / (2.0 * REarth_cm))/deg2rad;
 
     } else if (std::string(argv[opt]) == "-?") {
       SayUsage(argv);
@@ -141,20 +141,24 @@ nuTypes GetNuType(int pdg) {
 }
 
 double OscWeight(double enu) {
+  static bool first = true;
   BargerPropagator bp;
   int NuType = GetNuType(nuPDGFrom);
   bp.SetMNS(OscParams[0], OscParams[1], OscParams[2], OscParams[3],
             OscParams[4], OscParams[5], enu, true, NuType);
 
   double lengthParam = cos((90.0 + DipAngle) * deg2rad);
-  double PathLength =
-      sqrt((REarth_cm + ProductionHeight_cm) *
-               (REarth_cm + ProductionHeight_cm) -
-           (REarth_cm * REarth_cm) * (1 - lengthParam * lengthParam)) -
-      REarth_cm * lengthParam;
+  if (first) {
+    double PathLength =
+        sqrt((REarth_cm + ProductionHeight_cm) *
+                 (REarth_cm + ProductionHeight_cm) -
+             (REarth_cm * REarth_cm) * (1 - lengthParam * lengthParam)) -
+        REarth_cm * lengthParam;
 
-  std::cout << "Calculated path length: " << (PathLength / 1.0E5) << " km."
-            << std::endl;
+    std::cout << "Calculated path length: " << (PathLength / 1.0E5) << " km."
+              << std::endl;
+    first = false;
+  }
 
   bp.DefinePath(lengthParam, 0);
   bp.propagate(NuType);
