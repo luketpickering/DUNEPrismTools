@@ -93,7 +93,7 @@ void handleOpts(int argc, char const *argv[]) {
       nuPDGFrom = params[0];
       nuPDGTo = params[1];
     } else if (std::string(argv[opt]) == "-L") {
-      double baseline_cm = str2T<double>(argv[++opt]) * 1E4;
+      double baseline_cm = str2T<double>(argv[++opt]) * 1E5;
 
       DipAngle = asin(baseline_cm / (2.0 * REarth_cm))/deg2rad;
 
