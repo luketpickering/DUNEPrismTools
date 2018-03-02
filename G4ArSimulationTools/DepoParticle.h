@@ -143,9 +143,10 @@ struct DepoParticle {
         dephist = IsPrimary ? Deposits_timesep : DaughterDeposits_timesep;
       }
     }
-
+#ifdef DEBUG
     std::cout << "[INFO]: Add dep = " << edep << " at time " << (x[3] * 1E-3)
               << std::endl;
+#endif
     dephist->Fill(x[0], x[1], x[2], edep);
 
     if (TrackTime) {

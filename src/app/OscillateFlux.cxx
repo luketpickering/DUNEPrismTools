@@ -12,7 +12,6 @@
 #include <utility>
 #include <vector>
 
-double lengthParam = 0xdeadbeef;
 double DipAngle = 5.8;
 double OscParams[6] = {0.825, 0.10, 1.0, 7.9e-5, 2.5e-3, 0.0};
 std::string inpFile, inpHistName;
@@ -31,24 +30,15 @@ void SayUsage(char const *argv[]) {
             << std::endl;
 }
 
+const static double REarth_cm = 6371.393 * 1.0E5;
+const static double ProductionHeight_cm = 0;
+static const double deg2rad = asin(1) / 90.0;
+
 void handleOpts(int argc, char const *argv[]) {
   int opt = 1;
   while (opt < argc) {
     if (std::string(argv[opt]) == "-d") {
       DipAngle = str2T<double>(argv[++opt]);
-
-      const static double REarth_cm = 6371.393 * 1.0E5;
-      const static double ProductionHeight_cm = 0;
-      static const double deg2rad = asin(1) / 90.0;
-      double cz = cos((90.0 + DipAngle) * deg2rad);
-      double PathLength = sqrt((REarth_cm + ProductionHeight_cm) *
-                                   (REarth_cm + ProductionHeight_cm) -
-                               (REarth_cm * REarth_cm) * (1 - cz * cz)) -
-                          REarth_cm * cz;
-
-      std::cout << "Calculated path length: " << (PathLength / 1.0E5) << " km."
-                << std::endl;
-
     } else if (std::string(argv[opt]) == "-p") {
       std::vector<double> params = ParseToVect<double>(argv[++opt], ",");
       if (params.size() != 6) {
@@ -103,7 +93,10 @@ void handleOpts(int argc, char const *argv[]) {
       nuPDGFrom = params[0];
       nuPDGTo = params[1];
     } else if (std::string(argv[opt]) == "-L") {
-      lengthParam = str2T<double>(argv[++opt]);
+      double baseline_cm = str2T<double>(argv[++opt]) * 1E4;
+
+      DipAngle = asin(baseline_cm / (2.0 * REarth_cm));
+
     } else if (std::string(argv[opt]) == "-?") {
       SayUsage(argv);
       exit(0);
@@ -153,10 +146,16 @@ double OscWeight(double enu) {
   bp.SetMNS(OscParams[0], OscParams[1], OscParams[2], OscParams[3],
             OscParams[4], OscParams[5], enu, true, NuType);
 
-  static const double deg2rad = asin(1) / 90.0;
-  if (lengthParam == 0xdeadbeef) {
-    lengthParam = cos((90.0 + DipAngle) * deg2rad);
-  }
+  double lengthParam = cos((90.0 + DipAngle) * deg2rad);
+  double PathLength =
+      sqrt((REarth_cm + ProductionHeight_cm) *
+               (REarth_cm + ProductionHeight_cm) -
+           (REarth_cm * REarth_cm) * (1 - lengthParam * lengthParam)) -
+      REarth_cm * lengthParam;
+
+  std::cout << "Calculated path length: " << (PathLength / 1.0E5) << " km."
+            << std::endl;
+
   bp.DefinePath(lengthParam, 0);
   bp.propagate(NuType);
   return bp.GetProb(NuType, GetNuType(nuPDGTo));
