@@ -102,7 +102,7 @@ void handleOpts(int argc, char const *argv[]) {
       }
       nuPDGFrom = params[0];
       nuPDGTo = params[1];
-    else if(std::string(argv[opt]) == "-L"){
+    } else if (std::string(argv[opt]) == "-L") {
       lengthParam = str2T<double>(argv[++opt]);
     } else if (std::string(argv[opt]) == "-?") {
       SayUsage(argv);
@@ -154,7 +154,7 @@ double OscWeight(double enu) {
             OscParams[4], OscParams[5], enu, true, NuType);
 
   static const double deg2rad = asin(1) / 90.0;
-  if(lengthParam == 0xdeadbeef){
+  if (lengthParam == 0xdeadbeef) {
     lengthParam = cos((90.0 + DipAngle) * deg2rad);
   }
   bp.DefinePath(lengthParam, 0);
