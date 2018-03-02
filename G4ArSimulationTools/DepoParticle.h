@@ -141,11 +141,11 @@ struct DepoParticle {
     if (timesep_us != 0xdeadbeef) {
       if ((x[3] * 1E-3) > timesep_us) {
         dephist = IsPrimary ? Deposits_timesep : DaughterDeposits_timesep;
-
-        // std::cout << "[INFO]: Filling other " << (x[3] * 1E-3) << std::endl;
       }
     }
 
+    std::cout << "[INFO]: Add dep = " << edep << " at time " << (x[3] * 1E-3)
+              << std::endl;
     dephist->Fill(x[0], x[1], x[2], edep);
 
     if (TrackTime) {

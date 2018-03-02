@@ -371,7 +371,7 @@ int main(int argc, char* argv[]) {
         for (size_t z_it = 0; z_it < 3; ++z_it) {
           Int_t gbin = LepDep.Deposits->GetBin(x_it + 1, y_it + 1, z_it + 1);
 
-          #ifdef DEBUG
+#ifdef DEBUG
           if (LepDep.Deposits->GetBinContent(gbin)) {
             std::cout << "[INFO]: Bin " << x_it << ", " << y_it << ", " << z_it
                       << ", LepDep content = "
@@ -540,7 +540,7 @@ int main(int argc, char* argv[]) {
             }
           }
 
-          #endif
+#endif
 
           fdw->LepDep[x_it][y_it][z_it] = LepDep.Deposits->GetBinContent(gbin);
           fdw->HadDep[x_it][y_it][z_it] = HadDep.Deposits->GetBinContent(gbin);
@@ -602,6 +602,17 @@ int main(int argc, char* argv[]) {
                 Pi0Dep.DaughterDeposits_timesep->GetBinContent(gbin);
             fdw->OtherDaughterDep_timesep[x_it][y_it][z_it] =
                 OtherDep.DaughterDeposits_timesep->GetBinContent(gbin);
+
+            if (fdw->ProtonDep[x_it][y_it][z_it]||fdw->ProtonDep_timesep[x_it][y_it][z_it]) {
+              std::cout << fdw->ProtonDep[x_it][y_it][z_it] << ", "
+                        << fdw->ProtonDep_timesep[x_it][y_it][z_it]
+                        << std::endl;
+              if (fdw->ProtonDep[x_it][y_it][z_it] ==
+                  fdw->ProtonDep_timesep[x_it][y_it][z_it]) {
+                std::cout << "[INFO]: Found identical timesep deposits: "
+                          << fdw->LepDep_timesep[x_it][y_it][z_it] << std::endl;
+              }
+            }
           }
         }
       }

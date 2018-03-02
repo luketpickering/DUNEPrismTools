@@ -755,94 +755,102 @@ int main(int argc, char const *argv[]) {
                       0, kIncludeFVYZ);
 
       OutputEDep->ProtonDep_timesep_veto =
-          Jaccumulate(rdr->ProtonDep, stopBox.X_veto_left[0],
+          Jaccumulate(rdr->ProtonDep_timesep, stopBox.X_veto_left[0],
                       stopBox.X_veto_left[1], 0, kIncludeWholeDet) +
-          Jaccumulate(rdr->ProtonDaughterDep, stopBox.X_veto_left[0],
+          Jaccumulate(rdr->ProtonDaughterDep_timesep, stopBox.X_veto_left[0],
                       stopBox.X_veto_left[1], 0, kIncludeWholeDet) +
-          Jaccumulate(rdr->ProtonDep, stopBox.X_veto_right[0],
+          Jaccumulate(rdr->ProtonDep_timesep, stopBox.X_veto_right[0],
                       stopBox.X_veto_right[1], 0, kIncludeWholeDet) +
-          Jaccumulate(rdr->ProtonDaughterDep, stopBox.X_veto_right[0],
+          Jaccumulate(rdr->ProtonDaughterDep_timesep, stopBox.X_veto_right[0],
                       stopBox.X_veto_right[1], 0, kIncludeWholeDet) +
-          Jaccumulate(rdr->ProtonDep, stopBox.X_fv[0], stopBox.X_fv[1], 0,
-                      kIncludeOOFVYZ) +
-          Jaccumulate(rdr->ProtonDaughterDep, stopBox.X_fv[0], stopBox.X_fv[1],
-                      0, kIncludeOOFVYZ);
+          Jaccumulate(rdr->ProtonDep_timesep, stopBox.X_fv[0], stopBox.X_fv[1],
+                      0, kIncludeOOFVYZ) +
+          Jaccumulate(rdr->ProtonDaughterDep_timesep, stopBox.X_fv[0],
+                      stopBox.X_fv[1], 0, kIncludeOOFVYZ);
 
       OutputEDep->NeutronDep_timesep_FV =
-          Jaccumulate(rdr->NeutronDep, stopBox.X_fv[0], stopBox.X_fv[1], 0,
-                      kIncludeFVYZ) +
-          Jaccumulate(rdr->NeutronDaughterDep, stopBox.X_fv[0], stopBox.X_fv[1],
-                      0, kIncludeFVYZ);
+          Jaccumulate(rdr->NeutronDep_timesep, stopBox.X_fv[0], stopBox.X_fv[1],
+                      0, kIncludeFVYZ) +
+          Jaccumulate(rdr->NeutronDaughterDep_timesep, stopBox.X_fv[0],
+                      stopBox.X_fv[1], 0, kIncludeFVYZ);
       OutputEDep->NeutronDep_timesep_veto =
-          Jaccumulate(rdr->NeutronDep, stopBox.X_veto_left[0],
+          Jaccumulate(rdr->NeutronDep_timesep, stopBox.X_veto_left[0],
                       stopBox.X_veto_left[1], 0, kIncludeWholeDet) +
-          Jaccumulate(rdr->NeutronDaughterDep, stopBox.X_veto_left[0],
+          Jaccumulate(rdr->NeutronDaughterDep_timesep, stopBox.X_veto_left[0],
                       stopBox.X_veto_left[1], 0, kIncludeWholeDet) +
-          Jaccumulate(rdr->NeutronDep, stopBox.X_veto_right[0],
+          Jaccumulate(rdr->NeutronDep_timesep, stopBox.X_veto_right[0],
                       stopBox.X_veto_right[1], 0, kIncludeWholeDet) +
-          Jaccumulate(rdr->NeutronDaughterDep, stopBox.X_veto_right[0],
+          Jaccumulate(rdr->NeutronDaughterDep_timesep, stopBox.X_veto_right[0],
                       stopBox.X_veto_right[1], 0, kIncludeWholeDet) +
-          Jaccumulate(rdr->NeutronDep, stopBox.X_fv[0], stopBox.X_fv[1], 0,
-                      kIncludeOOFVYZ) +
-          Jaccumulate(rdr->NeutronDaughterDep, stopBox.X_fv[0], stopBox.X_fv[1],
-                      0, kIncludeOOFVYZ);
+          Jaccumulate(rdr->NeutronDep_timesep, stopBox.X_fv[0], stopBox.X_fv[1],
+                      0, kIncludeOOFVYZ) +
+          Jaccumulate(rdr->NeutronDaughterDep_timesep, stopBox.X_fv[0],
+                      stopBox.X_fv[1], 0, kIncludeOOFVYZ);
 
       OutputEDep->PiCDep_timesep_FV =
-          Jaccumulate(rdr->PiCDep, stopBox.X_fv[0], stopBox.X_fv[1], 0,
+          Jaccumulate(rdr->PiCDep_timesep, stopBox.X_fv[0], stopBox.X_fv[1], 0,
                       kIncludeFVYZ) +
-          Jaccumulate(rdr->PiCDaughterDep, stopBox.X_fv[0], stopBox.X_fv[1], 0,
-                      kIncludeFVYZ);
+          Jaccumulate(rdr->PiCDaughterDep_timesep, stopBox.X_fv[0],
+                      stopBox.X_fv[1], 0, kIncludeFVYZ);
       OutputEDep->PiCDep_timesep_veto =
-          Jaccumulate(rdr->PiCDep, stopBox.X_veto_left[0],
+          Jaccumulate(rdr->PiCDep_timesep, stopBox.X_veto_left[0],
                       stopBox.X_veto_left[1], 0, kIncludeWholeDet) +
-          Jaccumulate(rdr->PiCDaughterDep, stopBox.X_veto_left[0],
+          Jaccumulate(rdr->PiCDaughterDep_timesep, stopBox.X_veto_left[0],
                       stopBox.X_veto_left[1], 0, kIncludeWholeDet) +
-          Jaccumulate(rdr->PiCDep, stopBox.X_veto_right[0],
+          Jaccumulate(rdr->PiCDep_timesep, stopBox.X_veto_right[0],
                       stopBox.X_veto_right[1], 0, kIncludeWholeDet) +
-          Jaccumulate(rdr->PiCDaughterDep, stopBox.X_veto_right[0],
+          Jaccumulate(rdr->PiCDaughterDep_timesep, stopBox.X_veto_right[0],
                       stopBox.X_veto_right[1], 0, kIncludeWholeDet) +
-          Jaccumulate(rdr->PiCDep, stopBox.X_fv[0], stopBox.X_fv[1], 0,
+          Jaccumulate(rdr->PiCDep_timesep, stopBox.X_fv[0], stopBox.X_fv[1], 0,
                       kIncludeOOFVYZ) +
-          Jaccumulate(rdr->PiCDaughterDep, stopBox.X_fv[0], stopBox.X_fv[1], 0,
-                      kIncludeOOFVYZ);
+          Jaccumulate(rdr->PiCDaughterDep_timesep, stopBox.X_fv[0],
+                      stopBox.X_fv[1], 0, kIncludeOOFVYZ);
 
       OutputEDep->Pi0Dep_timesep_FV =
-          Jaccumulate(rdr->Pi0Dep, stopBox.X_fv[0], stopBox.X_fv[1], 0,
+          Jaccumulate(rdr->Pi0Dep_timesep, stopBox.X_fv[0], stopBox.X_fv[1], 0,
                       kIncludeFVYZ) +
-          Jaccumulate(rdr->Pi0DaughterDep, stopBox.X_fv[0], stopBox.X_fv[1], 0,
-                      kIncludeFVYZ);
+          Jaccumulate(rdr->Pi0DaughterDep_timesep, stopBox.X_fv[0],
+                      stopBox.X_fv[1], 0, kIncludeFVYZ);
       OutputEDep->Pi0Dep_timesep_veto =
-          Jaccumulate(rdr->Pi0Dep, stopBox.X_veto_left[0],
+          Jaccumulate(rdr->Pi0Dep_timesep, stopBox.X_veto_left[0],
                       stopBox.X_veto_left[1], 0, kIncludeWholeDet) +
-          Jaccumulate(rdr->Pi0DaughterDep, stopBox.X_veto_left[0],
+          Jaccumulate(rdr->Pi0DaughterDep_timesep, stopBox.X_veto_left[0],
                       stopBox.X_veto_left[1], 0, kIncludeWholeDet) +
-          Jaccumulate(rdr->Pi0Dep, stopBox.X_veto_right[0],
+          Jaccumulate(rdr->Pi0Dep_timesep, stopBox.X_veto_right[0],
                       stopBox.X_veto_right[1], 0, kIncludeWholeDet) +
-          Jaccumulate(rdr->Pi0DaughterDep, stopBox.X_veto_right[0],
+          Jaccumulate(rdr->Pi0DaughterDep_timesep, stopBox.X_veto_right[0],
                       stopBox.X_veto_right[1], 0, kIncludeWholeDet) +
-          Jaccumulate(rdr->Pi0Dep, stopBox.X_fv[0], stopBox.X_fv[1], 0,
+          Jaccumulate(rdr->Pi0Dep_timesep, stopBox.X_fv[0], stopBox.X_fv[1], 0,
                       kIncludeOOFVYZ) +
-          Jaccumulate(rdr->Pi0DaughterDep, stopBox.X_fv[0], stopBox.X_fv[1], 0,
-                      kIncludeOOFVYZ);
+          Jaccumulate(rdr->Pi0DaughterDep_timesep, stopBox.X_fv[0],
+                      stopBox.X_fv[1], 0, kIncludeOOFVYZ);
 
       OutputEDep->OtherDep_timesep_FV =
-          Jaccumulate(rdr->OtherDep, stopBox.X_fv[0], stopBox.X_fv[1], 0,
-                      kIncludeFVYZ) +
-          Jaccumulate(rdr->OtherDaughterDep, stopBox.X_fv[0], stopBox.X_fv[1],
-                      0, kIncludeFVYZ);
+          Jaccumulate(rdr->OtherDep_timesep, stopBox.X_fv[0], stopBox.X_fv[1],
+                      0, kIncludeFVYZ) +
+          Jaccumulate(rdr->OtherDaughterDep_timesep, stopBox.X_fv[0],
+                      stopBox.X_fv[1], 0, kIncludeFVYZ);
       OutputEDep->OtherDep_timesep_veto =
-          Jaccumulate(rdr->OtherDep, stopBox.X_veto_left[0],
+          Jaccumulate(rdr->OtherDep_timesep, stopBox.X_veto_left[0],
                       stopBox.X_veto_left[1], 0, kIncludeWholeDet) +
-          Jaccumulate(rdr->OtherDaughterDep, stopBox.X_veto_left[0],
+          Jaccumulate(rdr->OtherDaughterDep_timesep, stopBox.X_veto_left[0],
                       stopBox.X_veto_left[1], 0, kIncludeWholeDet) +
-          Jaccumulate(rdr->OtherDep, stopBox.X_veto_right[0],
+          Jaccumulate(rdr->OtherDep_timesep, stopBox.X_veto_right[0],
                       stopBox.X_veto_right[1], 0, kIncludeWholeDet) +
-          Jaccumulate(rdr->OtherDaughterDep, stopBox.X_veto_right[0],
+          Jaccumulate(rdr->OtherDaughterDep_timesep, stopBox.X_veto_right[0],
                       stopBox.X_veto_right[1], 0, kIncludeWholeDet) +
-          Jaccumulate(rdr->OtherDep, stopBox.X_fv[0], stopBox.X_fv[1], 0,
-                      kIncludeOOFVYZ) +
+          Jaccumulate(rdr->OtherDep_timesep, stopBox.X_fv[0], stopBox.X_fv[1],
+                      0, kIncludeOOFVYZ) +
           Jaccumulate(rdr->OtherDaughterDep, stopBox.X_fv[0], stopBox.X_fv[1],
                       0, kIncludeOOFVYZ);
+
+      if (OutputEDep->ProtonDep_FV &&
+          (OutputEDep->ProtonDep_FV == OutputEDep->ProtonDep_timesep_FV)) {
+        std::cout
+            << "\n[ERROR]: Found identical deposits before and after timesep: "
+            << OutputEDep->ProtonDep_FV << std::endl;
+        throw;
+      }
 
       OutputEDep->TotalNonlep_Dep_timesep_FV =
           OutputEDep->ProtonDep_timesep_FV + OutputEDep->NeutronDep_timesep_FV +

@@ -12,6 +12,7 @@
 #include <utility>
 #include <vector>
 
+double lengthParam = 0xdeadbeef;
 double DipAngle = 5.8;
 double OscParams[6] = {0.825, 0.10, 1.0, 7.9e-5, 2.5e-3, 0.0};
 std::string inpFile, inpHistName;
@@ -26,7 +27,7 @@ void SayUsage(char const *argv[]) {
                "<dm12=7.9e-5>,<"
                "dm23=2.5e-3>,<dcp=0.0> -d <dipangle=5.8> -i <input ROOT "
                "file>,<input flux hist name> -o <output ROOT file>,<output "
-               "flux hist name> -n <nuPDGFrom>,<nuPDGTo>"
+               "flux hist name> -n <nuPDGFrom>,<nuPDGTo> -L <Pathlength_km>"
             << std::endl;
 }
 
@@ -101,6 +102,8 @@ void handleOpts(int argc, char const *argv[]) {
       }
       nuPDGFrom = params[0];
       nuPDGTo = params[1];
+    else if(std::string(argv[opt]) == "-L"){
+      lengthParam = str2T<double>(argv[++opt]);
     } else if (std::string(argv[opt]) == "-?") {
       SayUsage(argv);
       exit(0);
@@ -151,7 +154,9 @@ double OscWeight(double enu) {
             OscParams[4], OscParams[5], enu, true, NuType);
 
   static const double deg2rad = asin(1) / 90.0;
-  double lengthParam = cos((90.0 + DipAngle) * deg2rad);
+  if(lengthParam == 0xdeadbeef){
+    lengthParam = cos((90.0 + DipAngle) * deg2rad);
+  }
   bp.DefinePath(lengthParam, 0);
   bp.propagate(NuType);
   return bp.GetProb(NuType, GetNuType(nuPDGTo));
