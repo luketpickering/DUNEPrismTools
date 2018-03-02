@@ -11,6 +11,8 @@
 
 #include <utility>
 
+// #define DEBUG
+
 struct DetBox {
   double XOffset;
   double XWidth_fv;
@@ -181,19 +183,21 @@ int main(int argc, char const *argv[]) {
 
   DetectorAndFVDimensions detdims;
   Int_t NMaxTrackSteps;
+  double timesep_us;
 
   config->SetBranchAddress("NXSteps", &detdims.NXSteps);
   config->SetBranchAddress("DetMin", &detdims.DetMin);
   config->SetBranchAddress("DetMax", &detdims.DetMax);
   config->SetBranchAddress("FVGap", &detdims.FVGap);
   config->SetBranchAddress("NMaxTrackSteps", &NMaxTrackSteps);
+  config->SetBranchAddress("timesep_us", &timesep_us);
 
   config->GetEntry(0);
 
   TH3D *DetMap = detdims.BuildDetectorMap();
 
   FullDetTreeReader *rdr = new FullDetTreeReader(
-      "fulldetTree", inpDir, detdims.NXSteps, NMaxTrackSteps);
+      "fulldetTree", inpDir, detdims.NXSteps, NMaxTrackSteps, timesep_us);
 
   if (!rdr->GetEntries()) {
     std::cout << "No valid input files found." << std::endl;
@@ -212,7 +216,7 @@ int main(int argc, char const *argv[]) {
   Detectors.reserve(NDets);
 
   TTree *OutputTree = new TTree("EDeps", "");
-  EDep *OutputEDep = EDep::MakeTreeWriter(OutputTree);
+  EDep *OutputEDep = EDep::MakeTreeWriter(OutputTree, timesep_us);
 
   // translate to detboxes
   for (size_t d_it = 0; d_it < NDets; ++d_it) {
@@ -268,7 +272,7 @@ int main(int argc, char const *argv[]) {
   std::vector<int> overlapping_stops;
   size_t NFills = 0;
   Long64_t NEntries = rdr->GetEntries();
-  for (size_t e_it = 0; e_it < NEntries; ++e_it) {
+  for (Long64_t e_it = 0; e_it < NEntries; ++e_it) {
     rdr->GetEntry(e_it);
 
     if (loud_every && !(e_it % loud_every)) {
@@ -335,6 +339,12 @@ int main(int argc, char const *argv[]) {
 
     OutputEDep->PrimaryLepPDG = rdr->PrimaryLepPDG;
     std::copy_n(rdr->PrimaryLep_4mom, 4, OutputEDep->PrimaryLep_4mom);
+
+    OutputEDep->NFSParts = rdr->NFSParts;
+    std::copy_n(rdr->FSPart_PDG, rdr->NFSParts, OutputEDep->FSPart_PDG);
+    OutputEDep->NFSPart4MomEntries = rdr->NFSPart4MomEntries;
+    std::copy_n(rdr->FSPart_4Mom, rdr->NFSPart4MomEntries,
+                OutputEDep->FSPart_4Mom);
 
     OutputEDep->NLep = rdr->NLep;
     OutputEDep->NPi0 = rdr->NPi0;
@@ -518,20 +528,47 @@ int main(int argc, char const *argv[]) {
     }
     ////////End exiting lepton section
     OutputEDep->LepDep_FV = Jaccumulate(rdr->LepDep, stopBox.X_fv[0],
-                                        stopBox.X_fv[1], 0, kIncludeFVYZ) +
-                            Jaccumulate(rdr->LepDaughterDep, stopBox.X_fv[0],
                                         stopBox.X_fv[1], 0, kIncludeFVYZ);
+
+#ifdef DEBUG
+    for (Int_t x_it = 0; x_it < detdims.NXSteps; ++x_it) {
+      for (size_t y_it = 0; y_it < 3; ++y_it) {
+        for (size_t z_it = 0; z_it < 3; ++z_it) {
+          if (rdr->LepDep[x_it][y_it][z_it]) {
+            std::cout << "[INFO]: Bin " << x_it << ", " << y_it << ", " << z_it
+                      << ", LepDep content = " << rdr->LepDep[x_it][y_it][z_it]
+                      << std::endl;
+          }
+
+          if (rdr->timesep_us != 0xdeadbeef) {
+            if (rdr->LepDep_timesep[x_it][y_it][z_it]) {
+              std::cout << "[INFO]: Bin " << x_it << ", " << y_it << ", "
+                        << z_it << ", LepDep_timesep content = "
+                        << rdr->LepDep_timesep[x_it][y_it][z_it] << std::endl;
+            }
+          }
+        }
+      }
+    }
+
+#endif
+
     OutputEDep->LepDep_veto =
         Jaccumulate(rdr->LepDep, stopBox.X_veto_left[0], stopBox.X_veto_left[1],
                     0, kIncludeWholeDet) +
-        Jaccumulate(rdr->LepDaughterDep, stopBox.X_veto_left[0],
-                    stopBox.X_veto_left[1], 0, kIncludeWholeDet) +
         Jaccumulate(rdr->LepDep, stopBox.X_veto_right[0],
                     stopBox.X_veto_right[1], 0, kIncludeWholeDet) +
+
+        Jaccumulate(rdr->LepDep, stopBox.X_fv[0], stopBox.X_fv[1], 0,
+                    kIncludeOOFVYZ);
+
+    OutputEDep->LepDepDescendent_FV = Jaccumulate(
+        rdr->LepDaughterDep, stopBox.X_fv[0], stopBox.X_fv[1], 0, kIncludeFVYZ);
+    OutputEDep->LepDepDescendent_veto =
+        Jaccumulate(rdr->LepDaughterDep, stopBox.X_veto_left[0],
+                    stopBox.X_veto_left[1], 0, kIncludeWholeDet) +
         Jaccumulate(rdr->LepDaughterDep, stopBox.X_veto_right[0],
                     stopBox.X_veto_right[1], 0, kIncludeWholeDet) +
-        Jaccumulate(rdr->LepDep, stopBox.X_fv[0], stopBox.X_fv[1], 0,
-                    kIncludeOOFVYZ) +
         Jaccumulate(rdr->LepDaughterDep, stopBox.X_fv[0], stopBox.X_fv[1], 0,
                     kIncludeOOFVYZ);
 
@@ -685,6 +722,138 @@ int main(int argc, char const *argv[]) {
                 << ", Pi0: " << OutputEDep->Pi0Dep_veto
                 << ", Other: " << OutputEDep->OtherDep_veto << std::endl
                 << std::endl;
+    }
+
+    if (rdr->timesep_us != 0xdeadbeef) {
+      OutputEDep->LepDep_timesep_FV =
+          Jaccumulate(rdr->LepDep_timesep, stopBox.X_fv[0], stopBox.X_fv[1], 0,
+                      kIncludeFVYZ);
+
+      OutputEDep->LepDep_timesep_veto =
+          Jaccumulate(rdr->LepDep_timesep, stopBox.X_veto_left[0],
+                      stopBox.X_veto_left[1], 0, kIncludeWholeDet) +
+          Jaccumulate(rdr->LepDep_timesep, stopBox.X_veto_right[0],
+                      stopBox.X_veto_right[1], 0, kIncludeWholeDet) +
+          Jaccumulate(rdr->LepDep_timesep, stopBox.X_fv[0], stopBox.X_fv[1], 0,
+                      kIncludeOOFVYZ);
+
+      OutputEDep->LepDepDescendent_timesep_FV =
+          Jaccumulate(rdr->LepDaughterDep, stopBox.X_fv[0], stopBox.X_fv[1], 0,
+                      kIncludeFVYZ);
+      OutputEDep->LepDepDescendent_timesep_veto =
+          Jaccumulate(rdr->LepDaughterDep_timesep, stopBox.X_veto_left[0],
+                      stopBox.X_veto_left[1], 0, kIncludeWholeDet) +
+          Jaccumulate(rdr->LepDaughterDep_timesep, stopBox.X_veto_right[0],
+                      stopBox.X_veto_right[1], 0, kIncludeWholeDet) +
+          Jaccumulate(rdr->LepDaughterDep_timesep, stopBox.X_fv[0],
+                      stopBox.X_fv[1], 0, kIncludeOOFVYZ);
+
+      OutputEDep->ProtonDep_timesep_FV =
+          Jaccumulate(rdr->ProtonDep, stopBox.X_fv[0], stopBox.X_fv[1], 0,
+                      kIncludeFVYZ) +
+          Jaccumulate(rdr->ProtonDaughterDep, stopBox.X_fv[0], stopBox.X_fv[1],
+                      0, kIncludeFVYZ);
+
+      OutputEDep->ProtonDep_timesep_veto =
+          Jaccumulate(rdr->ProtonDep, stopBox.X_veto_left[0],
+                      stopBox.X_veto_left[1], 0, kIncludeWholeDet) +
+          Jaccumulate(rdr->ProtonDaughterDep, stopBox.X_veto_left[0],
+                      stopBox.X_veto_left[1], 0, kIncludeWholeDet) +
+          Jaccumulate(rdr->ProtonDep, stopBox.X_veto_right[0],
+                      stopBox.X_veto_right[1], 0, kIncludeWholeDet) +
+          Jaccumulate(rdr->ProtonDaughterDep, stopBox.X_veto_right[0],
+                      stopBox.X_veto_right[1], 0, kIncludeWholeDet) +
+          Jaccumulate(rdr->ProtonDep, stopBox.X_fv[0], stopBox.X_fv[1], 0,
+                      kIncludeOOFVYZ) +
+          Jaccumulate(rdr->ProtonDaughterDep, stopBox.X_fv[0], stopBox.X_fv[1],
+                      0, kIncludeOOFVYZ);
+
+      OutputEDep->NeutronDep_timesep_FV =
+          Jaccumulate(rdr->NeutronDep, stopBox.X_fv[0], stopBox.X_fv[1], 0,
+                      kIncludeFVYZ) +
+          Jaccumulate(rdr->NeutronDaughterDep, stopBox.X_fv[0], stopBox.X_fv[1],
+                      0, kIncludeFVYZ);
+      OutputEDep->NeutronDep_timesep_veto =
+          Jaccumulate(rdr->NeutronDep, stopBox.X_veto_left[0],
+                      stopBox.X_veto_left[1], 0, kIncludeWholeDet) +
+          Jaccumulate(rdr->NeutronDaughterDep, stopBox.X_veto_left[0],
+                      stopBox.X_veto_left[1], 0, kIncludeWholeDet) +
+          Jaccumulate(rdr->NeutronDep, stopBox.X_veto_right[0],
+                      stopBox.X_veto_right[1], 0, kIncludeWholeDet) +
+          Jaccumulate(rdr->NeutronDaughterDep, stopBox.X_veto_right[0],
+                      stopBox.X_veto_right[1], 0, kIncludeWholeDet) +
+          Jaccumulate(rdr->NeutronDep, stopBox.X_fv[0], stopBox.X_fv[1], 0,
+                      kIncludeOOFVYZ) +
+          Jaccumulate(rdr->NeutronDaughterDep, stopBox.X_fv[0], stopBox.X_fv[1],
+                      0, kIncludeOOFVYZ);
+
+      OutputEDep->PiCDep_timesep_FV =
+          Jaccumulate(rdr->PiCDep, stopBox.X_fv[0], stopBox.X_fv[1], 0,
+                      kIncludeFVYZ) +
+          Jaccumulate(rdr->PiCDaughterDep, stopBox.X_fv[0], stopBox.X_fv[1], 0,
+                      kIncludeFVYZ);
+      OutputEDep->PiCDep_timesep_veto =
+          Jaccumulate(rdr->PiCDep, stopBox.X_veto_left[0],
+                      stopBox.X_veto_left[1], 0, kIncludeWholeDet) +
+          Jaccumulate(rdr->PiCDaughterDep, stopBox.X_veto_left[0],
+                      stopBox.X_veto_left[1], 0, kIncludeWholeDet) +
+          Jaccumulate(rdr->PiCDep, stopBox.X_veto_right[0],
+                      stopBox.X_veto_right[1], 0, kIncludeWholeDet) +
+          Jaccumulate(rdr->PiCDaughterDep, stopBox.X_veto_right[0],
+                      stopBox.X_veto_right[1], 0, kIncludeWholeDet) +
+          Jaccumulate(rdr->PiCDep, stopBox.X_fv[0], stopBox.X_fv[1], 0,
+                      kIncludeOOFVYZ) +
+          Jaccumulate(rdr->PiCDaughterDep, stopBox.X_fv[0], stopBox.X_fv[1], 0,
+                      kIncludeOOFVYZ);
+
+      OutputEDep->Pi0Dep_timesep_FV =
+          Jaccumulate(rdr->Pi0Dep, stopBox.X_fv[0], stopBox.X_fv[1], 0,
+                      kIncludeFVYZ) +
+          Jaccumulate(rdr->Pi0DaughterDep, stopBox.X_fv[0], stopBox.X_fv[1], 0,
+                      kIncludeFVYZ);
+      OutputEDep->Pi0Dep_timesep_veto =
+          Jaccumulate(rdr->Pi0Dep, stopBox.X_veto_left[0],
+                      stopBox.X_veto_left[1], 0, kIncludeWholeDet) +
+          Jaccumulate(rdr->Pi0DaughterDep, stopBox.X_veto_left[0],
+                      stopBox.X_veto_left[1], 0, kIncludeWholeDet) +
+          Jaccumulate(rdr->Pi0Dep, stopBox.X_veto_right[0],
+                      stopBox.X_veto_right[1], 0, kIncludeWholeDet) +
+          Jaccumulate(rdr->Pi0DaughterDep, stopBox.X_veto_right[0],
+                      stopBox.X_veto_right[1], 0, kIncludeWholeDet) +
+          Jaccumulate(rdr->Pi0Dep, stopBox.X_fv[0], stopBox.X_fv[1], 0,
+                      kIncludeOOFVYZ) +
+          Jaccumulate(rdr->Pi0DaughterDep, stopBox.X_fv[0], stopBox.X_fv[1], 0,
+                      kIncludeOOFVYZ);
+
+      OutputEDep->OtherDep_timesep_FV =
+          Jaccumulate(rdr->OtherDep, stopBox.X_fv[0], stopBox.X_fv[1], 0,
+                      kIncludeFVYZ) +
+          Jaccumulate(rdr->OtherDaughterDep, stopBox.X_fv[0], stopBox.X_fv[1],
+                      0, kIncludeFVYZ);
+      OutputEDep->OtherDep_timesep_veto =
+          Jaccumulate(rdr->OtherDep, stopBox.X_veto_left[0],
+                      stopBox.X_veto_left[1], 0, kIncludeWholeDet) +
+          Jaccumulate(rdr->OtherDaughterDep, stopBox.X_veto_left[0],
+                      stopBox.X_veto_left[1], 0, kIncludeWholeDet) +
+          Jaccumulate(rdr->OtherDep, stopBox.X_veto_right[0],
+                      stopBox.X_veto_right[1], 0, kIncludeWholeDet) +
+          Jaccumulate(rdr->OtherDaughterDep, stopBox.X_veto_right[0],
+                      stopBox.X_veto_right[1], 0, kIncludeWholeDet) +
+          Jaccumulate(rdr->OtherDep, stopBox.X_fv[0], stopBox.X_fv[1], 0,
+                      kIncludeOOFVYZ) +
+          Jaccumulate(rdr->OtherDaughterDep, stopBox.X_fv[0], stopBox.X_fv[1],
+                      0, kIncludeOOFVYZ);
+
+      OutputEDep->TotalNonlep_Dep_timesep_FV =
+          OutputEDep->ProtonDep_timesep_FV + OutputEDep->NeutronDep_timesep_FV +
+          OutputEDep->PiCDep_timesep_FV + OutputEDep->Pi0Dep_timesep_FV +
+          OutputEDep->OtherDep_timesep_FV;
+
+      OutputEDep->TotalNonlep_Dep_timesep_veto =
+          OutputEDep->ProtonDep_timesep_veto +
+          OutputEDep->NeutronDep_timesep_veto +
+          OutputEDep->PiCDep_timesep_veto + OutputEDep->Pi0Dep_timesep_veto +
+          OutputEDep->OtherDep_timesep_veto;
     }
 
     OutputEDep->HadrShowerContainedInFV =

@@ -94,11 +94,12 @@ TH3D* G4ArReader::GetCacheMap(size_t i) {
 G4ArReader::G4ArReader(std::string inputG4ArFileName,
                        DetectorAndFVDimensions& detdims,
                        std::string inputGENIERooTrackerFileName,
-                       Long64_t MaxEntries)
+                       double timesep_us, Long64_t MaxEntries)
     : InputG4ArFile(nullptr),
       InputG4ArTree(nullptr),
       InputGENIERooTrackerFile(nullptr),
       InputGENIERooTrackerTree(nullptr),
+      timesep_us(timesep_us),
       NMaxTrackSteps(1000),
       RooTrackerInteractionCode(nullptr) {
   InputG4ArFile = new TFile(inputG4ArFileName.c_str(), "READ");
@@ -195,7 +196,7 @@ bool G4ArReader::SetBranchAddresses() {
 }
 
 bool G4ArReader::GetNextEvent() {
-  if (Entry == (NInputEntries-1)) {
+  if (Entry == (NInputEntries - 1)) {
     return false;
   }
   Entry++;
@@ -277,7 +278,7 @@ Event G4ArReader::BuildEvent() {
 
     if (abs(pp.PDG) == 13) {
       ev.TrackedDeposits.emplace_back(prim_PDG[prim_part_it], prim_TID,
-                                      NMaxTrackSteps);
+                                      NMaxTrackSteps, timesep_us);
 #ifdef DEBUG
       std::cout << "[INFO]: Added new primary particle: PDG = "
                 << ev.TrackedDeposits.back().PDG
@@ -292,7 +293,8 @@ Event G4ArReader::BuildEvent() {
         ev.TrackedDeposits.back().SetTrackTime();
       }
     } else {
-      ev.TotalDeposits.emplace_back(prim_PDG[prim_part_it], prim_TID);
+      ev.TotalDeposits.emplace_back(prim_PDG[prim_part_it], prim_TID,
+                                    timesep_us);
 #ifdef DEBUG
       std::cout << "[INFO]: Added new primary particle: PDG = "
                 << ev.TotalDeposits.back().PDG

@@ -2,12 +2,18 @@
 #include "TObjString.h"
 
 #include <algorithm>
+#include <iostream>
+#include <csignal>
 
 /// Energy deposit and GENIE passthrough output tree
 struct EDep {
-  EDep() : tree(nullptr), EventCode(nullptr) {}
-  EDep(std::string treeName, std::string inputFiles) : EDep() {
+  EDep() : tree(nullptr), timesep_us(0xdeadbeef), EventCode(nullptr) {}
+  EDep(std::string treeName, std::string inputFiles,
+       double timesep_us = 0xdeadbeef)
+      : EDep() {
     tree = new TChain(treeName.c_str());
+
+    this->timesep_us = timesep_us;
 
     NFiles = tree->Add(inputFiles.c_str());
     NEntries = tree->GetEntries();
@@ -28,7 +34,39 @@ struct EDep {
   UInt_t GetEntry() { return CEnt; }
   UInt_t GetEntries() { return NEntries; }
 
+  double timesep_us;
+
   ~EDep() { delete tree; };
+
+  size_t GetNPassthroughParts() { return NFSParts; }
+
+  std::pair<Int_t, Double_t *> GetPassthroughPart(size_t i) {
+    if (i >= GetNPassthroughParts()) {
+      std::cout << "[ERROR]: Asked for passthrough part " << i
+                << ", but we only have " << GetNPassthroughParts()
+                << " in this event." << std::endl;
+      throw;
+    }
+
+    return std::pair<Int_t, Double_t *>(FSPart_PDG[i], &FSPart_4Mom[i * 4]);
+  }
+
+  bool AddPassthroughPart(Int_t PDG, Double_t *fourmom) {
+    if (NFSParts >= kNMaxPassthroughParts) {
+      std::cout << "[WARN]: Ignoring passthrough part as it would exceed the "
+                   "maximum of "
+                << kNMaxPassthroughParts << " particles in this event."
+                << std::endl;
+      return false;
+    }
+
+    FSPart_PDG[NFSParts] = PDG;
+    std::copy_n(fourmom, 4, &FSPart_4Mom[NFSParts * 4]);
+    NFSParts++;
+    NFSPart4MomEntries += 4;
+    return true;
+  }
+  static const Int_t kNMaxPassthroughParts = 100;
 
   ///\brief The detector stop number used, refer to input xml for stop offsets.
   ///
@@ -63,6 +101,37 @@ struct EDep {
   /// same W as thrown by the event generator during the cross-section
   /// calculation (single-pion production).
   double W_Rest;
+
+  ///\brief [INTERNAL]:  The number of final state particles from the
+  /// generator.
+  ///
+  /// N.B. It is very unlikely that a user should use this member, it is for
+  /// the TTree to be able to store variable length arrays internally. To access
+  /// the particle stack, use the GetNPassthroughParts and GetPassthroughPart
+  /// member functions.
+  Int_t NFSParts;
+  ////brief [INTERNAL]:  The PDG MC codes of all final state particles.
+  ///
+  /// N.B. It is very unlikely that a user should use this member, it is for
+  /// the TTree to be able to store variable length arrays internally. To access
+  /// the particle stack, use the GetNPassthroughParts and GetPassthroughPart
+  /// member functions.
+  Int_t FSPart_PDG[kNMaxPassthroughParts];
+  ///\brief [INTERNAL]:   The number of entries in the four momentum array.
+  ///
+  /// N.B. It is very unlikely that a user should use this member, it is for
+  /// the TTree to be able to store variable length arrays internally. To access
+  /// the particle stack, use the GetNPassthroughParts and GetPassthroughPart
+  /// member functions.
+  Int_t NFSPart4MomEntries;
+  ///\brief [INTERNAL]:  A flattened array of the final state particle
+  /// 4-momenta.
+  ///
+  /// N.B. It is very unlikely that a user should use this member, it is for
+  /// the TTree to be able to store variable length arrays internally. To access
+  /// the particle stack, use the GetNPassthroughParts and GetPassthroughPart
+  /// member functions.
+  Double_t FSPart_4Mom[kNMaxPassthroughParts * 4];
 
   /// [GENIE P/T]:  The PDG MC code of the neutrino.
   int nu_PDG;
@@ -138,37 +207,73 @@ struct EDep {
   /// end of the GENIE simulation.
   double Total_ENonPrimaryLep_True;
 
-  ///\brief [GEANT4]: The total lepton energy deposited within the stops
+  ///\brief [GEANT4]: The total 'early' lepton energy deposited within the stops
   /// fiducial volume.
   ///
-  /// N.B. This branch rolls up all deposits by all descendent particles in
-  /// the GEANT4 simulation. i.e. This quantity will likely contain deposits
-  /// from Michel electrons from stopped primary muon decays.
+  /// N.B. Unlike other branches, this does *not* perform descendent roll up.
+  ///
+  /// N.B. If this was run with a deposit time separator, these branches contain
+  /// the energy deposited *before* the time separator, if none was used these
+  /// contain the energy integrated over all simulation time
   double LepDep_FV;
-  ///\brief [GEANT4]: The total lepton energy deposited within the stops
+  ///\brief [GEANT4]: The total 'early' lepton energy deposited within the stops
   /// veto volume, but within the active LAr volume of the stop.
   ///
-  /// N.B. This branch rolls up all deposits by all descendent particles in
-  /// the GEANT4 simulation. i.e. This quantity will likely contain deposits
-  /// from Michel electrons from stopped primary muon decays.
+  /// N.B. Unlike other branches, this does *not* perform descendent roll up.
+  ///
+  /// N.B. If this was run with a deposit time separator, these branches contain
+  /// the energy deposited *before* the time separator, if none was used these
+  /// contain the energy integrated over all simulation time
   double LepDep_veto;
-  ///\brief [GEANT4]: The total proton energy deposited within the stops
+  ///\brief [GEANT4]: The total 'early' energy deposited within the stops
+  /// fiducial volume by descendents of the primary lepton.
+  ///
+  /// N.B. This branch is most useful for determining energy deposited by
+  /// primary muon descendents, which will likely be michel electrons.
+  ///
+  /// N.B. If this was run with a deposit time separator, these branches contain
+  /// the energy deposited *before* the time separator, if none was used these
+  /// contain the energy integrated over all simulation time
+  double LepDepDescendent_FV;
+  ///\brief [GEANT4]: The total 'early' lepton energy deposited within the stops
+  /// veto volume, but within the active LAr volume of the stop.
+  ///
+  /// N.B. This branch is most useful for determining energy deposited by
+  /// primary muon descendents, which will likely be michel electrons.
+  ///
+  /// N.B. If this was run with a deposit time separator, these branches contain
+  /// the energy deposited *before* the time separator, if none was used these
+  /// contain the energy integrated over all simulation time
+  double LepDepDescendent_veto;
+  ///\brief [GEANT4]: The total 'early' proton energy deposited within the stops
   /// fiducial volume.
   ///
   /// N.B. This branch rolls up all deposits by all descendent particles in
   /// the GEANT4 simulation.
+  ///
+  /// N.B. If this was run with a deposit time separator, these branches contain
+  /// the energy deposited *before* the time separator, if none was used these
+  /// contain the energy integrated over all simulation time
   double ProtonDep_FV;
-  ///\brief [GEANT4]: The total proton energy deposited within the stops
+  ///\brief [GEANT4]: The total 'early' proton energy deposited within the stops
   /// veto volume, but within the active LAr volume of the stop.
   ///
   /// N.B. This branch rolls up all deposits by all descendent particles in
   /// the GEANT4 simulation.
+  ///
+  /// N.B. If this was run with a deposit time separator, these branches contain
+  /// the energy deposited *before* the time separator, if none was used these
+  /// contain the energy integrated over all simulation time
   double ProtonDep_veto;
-  ///\brief [GEANT4]: The total neutron energy deposited within the stops
-  /// fiducial volume.
+  ///\brief [GEANT4]: The total 'early' neutron energy deposited within the
+  /// stops fiducial volume.
   ///
   /// N.B. This branch rolls up all deposits by all descendent particles in
   /// the GEANT4 simulation.
+  ///
+  /// N.B. If this was run with a deposit time separator, these branches contain
+  /// the energy deposited *before* the time separator, if none was used these
+  /// contain the energy integrated over all simulation time
   double NeutronDep_FV;
   ///\brief [GEANT4]: The charge-weighted average time of all neutron deposites
   /// within the stops fiducial volume.
@@ -176,11 +281,15 @@ struct EDep {
   /// N.B. This branch rolls up all deposits by all descendent particles in
   /// the GEANT4 simulation.
   double NeutronDep_ChrgWAvgTime_FV;
-  ///\brief [GEANT4]: The total neutron energy deposited within the stops
-  /// veto volume, but within the active LAr volume of the stop.
+  ///\brief [GEANT4]: The total 'early' neutron energy deposited within the
+  /// stops veto volume, but within the active LAr volume of the stop.
   ///
   /// N.B. This branch rolls up all deposits by all descendent particles in
   /// the GEANT4 simulation.
+  ///
+  /// N.B. If this was run with a deposit time separator, these branches contain
+  /// the energy deposited *before* the time separator, if none was used these
+  /// contain the energy integrated over all simulation time
   double NeutronDep_veto;
   ///\brief [GEANT4]: The charge-weighted average time of all neutron deposites
   /// within the stops veto volume, but within the active LAr volume of the
@@ -189,57 +298,251 @@ struct EDep {
   /// N.B. This branch rolls up all deposits by all descendent particles in
   /// the GEANT4 simulation.
   double NeutronDep_ChrgWAvgTime_veto;
-  ///\brief [GEANT4]: The total charged pion energy deposited within the stops
-  /// fiducial volume.
+  ///\brief [GEANT4]: The total 'early' charged pion energy deposited within the
+  /// stops fiducial volume.
   ///
   /// N.B. This branch rolls up all deposits by all descendent particles in
   /// the GEANT4 simulation.
+  ///
+  /// N.B. If this was run with a deposit time separator, these branches contain
+  /// the energy deposited *before* the time separator, if none was used these
+  /// contain the energy integrated over all simulation time
   double PiCDep_FV;
-  ///\brief [GEANT4]: The total charged pion energy deposited within the stops
-  /// veto volume, but within the active LAr volume of the stop.
+  ///\brief [GEANT4]: The total 'early' charged pion energy deposited within the
+  /// stops veto volume, but within the active LAr volume of the stop.
   ///
   /// N.B. This branch rolls up all deposits by all descendent particles in
   /// the GEANT4 simulation.
+  ///
+  /// N.B. If this was run with a deposit time separator, these branches contain
+  /// the energy deposited *before* the time separator, if none was used these
+  /// contain the energy integrated over all simulation time
   double PiCDep_veto;
-  ///\brief [GEANT4]: The total neutral pion energy deposited within the stops
-  /// fiducial volume.
+  ///\brief [GEANT4]: The total 'early' neutral pion energy deposited within the
+  /// stops fiducial volume.
   ///
   /// N.B. This branch rolls up all deposits by all descendent particles in
   /// the GEANT4 simulation.
+  ///
+  /// N.B. If this was run with a deposit time separator, these branches contain
+  /// the energy deposited *before* the time separator, if none was used these
+  /// contain the energy integrated over all simulation time
   double Pi0Dep_FV;
-  ///\brief [GEANT4]: The total neutral pion energy deposited within the stops
-  /// veto volume, but within the active LAr volume of the stop.
+  ///\brief [GEANT4]: The total 'early' neutral pion energy deposited within the
+  /// stops veto volume, but within the active LAr volume of the stop.
   ///
   /// N.B. This branch rolls up all deposits by all descendent particles in
   /// the GEANT4 simulation.
+  ///
+  /// N.B. If this was run with a deposit time separator, these branches contain
+  /// the energy deposited *before* the time separator, if none was used these
+  /// contain the energy integrated over all simulation time
   double Pi0Dep_veto;
-  ///\brief [GEANT4]: The total 'other' particle energy deposited within the
-  ///  stops fiducial volume.
+  ///\brief [GEANT4]: The total 'early' 'other' particle energy deposited within
+  /// the stops fiducial volume.
   ///
   /// N.B. This branch rolls up all deposits by all descendent particles in
   /// the GEANT4 simulation.
+  ///
+  /// N.B. If this was run with a deposit time separator, these branches contain
+  /// the energy deposited *before* the time separator, if none was used these
+  /// contain the energy integrated over all simulation time
   double OtherDep_FV;
-  ///\brief [GEANT4]: The total 'other' particle energy deposited within the
-  ///  stops veto volume, but within the active LAr volume of the stop.
+  ///\brief [GEANT4]: The total 'early' 'other' particle energy deposited within
+  /// the stops veto volume, but within the active LAr volume of the stop.
   ///
   /// N.B. This branch rolls up all deposits by all descendent particles in
   /// the GEANT4 simulation.
+  ///
+  /// N.B. If this was run with a deposit time separator, these branches contain
+  /// the energy deposited *before* the time separator, if none was used these
+  /// contain the energy integrated over all simulation time
   double OtherDep_veto;
 
-  ///\brief [GEANT4]: The total non-GENIE-simulated-lepton particle energy
-  /// deposited within thestops veto volume, but within the active LAr volume
-  /// of the stop.
+  ///\brief [GEANT4]: The total 'early' non-GENIE-simulated-lepton particle
+  /// energy deposited within thestops veto volume, but within the active LAr
+  /// volume of the stop.
   ///
   /// N.B. This branch rolls up all deposits by all descendent particles in
   /// the GEANT4 simulation.
+  ///
+  /// N.B. If this was run with a deposit time separator, these branches contain
+  /// the energy deposited *before* the time separator, if none was used these
+  /// contain the energy integrated over all simulation time
   double TotalNonlep_Dep_FV;
-  ///\brief [GEANT4]: The total non-GENIE-simulated-lepton particle energy
-  /// deposited within thestops veto volume, but within the active LAr volume
-  /// of the stop.
+  ///\brief [GEANT4]: The total 'early' non-GENIE-simulated-lepton particle
+  /// energy deposited within thestops veto volume, but within the active LAr
+  /// volume of the stop.
   ///
   /// N.B. This branch rolls up all deposits by all descendent particles in
   /// the GEANT4 simulation.
+  ///
+  /// N.B. If this was run with a deposit time separator, these branches contain
+  /// the energy deposited *before* the time separator, if none was used these
+  /// contain the energy integrated over all simulation time
   double TotalNonlep_Dep_veto;
+
+  ///\brief [GEANT4]: The total 'late' lepton energy deposited within the stops
+  /// fiducial volume.
+  ///
+  /// N.B. Unlike other branches, this does *not* perform descendent roll up.
+  ///
+  /// N.B. If this was run with a deposit time separator, these branches contain
+  /// the energy deposited *after* the time separator, if none was used these
+  /// will not be filled.
+  double LepDep_timesep_FV;
+  ///\brief [GEANT4]: The total 'late' lepton energy deposited within the stops
+  /// veto volume, but within the active LAr volume of the stop.
+  ///
+  /// N.B. Unlike other branches, this does *not* perform descendent roll up.
+  ///
+  /// N.B. If this was run with a deposit time separator, these branches contain
+  /// the energy deposited *after* the time separator, if none was used these
+  /// will not be filled.
+  double LepDep_timesep_veto;
+  ///\brief [GEANT4]: The total 'late' energy deposited within the stops
+  /// fiducial volume by descendents of the primary lepton.
+  ///
+  /// N.B. This branch is most useful for determining energy deposited by
+  /// primary muon descendents, which will likely be michel electrons.
+  ///
+  /// N.B. If this was run with a deposit time separator, these branches contain
+  /// the energy deposited *after* the time separator, if none was used these
+  /// will not be filled.
+  double LepDepDescendent_timesep_FV;
+  ///\brief [GEANT4]: The total 'late' lepton energy deposited within the stops
+  /// veto volume, but within the active LAr volume of the stop.
+  ///
+  /// N.B. This branch is most useful for determining energy deposited by
+  /// primary muon descendents, which will likely be michel electrons.
+  ///
+  /// N.B. If this was run with a deposit time separator, these branches contain
+  /// the energy deposited *after* the time separator, if none was used these
+  /// will not be filled.
+  double LepDepDescendent_timesep_veto;
+  ///\brief [GEANT4]: The total 'late' proton energy deposited within the stops
+  /// fiducial volume.
+  ///
+  /// N.B. This branch rolls up all deposits by all descendent particles in
+  /// the GEANT4 simulation.
+  ///
+  /// N.B. If this was run with a deposit time separator, these branches contain
+  /// the energy deposited *after* the time separator, if none was used these
+  /// will not be filled.
+  double ProtonDep_timesep_FV;
+  ///\brief [GEANT4]: The total 'late' proton energy deposited within the stops
+  /// veto volume, but within the active LAr volume of the stop.
+  ///
+  /// N.B. This branch rolls up all deposits by all descendent particles in
+  /// the GEANT4 simulation.
+  ///
+  /// N.B. If this was run with a deposit time separator, these branches contain
+  /// the energy deposited *after* the time separator, if none was used these
+  /// will not be filled.
+  double ProtonDep_timesep_veto;
+  ///\brief [GEANT4]: The total 'late' neutron energy deposited within the
+  /// stops fiducial volume.
+  ///
+  /// N.B. This branch rolls up all deposits by all descendent particles in
+  /// the GEANT4 simulation.
+  ///
+  /// N.B. If this was run with a deposit time separator, these branches contain
+  /// the energy deposited *after* the time separator, if none was used these
+  /// will not be filled.
+  double NeutronDep_timesep_FV;
+  ///\brief [GEANT4]: The total 'late' neutron energy deposited within the
+  /// stops veto volume, but within the active LAr volume of the stop.
+  ///
+  /// N.B. This branch rolls up all deposits by all descendent particles in
+  /// the GEANT4 simulation.
+  ///
+  /// N.B. If this was run with a deposit time separator, these branches contain
+  /// the energy deposited *after* the time separator, if none was used these
+  /// will not be filled.
+  double NeutronDep_timesep_veto;
+  ///\brief [GEANT4]: The total 'late' charged pion energy deposited within the
+  /// stops fiducial volume.
+  ///
+  /// N.B. This branch rolls up all deposits by all descendent particles in
+  /// the GEANT4 simulation.
+  ///
+  /// N.B. If this was run with a deposit time separator, these branches contain
+  /// the energy deposited *after* the time separator, if none was used these
+  /// will not be filled.
+  double PiCDep_timesep_FV;
+  ///\brief [GEANT4]: The total 'late' charged pion energy deposited within the
+  /// stops veto volume, but within the active LAr volume of the stop.
+  ///
+  /// N.B. This branch rolls up all deposits by all descendent particles in
+  /// the GEANT4 simulation.
+  ///
+  /// N.B. If this was run with a deposit time separator, these branches contain
+  /// the energy deposited *after* the time separator, if none was used these
+  /// will not be filled.
+  double PiCDep_timesep_veto;
+  ///\brief [GEANT4]: The total 'late' neutral pion energy deposited within the
+  /// stops fiducial volume.
+  ///
+  /// N.B. This branch rolls up all deposits by all descendent particles in
+  /// the GEANT4 simulation.
+  ///
+  /// N.B. If this was run with a deposit time separator, these branches contain
+  /// the energy deposited *after* the time separator, if none was used these
+  /// will not be filled.
+  double Pi0Dep_timesep_FV;
+  ///\brief [GEANT4]: The total 'late' neutral pion energy deposited within the
+  /// stops veto volume, but within the active LAr volume of the stop.
+  ///
+  /// N.B. This branch rolls up all deposits by all descendent particles in
+  /// the GEANT4 simulation.
+  ///
+  /// N.B. If this was run with a deposit time separator, these branches contain
+  /// the energy deposited *after* the time separator, if none was used these
+  /// will not be filled.
+  double Pi0Dep_timesep_veto;
+  ///\brief [GEANT4]: The total 'late' 'other' particle energy deposited within
+  /// the stops fiducial volume.
+  ///
+  /// N.B. This branch rolls up all deposits by all descendent particles in
+  /// the GEANT4 simulation.
+  ///
+  /// N.B. If this was run with a deposit time separator, these branches contain
+  /// the energy deposited *after* the time separator, if none was used these
+  /// will not be filled.
+  double OtherDep_timesep_FV;
+  ///\brief [GEANT4]: The total 'late' 'other' particle energy deposited within
+  /// the stops veto volume, but within the active LAr volume of the stop.
+  ///
+  /// N.B. This branch rolls up all deposits by all descendent particles in
+  /// the GEANT4 simulation.
+  ///
+  /// N.B. If this was run with a deposit time separator, these branches contain
+  /// the energy deposited *after* the time separator, if none was used these
+  /// will not be filled.
+  double OtherDep_timesep_veto;
+
+  ///\brief [GEANT4]: The total 'late' non-GENIE-simulated-lepton particle
+  /// energy deposited within thestops veto volume, but within the active LAr
+  /// volume of the stop.
+  ///
+  /// N.B. This branch rolls up all deposits by all descendent particles in
+  /// the GEANT4 simulation.
+  ///
+  /// N.B. If this was run with a deposit time separator, these branches contain
+  /// the energy deposited *after* the time separator, if none was used these
+  /// will not be filled.
+  double TotalNonlep_Dep_timesep_FV;
+  ///\brief [GEANT4]: The total 'late' non-GENIE-simulated-lepton particle
+  /// energy deposited within thestops veto volume, but within the active LAr
+  /// volume of the stop.
+  ///
+  /// N.B. This branch rolls up all deposits by all descendent particles in
+  /// the GEANT4 simulation.
+  ///
+  /// N.B. If this was run with a deposit time separator, these branches contain
+  /// the energy deposited *after* the time separator, if none was used these
+  /// will not be filled.
+  double TotalNonlep_Dep_timesep_veto;
 
   ///\brief [GEANT4]: Whether the primary lepton left the active stop volume.
   ///
@@ -370,6 +673,10 @@ struct EDep {
     nu_PDG = 0;
     PrimaryLepPDG = 0;
     std::fill_n(PrimaryLep_4mom, 4, 0);
+    NFSParts = 0;
+    std::fill_n(FSPart_PDG, kNMaxPassthroughParts, 0);
+    NFSPart4MomEntries = 0;
+    std::fill_n(FSPart_4Mom, kNMaxPassthroughParts * 4, 0);
     NLep = 0;
     NPi0 = 0;
     NPiC = 0;
@@ -390,6 +697,8 @@ struct EDep {
     Total_ENonPrimaryLep_True = 0;
     LepDep_FV = 0;
     LepDep_veto = 0;
+    LepDepDescendent_FV = 0;
+    LepDepDescendent_veto = 0;
     ProtonDep_FV = 0;
     ProtonDep_veto = 0;
     NeutronDep_FV = 0;
@@ -404,6 +713,22 @@ struct EDep {
     OtherDep_veto = 0;
     TotalNonlep_Dep_FV = 0;
     TotalNonlep_Dep_veto = 0;
+    LepDep_timesep_FV = 0;
+    LepDep_timesep_veto = 0;
+    LepDepDescendent_timesep_FV = 0;
+    LepDepDescendent_timesep_veto = 0;
+    ProtonDep_timesep_FV = 0;
+    ProtonDep_timesep_veto = 0;
+    NeutronDep_timesep_FV = 0;
+    NeutronDep_timesep_veto = 0;
+    PiCDep_timesep_FV = 0;
+    PiCDep_timesep_veto = 0;
+    Pi0Dep_timesep_FV = 0;
+    Pi0Dep_timesep_veto = 0;
+    OtherDep_timesep_FV = 0;
+    OtherDep_timesep_veto = 0;
+    TotalNonlep_Dep_timesep_FV = 0;
+    TotalNonlep_Dep_timesep_veto = 0;
     LepExit = 0;
     LepExitBack = 0;
     LepExitFront = 0;
@@ -428,8 +753,10 @@ struct EDep {
     PrimaryLeptonContainedInFV = 0;
   }
 
-  static EDep *MakeTreeWriter(TTree *OutputTree) {
+  static EDep *MakeTreeWriter(TTree *OutputTree,
+                              double timesep_us = 0xdeadbeef) {
     EDep *rtn = new EDep();
+    rtn->timesep_us = timesep_us;
 
     OutputTree->Branch("stop", &rtn->stop, "stop/I");
 
@@ -449,6 +776,14 @@ struct EDep {
     OutputTree->Branch("PrimaryLepPDG", &rtn->PrimaryLepPDG, "PrimaryLepPDG/I");
     OutputTree->Branch("PrimaryLep_4mom", &rtn->PrimaryLep_4mom,
                        "PrimaryLep_4mom[4]/D");
+
+    OutputTree->Branch("NFSParts", &rtn->NFSParts, "NFSParts/I");
+    OutputTree->Branch("FSPart_PDG", &rtn->FSPart_PDG,
+                       "FSPart_PDG[NFSParts]/I");
+    OutputTree->Branch("NFSPart4MomEntries", &rtn->NFSPart4MomEntries,
+                       "NFSPart4MomEntries/I");
+    OutputTree->Branch("FSPart_4Mom", &rtn->FSPart_4Mom,
+                       "FSPart_4Mom[NFSPart4MomEntries]/D");
 
     OutputTree->Branch("NLep", &rtn->NLep, "NLep/I");
     OutputTree->Branch("NPi0", &rtn->NPi0, "NPi0/I");
@@ -479,6 +814,10 @@ struct EDep {
 
     OutputTree->Branch("LepDep_FV", &rtn->LepDep_FV, "LepDep_FV/D");
     OutputTree->Branch("LepDep_veto", &rtn->LepDep_veto, "LepDep_veto/D");
+    OutputTree->Branch("LepDepDescendent_FV", &rtn->LepDepDescendent_FV,
+                       "LepDepDescendent_FV/D");
+    OutputTree->Branch("LepDepDescendent_veto", &rtn->LepDepDescendent_veto,
+                       "LepDepDescendent_veto/D");
     OutputTree->Branch("ProtonDep_FV", &rtn->ProtonDep_FV, "ProtonDep_FV/D");
     OutputTree->Branch("ProtonDep_veto", &rtn->ProtonDep_veto,
                        "ProtonDep_veto/D");
@@ -502,6 +841,47 @@ struct EDep {
                        "TotalNonlep_Dep_FV/D");
     OutputTree->Branch("TotalNonlep_Dep_veto", &rtn->TotalNonlep_Dep_veto,
                        "TotalNonlep_Dep_veto/D");
+
+    if (rtn->timesep_us != 0xdeadbeef) {
+      OutputTree->Branch("LepDep_timesep_FV", &rtn->LepDep_timesep_FV,
+                         "LepDep_timesep_FV/D");
+      OutputTree->Branch("LepDep_timesep_veto", &rtn->LepDep_timesep_veto,
+                         "LepDep_timesep_veto/D");
+      OutputTree->Branch("LepDepDescendent_timesep_FV",
+                         &rtn->LepDepDescendent_timesep_FV,
+                         "LepDepDescendent_timesep_FV/D");
+      OutputTree->Branch("LepDepDescendent_timesep_veto",
+                         &rtn->LepDepDescendent_timesep_veto,
+                         "LepDepDescendent_timesep_veto/D");
+      OutputTree->Branch("ProtonDep_timesep_FV", &rtn->ProtonDep_timesep_FV,
+                         "ProtonDep_timesep_FV/D");
+      OutputTree->Branch("ProtonDep_timesep_veto", &rtn->ProtonDep_timesep_veto,
+                         "ProtonDep_timesep_veto/D");
+      OutputTree->Branch("NeutronDep_timesep_FV", &rtn->NeutronDep_timesep_FV,
+                         "NeutronDep_timesep_FV/D");
+      OutputTree->Branch("NeutronDep_timesep_veto",
+                         &rtn->NeutronDep_timesep_veto,
+                         "NeutronDep_timesep_veto/D");
+      OutputTree->Branch("PiCDep_timesep_FV", &rtn->PiCDep_timesep_FV,
+                         "PiCDep_timesep_FV/D");
+      OutputTree->Branch("PiCDep_timesep_veto", &rtn->PiCDep_timesep_veto,
+                         "PiCDep_timesep_veto/D");
+      OutputTree->Branch("Pi0Dep_timesep_FV", &rtn->Pi0Dep_timesep_FV,
+                         "Pi0Dep_timesep_FV/D");
+      OutputTree->Branch("Pi0Dep_timesep_veto", &rtn->Pi0Dep_timesep_veto,
+                         "Pi0Dep_timesep_veto/D");
+      OutputTree->Branch("OtherDep_timesep_FV", &rtn->OtherDep_timesep_FV,
+                         "OtherDep_timesep_FV/D");
+      OutputTree->Branch("OtherDep_timesep_veto", &rtn->OtherDep_timesep_veto,
+                         "OtherDep_timesep_veto/D");
+
+      OutputTree->Branch("TotalNonlep_Dep_timesep_FV",
+                         &rtn->TotalNonlep_Dep_timesep_FV,
+                         "TotalNonlep_Dep_timesep_FV/D");
+      OutputTree->Branch("TotalNonlep_Dep_timesep_veto",
+                         &rtn->TotalNonlep_Dep_timesep_veto,
+                         "TotalNonlep_Dep_timesep_veto/D");
+    }
 
     OutputTree->Branch("LepExit", &rtn->LepExit, "LepExit/O");
 
@@ -553,6 +933,10 @@ struct EDep {
     tree->SetBranchAddress("nu_PDG", &nu_PDG);
     tree->SetBranchAddress("PrimaryLepPDG", &PrimaryLepPDG);
     tree->SetBranchAddress("PrimaryLep_4mom", &PrimaryLep_4mom);
+    tree->SetBranchAddress("NFSParts", &NFSParts);
+    tree->SetBranchAddress("FSPart_PDG", FSPart_PDG);
+    tree->SetBranchAddress("NFSPart4MomEntries", &NFSPart4MomEntries);
+    tree->SetBranchAddress("FSPart_4Mom", FSPart_4Mom);
     tree->SetBranchAddress("NLep", &NLep);
     tree->SetBranchAddress("NPi0", &NPi0);
     tree->SetBranchAddress("NPiC", &NPiC);
@@ -574,6 +958,8 @@ struct EDep {
                            &Total_ENonPrimaryLep_True);
     tree->SetBranchAddress("LepDep_FV", &LepDep_FV);
     tree->SetBranchAddress("LepDep_veto", &LepDep_veto);
+    tree->SetBranchAddress("LepDepDescendent_FV", &LepDepDescendent_FV);
+    tree->SetBranchAddress("LepDepDescendent_veto", &LepDepDescendent_veto);
     tree->SetBranchAddress("ProtonDep_FV", &ProtonDep_FV);
     tree->SetBranchAddress("ProtonDep_veto", &ProtonDep_veto);
     tree->SetBranchAddress("NeutronDep_FV", &NeutronDep_FV);
@@ -590,6 +976,29 @@ struct EDep {
     tree->SetBranchAddress("OtherDep_veto", &OtherDep_veto);
     tree->SetBranchAddress("TotalNonlep_Dep_FV", &TotalNonlep_Dep_FV);
     tree->SetBranchAddress("TotalNonlep_Dep_veto", &TotalNonlep_Dep_veto);
+    if (timesep_us != 0xdeadbeef) {
+      tree->SetBranchAddress("LepDep_timesep_FV", &LepDep_timesep_FV);
+      tree->SetBranchAddress("LepDep_timesep_veto", &LepDep_timesep_veto);
+      tree->SetBranchAddress("LepDepDescendent_timesep_FV",
+                             &LepDepDescendent_timesep_FV);
+      tree->SetBranchAddress("LepDepDescendent_timesep_veto",
+                             &LepDepDescendent_timesep_veto);
+      tree->SetBranchAddress("ProtonDep_timesep_FV", &ProtonDep_timesep_FV);
+      tree->SetBranchAddress("ProtonDep_timesep_veto", &ProtonDep_timesep_veto);
+      tree->SetBranchAddress("NeutronDep_timesep_FV", &NeutronDep_timesep_FV);
+      tree->SetBranchAddress("NeutronDep_timesep_veto",
+                             &NeutronDep_timesep_veto);
+      tree->SetBranchAddress("PiCDep_timesep_FV", &PiCDep_timesep_FV);
+      tree->SetBranchAddress("PiCDep_timesep_veto", &PiCDep_timesep_veto);
+      tree->SetBranchAddress("Pi0Dep_timesep_FV", &Pi0Dep_timesep_FV);
+      tree->SetBranchAddress("Pi0Dep_timesep_veto", &Pi0Dep_timesep_veto);
+      tree->SetBranchAddress("OtherDep_timesep_FV", &OtherDep_timesep_FV);
+      tree->SetBranchAddress("OtherDep_timesep_veto", &OtherDep_timesep_veto);
+      tree->SetBranchAddress("TotalNonlep_Dep_timesep_FV",
+                             &TotalNonlep_Dep_timesep_FV);
+      tree->SetBranchAddress("TotalNonlep_Dep_timesep_veto",
+                             &TotalNonlep_Dep_timesep_veto);
+    }
     tree->SetBranchAddress("LepExit", &LepExit);
     tree->SetBranchAddress("LepExitBack", &LepExitBack);
     tree->SetBranchAddress("LepExitFront", &LepExitFront);

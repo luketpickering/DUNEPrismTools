@@ -33,16 +33,16 @@ struct G4ArReader {
 
   std::vector<TH3D*> CacheDetectorMaps;
 
+  double timesep_us;
+
   std::vector<int> TrackTimePDGs;
-  void TrackTimeForPDG(int pdg){
-    TrackTimePDGs.push_back(pdg);
-  }
+  void TrackTimeForPDG(int pdg) { TrackTimePDGs.push_back(pdg); }
 
   TH3D* GetCacheMap(size_t i);
 
   G4ArReader(std::string inputG4ArFileName, DetectorAndFVDimensions& detdims,
              std::string inputGENIERooTrackerFileName = "",
-             Long64_t MaxEntries = -1);
+             double timesep_us = 0xdeadbeef, Long64_t MaxEntries = -1);
 
   bool SetBranchAddresses();
 

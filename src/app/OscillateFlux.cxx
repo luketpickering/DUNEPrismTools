@@ -185,15 +185,15 @@ int main(int argc, char const *argv[]) {
     exit(1);
   }
 
-  TH1D *inpH = dynamic_cast<TH1D *>(inpF->Get(inpHistName.c_str()));
+  TH1 *inpH = dynamic_cast<TH1 *>(inpF->Get(inpHistName.c_str()));
 
   if (!inpH) {
-    std::cout << "[ERROR]: Couldn't get TH1D: " << inpHistName
+    std::cout << "[ERROR]: Couldn't get TH1: " << inpHistName
               << " from input file: " << inpFile << std::endl;
     exit(1);
   }
 
-  inpH = static_cast<TH1D *>(inpH->Clone());
+  inpH = static_cast<TH1 *>(inpH->Clone());
 
   TFile *oupF = new TFile(oupFile.c_str(), "RECREATE");
   if (!oupF || !oupF->IsOpen()) {
