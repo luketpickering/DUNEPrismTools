@@ -28,3 +28,8 @@ foreach(a ${APPS})
 
 
 endforeach()
+
+install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/pbs/CondenseAndProcess.sh DESTINATION ${CMAKE_INSTALL_PREFIX}/scripts)
+install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/pbs/FarmCondenseAndProcess.sh DESTINATION ${CMAKE_INSTALL_PREFIX}/scripts)
+install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/pbs/SubmitCondenseAndProcess.sh DESTINATION ${CMAKE_INSTALL_PREFIX}/scripts)
+install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/pbs/BuildInputsList_ProcessFromG4Ar.sh DESTINATION ${CMAKE_INSTALL_PREFIX}/scripts)

@@ -100,6 +100,7 @@ struct FullDetTreeReader {
   Int_t NNeutron;
   Int_t NGamma;
   Int_t NOther;
+  Int_t NBaryonicRes;
 
   Double_t EKinPi0_True;
   Double_t EMassPi0_True;
@@ -112,6 +113,9 @@ struct FullDetTreeReader {
   Double_t EGamma_True;
   Double_t EOther_True;
   Double_t ENonPrimaryLep_True;
+  Double_t KENuclearRemnant_True;
+
+  Double_t TotalFS_3mom[3];
 
   Double_t *LepDep_1D;
   Double_t *HadDep_1D;
@@ -121,6 +125,7 @@ struct FullDetTreeReader {
   Double_t *PiCDep_1D;
   Double_t *Pi0Dep_1D;
   Double_t *OtherDep_1D;
+  Double_t *NuclRemDep_1D;
 
   Double_t *LepDep_timesep_1D;
   Double_t *HadDep_timesep_1D;
@@ -155,6 +160,7 @@ struct FullDetTreeReader {
   Double_t **PiCDep_2D;
   Double_t **Pi0Dep_2D;
   Double_t **OtherDep_2D;
+  Double_t **NuclRemDep_2D;
 
   Double_t **LepDep_timesep_2D;
   Double_t **HadDep_timesep_2D;
@@ -189,6 +195,7 @@ struct FullDetTreeReader {
   Double_t ***PiCDep;
   Double_t ***Pi0Dep;
   Double_t ***OtherDep;
+  Double_t ***NuclRemDep;
 
   Double_t ***LepDep_timesep;
   Double_t ***HadDep_timesep;
@@ -251,6 +258,7 @@ struct FullDetTreeReader {
     NNeutron = 0;
     NGamma = 0;
     NOther = 0;
+    NBaryonicRes = 0;
     EKinPi0_True = 0;
     EMassPi0_True = 0;
     EKinPiC_True = 0;
@@ -263,6 +271,9 @@ struct FullDetTreeReader {
     EOther_True = 0;
     ENonPrimaryLep_True = 0;
 
+    KENuclearRemnant_True = 0;
+    std::fill_n(TotalFS_3mom, 3, 0);
+
     std::fill_n(LepDep_1D, NXBins * 3 * 3, 0);
     std::fill_n(HadDep_1D, NXBins * 3 * 3, 0);
     std::fill_n(ProtonDep_1D, NXBins * 3 * 3, 0);
@@ -271,6 +282,8 @@ struct FullDetTreeReader {
     std::fill_n(PiCDep_1D, NXBins * 3 * 3, 0);
     std::fill_n(Pi0Dep_1D, NXBins * 3 * 3, 0);
     std::fill_n(OtherDep_1D, NXBins * 3 * 3, 0);
+    std::fill_n(NuclRemDep_1D, NXBins * 3 * 3, 0);
+
     std::fill_n(LepDaughterDep_1D, NXBins * 3 * 3, 0);
     std::fill_n(HadDaughterDep_1D, NXBins * 3 * 3, 0);
     std::fill_n(ProtonDaughterDep_1D, NXBins * 3 * 3, 0);
@@ -327,6 +340,8 @@ struct FullDetTreeReader {
     tree->SetBranchAddress("NNeutron", &NNeutron);
     tree->SetBranchAddress("NGamma", &NGamma);
     tree->SetBranchAddress("NOther", &NOther);
+    tree->SetBranchAddress("NBaryonicRes", &NBaryonicRes);
+
     tree->SetBranchAddress("EKinPi0_True", &EKinPi0_True);
     tree->SetBranchAddress("EMassPi0_True", &EMassPi0_True);
     tree->SetBranchAddress("EKinPiC_True", &EKinPiC_True);
@@ -338,6 +353,8 @@ struct FullDetTreeReader {
     tree->SetBranchAddress("EGamma_True", &EGamma_True);
     tree->SetBranchAddress("EOther_True", &EOther_True);
     tree->SetBranchAddress("ENonPrimaryLep_True", &ENonPrimaryLep_True);
+    tree->SetBranchAddress("KENuclearRemnant_True", &KENuclearRemnant_True);
+    tree->SetBranchAddress("TotalFS_3mom", &TotalFS_3mom);
     tree->SetBranchAddress("LepDep", LepDep_1D);
     tree->SetBranchAddress("HadDep", HadDep_1D);
     tree->SetBranchAddress("ProtonDep", ProtonDep_1D);
@@ -347,6 +364,7 @@ struct FullDetTreeReader {
     tree->SetBranchAddress("PiCDep", PiCDep_1D);
     tree->SetBranchAddress("Pi0Dep", Pi0Dep_1D);
     tree->SetBranchAddress("OtherDep", OtherDep_1D);
+    tree->SetBranchAddress("NuclRemDep", NuclRemDep_1D);
     tree->SetBranchAddress("LepDaughterDep", LepDaughterDep_1D);
     tree->SetBranchAddress("HadDaughterDep", HadDaughterDep_1D);
     tree->SetBranchAddress("ProtonDaughterDep", ProtonDaughterDep_1D);
@@ -403,6 +421,7 @@ struct FullDetTreeReader {
     PiCDep_1D = new Double_t[NXBins * 3 * 3];
     Pi0Dep_1D = new Double_t[NXBins * 3 * 3];
     OtherDep_1D = new Double_t[NXBins * 3 * 3];
+    NuclRemDep_1D = new Double_t[NXBins * 3 * 3];
 
     LepDep_2D = new Double_t *[NXBins * 3];
     HadDep_2D = new Double_t *[NXBins * 3];
@@ -412,6 +431,7 @@ struct FullDetTreeReader {
     PiCDep_2D = new Double_t *[NXBins * 3];
     Pi0Dep_2D = new Double_t *[NXBins * 3];
     OtherDep_2D = new Double_t *[NXBins * 3];
+    NuclRemDep_2D = new Double_t *[NXBins * 3];
 
     LepDep = new Double_t **[NXBins];
     HadDep = new Double_t **[NXBins];
@@ -421,6 +441,7 @@ struct FullDetTreeReader {
     PiCDep = new Double_t **[NXBins];
     Pi0Dep = new Double_t **[NXBins];
     OtherDep = new Double_t **[NXBins];
+    NuclRemDep = new Double_t **[NXBins];
 
     LepDaughterDep_1D = new Double_t[NXBins * 3 * 3];
     HadDaughterDep_1D = new Double_t[NXBins * 3 * 3];
@@ -460,6 +481,7 @@ struct FullDetTreeReader {
         PiCDep_2D[i * 3 + j] = &PiCDep_1D[i * 3 * 3 + j * 3];
         Pi0Dep_2D[i * 3 + j] = &Pi0Dep_1D[i * 3 * 3 + j * 3];
         OtherDep_2D[i * 3 + j] = &OtherDep_1D[i * 3 * 3 + j * 3];
+        NuclRemDep_2D[i * 3 + j] = &NuclRemDep_1D[i * 3 * 3 + j * 3];
 
         LepDaughterDep_2D[i * 3 + j] = &LepDaughterDep_1D[i * 3 * 3 + j * 3];
         HadDaughterDep_2D[i * 3 + j] = &HadDaughterDep_1D[i * 3 * 3 + j * 3];
@@ -484,6 +506,7 @@ struct FullDetTreeReader {
       PiCDep[i] = &PiCDep_2D[i * 3];
       Pi0Dep[i] = &Pi0Dep_2D[i * 3];
       OtherDep[i] = &OtherDep_2D[i * 3];
+      NuclRemDep[i] = &NuclRemDep_2D[i * 3];
 
       LepDaughterDep[i] = &LepDaughterDep_2D[i * 3];
       HadDaughterDep[i] = &HadDaughterDep_2D[i * 3];
@@ -625,6 +648,8 @@ struct FullDetTreeReader {
     delete[] Pi0Dep_1D;
     delete[] OtherDep_2D;
     delete[] OtherDep_1D;
+    delete[] NuclRemDep_2D;
+    delete[] NuclRemDep_1D;
     delete[] LepDaughterDep_2D;
     delete[] LepDaughterDep_1D;
     delete[] HadDaughterDep_2D;
@@ -649,6 +674,7 @@ struct FullDetTreeReader {
     delete[] PiCDep;
     delete[] Pi0Dep;
     delete[] OtherDep;
+    delete[] NuclRemDep;
     delete[] LepDaughterDep;
     delete[] HadDaughterDep;
     delete[] ProtonDaughterDep;
@@ -736,9 +762,9 @@ struct FullDetTreeReader {
     tree->Branch("NFSParts", &fdr->NFSParts, "NFSParts/I");
     tree->Branch("FSPart_PDG", &fdr->FSPart_PDG, "FSPart_PDG[NFSParts]/I");
     tree->Branch("NFSPart4MomEntries", &fdr->NFSPart4MomEntries,
-                           "NFSPart4MomEntries/I");
+                 "NFSPart4MomEntries/I");
     tree->Branch("FSPart_4Mom", &fdr->FSPart_4Mom,
-                           "FSPart_4Mom[NFSPart4MomEntries]/D");
+                 "FSPart_4Mom[NFSPart4MomEntries]/D");
     tree->Branch("NLep", &fdr->NLep, "NLep/I");
     tree->Branch("NPi0", &fdr->NPi0, "NPi0/I");
     tree->Branch("NPiC", &fdr->NPiC, "NPiC/I");
@@ -746,6 +772,7 @@ struct FullDetTreeReader {
     tree->Branch("NNeutron", &fdr->NNeutron, "NNeutron/I");
     tree->Branch("NGamma", &fdr->NGamma, "NGamma/I");
     tree->Branch("NOther", &fdr->NOther, "NOther/I");
+    tree->Branch("NBaryonicRes", &fdr->NBaryonicRes, "NBaryonicRes/I");
     tree->Branch("EKinPi0_True", &fdr->EKinPi0_True, "EKinPi0_True/D");
     tree->Branch("EMassPi0_True", &fdr->EMassPi0_True, "EMassPi0_True/D");
     tree->Branch("EKinPiC_True", &fdr->EKinPiC_True, "EKinPiC_True/D");
@@ -761,6 +788,10 @@ struct FullDetTreeReader {
     tree->Branch("EOther_True", &fdr->EOther_True, "EOther_True/D");
     tree->Branch("ENonPrimaryLep_True", &fdr->ENonPrimaryLep_True,
                  "ENonPrimaryLep_True/D");
+    tree->Branch("KENuclearRemnant_True", &fdr->KENuclearRemnant_True,
+                 "KENuclearRemnant_True/D");
+
+    tree->Branch("TotalFS_3mom", &fdr->TotalFS_3mom, "TotalFS_3mom[3]/D");
     tree->Branch(
         "LepDep", fdr->LepDep_1D,
         (std::string("LepDep[") + to_str(NXBins) + "][3][3]/D").c_str());
@@ -815,6 +846,10 @@ struct FullDetTreeReader {
         "OtherDaughterDep", fdr->OtherDaughterDep_1D,
         (std::string("OtherDaughterDep[") + to_str(NXBins) + "][3][3]/D")
             .c_str());
+
+    tree->Branch(
+        "NuclRemDep", fdr->NuclRemDep_1D,
+        (std::string("NuclRemDep[") + to_str(NXBins) + "][3][3]/D").c_str());
 
     if (fdr->timesep_us != 0xdeadbeef) {
       tree->Branch(

@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 ### Adapted from https://unix.stackexchange.com/questions/4965/keep-duplicates-out-of-path-on-source
 function add_to_PATH () {
@@ -40,6 +40,12 @@ function add_to_LD_LIBRARY_PATH () {
     fi
   done
 }
+
+EXTRA_SETUP_SCRIPT="@EXTRA_SETUP_SCRIPT@"
+if [ "${EXTRA_SETUP_SCRIPT}" ]; then
+  echo "[INFO]: Sourcing extra environment set up: ${EXTRA_SETUP_SCRIPT}"
+  source ${EXTRA_SETUP_SCRIPT}
+fi
 
 export DUNEPRISMTOOLSROOT="@CMAKE_INSTALL_PREFIX@"
 

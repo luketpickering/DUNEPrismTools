@@ -143,6 +143,10 @@ int main(int argc, char* argv[]) {
   OtherDep.timesep_us = timesep_us;
   OtherDep.LendDepositMaps(detdims.BuildDetectorMap(),
                            detdims.BuildDetectorMap());
+  DepoParticle NuclRemDep;
+  NuclRemDep.timesep_us = timesep_us;
+  NuclRemDep.LendDepositMaps(detdims.BuildDetectorMap(),
+                             detdims.BuildDetectorMap());
 
   TTree* fdTree =
       new TTree("fulldetTree", "G4 and GENIE passthrough information");
@@ -186,6 +190,7 @@ int main(int argc, char* argv[]) {
     PiCDep.Reset();
     Pi0Dep.Reset();
     OtherDep.Reset();
+    NuclRemDep.Reset();
 
     // ====================== START GENIE Pass through ======================
 
@@ -236,6 +241,10 @@ int main(int argc, char* argv[]) {
              nucleon_mass_GeV * nucleon_mass_GeV);
 
     double p4[4];
+#ifdef DEBUG
+    double TEnergy = 0;
+    std::vector<std::string> ss;
+#endif
     for (PrimaryParticle& p : ev.PrimaryParticles) {
       if (!p.IsFinalState) {
         continue;
@@ -246,58 +255,96 @@ int main(int argc, char* argv[]) {
       p4[3] = (p.EKin + p.EMass);
       fdw->AddPassthroughPart(p.PDG, p4);
 
-      switch (abs(p.PDG)) {
-        case 11:
-        case 12:
-        case 13:
-        case 14: {
-          fdw->NLep++;
-          break;
-        }
-        case 111: {
-          fdw->NPi0++;
-          fdw->EKinPi0_True += p.EKin;
-          fdw->EMassPi0_True += p.EMass;
-          fdw->ENonPrimaryLep_True += (p.EKin + p.EMass);
-          break;
-        }
-        case 211: {
-          fdw->NPiC++;
-          fdw->EKinPiC_True += p.EKin;
-          fdw->EMassPiC_True += p.EMass;
-          fdw->ENonPrimaryLep_True += (p.EKin + p.EMass);
-          break;
-        }
-        case 2212: {
-          fdw->NProton++;
-          fdw->EKinProton_True += p.EKin;
-          fdw->EMassProton_True += p.EMass;
-          fdw->ENonPrimaryLep_True += (p.EKin + p.EMass);
-          break;
-        }
-        case 2112: {
-          fdw->NNeutron++;
-          fdw->EKinNeutron_True += p.EKin;
-          fdw->EMassNeutron_True += p.EMass;
-          fdw->ENonPrimaryLep_True += (p.EKin + p.EMass);
-          break;
-        }
-        case 22: {
-          fdw->NGamma++;
-          fdw->EGamma_True += p.EKin;
-          fdw->ENonPrimaryLep_True += (p.EKin + p.EMass);
-          break;
-        }
-        default: {
-          fdw->NOther++;
-          fdw->EOther_True += (p.EKin + p.EMass);
-          fdw->ENonPrimaryLep_True += (p.EKin + p.EMass);
 #ifdef DEBUG
-          std::cout << "[INFO]: NOther PDG = " << p.PDG << std::endl;
+
+      TEnergy += ((abs(p.PDG) == 2112) || (abs(p.PDG) == 2212))
+                     ? p.EKin
+                     : (p.EKin + p.EMass);
+      ss.emplace_back("");
+      ss.back() += "\t" + to_str(p.PDG) + ", E addr = " +
+                   to_str(((abs(p.PDG) == 2112) || (abs(p.PDG) == 2212))
+                              ? p.EKin
+                              : (p.EKin + p.EMass));
 #endif
+
+      fdw->TotalFS_3mom[0] += p.ThreeMom[0];
+      fdw->TotalFS_3mom[1] += p.ThreeMom[1];
+      fdw->TotalFS_3mom[2] += p.ThreeMom[2];
+
+      if (G4ArReader::IsNuclearPDG(abs(p.PDG))) {
+        fdw->KENuclearRemnant_True += p.EKin;
+      } else {
+        switch (abs(p.PDG)) {
+          case 11:
+          case 12:
+          case 13:
+          case 14: {
+            fdw->NLep++;
+            break;
+          }
+          case 111: {
+            fdw->NPi0++;
+            fdw->EKinPi0_True += p.EKin;
+            fdw->EMassPi0_True += p.EMass;
+            fdw->ENonPrimaryLep_True += (p.EKin + p.EMass);
+            break;
+          }
+          case 211: {
+            fdw->NPiC++;
+            fdw->EKinPiC_True += p.EKin;
+            fdw->EMassPiC_True += p.EMass;
+            fdw->ENonPrimaryLep_True += (p.EKin + p.EMass);
+            break;
+          }
+          case 2212: {
+            fdw->NProton++;
+            fdw->EKinProton_True += p.EKin;
+            fdw->EMassProton_True += p.EMass;
+            fdw->ENonPrimaryLep_True += (p.EKin + p.EMass);
+            break;
+          }
+          case 2112: {
+            fdw->NNeutron++;
+            fdw->EKinNeutron_True += p.EKin;
+            fdw->EMassNeutron_True += p.EMass;
+            fdw->ENonPrimaryLep_True += (p.EKin + p.EMass);
+            break;
+          }
+          case 22: {
+            fdw->NGamma++;
+            fdw->EGamma_True += p.EKin;
+            fdw->ENonPrimaryLep_True += (p.EKin + p.EMass);
+            break;
+          }
+          default: {
+            if ((abs(p.PDG) > 1000) && (abs(p.PDG) < 9999)) {
+              fdw->NBaryonicRes++;
+            } else {
+              fdw->NOther++;
+            }
+            fdw->EOther_True += (p.EKin + p.EMass);
+            fdw->ENonPrimaryLep_True += (p.EKin + p.EMass);
+#ifdef DEBUG
+            std::cout << "[INFO]: NOther PDG = " << p.PDG << std::endl;
+#endif
+          }
         }
       }
     }
+
+#ifdef DEBUG
+    if ((fdw->nu_4mom[3] - 1) > TEnergy) {
+      g4ar.ShoutRooTracker();
+      std::cout << fdw->EventCode->GetString() << std::endl;
+      std::cout << "[INFO]: Neutrino E = " << fdw->nu_4mom[3]
+                << ", total FS = " << TEnergy << std::endl;
+      for (auto& s : ss) {
+        std::cout << s << std::endl;
+      }
+    }
+
+    ss.clear();
+#endif
 
     // ====================== END GENIE Pass through ========================
 
@@ -329,36 +376,44 @@ int main(int argc, char* argv[]) {
     }
 
     for (DepoParticle& td : ev.TotalDeposits) {
-      switch (abs(td.PDG)) {
-        case 13:
-        case 11: {
-          LepDep.AddDeposit(td);
-          break;
-        }
-        case 2212: {
-          ProtonDep.AddDeposit(td);
-          HadDep.AddDeposit(td);
-          break;
-        }
-        case 2112: {
-          NeutronDep.AddDeposit(td);
-          HadDep.AddDeposit(td);
-          break;
-        }
-        case 211: {
-          PiCDep.AddDeposit(td);
-          HadDep.AddDeposit(td);
-          break;
-        }
-        case 111: {
-          Pi0Dep.AddDeposit(td);
-          HadDep.AddDeposit(td);
-          break;
-        }
-        default: {
-          OtherDep.AddDeposit(td);
-          HadDep.AddDeposit(td);
-          break;
+      if (G4ArReader::IsNuclearPDG(abs(td.PDG))) {
+        NuclRemDep.AddDeposit(td);
+      } else {
+        switch (abs(td.PDG)) {
+          case 13:
+          case 11: {
+            LepDep.AddDeposit(td);
+            break;
+          }
+          case 2212: {
+            ProtonDep.AddDeposit(td);
+            HadDep.AddDeposit(td);
+            break;
+          }
+          case 2112: {
+            NeutronDep.AddDeposit(td);
+            HadDep.AddDeposit(td);
+            break;
+          }
+          case 211: {
+            PiCDep.AddDeposit(td);
+            HadDep.AddDeposit(td);
+            break;
+          }
+          case 111: {
+            Pi0Dep.AddDeposit(td);
+            HadDep.AddDeposit(td);
+            break;
+          }
+          case 22: {
+            OtherDep.AddDeposit(td);
+            break;
+          }
+          default: {
+            OtherDep.AddDeposit(td);
+            HadDep.AddDeposit(td);
+            break;
+          }
         }
       }
     }
@@ -554,6 +609,9 @@ int main(int argc, char* argv[]) {
           fdw->Pi0Dep[x_it][y_it][z_it] = Pi0Dep.Deposits->GetBinContent(gbin);
           fdw->OtherDep[x_it][y_it][z_it] =
               OtherDep.Deposits->GetBinContent(gbin);
+          fdw->NuclRemDep[x_it][y_it][z_it] =
+              NuclRemDep.Deposits->GetBinContent(gbin) +
+              NuclRemDep.DaughterDeposits->GetBinContent(gbin);
 
           fdw->LepDaughterDep[x_it][y_it][z_it] =
               LepDep.DaughterDeposits->GetBinContent(gbin);
@@ -587,6 +645,9 @@ int main(int argc, char* argv[]) {
                 Pi0Dep.Deposits_timesep->GetBinContent(gbin);
             fdw->OtherDep_timesep[x_it][y_it][z_it] =
                 OtherDep.Deposits_timesep->GetBinContent(gbin);
+            fdw->NuclRemDep[x_it][y_it][z_it] +=
+                NuclRemDep.Deposits_timesep->GetBinContent(gbin) +
+                NuclRemDep.DaughterDeposits_timesep->GetBinContent(gbin);
 
             fdw->LepDaughterDep_timesep[x_it][y_it][z_it] =
                 LepDep.DaughterDeposits_timesep->GetBinContent(gbin);
@@ -603,7 +664,9 @@ int main(int argc, char* argv[]) {
             fdw->OtherDaughterDep_timesep[x_it][y_it][z_it] =
                 OtherDep.DaughterDeposits_timesep->GetBinContent(gbin);
 
-            if (fdw->ProtonDep[x_it][y_it][z_it]||fdw->ProtonDep_timesep[x_it][y_it][z_it]) {
+#ifdef DEBUG
+            if (fdw->ProtonDep[x_it][y_it][z_it] ||
+                fdw->ProtonDep_timesep[x_it][y_it][z_it]) {
               std::cout << fdw->ProtonDep[x_it][y_it][z_it] << ", "
                         << fdw->ProtonDep_timesep[x_it][y_it][z_it]
                         << std::endl;
@@ -613,6 +676,7 @@ int main(int argc, char* argv[]) {
                           << fdw->LepDep_timesep[x_it][y_it][z_it] << std::endl;
               }
             }
+#endif
           }
         }
       }
@@ -638,6 +702,7 @@ int main(int argc, char* argv[]) {
   PiCDep.DeleteDepositMaps();
   Pi0Dep.DeleteDepositMaps();
   OtherDep.DeleteDepositMaps();
+  NuclRemDep.DeleteDepositMaps();
 
   outfile->Write();
   outfile->Close();

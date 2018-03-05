@@ -106,12 +106,19 @@ struct G4ArReader {
   ~G4ArReader();
 
   TObjString* RooTrackerInteractionCode;
+  Int_t StdHepN;
+  Int_t StdHepStatus[1000];
+  Int_t StdHepRescat[1000];
+  Int_t StdHepPdg[1000];
+  Double_t StdHepP4[1000][4];
   // ================== End Input branches ===================
 
   // ================== Start Util methods ===================
 
-  bool IsBindino(int pdg);
-  bool IsNuclearPDG(int pdg);
+  static bool IsBindino(int pdg);
+  static bool IsNuclearPDG(int pdg);
+
+  void ShoutRooTracker();
 
   Event BuildEvent();
 };

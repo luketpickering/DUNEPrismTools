@@ -2,8 +2,8 @@
 #include "TObjString.h"
 
 #include <algorithm>
-#include <iostream>
 #include <csignal>
+#include <iostream>
 
 /// Energy deposit and GENIE passthrough output tree
 struct EDep {
@@ -84,8 +84,18 @@ struct EDep {
   double vtxInDetX;
   /// [GENIE P/T]:  The X offset of stop, stop in cm.
   double XOffset;
-  /// [GENIE P/T]:  The GENIE interaction code.
+  /// [GENIE P/T]:  The GENIE interaction code (Full interactions tring).
   TObjString *EventCode;
+  ///\brief [GENIE P/T]:  The GENIE interaction code (integer).
+  ///
+  /// * 1 : QE
+  /// * 2 : MEC/2p2h
+  /// * 3 : RES
+  /// * 4 : DIS
+  /// * 5 : COH
+  /// * 6 : nu-e elastic
+  /// * 7 : IMD
+  Int_t GENIEInteractionTopology;
   /// [GENIE P/T]:  The 4-momentum of the incident neutrino in detector
   /// coordinates.
   double nu_4mom[4];
@@ -155,11 +165,18 @@ struct EDep {
   int NNeutron;
   /// [GENIE P/T]:  The number of final state photons in the event.
   int NGamma;
+  ///\brief [GENIE P/T]:  The number of final state particles in the
+  /// event with 1000 < abs(PDG) < 9999
+  ///
+  /// N.B. These correspond to baryonic resonance particles and arose from a
+  /// proton or neutron. N times the nucleon mass should probably be removed
+  /// from these events.
+  int NBaryonicRes;
   ///\brief [GENIE P/T]:  The number of final state other particles in the
   /// event.
   ///
   /// N.B. These do not include GENIE bindinos or nuclear PDG codes.
-  /// By eye, these are most often Kaons or Lambdas.
+  /// By eye, these are most often Kaons.
   int NOther;
 
   ///\brief [GENIE P/T]: The total kinetic energy of all neutral pions at the
@@ -203,9 +220,21 @@ struct EDep {
   /// N.B. These do not include GENIE bindinos or nuclear PDG codes.
   /// By eye, these are most often Kaons or Lambdas.
   double EOther_True;
-  ///\brief [GENIE P/T]: The total energy of all non-primary leptons at the
-  /// end of the GENIE simulation.
+  ///\brief [GENIE P/T]: The total energy of all non-primary-leptons at the
+  /// end of the GENIE simulation. (i.e. hadrons)
   double Total_ENonPrimaryLep_True;
+  ///\brief [GENIE P/T]: The KE of all nucleons and total energy of all other
+  /// non-primary-leptons at the end of the GENIE simulation. (i.e. hadrons)
+  double ENonPrimaryLep_KinNucleonTotalOther_True;
+
+  ///\brief [GENIE P/T]: The summed three momentum of all final state particles
+  /// from GENIE.
+  double TotalFS_3mom[3];
+
+  ///\brief [GENIE P/T]: The KE of all protons and total energy of all other
+  /// particles (including primary proton), with 938 MeV removed for all
+  /// baryonic resonances found.
+  double ERecProxy_True;
 
   ///\brief [GEANT4]: The total 'early' lepton energy deposited within the stops
   /// fiducial volume.
@@ -549,6 +578,12 @@ struct EDep {
   /// N.B. This will track a primary electron, but that should shower very
   /// quickly. This branch is nominally designed for primary muons.
   bool LepExit;
+  ///\brief [GEANT4]: Whether the primary lepton left the active stop volume
+  /// with more KE than a runtime threshold (default = 50 MeV);
+  ///
+  /// N.B. This will track a primary electron, but that should shower very
+  /// quickly. This branch is nominally designed for primary muons.
+  bool LepExit_AboveThresh;
   ///\brief [GEANT4]: Whether the primary lepton left the active stop via the +Z
   /// face.
   ///
@@ -599,6 +634,8 @@ struct EDep {
   /// quickly. This branch is nominally designed for primary muons.
   int LepExitTopology;
 
+  /// [GEANT4]: The exit KE of the primary lepton.
+  double LepExitKE;
   /// [GEANT4]: The exit 3-position of the primary lepton.
   double LepExitingPos[3];
   /// [GEANT4]: The exit 3-momentum of the primary lepton.
@@ -665,6 +702,7 @@ struct EDep {
     std::fill_n(vtx, 3, 0);
     vtxInDetX = 0;
     XOffset = 0;
+    GENIEInteractionTopology = 0;
     std::fill_n(nu_4mom, 4, 0);
     y_True = 0;
     Q2_True = 0;
@@ -684,6 +722,7 @@ struct EDep {
     NNeutron = 0;
     NGamma = 0;
     NOther = 0;
+    NBaryonicRes = 0;
     EKinPi0_True = 0;
     EMassPi0_True = 0;
     EKinPiC_True = 0;
@@ -695,6 +734,9 @@ struct EDep {
     EGamma_True = 0;
     EOther_True = 0;
     Total_ENonPrimaryLep_True = 0;
+    std::fill_n(TotalFS_3mom, 3, 0);
+    ENonPrimaryLep_KinNucleonTotalOther_True = 0;
+    ERecProxy_True = 0;
     LepDep_FV = 0;
     LepDep_veto = 0;
     LepDepDescendent_FV = 0;
@@ -730,6 +772,7 @@ struct EDep {
     TotalNonlep_Dep_timesep_FV = 0;
     TotalNonlep_Dep_timesep_veto = 0;
     LepExit = 0;
+    LepExit_AboveThresh = 0;
     LepExitBack = 0;
     LepExitFront = 0;
     LepExitYLow = 0;
@@ -739,6 +782,7 @@ struct EDep {
     LepExitTopology = 0;
     std::fill_n(LepExitingPos, 3, 0);
     std::fill_n(LepExitingMom, 3, 0);
+    LepExitKE = 0;
     IsNumu = 0;
     IsAntinu = 0;
     IsCC = 0;
@@ -764,6 +808,8 @@ struct EDep {
     OutputTree->Branch("vtxInDetX", &rtn->vtxInDetX, "vtxInDetX/D");
     OutputTree->Branch("XOffset", &rtn->XOffset, "XOffset/D");
     OutputTree->Branch("EventCode", &rtn->EventCode);
+    OutputTree->Branch("GENIEInteractionTopology",
+                       &rtn->GENIEInteractionTopology);
 
     OutputTree->Branch("nu_4mom", &rtn->nu_4mom, "nu_4mom[4]/D");
     OutputTree->Branch("y_True", &rtn->y_True, "y_True/D");
@@ -792,6 +838,7 @@ struct EDep {
     OutputTree->Branch("NNeutron", &rtn->NNeutron, "NNeutron/I");
     OutputTree->Branch("NGamma", &rtn->NGamma, "NGamma/I");
     OutputTree->Branch("NOther", &rtn->NOther, "NOther/I");
+    OutputTree->Branch("NBaryonicRes", &rtn->NBaryonicRes, "NBaryonicRes/I");
 
     OutputTree->Branch("EKinPi0_True", &rtn->EKinPi0_True, "EKinPi0_True/D");
     OutputTree->Branch("EMassPi0_True", &rtn->EMassPi0_True, "EMassPi0_True/D");
@@ -811,6 +858,12 @@ struct EDep {
     OutputTree->Branch("Total_ENonPrimaryLep_True",
                        &rtn->Total_ENonPrimaryLep_True,
                        "Total_ENonPrimaryLep_True/D");
+    OutputTree->Branch("TotalFS_3mom", &rtn->TotalFS_3mom, "TotalFS_3mom[3]/D");
+    OutputTree->Branch("ENonPrimaryLep_KinNucleonTotalOther_True",
+                       &rtn->ENonPrimaryLep_KinNucleonTotalOther_True,
+                       "ENonPrimaryLep_KinNucleonTotalOther_True/D");
+    OutputTree->Branch("ERecProxy_True", &rtn->ERecProxy_True,
+                       "ERecProxy_True/D");
 
     OutputTree->Branch("LepDep_FV", &rtn->LepDep_FV, "LepDep_FV/D");
     OutputTree->Branch("LepDep_veto", &rtn->LepDep_veto, "LepDep_veto/D");
@@ -884,6 +937,8 @@ struct EDep {
     }
 
     OutputTree->Branch("LepExit", &rtn->LepExit, "LepExit/O");
+    OutputTree->Branch("LepExit_AboveThresh", &rtn->LepExit_AboveThresh,
+                       "LepExit_AboveThresh/O");
 
     OutputTree->Branch("LepExitBack", &rtn->LepExitBack, "LepExitBack/O");
     OutputTree->Branch("LepExitFront", &rtn->LepExitFront, "LepExitFront/O");
@@ -895,6 +950,7 @@ struct EDep {
     OutputTree->Branch("LepExitTopology", &rtn->LepExitTopology,
                        "LepExitTopology/I");
 
+    OutputTree->Branch("LepExitKE", &rtn->LepExitKE, "LepExitKE/D");
     OutputTree->Branch("LepExitingPos", &rtn->LepExitingPos,
                        "LepExitingPos[3]/D");
     OutputTree->Branch("LepExitingMom", &rtn->LepExitingMom,
@@ -925,6 +981,8 @@ struct EDep {
     tree->SetBranchAddress("vtxInDetX", &vtxInDetX);
     tree->SetBranchAddress("XOffset", &XOffset);
     tree->SetBranchAddress("EventCode", &EventCode);
+    tree->SetBranchAddress("GENIEInteractionTopology",
+                           &GENIEInteractionTopology);
     tree->SetBranchAddress("nu_4mom", &nu_4mom);
     tree->SetBranchAddress("y_True", &y_True);
     tree->SetBranchAddress("Q2_True", &Q2_True);
@@ -944,6 +1002,7 @@ struct EDep {
     tree->SetBranchAddress("NNeutron", &NNeutron);
     tree->SetBranchAddress("NGamma", &NGamma);
     tree->SetBranchAddress("NOther", &NOther);
+    tree->SetBranchAddress("NBaryonicRes", &NBaryonicRes);
     tree->SetBranchAddress("EKinPi0_True", &EKinPi0_True);
     tree->SetBranchAddress("EMassPi0_True", &EMassPi0_True);
     tree->SetBranchAddress("EKinPiC_True", &EKinPiC_True);
@@ -956,6 +1015,10 @@ struct EDep {
     tree->SetBranchAddress("EOther_True", &EOther_True);
     tree->SetBranchAddress("Total_ENonPrimaryLep_True",
                            &Total_ENonPrimaryLep_True);
+    tree->SetBranchAddress("TotalFS_3mom", &TotalFS_3mom);
+    tree->SetBranchAddress("ENonPrimaryLep_KinNucleonTotalOther_True",
+                           &ENonPrimaryLep_KinNucleonTotalOther_True);
+    tree->SetBranchAddress("ERecProxy_True", &ERecProxy_True);
     tree->SetBranchAddress("LepDep_FV", &LepDep_FV);
     tree->SetBranchAddress("LepDep_veto", &LepDep_veto);
     tree->SetBranchAddress("LepDepDescendent_FV", &LepDepDescendent_FV);
@@ -1000,6 +1063,8 @@ struct EDep {
                              &TotalNonlep_Dep_timesep_veto);
     }
     tree->SetBranchAddress("LepExit", &LepExit);
+    tree->SetBranchAddress("LepExitKE", &LepExitKE);
+    tree->SetBranchAddress("LepExit_AboveThresh", &LepExit_AboveThresh);
     tree->SetBranchAddress("LepExitBack", &LepExitBack);
     tree->SetBranchAddress("LepExitFront", &LepExitFront);
     tree->SetBranchAddress("LepExitYLow", &LepExitYLow);

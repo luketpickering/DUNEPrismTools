@@ -4,11 +4,13 @@
 #include "EDepTreeReader.h"
 #include "FullDetTreeReader.h"
 #include "G4ArReader.h"
+#include "VALORModelClassifier.h"
 
 #include "TH3D.h"
 #include "TRandom3.h"
 #include "TTree.h"
 
+#include <limits>
 #include <utility>
 
 // #define DEBUG
@@ -39,8 +41,10 @@ std::vector<DetBox> Detectors;
 
 std::string inpDir, outputFile;
 std::string runPlanCfg, runPlanName = "";
-double VetoThreshold = 0.001;
+double VetoThreshold = 10E-3;
+double LepExitThreshold = 50E-3;
 bool WriteOutNonStop = false;
+Long64_t NMax = std::numeric_limits<Long64_t>::max();
 
 void SayUsage(char const *argv[]) {
   std::cout
@@ -60,7 +64,8 @@ void SayUsage(char const *argv[]) {
          "\t                                selection {default = 10 MeV}.\n"
          "\t-A                            : Write out all events regardless "
          "of whether they\n"
-         "\t                                fall within a stop."
+         "\t                                fall within a stop.\n"
+         "\t-n                            : NMax events to write."
       << std::endl;
 }
 
@@ -87,6 +92,8 @@ void handleOpts(int argc, char const *argv[]) {
       VetoThreshold = str2T<double>(argv[++opt]);
     } else if (std::string(argv[opt]) == "-A") {
       WriteOutNonStop = true;
+    } else if (std::string(argv[opt]) == "-n") {
+      NMax = str2T<Long64_t>(argv[++opt]);
     } else {
       std::cout << "[ERROR]: Unknown option: " << argv[opt] << std::endl;
       SayUsage(argv);
@@ -266,12 +273,12 @@ int main(int argc, char const *argv[]) {
   std::cout << "[INFO]: Reading " << rdr->GetEntries() << " input entries."
             << std::endl;
 
-  size_t loud_every = rdr->GetEntries() / 10;
+  size_t loud_every = std::min(Long64_t(rdr->GetEntries()), NMax) / 100;
   TRandom3 *rnjesus = new TRandom3();
 
   std::vector<int> overlapping_stops;
   size_t NFills = 0;
-  Long64_t NEntries = rdr->GetEntries();
+  Long64_t NEntries = std::min(Long64_t(rdr->GetEntries()), NMax);
   for (Long64_t e_it = 0; e_it < NEntries; ++e_it) {
     rdr->GetEntry(e_it);
 
@@ -279,7 +286,7 @@ int main(int argc, char const *argv[]) {
       std::cout << "\r[INFO]: Read " << e_it << " entries... ( vtx: {"
                 << rdr->VertexPosition[0] << ", " << rdr->VertexPosition[1]
                 << ", " << rdr->VertexPosition[2]
-                << "}, Enu: " << rdr->nu_4mom[3] << " )" << std::flush;
+                << "}, Enu: " << rdr->nu_4mom[3] << " )" << std::endl;
     }
 
     // DetBox + Reader -> EDep -> Fill out tree
@@ -328,6 +335,10 @@ int main(int argc, char const *argv[]) {
 
     OutputEDep->stop = stop;
     (*OutputEDep->EventCode) = (*rdr->EventCode);
+
+    GENIECodeStringParser gcp(rdr->EventCode->GetString().Data());
+    OutputEDep->GENIEInteractionTopology = static_cast<int>(gcp.channel);
+
     std::copy_n(rdr->VertexPosition, 3, OutputEDep->vtx);
     std::copy_n(rdr->nu_4mom, 4, OutputEDep->nu_4mom);
     OutputEDep->nu_PDG = rdr->nu_PDG;
@@ -353,6 +364,7 @@ int main(int argc, char const *argv[]) {
     OutputEDep->NNeutron = rdr->NNeutron;
     OutputEDep->NGamma = rdr->NGamma;
     OutputEDep->NOther = rdr->NOther;
+    OutputEDep->NBaryonicRes = rdr->NBaryonicRes;
 
     OutputEDep->EKinPi0_True = rdr->EKinPi0_True;
     OutputEDep->EMassPi0_True = rdr->EMassPi0_True;
@@ -363,7 +375,19 @@ int main(int argc, char const *argv[]) {
     OutputEDep->EKinNeutron_True = rdr->EKinNeutron_True;
     OutputEDep->EMassNeutron_True = rdr->EMassNeutron_True;
     OutputEDep->EGamma_True = rdr->EGamma_True;
+    OutputEDep->EOther_True = rdr->EOther_True;
     OutputEDep->Total_ENonPrimaryLep_True = rdr->ENonPrimaryLep_True;
+    std::copy_n(rdr->TotalFS_3mom, 3, OutputEDep->TotalFS_3mom);
+    OutputEDep->ENonPrimaryLep_KinNucleonTotalOther_True =
+        rdr->EKinPi0_True + rdr->EMassPi0_True + rdr->EKinPiC_True +
+        rdr->EMassPiC_True + rdr->EKinProton_True + rdr->EKinNeutron_True +
+        rdr->EGamma_True + rdr->EOther_True;
+
+    OutputEDep->ERecProxy_True =
+        rdr->EKinPi0_True + rdr->EMassPi0_True + rdr->EKinPiC_True +
+        rdr->EMassPiC_True + rdr->EKinProton_True + rdr->EKinNeutron_True +
+        rdr->EGamma_True + rdr->EOther_True - rdr->NBaryonicRes * 0.938 +
+        rdr->PrimaryLep_4mom[3];
 
     OutputEDep->IsNumu = (abs(rdr->nu_PDG) == 14);
     OutputEDep->IsAntinu = (rdr->nu_PDG < 0);
@@ -507,6 +531,17 @@ int main(int argc, char const *argv[]) {
           std::copy_n(rdr->MuonTrackPos[i], 3, OutputEDep->LepExitingPos);
           std::copy_n(rdr->MuonTrackMom[i], 3, OutputEDep->LepExitingMom);
 
+          OutputEDep->LepExitKE =
+              sqrt(
+                  pow(0.1056, 2) +
+                  (OutputEDep->LepExitingMom[0] * OutputEDep->LepExitingMom[0] +
+                   OutputEDep->LepExitingMom[1] * OutputEDep->LepExitingMom[1] +
+                   OutputEDep->LepExitingMom[2] *
+                       OutputEDep->LepExitingMom[2])) -
+              0.1056;
+          OutputEDep->LepExit_AboveThresh =
+              (OutputEDep->LepExitKE > LepExitThreshold);
+
 #ifdef DEBUG
           std::cout << "[INFO]: Muon stopped tracking at step [" << i
                     << "] at {" << rdr->MuonTrackPos[i][0] << ", "
@@ -534,16 +569,16 @@ int main(int argc, char const *argv[]) {
     for (Int_t x_it = 0; x_it < detdims.NXSteps; ++x_it) {
       for (size_t y_it = 0; y_it < 3; ++y_it) {
         for (size_t z_it = 0; z_it < 3; ++z_it) {
-          if (rdr->LepDep[x_it][y_it][z_it]) {
+          if (rdr->ProtonDep[x_it][y_it][z_it]) {
             std::cout << "[INFO]: Bin " << x_it << ", " << y_it << ", " << z_it
-                      << ", LepDep content = " << rdr->LepDep[x_it][y_it][z_it]
-                      << std::endl;
+                      << ", ProtonDep content = "
+                      << rdr->ProtonDep[x_it][y_it][z_it] << std::endl;
           }
 
           if (rdr->timesep_us != 0xdeadbeef) {
-            if (rdr->LepDep_timesep[x_it][y_it][z_it]) {
+            if (rdr->ProtonDep_timesep[x_it][y_it][z_it]) {
               std::cout << "[INFO]: Bin " << x_it << ", " << y_it << ", "
-                        << z_it << ", LepDep_timesep content = "
+                        << z_it << ", ProtonDep_timesep content = "
                         << rdr->LepDep_timesep[x_it][y_it][z_it] << std::endl;
             }
           }
@@ -749,10 +784,10 @@ int main(int argc, char const *argv[]) {
                       stopBox.X_fv[1], 0, kIncludeOOFVYZ);
 
       OutputEDep->ProtonDep_timesep_FV =
-          Jaccumulate(rdr->ProtonDep, stopBox.X_fv[0], stopBox.X_fv[1], 0,
-                      kIncludeFVYZ) +
-          Jaccumulate(rdr->ProtonDaughterDep, stopBox.X_fv[0], stopBox.X_fv[1],
-                      0, kIncludeFVYZ);
+          Jaccumulate(rdr->ProtonDep_timesep, stopBox.X_fv[0], stopBox.X_fv[1],
+                      0, kIncludeFVYZ) +
+          Jaccumulate(rdr->ProtonDaughterDep_timesep, stopBox.X_fv[0],
+                      stopBox.X_fv[1], 0, kIncludeFVYZ);
 
       OutputEDep->ProtonDep_timesep_veto =
           Jaccumulate(rdr->ProtonDep_timesep, stopBox.X_veto_left[0],
