@@ -94,11 +94,12 @@ TH3D* G4ArReader::GetCacheMap(size_t i) {
 G4ArReader::G4ArReader(std::string inputG4ArFileName,
                        DetectorAndFVDimensions& detdims,
                        std::string inputGENIERooTrackerFileName,
-                       Long64_t MaxEntries)
+                       double timesep_us, Long64_t MaxEntries)
     : InputG4ArFile(nullptr),
       InputG4ArTree(nullptr),
       InputGENIERooTrackerFile(nullptr),
       InputGENIERooTrackerTree(nullptr),
+      timesep_us(timesep_us),
       NMaxTrackSteps(1000),
       RooTrackerInteractionCode(nullptr) {
   InputG4ArFile = new TFile(inputG4ArFileName.c_str(), "READ");
@@ -190,12 +191,37 @@ bool G4ArReader::SetBranchAddresses() {
   if (InputGENIERooTrackerTree) {
     InputGENIERooTrackerTree->SetBranchAddress("EvtCode",
                                                &RooTrackerInteractionCode);
+    InputGENIERooTrackerTree->SetBranchAddress("StdHepN", &StdHepN);
+    InputGENIERooTrackerTree->SetBranchAddress("StdHepStatus", StdHepStatus);
+    InputGENIERooTrackerTree->SetBranchAddress("StdHepRescat", StdHepRescat);
+    InputGENIERooTrackerTree->SetBranchAddress("StdHepPdg", StdHepPdg);
+    InputGENIERooTrackerTree->SetBranchAddress("StdHepP4", StdHepP4);
   }
   return true;
 }
 
+void G4ArReader::ShoutRooTracker() {
+  if (InputGENIERooTrackerTree) {
+    double e = 0;
+    double nmass = 0;
+    std::cout << "[INFO]: GENIE RooTracker info: " << std::endl;
+    for (Int_t i = 0; i < StdHepN; ++i) {
+      std::cout << "[" << i << "] Status: " << StdHepStatus[i]
+                << ", PDG: " << StdHepPdg[i] << ", Energy = " << StdHepP4[i][3]
+                << ", Rescat = " << StdHepRescat[i] << std::endl;
+      if (StdHepStatus[i] == 1) {
+        e += StdHepP4[i][3];
+        nmass += ((abs(StdHepPdg[i]) == 2212) || (abs(StdHepPdg[i]) == 2112))
+                     ? StdHepP4[i][3] - 0.938
+                     : StdHepP4[i][3];
+      }
+    }
+    std::cout << "Total E = " << e << ", no nucl mass = " << nmass << std::endl;
+  }
+}
+
 bool G4ArReader::GetNextEvent() {
-  if (Entry == (NInputEntries-1)) {
+  if (Entry == (NInputEntries - 1)) {
     return false;
   }
   Entry++;
@@ -271,13 +297,11 @@ Event G4ArReader::BuildEvent() {
     pp.ThreeMom = TVector3(prim_3mom_x[prim_part_it], prim_3mom_y[prim_part_it],
                            prim_3mom_z[prim_part_it]);
 
-    if (!IsNuclearPDG(prim_PDG[prim_part_it])) {
-      ev.PrimaryParticles.push_back(pp);
-    }
+    ev.PrimaryParticles.push_back(pp);
 
     if (abs(pp.PDG) == 13) {
       ev.TrackedDeposits.emplace_back(prim_PDG[prim_part_it], prim_TID,
-                                      NMaxTrackSteps);
+                                      NMaxTrackSteps, timesep_us);
 #ifdef DEBUG
       std::cout << "[INFO]: Added new primary particle: PDG = "
                 << ev.TrackedDeposits.back().PDG
@@ -292,7 +316,8 @@ Event G4ArReader::BuildEvent() {
         ev.TrackedDeposits.back().SetTrackTime();
       }
     } else {
-      ev.TotalDeposits.emplace_back(prim_PDG[prim_part_it], prim_TID);
+      ev.TotalDeposits.emplace_back(prim_PDG[prim_part_it], prim_TID,
+                                    timesep_us);
 #ifdef DEBUG
       std::cout << "[INFO]: Added new primary particle: PDG = "
                 << ev.TotalDeposits.back().PDG

@@ -48,7 +48,7 @@ int main(int argc, char const *argv[]) {
   TTree *friendtree = new TTree("XSecWeights", "");
   TTree *configtree = new TTree("ConfigTree", "");
 
-  size_t NWeights = 1;
+  size_t NWeights = 2;
   configtree->Branch("NWeights", &NWeights, "NWeights/I");
   configtree->Fill();
 
@@ -63,25 +63,51 @@ int main(int argc, char const *argv[]) {
   for (Long64_t e_it = 0; e_it < NEntries; ++e_it) {
     edr.GetEntry(e_it);
 
+    if (edr.stop == -1) {
+      xsecweights[0] = 1;
+      NFills++;
+      friendtree->Fill();
+      continue;
+    }
+
     if (loud_every && !(e_it % loud_every)) {
       std::cout << "\r[INFO]: Read " << e_it << " entries... ( vtx: {"
                 << edr.vtx[0] << ", " << edr.vtx[1] << ", " << edr.vtx[2]
                 << "}, Enu: " << edr.nu_4mom[3] << " )" << std::endl;
     }
 
-    std::string evc = edr.EventCode->GetString().Data();
-
     std::vector<VALORModel::TrueClass> appdial = GetApplicableDials(edr);
 
+#ifdef DEBUG
+    std::string evc = edr.EventCode->GetString().Data();
+
+    GENIECodeStringParser gcp(evc);
     std::cout << "[INFO]: event " << e_it << ", code: " << evc << std::endl;
     size_t d_it = 0;
+#endif
     xsecweights[0] = 1;
     for (auto &d : appdial) {
+#ifdef DEBUG
       std::cout << "\t [" << d_it << "]: " << d
                 << ", +1 sigma weight: " << GetVALORWeight(d, 1, edr)
                 << std::endl;
-      xsecweights[0] *= GetVALORWeight(d, 1, edr);
       d_it++;
+#endif
+      xsecweights[0] *= GetVALORWeight(d, 1, edr);
+    }
+
+#ifdef DEBUG
+    d_it = 0;
+#endif
+    xsecweights[1] = 1;
+    for (auto &d : appdial) {
+#ifdef DEBUG
+      std::cout << "\t [" << d_it << "]: " << d
+                << ", +1 sigma weight: " << GetVALORWeight(d, 1, edr)
+                << std::endl;
+      d_it++;
+#endif
+      xsecweights[1] *= GetVALORWeight(d, -1, edr);
     }
 
     NFills++;

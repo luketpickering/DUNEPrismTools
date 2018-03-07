@@ -1,4 +1,3 @@
-
 #include "TH3D.h"
 #include "TObjString.h"
 #include "TVector3.h"
@@ -15,18 +14,27 @@ struct DepoParticle {
   TH3D *Deposits;
   TH3D *DaughterDeposits;
 
+  TH3D *Deposits_timesep;
+  TH3D *DaughterDeposits_timesep;
+
   bool TrackTime;
   TH3D *Deposits_ChrgWSumTime;
   TH3D *DaughterDeposits_ChrgWSumTime;
+
+  double timesep_us;
 
   DepoParticle() {
     PDG = 0;
     TrackID = 0;
     Deposits = nullptr;
     DaughterDeposits = nullptr;
+    Deposits_timesep = nullptr;
+    DaughterDeposits_timesep = nullptr;
     TrackTime = false;
     Deposits_ChrgWSumTime = nullptr;
     DaughterDeposits_ChrgWSumTime = nullptr;
+
+    timesep_us = 0xdeadbeef;
   }
 
   void SetTrackTime() {
@@ -43,11 +51,16 @@ struct DepoParticle {
     }
   }
 
-  DepoParticle(int PDG, size_t trackID) {
+  DepoParticle(int PDG, size_t trackID, double timesep_us = 0xdeadbeef) {
     this->PDG = PDG;
     TrackID = trackID;
+    this->timesep_us = timesep_us;
+
     Deposits = nullptr;
     DaughterDeposits = nullptr;
+
+    Deposits_timesep = nullptr;
+    DaughterDeposits_timesep = nullptr;
 
     TrackTime = false;
     Deposits_ChrgWSumTime = nullptr;
@@ -60,12 +73,19 @@ struct DepoParticle {
   void Swap(DepoParticle &&other) {
     PDG = other.PDG;
     TrackID = other.TrackID;
+    timesep_us = other.timesep_us;
 
     Deposits = other.Deposits;
     DaughterDeposits = other.DaughterDeposits;
 
     other.Deposits = nullptr;
     other.DaughterDeposits = nullptr;
+
+    Deposits_timesep = other.Deposits_timesep;
+    DaughterDeposits_timesep = other.DaughterDeposits_timesep;
+
+    other.Deposits_timesep = nullptr;
+    other.DaughterDeposits_timesep = nullptr;
 
     TrackTime = other.TrackTime;
 
@@ -91,6 +111,13 @@ struct DepoParticle {
     Deposits->Reset();
     DaughterDeposits->Reset();
 
+    if (timesep_us != 0xdeadbeef) {
+      Deposits_timesep = static_cast<TH3D *>(map1->Clone());
+      Deposits_timesep->SetDirectory(nullptr);
+      DaughterDeposits_timesep = static_cast<TH3D *>(map2->Clone());
+      DaughterDeposits_timesep->SetDirectory(nullptr);
+    }
+
     if (TrackTime) {
       Deposits_ChrgWSumTime = static_cast<TH3D *>(map1->Clone());
       Deposits_ChrgWSumTime->SetDirectory(nullptr);
@@ -111,6 +138,15 @@ struct DepoParticle {
   void AddDeposit(double *x, double edep, bool IsPrimary) {
     TH3D *dephist = IsPrimary ? Deposits : DaughterDeposits;
 
+    if (timesep_us != 0xdeadbeef) {
+      if ((x[3] * 1E-3) > timesep_us) {
+        dephist = IsPrimary ? Deposits_timesep : DaughterDeposits_timesep;
+      }
+    }
+#ifdef DEBUG
+    std::cout << "[INFO]: Add dep = " << edep << " at time " << (x[3] * 1E-3)
+              << std::endl;
+#endif
     dephist->Fill(x[0], x[1], x[2], edep);
 
     if (TrackTime) {
@@ -124,6 +160,12 @@ struct DepoParticle {
   void AddDeposit(DepoParticle &other) {
     Deposits->Add(other.Deposits);
     DaughterDeposits->Add(other.DaughterDeposits);
+
+    if ((timesep_us != 0xdeadbeef) && (other.timesep_us != 0xdeadbeef)) {
+      Deposits_timesep->Add(other.Deposits_timesep);
+      DaughterDeposits_timesep->Add(other.DaughterDeposits_timesep);
+    }
+
     if (TrackTime && other.TrackTime) {
       Deposits_ChrgWSumTime->Add(other.Deposits_ChrgWSumTime);
       DaughterDeposits_ChrgWSumTime->Add(other.DaughterDeposits_ChrgWSumTime);
@@ -133,6 +175,12 @@ struct DepoParticle {
   void Reset() {
     Deposits->Reset();
     DaughterDeposits->Reset();
+
+    if (timesep_us != 0xdeadbeef) {
+      Deposits_timesep->Reset();
+      DaughterDeposits_timesep->Reset();
+    }
+
     if (TrackTime) {
       Deposits_ChrgWSumTime->Reset();
       DaughterDeposits_ChrgWSumTime->Reset();
@@ -148,6 +196,11 @@ struct DepoParticle {
 
   virtual ~DepoParticle() {
     DisownDepositMaps();
+
+    if (timesep_us != 0xdeadbeef) {
+      delete Deposits_timesep;
+      delete DaughterDeposits_timesep;
+    }
 
     if (TrackTime) {
       delete Deposits_ChrgWSumTime;
@@ -165,12 +218,14 @@ struct DepoTracked : public DepoParticle {
   double **Momentum;
   size_t NSteps;
 
-  DepoTracked(int PDG, size_t trackID, int NMaxTrackSteps = 1000)
-      : DepoParticle(PDG, trackID), kMaxTrackedSteps(NMaxTrackSteps) {
+  DepoTracked(int PDG, size_t trackID, int NMaxTrackSteps = 1000,
+              double timesep_us = 0xdeadbeef)
+      : DepoParticle(PDG, trackID, timesep_us),
+        kMaxTrackedSteps(NMaxTrackSteps) {
     _Position = new double[kMaxTrackedSteps * 3];
     _Momentum = new double[kMaxTrackedSteps * 3];
 
-    if(NMaxTrackSteps == 0){
+    if (NMaxTrackSteps == 0) {
       throw;
     }
 

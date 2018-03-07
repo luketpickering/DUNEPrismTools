@@ -1,4 +1,5 @@
 #include "DetectorStop.hxx"
+#include "EDepTreeReader.h"
 #include "TTree.h"
 #include "Utils.hxx"
 
@@ -7,7 +8,7 @@
 
 std::string inpfile;
 std::string nominphistfile, nominphistname;
-std::string varinphistfile, varinphistname;
+std::vector<std::string> varinphistfile, varinphistname;
 std::string oupfile;
 
 void SayUsage(char const *argv[]) {
@@ -64,8 +65,8 @@ void handleOpts(int argc, char const *argv[]) {
         exit(1);
       }
 
-      varinphistfile = params[0];
-      varinphistname = params[1];
+      varinphistfile.push_back(params[0]);
+      varinphistname.push_back(params[1]);
 
     } else {
       std::cout << "[ERROR]: Unknown option: " << argv[opt] << std::endl;
@@ -90,58 +91,48 @@ int main(int argc, char const *argv[]) {
 
   if (!varinphistfile.size() || !varinphistname.size()) {
     std::cout << "[ERROR]: Expected to recieve an input varied flux histogram "
-                 "descriptor like: \"weighthist.root,weighthistname\", but "
-                 "found: \""
-              << varinphistfile << "," << varinphistname << "\"." << std::endl;
+                 "descriptor like: \"weighthist.root,weighthistname\"."
+              << std::endl;
     return 1;
   }
   // Load weighting TH2
   TH2 *weightinghist_nom = GetHistogram<TH2D>(nominphistfile, nominphistname);
-  TH2 *weightinghist_var = GetHistogram<TH2D>(varinphistfile, varinphistname);
+  std::vector<TH2 *> weightinghist_var;
 
-  // Hookup input tree
-  TChain *Input = new TChain("EDeps");
-  int NAdded = Input->Add(inpfile.c_str());
-
-  if (!NAdded) {
-    std::cout << "[ERROR]: Failed to add \"" << inpfile
-              << "\" to input TChain -- does it exist and does it include the "
-                 "\"EDeps\" TTree."
-              << std::endl;
-    return 1;
+  size_t nvar = varinphistfile.size();
+  for (size_t i = 0; i < nvar; ++i) {
+    weightinghist_var.push_back(
+        GetHistogram<TH2D>(varinphistfile[i], varinphistname[i]));
   }
 
-  size_t NInputEntries = Input->GetEntries();
-  if (!NAdded) {
-    std::cout << "[ERROR]: Found no EDeps entries in:\"" << inpfile << "\"."
-              << std::endl;
-    return 1;
-  }
-
-  double Enu;
-  double vtx[3];
-  Input->SetBranchAddress("Enu", &Enu);
-  Input->SetBranchAddress("vtx", &vtx);
+  EDep edr("EDeps", inpfile);
 
   // Make output tree
   TFile *oupf = CheckOpenFile(oupfile, "RECREATE");
   TTree *oupt = new TTree("FluxVarEDepsFriend", "");
-  double weight;
-  oupt->Branch("weight", &weight, "weight/D");
+  std::vector<double> weight;
+  weight.resize(varinphistfile.size());
+  for (size_t i = 0; i < nvar; ++i) {
+    oupt->Branch((std::string("weight_var") + to_str(i)).c_str(), &weight[i],
+                 (std::string("weight_var") + to_str(i) + "/D").c_str());
 
-  // Gen weights
-  for (size_t e_it = 0; e_it < NInputEntries; ++e_it) {
-    Input->GetEntry(e_it);
+    // Gen weights
+    size_t NInputEntries = edr.GetEntries();
+    for (size_t e_it = 0; e_it < NInputEntries; ++e_it) {
+      edr.GetEntry(e_it);
 
-    Int_t ebin = weightinghist_nom->GetXaxis()->FindFixBin(Enu);
-    Int_t xbin =
-        weightinghist_nom->GetYaxis()->FindFixBin(fabs(vtx[0]) / 100.0);
+      Int_t ebin = weightinghist_nom->GetXaxis()->FindFixBin(edr.nu_4mom[3]);
+      Int_t xbin =
+          weightinghist_nom->GetYaxis()->FindFixBin(fabs(edr.vtx[0]) / 100.0);
 
-    weight = weightinghist_var->GetBinContent(ebin, xbin) /
-             weightinghist_nom->GetBinContent(ebin, xbin);
-    oupt->Fill();
+      for (size_t i = 0; i < nvar; ++i) {
+        weight[i] = weightinghist_var[i]->GetBinContent(ebin, xbin) /
+                    weightinghist_nom->GetBinContent(ebin, xbin);
+      }
+      oupt->Fill();
+    }
+
+    oupf->Write();
+    oupf->Close();
   }
-
-  oupf->Write();
-  oupf->Close();
 }

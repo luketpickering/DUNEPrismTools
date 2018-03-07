@@ -78,17 +78,25 @@ GetDialValueVector(VALORModel::TrueClass te) {
 #undef VARLIST
 
 #define VARLIST \
-  X(kQES)       \
+  Y(kQES, 1)    \
+  X(kMEC)       \
   X(kRES)       \
   X(kDIS)       \
   X(kCOH)       \
   X(kNuEEL)     \
+  X(kIMD)       \
   X(kUnknown)
 
 #define X(A) A,
+#define Y(A, B) A = B,
 enum class VALORModel::TrueChannel { VARLIST };
 #undef X
+#undef Y
 #define X(A)                         \
+  case VALORModel::TrueChannel::A: { \
+    return os << #A;                 \
+  }
+#define Y(A, B)                      \
   case VALORModel::TrueChannel::A: { \
     return os << #A;                 \
   }
@@ -97,11 +105,13 @@ inline std::ostream &operator<<(std::ostream &os, VALORModel::TrueChannel te) {
   return os;
 }
 #undef X
+#undef Y
 #undef VARLIST
 
 struct GENIECodeStringParser {
   int nu_PDG;
   VALORModel::TrueChannel channel;
+  bool IsCC;
 
   GENIECodeStringParser(std::string const &evc) {
     std::vector<std::string> split_evc = ParseToVect<std::string>(evc, ",");
@@ -113,7 +123,9 @@ struct GENIECodeStringParser {
 
     nu_PDG = str2T<int>(split_for_nu_pdg[1]);
 
-    if (evc.find("QES") != std::string::npos) {
+    if (evc.find("MEC") != std::string::npos) {
+      channel = VALORModel::TrueChannel::kMEC;
+    } else if (evc.find("QES") != std::string::npos) {
       channel = VALORModel::TrueChannel::kQES;
     } else if (evc.find("RES") != std::string::npos) {
       channel = VALORModel::TrueChannel::kRES;
@@ -123,8 +135,20 @@ struct GENIECodeStringParser {
       channel = VALORModel::TrueChannel::kCOH;
     } else if (evc.find("NuEEL") != std::string::npos) {
       channel = VALORModel::TrueChannel::kNuEEL;
+    } else if (evc.find("IMD") != std::string::npos) {
+      channel = VALORModel::TrueChannel::kIMD;
     } else {
       std::cout << "[ERROR]: Unaccounted for channel string in: " << evc
+                << std::endl;
+      throw;
+    }
+
+    if (evc.find("[CC]") != std::string::npos) {
+      IsCC = true;
+    } else if (evc.find("[NC]") != std::string::npos) {
+      IsCC = false;
+    } else {
+      std::cout << "[ERROR]: Couldn't find CC/NC in ev code: " << evc
                 << std::endl;
       throw;
     }
@@ -136,17 +160,37 @@ std::vector<VALORModel::TrueClass> GetApplicableDials(EDep const &ed) {
 
   AppDials.push_back(VALORModel::TrueClass::kNuMu_E_Ratio);
 
+#if DEBUG
   GENIECodeStringParser gcp(ed.EventCode->GetString().Data());
 
   if (gcp.nu_PDG != ed.nu_PDG) {
-    std::cout << "[ERROR]: Failed GENIE passthrough: from G4Ar = " << ed.nu_PDG
-              << " from GENIE event string = " << gcp.nu_PDG << std::endl;
+    std::cout << "[ERROR]: Failed GENIE passthrough: nu-PDG from G4Ar = "
+              << ed.nu_PDG << " from GENIE event string = " << gcp.nu_PDG
+              << std::endl;
     throw;
   }
 
+  if (gcp.IsCC != ed.IsCC) {
+    std::cout << "[ERROR]: Failed GENIE passthrough: IsCC from G4Ar = "
+              << ed.IsCC << "(nu: " << ed.nu_PDG
+              << ", lep: " << ed.PrimaryLepPDG
+              << ") from GENIE event string = " << gcp.IsCC << std::endl;
+    throw;
+  }
+
+  if (ed.IsAntinu != (gcp.nu_PDG < 0)) {
+    std::cout << "[ERROR]: Failed GENIE passthrough: IsAntiNu from G4Ar = "
+              << ed.IsAntinu << " from GENIE event string = " << gcp.nu_PDG
+              << std::endl;
+    throw;
+  }
+#endif
+
+  // Not good enough to get post FSI NPi. Need to work out from channel.
+
   // Q2_True
   // IsAntinu
-  switch (gcp.channel) {
+  switch (static_cast<VALORModel::TrueChannel>(ed.GENIEInteractionTopology)) {
     case VALORModel::TrueChannel::kQES: {
       if (ed.Q2_True < 0.2) {
         AppDials.push_back(ed.IsAntinu ? VALORModel::TrueClass::kNuBar_QE_1
@@ -172,7 +216,7 @@ std::vector<VALORModel::TrueClass> GetApplicableDials(EDep const &ed) {
           AppDials.push_back(ed.IsAntinu ? VALORModel::TrueClass::kNuBar_1Pi0_3
                                          : VALORModel::TrueClass::kNu_1Pi0_3);
         }
-      } else if (ed.Is1PiC) {
+      } else {
         if (ed.Q2_True < 0.35) {
           AppDials.push_back(ed.IsAntinu ? VALORModel::TrueClass::kNuBar_1PiC_1
                                          : VALORModel::TrueClass::kNu_1PiC_1);
@@ -183,20 +227,25 @@ std::vector<VALORModel::TrueClass> GetApplicableDials(EDep const &ed) {
           AppDials.push_back(ed.IsAntinu ? VALORModel::TrueClass::kNuBar_1PiC_3
                                          : VALORModel::TrueClass::kNu_1PiC_3);
         }
-      } else {
       }
       break;
     }
     case VALORModel::TrueChannel::kDIS: {
-      if (ed.nu_4mom[3] < 7.5) {
-        AppDials.push_back(ed.IsAntinu ? VALORModel::TrueClass::kNuBar_DIS_1
-                                       : VALORModel::TrueClass::kNu_DIS_1);
-      } else if (ed.nu_4mom[3] < 15) {
-        AppDials.push_back(ed.IsAntinu ? VALORModel::TrueClass::kNuBar_DIS_2
-                                       : VALORModel::TrueClass::kNu_DIS_2);
+      if (((ed.NPi0 + ed.NPiC) == 2) &&
+          ((ed.NGamma + ed.NBaryonicRes + ed.NOther) == 0)) {
+        AppDials.push_back(ed.IsAntinu ? VALORModel::TrueClass::kNuBar_2Pi
+                                       : VALORModel::TrueClass::kNu_2Pi);
       } else {
-        AppDials.push_back(ed.IsAntinu ? VALORModel::TrueClass::kNuBar_DIS_3
-                                       : VALORModel::TrueClass::kNu_DIS_3);
+        if (ed.nu_4mom[3] < 7.5) {
+          AppDials.push_back(ed.IsAntinu ? VALORModel::TrueClass::kNuBar_DIS_1
+                                         : VALORModel::TrueClass::kNu_DIS_1);
+        } else if (ed.nu_4mom[3] < 15) {
+          AppDials.push_back(ed.IsAntinu ? VALORModel::TrueClass::kNuBar_DIS_2
+                                         : VALORModel::TrueClass::kNu_DIS_2);
+        } else {
+          AppDials.push_back(ed.IsAntinu ? VALORModel::TrueClass::kNuBar_DIS_3
+                                         : VALORModel::TrueClass::kNu_DIS_3);
+        }
       }
       break;
     }
@@ -206,6 +255,9 @@ std::vector<VALORModel::TrueClass> GetApplicableDials(EDep const &ed) {
       break;
     }
     case VALORModel::TrueChannel::kNuEEL: {
+      break;
+    }
+    case VALORModel::TrueChannel::kIMD: {
       break;
     }
     default: { throw; }
