@@ -1,5 +1,6 @@
 SET(APPS DunePrismCondenser FullDetTreeStopProcessor
-  FluxVarFriendTreeBuilder XSecVarFriendTreeBuilder G4ArEventDisplay)
+  FluxVarFriendTreeBuilder XSecVarFriendTreeBuilder G4ArEventDisplay
+  MatrixToolsTester EfficiencyWeightFriendTreeBuilder)
 
 include_directories(${INCLUDE_DIRECTORIES})
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
@@ -14,6 +15,7 @@ foreach(a ${APPS})
   target_link_libraries(dp_${a} ${MODULETargets})
   target_link_libraries(dp_${a} ${ROOT_LIBS})
   target_link_libraries(dp_${a} G4ArReader)
+  target_link_libraries(dp_${a} gomp)
 
 
   if(NOT "${CMAKE_LINK_FLAGS}" STREQUAL "")

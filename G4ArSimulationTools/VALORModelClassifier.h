@@ -42,7 +42,8 @@ enum class TrueChannel;
   X(kNuBar_COH, 1.34)    \
   X(kNu_NC, 0.16)        \
   X(kNuBar_NC, 0.16)     \
-  X(kNuMu_E_Ratio, 0.03)
+  X(kNuMu_E_Ratio, 0.03) \
+  X(kNVALORDials,0)
 
 #define X(A, B) A,
 enum class VALORModel::TrueClass { VARLIST };
@@ -305,13 +306,13 @@ double GetVALORWeight(VALORModel::TrueClass te, double value, EDep const &ed) {
     case VALORModel::TrueClass::kNuBar_COH:
     case VALORModel::TrueClass::kNu_NC:
     case VALORModel::TrueClass::kNuBar_NC: {
-      return 1.0 + (GetDefaultDialTweak(te) * value);
+      return 1.0 + value;
     }
     // Splits the uncertainty between numu and nue normalisations that go
     // opposite ways.
     case VALORModel::TrueClass::kNuMu_E_Ratio: {
-      return ed.IsNumu ? 1.0 + (GetDefaultDialTweak(te) * value * 0.5)
-                       : 1.0 - (GetDefaultDialTweak(te) * value * 0.5);
+      return ed.IsNumu ? 1.0 + 0.5*value
+                       : 1.0 - 0.5*value;
     }
     default: { throw; }
   }
