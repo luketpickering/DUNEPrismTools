@@ -30,8 +30,8 @@ do
   echo XMLPATH=/mnt/research/NuInt/DUNEPrismTools/configs/RunPlan.39mLAr.3mFV.10cm.2mx4m.xml >> ${OUTFILE}
 
   echo source /mnt/research/NuInt/argon_box_repo/argon_box/setup.sh 4.10.00.p04 64 >> ${OUTFILE}
-  echo export PATH=/mnt/research/NuInt/DUNEPrismTools/jake-contrib/:\$PATH >> ${OUTFILE}
-  #echo export PATH=/mnt/research/NuInt/DUNEPrismTools/Linux/bin:\$PATH >> ${OUTFILE}
+  #echo export PATH=/mnt/research/NuInt/DUNEPrismTools/jake-contrib/:\$PATH >> ${OUTFILE}
+  echo export PATH=/mnt/research/NuInt/DUNEPrismTools/Linux/bin:\$PATH >> ${OUTFILE}
   echo module load GNU/4.9 >> ${OUTFILE}
 
   echo cp \$\{DATAPATH\}/${line} \$TMPDIR >> ${OUTFILE}

@@ -7,7 +7,7 @@ if [ ! -d "$1" ]; then
   echo "Made directory /home/calcuttj/DUNEPrismSim/RHC/$1/"
   mkdir RHC/$1
   echo "Made directory RHC/$1/"
-  mkdir /mnt/scratch/calcuttj/DunePrism/FHC/$1
+  mkdir /mnt/scratch/calcuttj/DunePrism/RHC/$1
   echo "Made directory RHC/$1/"
 fi
  
@@ -27,7 +27,6 @@ do
   echo \#PBS -l file=20gb >> ${OUTFILE}
   echo \#PBS -N ${run}_analysis >> ${OUTFILE} 
   echo DATAPATH=/mnt/research/NuInt/Dune_Flux/OptimizedEngineeredSept2017Review/gevgen_fnal/rootracker/RHC >> ${OUTFILE}
-  echo XMLPATH=/mnt/research/NuInt/DUNEPrismTools/jake-contrib/${2} >> ${OUTFILE}
   echo PYEXEC=/mnt/research/NuInt/argon_box_repo/argon_box/argon_box_genie.py >> ${OUTFILE}
 
   echo source /mnt/research/NuInt/argon_box_repo/argon_box/setup.sh 4.10.00.p04 64 >> ${OUTFILE}
@@ -44,7 +43,7 @@ do
 
   echo cp \$\{PYOUTPUT\} /mnt/scratch/calcuttj/DunePrism/RHC/$1/ >> ${OUTFILE}
 
-  echo dp_DunePrismCondenser -i \$\{PYOUTPUT\} -o ${run}.\$\{PBS_JOBID\}.DPA.root -c $line -x \$\{XMLPATH\} -n -1 >> ${OUTFILE}
+  echo dp_DunePrismCondenser -i \$\{PYOUTPUT\} -ir $line  -dmn -3800,-150,-250 -dmx 200,150,250 -fv 50,50,50 -o ${run}.\$\{PBS_JOBID\}.DPA.root -nt 1000 >> ${OUTFILE}
  
   echo cp ${run}.\$\{PBS_JOBID\}.DPA.root ~/DUNEPrismSim/RHC/$1/ >> ${OUTFILE}
 
