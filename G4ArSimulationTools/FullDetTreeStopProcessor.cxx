@@ -225,6 +225,18 @@ int main(int argc, char const *argv[]) {
   TTree *OutputTree = new TTree("EDeps", "");
   EDep *OutputEDep = EDep::MakeTreeWriter(OutputTree, timesep_us);
 
+  TTree *config_out = new TTree("configTree", "");
+  Int_t NStops = NDets;
+  config_out->Branch("NStops", &NStops, "NStops/I");
+  config_out->Branch("FVGap", &detdims.FVGap, "FVGap[3]/D");
+  config_out->Fill();
+
+  TTree *stopConfig_out = new TTree("stopConfigTree", "");
+  Double_t Min[3], Max[3];
+  Double_t Offset;
+  stopConfig_out->Branch("Min", &Min, "Min[3]/D");
+  stopConfig_out->Branch("Max", &Max, "Max[3]/D");
+  stopConfig_out->Branch("Offset", &Offset, "Offset/D");
   // translate to detboxes
   for (size_t d_it = 0; d_it < NDets; ++d_it) {
     DetBox db;
@@ -264,6 +276,16 @@ int main(int argc, char const *argv[]) {
     db.X_veto_right[0] =
         DetMap->GetXaxis()->FindFixBin(DetHigh - detdims.FVGap[0]) - 1;
     db.X_veto_right[1] = DetMap->GetXaxis()->FindFixBin(DetHigh) - 1;
+
+    Min[0] = db.XOffset - db.XWidth_det / 2.0;
+    Max[0] = db.XOffset + db.XWidth_det / 2.0;
+    Min[1] = -db.YWidth_det / 2.0;
+    Max[1] = db.YWidth_det / 2.0;
+    Min[2] = -db.ZWidth_det / 2.0;
+    Max[2] = db.ZWidth_det / 2.0;
+    Offset = db.XOffset;
+
+    stopConfig_out->Fill();
 
     Detectors.push_back(db);
   }

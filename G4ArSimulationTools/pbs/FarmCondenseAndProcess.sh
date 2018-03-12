@@ -118,7 +118,7 @@ if [ ! -e ${G4PYSCRATCHDIR} ]; then
 fi
 
 if [ ! -e ${ROOTRACKERDIR} ]; then
-  echo "[ERROR]: Invalid -G directory \"${ROOTRACKERDIR}\". "
+  echo "[ERROR]: Invalid -R directory \"${ROOTRACKERDIR}\". "
   exit 1
 fi
 
@@ -127,8 +127,12 @@ if [ -z ${OUTPUTDIR} ]; then
   exit 1
 fi
 
-source $(readlink -f ~/software/setupNuisance.sh)
-source $(readlink -f ~/software/DUNEPrismTools/build/Linux/setup.sh)
+if [ -z ${ENVSETUPSCRIPT} ]; then
+  echo "[ERROR]: No environment set up script passed."
+  exit 1
+fi
+
+source ${ENVSETUPSCRIPT}
 
 if [ -z ${NMAXJOBS} ]; then
   ${DUNEPRISMTOOLSROOT}/scripts/BuildInputsList_ProcessFromG4Ar.sh -G ${G4PYSCRATCHDIR} -R ${ROOTRACKERDIR} -o process.list

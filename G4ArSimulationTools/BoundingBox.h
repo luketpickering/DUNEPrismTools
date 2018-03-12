@@ -2,6 +2,7 @@
 
 #include <array>
 #include <iostream>
+#include <sstream>
 
 struct BoundingBox {
   std::array<Float_t, 3> Max;
@@ -23,6 +24,34 @@ struct BoundingBox {
 
     Sort();
     CalcPlanes();
+  }
+
+  bool Contains(TVector3 const &pos) const {
+    bool gt = true;
+    for (size_t i = 0; i < 3; ++i) {
+      if (pos[i] >= Max[i]) {
+        gt = false;
+      }
+    }
+
+    bool lt = true;
+    for (size_t i = 0; i < 3; ++i) {
+      if (pos[i] <= Min[i]) {
+        lt = false;
+      }
+    }
+
+    return (gt && lt);
+  }
+
+  std::string Print() const {
+    std::stringstream ss("");
+
+    ss << "Corners: {" << Min[0] << ", " << Min[1] << ", " << Min[2] << "}"
+       << " -- {" << Max[0] << ", " << Max[1] << ", " << Max[2]
+       << "}." << std::flush;
+
+    return ss.str();
   }
 
  private:
@@ -77,8 +106,21 @@ struct BoundingBox {
 };
 
 double CalculateToWall(BoundingBox const &BB, TVector3 const &TrStart,
-              TVector3 const &TrDir) {
+                       TVector3 const &TrDir) {
   double ToWall = 0;
+
+  if (!BB.Contains(TrStart)) {
+    std::cout
+        << "[ERROR]: Asked for ToWall, but stop doesn't contain track start."
+        << std::endl;
+    std::cout << BB.Print() << std::endl;
+    std::cout << "Point: {" << TrStart[0] << ", " << TrStart[1] << ", "
+              << TrStart[2] << "}" << std::endl;
+
+    throw;
+  }
+
+  TVector3 dir = TrDir.Unit();
 
   for (size_t i = 0; i < 6; ++i) {
     TVector3 PC(BB.PlaneCenters[i][0], BB.PlaneCenters[i][1],
@@ -87,7 +129,7 @@ double CalculateToWall(BoundingBox const &BB, TVector3 const &TrStart,
                 BB.PlaneNormals[i][2]);
     TVector3 TStrToP = TrStart - PC;
 
-    float D = PN.Dot(TrDir);
+    float D = PN.Dot(dir);
     float N = -1.0 * PN.Dot(TStrToP);
 
     if (fabs(D) < 1E-8) {  // segment is parallel to plane
@@ -99,7 +141,7 @@ double CalculateToWall(BoundingBox const &BB, TVector3 const &TrStart,
     // compute intersect param
     float sI = N / D;
 
-    TVector3 CrossingPoint = TrStart + sI * TrDir;
+    TVector3 CrossingPoint = TrStart + sI * dir;
 
     int ci = i >> 1;  // divide by 2 and floor
     int cj = (ci + 2) % 3;
@@ -114,15 +156,26 @@ double CalculateToWall(BoundingBox const &BB, TVector3 const &TrStart,
 
     if (CrossInPlaneBB) {
       if (sI > 0) {
-        if (ToWall) {
-          std::cout << "[ERROR]: Found ToWall of " << (sI * TrDir.Mag())
-                    << ", but already found one of " << ToWall << std::endl;
-          throw;
-        }
+#ifdef DEBUG
+        std::cout << "[INFO]: Track starting at {" << TrStart[0] << ", "
+                  << TrStart[1] << ", " << TrStart[2] << "}, intersected at  {"
+                  << CrossingPoint[0] << ", " << CrossingPoint[1] << ", "
+                  << CrossingPoint[2] << "} after " << sI << " [units]."
+                  << std::endl;
+#endif
+        ToWall = sI * dir.Mag();
 
-        ToWall = sI * TrDir.Mag();
+        return ToWall;
       }
     }
   }
   return ToWall;
+}
+
+void TestBBIntersect() {
+  BoundingBox bb(TVector3{-1, -1, -1}, TVector3{1, 1, 1});
+
+  double ToWall = CalculateToWall(bb, TVector3{0, 0, 0}, TVector3{0, 5, 5});
+
+  std::cout << "[INFO]: ToWall = " << ToWall << " units." << std::endl;
 }

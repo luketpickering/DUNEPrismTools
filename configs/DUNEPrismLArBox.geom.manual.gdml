@@ -37,7 +37,7 @@
   </materials>
   <solids>
     <box name="Top" x="8000" y="2000" z="2000" lunit="cm"/>
-    <box name="LAr0x2" x="3900" y="300" z="500" lunit="cm"/>
+    <box name="LAr0x2" x="3900" y="200" z="400" lunit="cm"/>
   </solids>
   <structure>
     <volume name="LAr0x1">

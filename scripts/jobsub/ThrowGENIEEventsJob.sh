@@ -152,10 +152,10 @@ echo "------ls-------"
 ls
 echo "---------------"
 
-GNTPOUT_FILENAME=${INPUT_FILENAME%%\.dk2nu\.root}.gntpc.${CLUSTER}.${PROCESS}.root
+GNTPOUT_FILENAME=${INPUT_FILENAME%%\.dk2nu\.root}.ghep.${CLUSTER}.${PROCESS}.root
 RTOUT_FILENAME=${INPUT_FILENAME%%\.dk2nu\.root}.rootracker.${CLUSTER}.${PROCESS}.root
 
-echo "[INFO]: Writing gntpc output to: ${GNTPOUT_FILENAME}"
+echo "[INFO]: Writing ghep output to: ${GNTPOUT_FILENAME}"
 echo "[INFO]: Writing rootracker output to: ${RTOUT_FILENAME}"
 
 GXMLPATH_OLD=${GXMLPATH}
@@ -165,9 +165,11 @@ export GDK2NUFLUXXML=dk2nu_FluxWindow.xml
 
 echo "[INFO]: OLDGXMLPATH: ${GXMLPATH_OLD}, GXMLPATH=${GXMLPATH}."
 
+GENIEEVLIST="Default+CCMEC+NCMEC"
+
 echo "Running GENIE @ $(date)"
-echo "gevgen_fnal --message-thresholds ${GENIE}/config/Messenger_whisper.xml -r ${PROCESS} -f ${INPUT_FILENAME},${FLUX_WINDOW_PARAMSET} -g geom.gdml -e ${EXPOSURE} -L cm -D g_cm3 --cross-sections ${GXMLPATH_OLD}/gxspl-FNALsmall.xml &> gevgen_fnal.${CLUSTER}.${PROCESS}.log"
-gevgen_fnal --message-thresholds ${GENIE}/config/Messenger_whisper.xml -r ${PROCESS} -f ${INPUT_FILENAME},${FLUX_WINDOW_PARAMSET} -g geom.gdml -e ${EXPOSURE} -L cm -D g_cm3 --cross-sections ${GXMLPATH_OLD}/gxspl-FNALsmall.xml &> gevgen_fnal.${CLUSTER}.${PROCESS}.log
+echo "gevgen_fnal --message-thresholds ${GENIE}/config/Messenger_whisper.xml -r ${PROCESS} -f ${INPUT_FILENAME},${FLUX_WINDOW_PARAMSET} -g geom.gdml -e ${EXPOSURE} -L cm -D g_cm3 --cross-sections ${GXMLPATH_OLD}/gxspl-FNALsmall.xml --event-generator-list ${GENIEEVLIST} &> gevgen_fnal.${CLUSTER}.${PROCESS}.log"
+gevgen_fnal --message-thresholds ${GENIE}/config/Messenger_whisper.xml -r ${PROCESS} -f ${INPUT_FILENAME},${FLUX_WINDOW_PARAMSET} -g geom.gdml -e ${EXPOSURE} -L cm -D g_cm3 --cross-sections ${GXMLPATH_OLD}/gxspl-FNALsmall.xml --event-generator-list ${GENIEEVLIST} &> gevgen_fnal.${CLUSTER}.${PROCESS}.log
 echo "Finished."
 echo "Converting to rootracker @ $(date)"
 echo "------ls-------"
@@ -193,8 +195,8 @@ ls
 echo "---------------"
 
 echo "Copying output @ $(date)"
-echo "ifdh cp -D $IFDH_OPTION ${GNTPOUT_FILENAME} ${PNFS_OUTDIR}/gevgen_fnal/gntp"
-ifdh cp -D $IFDH_OPTION ${GNTPOUT_FILENAME} ${PNFS_OUTDIR}/gevgen_fnal/gntp
+echo "ifdh cp -D $IFDH_OPTION ${GNTPOUT_FILENAME} ${PNFS_OUTDIR}/gevgen_fnal/ghep"
+ifdh cp -D $IFDH_OPTION ${GNTPOUT_FILENAME} ${PNFS_OUTDIR}/gevgen_fnal/ghep
 
 if [ ! -e ${RTOUT_FILENAME} ]; then
   echo "[ERROR]: gntpc process produced no vector."

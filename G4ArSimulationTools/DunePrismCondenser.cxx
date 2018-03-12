@@ -235,10 +235,10 @@ int main(int argc, char* argv[]) {
 
     fdw->y_True = 1 - ((fslep.EKin + fslep.EMass) / nu.EKin);
     double nucleon_mass_GeV = .93827208;
+
     fdw->W_Rest =
-        sqrt(fdw->Q2_True +
-             2.0 * nucleon_mass_GeV * (nu.EKin - (fslep.EKin + fslep.EMass)) +
-             nucleon_mass_GeV * nucleon_mass_GeV);
+        sqrt(2.0 * nucleon_mass_GeV * (nu.EKin - (fslep.EKin + fslep.EMass)) +
+             nucleon_mass_GeV * nucleon_mass_GeV - fdw->Q2_True);
 
     double p4[4];
 #ifdef DEBUG

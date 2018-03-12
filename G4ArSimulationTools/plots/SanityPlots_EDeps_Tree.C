@@ -651,7 +651,7 @@ void SanityPlots_EDeps_Tree(const char* inps) {
                0, 10, 100, 0, 10);
 
   EDeps->Draw(
-      "TotalNonlep_Dep_FV+PrimaryLep_4mom[3]:nu_4mom[3] "
+      "TotalNonlep_Dep_FV+TotalNonlep_Dep_veto+PrimaryLep_4mom[3]:nu_4mom[3] "
       ">> enu_vs_erec_mu_exit_hadr_cont",
       "(stop >= "
       "0)&&(LepExit_AboveThresh==1)&&(HadrShowerContainedInFV==1)&&("
@@ -697,7 +697,7 @@ void SanityPlots_EDeps_Tree(const char* inps) {
                "LepExit_HadrCont;E_{rec}/E_{#nu} - 1;Count", 100, -1, 1);
 
   EDeps->Draw(
-      "((TotalNonlep_Dep_FV+PrimaryLep_4mom[3])/nu_4mom[3]) - 1 >> "
+      "((TotalNonlep_Dep_FV+TotalNonlep_Dep_veto+PrimaryLep_4mom[3])/nu_4mom[3]) - 1 >> "
       "erec_bias_mu_exit_hadrcont",
       "(stop >= "
       "0)&&(LepExit_AboveThresh==1)&&(HadrShowerContainedInFV==1)&&("
@@ -762,7 +762,7 @@ void SanityPlots_EDeps_Tree(const char* inps) {
                "LepExit_HadrCont;E_{rec}/E_{#nu} - 1;Count", 100, -1, 1);
 
   EDeps->Draw(
-      "((TotalNonlep_Dep_FV+PrimaryLep_4mom[3])/nu_4mom[3]) - 1 >> "
+      "((TotalNonlep_Dep_FV+TotalNonlep_Dep_veto+PrimaryLep_4mom[3])/nu_4mom[3]) - 1 >> "
       "erec_bias_0pi_mu_exit_hadrcont",
       "(stop >= "
       "0)&&(LepExit_AboveThresh==1)&&(HadrShowerContainedInFV==1)&&("
