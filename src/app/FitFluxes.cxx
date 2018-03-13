@@ -46,6 +46,8 @@ double RegFactor = 0xdeadbeef;
 
 int MaxMINUITCalls = 50000;
 
+bool fitBetweenPeaks = false;
+
 double FitBetween_low = 0xdeadbeef, FitBetween_high = 0xdeadbeef;
 int binLow, binHigh;
 bool MultiplyChi2ContribByBinWidth = false;
@@ -83,6 +85,7 @@ enum OutOfRangeSideEnum { kBoth = 0, kLeft, kRight };
 /// 0: Include both out of ranges
 /// 1: Only include out of range to the left of the range
 /// 2: Only include out of range to the right of the range
+
 int OutOfRangeSide = kBoth;
 double ExpDecayRate = 3;
 double OORFactor = 1;
@@ -92,6 +95,35 @@ bool UseNuPrismChi2 = false;
 int MergeOAABins = 0, MergeENuBins = 0;
 
 std::vector<double> InterpolatedOAAValues;
+
+void FindPeaks(TH1D *OscFlux, int &left, int &right, int n = 3) {
+  std::cout << "[INFO] Looking for peaks..." << std::endl;
+
+  TH1D *temp = new TH1D();
+  OscFlux -> Copy(*temp);
+  temp -> Smooth();
+
+  double threshold = (temp -> Integral())/(4*(temp -> GetNbinsX()));
+  // double threshold = 1.e-16;
+
+  std::cout<< "[INFO] Peak threshold " << threshold << std::endl;
+
+  int nfound = 0;
+  double content[3] = {0};
+
+  for ( int bin_ind = temp -> GetNbinsX(); bin_ind > 0 && nfound < n; bin_ind-- ) {
+    content[2] = temp -> GetBinContent(bin_ind - 1);
+    if ( content[0] < content[1] && content[1] > content[2] && content[1] > threshold ) {
+      if ( nfound == 0 ) right = bin_ind;
+      if ( nfound == n-1 ) left = bin_ind;
+      nfound ++;
+      std::cout << "[INFO] found a peak of height " << content[1] << " at bin " << bin_ind << std::endl;
+    }
+    content[0] = content[1];
+    content[1] = content[2];
+  }
+}
+
 
 void BuildTargetFlux(TH1D *OscFlux) {
   TargetFlux = static_cast<TH1D *>(OscFlux->Clone());
@@ -453,6 +485,9 @@ void SayUsage(char const *argv[]) {
          "determines\n"
          "\t                                     behavior.             \n"
          "\n"
+         "\t-p                                 : Fit between the first"
+         "and third oscillation peaks \n"
+         "\n"
          "\t-m <0,1,2>                         : Out of range behavior.  "
          "          \n"
          "\t                                     0: Ignore out of range "
@@ -556,6 +591,8 @@ void handleOpts(int argc, char const *argv[]) {
       }
       FitBetween_low = params[0];
       FitBetween_high = params[1];
+    } else if (std::string(argv[opt]) == "-p") {
+      fitBetweenPeaks = true;
     } else if (std::string(argv[opt]) == "-t") {
       std::vector<std::string> params =
           ParseToVect<std::string>(argv[++opt], ",");
@@ -725,6 +762,10 @@ int main(int argc, char const *argv[]) {
     } else {
       binLow = OscFlux->GetXaxis()->FindFixBin(FitBetween_low);
       binHigh = OscFlux->GetXaxis()->FindFixBin(FitBetween_high);
+    }
+
+    if ( fitBetweenPeaks ) {
+      FindPeaks(OscFlux, binLow, binHigh);
     }
 
     std::cout << "[INFO]: Fitting between bins: " << binLow << "--" << binHigh
