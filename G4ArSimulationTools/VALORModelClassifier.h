@@ -149,9 +149,9 @@ struct GENIECodeStringParser {
     } else if (evc.find("[NC]") != std::string::npos) {
       IsCC = false;
     } else {
-      std::cout << "[ERROR]: Couldn't find CC/NC in ev code: " << evc
+      std::cout << "[WARN]: Couldn't find CC/NC in ev code: " << evc
                 << std::endl;
-      throw;
+      IsCC = false;
     }
   }
 };

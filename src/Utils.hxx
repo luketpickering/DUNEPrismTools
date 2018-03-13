@@ -229,6 +229,13 @@ inline std::vector<std::pair<double, TH1D *> > InterpolateSplitTH2D(
           t2->Interpolate(
               (AlongY ? dummyProj->GetXaxis()->GetBinCenter(bi_it) : v),
               (AlongY ? v : dummyProj->GetXaxis()->GetBinCenter(bi_it))));
+      Int_t OBin = (AlongY ? t2->GetYaxis() : t2->GetXaxis())->FindFixBin(v);
+
+      if(AlongY){
+        dummyProj->SetBinError(bi_it,t2->GetBinError(bi_it,OBin));
+      } else {
+        dummyProj->SetBinError(bi_it,t2->GetBinError(OBin,bi_it));
+      }
     }
 
     split.push_back(std::make_pair(v, dummyProj));

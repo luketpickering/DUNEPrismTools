@@ -161,9 +161,9 @@ void TargetSumChi2(int &nDim, double *gout, double &result, double coeffs[],
   if ((OutOfRangeMode != kIgnore)) {
     if ((OutOfRangeSide == kBoth || OutOfRangeSide == kLeft)) {
       for (Int_t bi_it = 1; bi_it < binLow; ++bi_it) {
-        double diff;
+        double diff, err;
         if (!UseNuPrismChi2) {
-          double err =
+          err =
               (TargetFlux->GetBinError(bi_it) * TargetFlux->GetBinError(bi_it) +
                SummedFlux->GetBinError(bi_it) * SummedFlux->GetBinError(bi_it));
 
@@ -174,20 +174,28 @@ void TargetSumChi2(int &nDim, double *gout, double &result, double coeffs[],
                               err);
 
         } else {
+          err = SummedFlux->GetBinContent(bi_it)
+                    ? (0.0001 * SummedFlux->GetBinContent(bi_it) *
+                       SummedFlux->GetBinContent(bi_it))
+                    : (0.0001 * TargetPeakNorm * TargetPeakNorm);
           diff = OORFactor * ((TargetFlux->GetBinContent(bi_it) -
                                SummedFlux->GetBinContent(bi_it)) *
                               (TargetFlux->GetBinContent(bi_it) -
                                SummedFlux->GetBinContent(bi_it)) /
-                              (0.0001 * SummedFlux->GetBinContent(bi_it) *
-                               SummedFlux->GetBinContent(bi_it)));
+                              err);
+        }
+
+        if (!err) {
+          continue;
         }
 
         if (diff && !std::isnormal(diff)) {
           std::cout << "[INFO]: Found invalid diff, bin " << bi_it
-                    << ", targ: " << TargetFlux->GetBinContent(bi_it) << ":"
-                    << TargetFlux->GetBinError(bi_it)
+                    << " [ORR LowE], targ: " << TargetFlux->GetBinContent(bi_it)
+                    << ":" << TargetFlux->GetBinError(bi_it)
                     << ", sum: " << TargetFlux->GetBinContent(bi_it) << ":"
-                    << TargetFlux->GetBinError(bi_it) << std::endl;
+                    << TargetFlux->GetBinError(bi_it) << ", err = " << err
+                    << ", diff = " << diff << std::endl;
           throw;  // exit(1);
         }
 
@@ -199,11 +207,12 @@ void TargetSumChi2(int &nDim, double *gout, double &result, double coeffs[],
     if ((OutOfRangeSide == kBoth || OutOfRangeSide == kRight)) {
       for (Int_t bi_it = (binHigh + 1);
            bi_it < TargetFlux->GetXaxis()->GetNbins() + 1; ++bi_it) {
-        double diff;
+        double diff, err;
         if (!UseNuPrismChi2) {
-          double err =
-              (TargetFlux->GetBinError(bi_it) * TargetFlux->GetBinError(bi_it) +
-               SummedFlux->GetBinError(bi_it) * SummedFlux->GetBinError(bi_it));
+          err = SummedFlux->GetBinContent(bi_it)
+                    ? (0.0001 * SummedFlux->GetBinContent(bi_it) *
+                       SummedFlux->GetBinContent(bi_it))
+                    : (0.0001 * TargetPeakNorm * TargetPeakNorm);
 
           diff = OORFactor * ((TargetFlux->GetBinContent(bi_it) -
                                SummedFlux->GetBinContent(bi_it)) *
@@ -212,20 +221,27 @@ void TargetSumChi2(int &nDim, double *gout, double &result, double coeffs[],
                               err);
 
         } else {
+          err = (0.0001 * SummedFlux->GetBinContent(bi_it) *
+                 SummedFlux->GetBinContent(bi_it));
           diff = OORFactor * ((TargetFlux->GetBinContent(bi_it) -
                                SummedFlux->GetBinContent(bi_it)) *
                               (TargetFlux->GetBinContent(bi_it) -
                                SummedFlux->GetBinContent(bi_it)) /
-                              (0.0001 * SummedFlux->GetBinContent(bi_it) *
-                               SummedFlux->GetBinContent(bi_it)));
+                              err);
+        }
+
+        if (!err) {
+          continue;
         }
 
         if (diff && !std::isnormal(diff)) {
           std::cout << "[INFO]: Found invalid diff, bin " << bi_it
-                    << ", targ: " << TargetFlux->GetBinContent(bi_it) << ":"
+                    << " [ORR HighE], targ: "
+                    << TargetFlux->GetBinContent(bi_it) << ":"
                     << TargetFlux->GetBinError(bi_it)
                     << ", sum: " << TargetFlux->GetBinContent(bi_it) << ":"
-                    << TargetFlux->GetBinError(bi_it) << std::endl;
+                    << TargetFlux->GetBinError(bi_it) << ", err = " << err
+                    << ", diff = " << diff << std::endl;
           throw;  // exit(1);
         }
 
@@ -236,24 +252,40 @@ void TargetSumChi2(int &nDim, double *gout, double &result, double coeffs[],
   }
 
   for (Int_t bi_it = binLow; bi_it < (binHigh + 1); ++bi_it) {
+    double diff, err;
     if (!UseNuPrismChi2) {
-      double err =
-          (TargetFlux->GetBinError(bi_it) * TargetFlux->GetBinError(bi_it) +
-           SummedFlux->GetBinError(bi_it) * SummedFlux->GetBinError(bi_it));
+      err = (TargetFlux->GetBinError(bi_it) * TargetFlux->GetBinError(bi_it) +
+             SummedFlux->GetBinError(bi_it) * SummedFlux->GetBinError(bi_it));
 
-      sumdiff += ((TargetFlux->GetBinContent(bi_it) -
-                   SummedFlux->GetBinContent(bi_it)) *
-                  (TargetFlux->GetBinContent(bi_it) -
-                   SummedFlux->GetBinContent(bi_it)) /
-                  err);
+      diff = ((TargetFlux->GetBinContent(bi_it) -
+               SummedFlux->GetBinContent(bi_it)) *
+              (TargetFlux->GetBinContent(bi_it) -
+               SummedFlux->GetBinContent(bi_it)) /
+              err);
     } else {
-      sumdiff += ((TargetFlux->GetBinContent(bi_it) -
-                   SummedFlux->GetBinContent(bi_it)) *
-                  (TargetFlux->GetBinContent(bi_it) -
-                   SummedFlux->GetBinContent(bi_it)) /
-                  (0.0001 * SummedFlux->GetBinContent(bi_it) *
-                   SummedFlux->GetBinContent(bi_it)));
+      err = SummedFlux->GetBinContent(bi_it)
+                ? (0.0001 * SummedFlux->GetBinContent(bi_it) *
+                   SummedFlux->GetBinContent(bi_it))
+                : (0.0001 * TargetPeakNorm * TargetPeakNorm);
+
+      diff = ((TargetFlux->GetBinContent(bi_it) -
+               SummedFlux->GetBinContent(bi_it)) *
+              (TargetFlux->GetBinContent(bi_it) -
+               SummedFlux->GetBinContent(bi_it)) /
+              err);
     }
+
+    if (diff && !std::isnormal(diff)) {
+      std::cout << "[INFO]: Found invalid diff, bin " << bi_it
+                << ", targ: " << TargetFlux->GetBinContent(bi_it) << ":"
+                << TargetFlux->GetBinError(bi_it)
+                << ", sum: " << TargetFlux->GetBinContent(bi_it) << ":"
+                << TargetFlux->GetBinError(bi_it) << ", err = " << err
+                << ", diff = " << diff << std::endl;
+      throw;  // exit(1);
+    }
+
+    sumdiff += diff;
 
     if (sumdiff && !std::isnormal(sumdiff)) {
       std::cout << "[INFO]: Found invalid diff, bin " << bi_it
@@ -477,7 +509,8 @@ void SayUsage(char const *argv[]) {
          "\t-C                                 : Use NuPrism tools Chi2.\n\n"
          "\t-MY  <nbins to merge>              : Merge off-axis angle bins "
          "before splitting into\n\n"
-         "\t                                     fluxes. Works with -h inputs.\n"
+         "\t                                     fluxes. Works with -h "
+         "inputs.\n"
          "\n"
          "\t-MX  <nbins to merge>              : Merge neutrino energy bins "
          "before splitting into\n"

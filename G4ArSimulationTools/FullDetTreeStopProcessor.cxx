@@ -45,6 +45,7 @@ double VetoThreshold = 10E-3;
 double LepExitThreshold = 50E-3;
 bool WriteOutNonStop = false;
 Long64_t NMax = std::numeric_limits<Long64_t>::max();
+Long64_t NSkip = 0;
 
 void SayUsage(char const *argv[]) {
   std::cout
@@ -66,6 +67,7 @@ void SayUsage(char const *argv[]) {
          "of whether they\n"
          "\t                                fall within a stop.\n"
          "\t-n                            : NMax events to write."
+         "\t-ns                           : N events to skip."
       << std::endl;
 }
 
@@ -94,6 +96,8 @@ void handleOpts(int argc, char const *argv[]) {
       WriteOutNonStop = true;
     } else if (std::string(argv[opt]) == "-n") {
       NMax = str2T<Long64_t>(argv[++opt]);
+    } else if (std::string(argv[opt]) == "-ns") {
+      NSkip = str2T<Long64_t>(argv[++opt]);
     } else {
       std::cout << "[ERROR]: Unknown option: " << argv[opt] << std::endl;
       SayUsage(argv);
@@ -300,8 +304,8 @@ int main(int argc, char const *argv[]) {
 
   std::vector<int> overlapping_stops;
   size_t NFills = 0;
-  Long64_t NEntries = std::min(Long64_t(rdr->GetEntries()), NMax);
-  for (Long64_t e_it = 0; e_it < NEntries; ++e_it) {
+  Long64_t NEntries = std::min(Long64_t(rdr->GetEntries()), NSkip + NMax);
+  for (Long64_t e_it = NSkip; e_it < NEntries; ++e_it) {
     rdr->GetEntry(e_it);
 
     if (loud_every && !(e_it % loud_every)) {
