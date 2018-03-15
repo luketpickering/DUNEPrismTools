@@ -74,7 +74,7 @@ TF1 *TargetGauss;
 
 std::vector<std::pair<std::string, TGraph> > GENIEXSecs;
 
-enum OutOfRangeModeEnum { kIgnore = 0, kZero, kExponentialDecay };
+enum OutOfRangeModeEnum { kIgnore = 0, kZero, kExponentialDecay, kGaussianDecay };
 /// If using a FitBetween mode:
 /// 0: Ignore all bins outside range
 /// 1: Try to force bins to 0
@@ -144,6 +144,17 @@ void BuildTargetFlux(TH1D *OscFlux) {
             content_first_counted_bin *
             exp(-ExpDecayRate * (enu_first_counted_bin - enu) / sigma5_range);
       }
+      if (OutOfRangeMode == kGaussianDecay) {
+        double enu_first_counted_bin =
+            TargetFlux->GetXaxis()->GetBinCenter(binLow);
+        double enu = TargetFlux->GetXaxis()->GetBinCenter(bi_it);
+        double content_first_counted_bin = TargetFlux->GetBinContent(binLow);
+        double enu_bottom_bin = TargetFlux->GetXaxis()->GetBinCenter(1);
+        double sigma5_range = enu_first_counted_bin - enu_bottom_bin;
+        target =
+            content_first_counted_bin *
+	  exp(-ExpDecayRate * (enu_first_counted_bin - enu) * (enu_first_counted_bin - enu) / (sigma5_range * sigma5_range));
+      }
       TargetFlux->SetBinContent(bi_it, target);
     } else {
       TargetFlux->SetBinContent(bi_it, 0);
@@ -173,6 +184,18 @@ void BuildTargetFlux(TH1D *OscFlux) {
         target =
             content_last_counted_bin *
             exp(-ExpDecayRate * (enu - enu_last_counted_bin) / sigma5_range);
+      }
+      if (OutOfRangeMode == kGaussianDecay) {
+        double enu_last_counted_bin =
+            TargetFlux->GetXaxis()->GetBinCenter(binHigh);
+        double enu = TargetFlux->GetXaxis()->GetBinCenter(bi_it);
+        double content_last_counted_bin = TargetFlux->GetBinContent(binHigh);
+        double enu_top_bin = TargetFlux->GetXaxis()->GetBinCenter(
+            TargetFlux->GetXaxis()->GetNbins());
+        double sigma5_range = enu_top_bin - enu_last_counted_bin;
+        target =
+            content_last_counted_bin *
+	  exp(-ExpDecayRate * (enu - enu_last_counted_bin) * (enu - enu_last_counted_bin) / (sigma5_range * sigma5_range));
       }
       TargetFlux->SetBinContent(bi_it, target);
     } else {
@@ -488,7 +511,7 @@ void SayUsage(char const *argv[]) {
          "\t-p                                 : Fit between the first"
          "and third oscillation peaks \n"
          "\n"
-         "\t-m <0,1,2>                         : Out of range behavior.  "
+         "\t-m <0,1,2,3>                         : Out of range behavior.  "
          "          \n"
          "\t                                     0: Ignore out of range "
          "bins.      \n"
@@ -497,6 +520,12 @@ void SayUsage(char const *argv[]) {
          "\t                                     2: exponential decay "
          "outside fit  \n"
          "\t                                        region. decay rate "
+         "is          \n"
+         "\t                                        determined by -ed."
+         "\n"
+         "\t                                     3: gaussian decay "
+         "outside fit  \n"
+         "\t                                        region. decay width "
          "is          \n"
          "\t                                        determined by -ed."
          "\n"
