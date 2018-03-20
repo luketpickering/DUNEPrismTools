@@ -1,0 +1,27 @@
+<DUNEPrism>
+  <RunPlan Name="RunPlan.39mLAr.3mFV.10cm.2mx4m_withintermediates">
+    <Detector MeasurementRegionWidth_m="0.1" DetectorFiducialWidth_m="3" DetectorFiducialHeight_m="2" DetectorFiducialDepth_m="4" FiducialVolumeDensity_kgm3="1396" />
+    <Stops>
+      <!-- Total POT 1.1E21 -->
+      <Stop LateralOffset_m="0" POTExposure="5.79E19"/>
+      <Stop LateralOffset_m="1.5" POTExposure="5.79E19"/>
+      <Stop LateralOffset_m="3" POTExposure="5.79E19"/>
+      <Stop LateralOffset_m="4.5" POTExposure="5.79E19"/>
+      <Stop LateralOffset_m="6" POTExposure="5.79E19"/>
+      <Stop LateralOffset_m="7.5" POTExposure="5.79E19"/>
+      <Stop LateralOffset_m="9" POTExposure="5.79E19"/>
+      <Stop LateralOffset_m="10.5" POTExposure="5.79E19"/>
+      <Stop LateralOffset_m="12" POTExposure="5.79E19"/>
+      <Stop LateralOffset_m="13.5" POTExposure="5.79E19"/>
+      <Stop LateralOffset_m="15" POTExposure="5.79E19"/>
+      <Stop LateralOffset_m="16.5" POTExposure="5.79E19"/>
+      <Stop LateralOffset_m="18" POTExposure="5.79E19"/>
+      <Stop LateralOffset_m="21" POTExposure="5.79E19"/>
+      <Stop LateralOffset_m="24" POTExposure="5.79E19"/>
+      <Stop LateralOffset_m="27" POTExposure="5.79E19"/>
+      <Stop LateralOffset_m="30" POTExposure="5.79E19"/>
+      <Stop LateralOffset_m="33" POTExposure="5.79E19"/>
+      <Stop LateralOffset_m="36" POTExposure="5.79E19"/>
+    </Stops>
+  </RunPlan>
+</DUNEPrism>

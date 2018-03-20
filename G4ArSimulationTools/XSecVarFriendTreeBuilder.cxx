@@ -1,6 +1,6 @@
+#include "CovarianceHelper.h"
 #include "EDepTreeReader.h"
 #include "VALORModelClassifier.h"
-#include "CovarianceHelper.h"
 
 #include "Utils.hxx"
 
@@ -14,7 +14,6 @@ std::string oupfile;
 
 std::string CovmatFile, CovmatHist;
 Long64_t NThrows = 1;
-
 
 void SayUsage(char const *argv[]) {
   std::cout << "[USAGE]: " << argv[0]
@@ -84,13 +83,29 @@ int main(int argc, char const *argv[]) {
     }
   }
 
+  EDep edr("EDeps", inpfile);
+
+  TFile *of = new TFile(oupfile.c_str(), "RECREATE");
+  TTree *friendtree = new TTree("XSecWeights", "");
+  TTree *configtree = new TTree("ConfigTree", "");
+  TTree *throwConfigtree = new TTree("ThrowConfigTree", "");
+
+  configtree->Branch("NThrows", &NThrows, "NThrows/I");
+  Int_t NParams = static_cast<int>(VALORModel::TrueClass::kNVALORDials);
+  configtree->Branch("NParams", &NParams, "NParams/I");
+  configtree->Fill();
+
+  double *ParamValues = new double[NParams];
+  throwConfigtree->Branch(
+      "ParamValues", ParamValues,
+      (std::string("ParamValues[") + to_str(NParams) + "]/D").c_str());
+
   std::vector<std::vector<double> > ParameterThrows;
   ParameterThrows.resize(NThrows);
   for (int t_it = 0; t_it < NThrows; ++t_it) {
     ParameterThrows[t_it].resize(
         static_cast<int>(VALORModel::TrueClass::kNVALORDials));
   }
-
   CovarianceThrower ct(*UncertMatrix);
 
   for (int t_it = 0; t_it < NThrows; ++t_it) {
@@ -98,7 +113,9 @@ int main(int argc, char const *argv[]) {
     for (int p_it = 0;
          p_it < static_cast<int>(VALORModel::TrueClass::kNVALORDials); ++p_it) {
       ParameterThrows[t_it][p_it] = (*CovVector)[p_it][0];
+      ParamValues[p_it] = ParameterThrows[t_it][p_it];
     }
+    throwConfigtree->Fill();
   }
 
   for (int p_it = 0;
@@ -113,15 +130,6 @@ int main(int argc, char const *argv[]) {
     std::cout << std::endl;
   }
 
-  EDep edr("EDeps", inpfile);
-
-  TFile *of = new TFile(oupfile.c_str(), "RECREATE");
-  TTree *friendtree = new TTree("XSecWeights", "");
-  TTree *configtree = new TTree("ConfigTree", "");
-
-  configtree->Branch("NThrows", &NThrows, "NThrows/I");
-  configtree->Fill();
-
   double *xsecweights = new double[NThrows];
   friendtree->Branch(
       "XSecWeights", xsecweights,
@@ -130,6 +138,13 @@ int main(int argc, char const *argv[]) {
   size_t loud_every = edr.GetEntries() / 10;
   size_t NFills = 0;
   Long64_t NEntries = edr.GetEntries();
+
+  TH1D *MeanThrow = new TH1D("CentralERecDist", ";ERec;Count", 100, 0, 10);
+  std::vector<TH1D *> ThrowDistributions;
+  for (int t_it = 0; t_it < NThrows; ++t_it) {
+    ThrowDistributions.push_back(new TH1D("throw_dist", "", 100, 0, 10));
+    ThrowDistributions.back()->SetDirectory(nullptr);
+  }
 
   for (Long64_t e_it = 0; e_it < NEntries; ++e_it) {
     edr.GetEntry(e_it);
@@ -192,12 +207,61 @@ int main(int argc, char const *argv[]) {
           xsecweights[t_it] *= GetVALORWeight(
               d, ParameterThrows[t_it][static_cast<int>(d)], edr);
         }
+        ThrowDistributions[t_it]->Fill(edr.PrimaryLep_4mom[3] +
+                                           edr.TotalNonlep_Dep_FV +
+                                           edr.TotalNonlep_Dep_veto,
+                                       xsecweights[t_it]);
+        MeanThrow->Fill(edr.PrimaryLep_4mom[3] + edr.TotalNonlep_Dep_FV +
+                            edr.TotalNonlep_Dep_veto,
+                        xsecweights[t_it]);
       }
     }
 
     NFills++;
     friendtree->Fill();
   }
+
+  CovarianceBuilder cb(MeanThrow->GetXaxis()->GetNbins());
+
+  for (int t_it = 0; t_it < NThrows; ++t_it) {
+    cb.AddThrow_MeanCalc(ThrowDistributions[t_it]);
+  }
+  cb.FinalizeMeanCalc();
+  for (int t_it = 0; t_it < NThrows; ++t_it) {
+    cb.AddThrow_CovMatCalc(ThrowDistributions[t_it]);
+  }
+  cb.FinalizeCovMatCalc();
+
+  cb.GetCovMatrix()->Clone()->Write("ERec_CovMat");
+  cb.GetCorrMatrix()->Clone()->Write("ERec_CorrMat");
+  MeanThrow->Scale(1.0 / double(NThrows));
+
+  for (Int_t i = 0; i < MeanThrow->GetXaxis()->GetNbins(); ++i) {
+    MeanThrow->SetBinError(i + 1, sqrt((*cb.GetCovMatrix())[i][i]));
+  }
+
+  double MaxThrow = -std::numeric_limits<double>::max();
+  int MaxIndex = 0;
+  double MinThrow = -std::numeric_limits<double>::max();
+  int MinIndex = 0;
+
+  for (int t_it = 0; t_it < NThrows; ++t_it) {
+    if (ThrowDistributions[t_it]->GetMaximum() > MaxThrow) {
+      MaxIndex = t_it;
+      MaxThrow = ThrowDistributions[t_it]->GetMaximum();
+    }
+    if (ThrowDistributions[t_it]->GetMaximum() < MinThrow) {
+      MinIndex = t_it;
+      MinThrow = ThrowDistributions[t_it]->GetMaximum();
+    }
+  }
+
+  ThrowDistributions[MaxIndex]->SetName(
+      (std::string("MaxERecDist_throw") + to_str(MaxIndex)).c_str());
+  ThrowDistributions[MinIndex]->SetName(
+      (std::string("MinERecDist_throw") + to_str(MinIndex)).c_str());
+  ThrowDistributions[MaxIndex]->SetDirectory(of);
+  ThrowDistributions[MinIndex]->SetDirectory(of);
 
   of->Write();
   of->Close();

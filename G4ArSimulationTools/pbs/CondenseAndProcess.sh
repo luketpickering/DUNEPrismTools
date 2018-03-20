@@ -1,5 +1,5 @@
 #!/bin/bash --login
-#PBS -l walltime=0:59:00
+#PBS -l walltime=1:29:00
 #PBS -l mem=512MB
 #PBS -j oe
 

@@ -15,21 +15,26 @@ std::vector<BoundingBox> BBs;
 
 std::string inpfile;
 std::string oupfile;
-std::vector<double> fvgap;
+std::string EffCorrectorFile;
 
-TVector3 BeamPos{0, 58.1, -575.0};
-
-double hadrveto_value = 10E-3;  // GeV
+double HadrVeto = 0;  // GeV
+bool SelMuExit = false;
+double SelMuExitKE = 0;  // GeV
 
 void SayUsage(char const *argv[]) {
-  std::cout << "[USAGE]: " << argv[0]
-            << "\n"
-               "\t-i <fulldetprocess.root>             : TChain descriptor for"
-               " input tree. \n"
-               "\t-o <outputfile.root>                 : Output file to write "
-               "friend tree to.\n"
-               "\t-v <veto threshold>                  : Hadronic shower veto threshold in MeV.\n"
-            << std::endl;
+  std::cout
+      << "[USAGE]: " << argv[0]
+      << "\n"
+         "\t-i <fulldetprocess.root>    : TChain descriptor for"
+         " input tree. \n"
+         "\t-o <outputfile.root>        : Output file to write "
+         "selected tree to.\n"
+         "\t-E <effcorrector.root>      : File containing efficiency "
+         "histograms.\n"
+         "\t-v <hadr veto threshold>    : Hadronic shower veto threshold in "
+         "MeV.\n"
+         "\t-m <muon exit KE>           : Muon exit threshold KE in MeV.\n"
+      << std::endl;
 }
 
 void handleOpts(int argc, char const *argv[]) {
@@ -43,8 +48,13 @@ void handleOpts(int argc, char const *argv[]) {
       inpfile = argv[++opt];
     } else if (std::string(argv[opt]) == "-o") {
       oupfile = argv[++opt];
-    }else if (std::string(argv[opt]) == "-v") {
-      hadrveto_value = str2T<double>(argv[++opt])*1E-3;
+    }else if (std::string(argv[opt]) == "-E") {
+      EffCorrectorFile = argv[++opt];
+    } else if (std::string(argv[opt]) == "-v") {
+      HadrVeto = str2T<double>(argv[++opt]) * 1E-3;
+    } else if (std::string(argv[opt]) == "-m") {
+      SelMuExitKE = str2T<double>(argv[++opt]) * 1E-3;
+      SelMuExit = true;
     } else {
       std::cout << "[ERROR]: Unknown option: " << argv[opt] << std::endl;
       SayUsage(argv);
@@ -60,9 +70,9 @@ int main(int argc, char const *argv[]) {
 
   TChain *config_in = new TChain("configTree", "");
   config_in->Add(inpfile.c_str());
-  Int_t NDets;
+  Int_t NStops;
   Double_t FVGap[3];
-  config_in->SetBranchAddress("NStops", &NDets);
+  config_in->SetBranchAddress("NStops", &NStops);
   config_in->SetBranchAddress("FVGap", &FVGap);
   config_in->GetEntry(0);
 
@@ -74,7 +84,7 @@ int main(int argc, char const *argv[]) {
   stopConfig_in->SetBranchAddress("Max", &StopMax);
   stopConfig_in->SetBranchAddress("Offset", &Offset);
 
-  for (Int_t d_it = 0; d_it < NDets; ++d_it) {
+  for (Int_t d_it = 0; d_it < NStops; ++d_it) {
     stopConfig_in->GetEntry(d_it);
     TVector3 Min, Max;
 
@@ -93,402 +103,156 @@ int main(int argc, char const *argv[]) {
               << Max[0] << ", " << Max[2] << "}" << std::endl;
   }
 
+  TH2 *MuonKinematics_seleff =
+      SelMuExit ? GetHistogram<TH2>(EffCorrectorFile, "MuonKinematics_eff")
+                : nullptr;
+  TH2 *Ehadr_FV_detpos_seleff =
+      GetHistogram<TH2>(EffCorrectorFile, "Ehadr_FV_detpos_seleff");
+
   EDep edr("EDeps", inpfile);
 
-  TFile *of = new TFile(oupfile.c_str(), "RECREATE");
+  TFile *of = CheckOpenFile(oupfile, "RECREATE");
 
-  TH2D *MuonKinematics_all =
-      new TH2D("MuonKinematics_all", ";#it{E}_{#mu};ToWall_{#mu};Count", 100, 0,
-               20, 60, 0, 6);
-  TH2D *MuonKinematics_musel =
-      new TH2D("MuonKinematics_musel", ";#it{E}_{#mu};ToWall_{#mu};Count", 100,
-               0, 20, 60, 0, 6);
-  TH2D *MuonKinematics_muhadrsel =
-      new TH2D("MuonKinematics_selected", ";#it{E}_{#mu};ToWall_{#mu};Count",
-               100, 0, 20, 60, 0, 6);
+  TH1D *EventRates_Selected =
+      new TH1D("EventRates_Selected", ";Offset (cm);Count", 400, -250, 3750);
+  TH1D *ERec_Selected = new TH1D(
+      "ERec_Selected", ";E_{Rec} = E_{#mu} + E_{Hadr} (GeV);Count", 150, 0, 15);
+  TH1D *EHadr_Selected =
+      new TH1D("EHadr_Selected", ";E_{Hadr} (GeV);Count", 150, 0, 15);
+  TH2D *EvRateERec_Selected = new TH2D(
+      "EvRateERec_Selected", ";E_{Rec} = E_{#mu} + E_{Hadr} (GeV);Offset (cm)",
+      100, 0, 10, 400, -250, 3750);
+  TH2D *EvRateEHadr_Selected =
+      new TH2D("EvRateEHadr_Selected", ";E_{Hadr} (GeV);Offset (cm)", 100, 0,
+               10, 400, -250, 3750);
 
-  TH2D *MuonKinematics_seleff =
-      new TH2D("MuonKinematics_eff", ";#it{E}_{#mu};ToWall_{#mu};#epsilon", 100,
-               0, 20, 60, 0, 6);
+  TH1D *EventRates_Corrected =
+      new TH1D("EventRates_Corrected", ";Offset (cm);Count", 400, -250, 3750);
+  TH1D *ERec_Corrected =
+      new TH1D("ERec_Corrected", ";E_{Rec} = E_{#mu} + E_{Hadr} (GeV);Count",
+               150, 0, 15);
+  TH1D *EHadr_Corrected =
+      new TH1D("EHadr_Corrected", ";E_{Hadr} (GeV);Count", 150, 0, 15);
+  TH2D *EvRateERec_Corrected = new TH2D(
+      "EvRateERec_Corrected", ";E_{Rec} = E_{#mu} + E_{Hadr} (GeV);Offset (cm)",
+      100, 0, 10, 400, -250, 3750);
+  TH2D *EvRateEHadr_Corrected =
+      new TH2D("EvRateEHadr_Corrected", ";E_{Hadr} (GeV);Offset (cm)", 100, 0,
+               10, 400, -250, 3750);
 
-  TH2D *EDephadr_all =
-      new TH2D("EDephadr_all", ";#it{EDep}_{Hadr};ToWall^{#prime}_{#mu};Count",
-               100, 0, 20, 60, 0, 6);
-  TH2D *EDephadr_hadrsel = new TH2D(
-      "EDephadr_hadrsel", ";#it{EDep}_{Hadr};ToWall^{#prime}_{#mu};Count", 100,
-      0, 20, 60, 0, 6);
-  TH2D *EDephadr_muhadrsel = new TH2D(
-      "EDephadr_selected", ";#it{EDep}_{Hadr};ToWall^{#prime}_{#mu};Count", 100,
-      0, 20, 60, 0, 6);
+  TDirectory *oupD = of;
 
-  TH2D *EDephadr_seleff = new TH2D(
-      "EDephadr_eff", ";#it{EDep}_{Hadr};ToWall^{#prime}_{#mu};#epsilon", 100,
-      0, 20, 60, 0, 6);
+  TDirectory *wD = oupD->mkdir("StopEventRates");
+  wD->cd();
 
-  TH2D *EDephadr_true_all =
-      new TH2D("EDephadr_true_all",
-               ";#it{EDep}_{Hadr};ToWall_{Charged hadrons true};Count", 100, 0,
-               20, 60, 0, 6);
-  TH2D *EDephadr_true_hadrsel =
-      new TH2D("EDephadr_true_hadrsel",
-               ";#it{EDep}_{Hadr};ToWall_{Charged hadrons true};Count", 100, 0,
-               20, 60, 0, 6);
-  TH2D *EDephadr_true_muhadrsel =
-      new TH2D("EDephadr_true_selected",
-               ";#it{EDep}_{Hadr};ToWall_{Charged hadrons true};Count", 100, 0,
-               20, 60, 0, 6);
+  std::vector<TH1D *> StopEventRates_Selected;
+  std::vector<TH1D *> StopEventRates_Corrected;
 
-  TH2D *EDephadr_true_seleff =
-      new TH2D("EDephadr_true_eff",
-               ";#it{EDep}_{Hadr};ToWall_{Charged hadrons true};#epsilon", 100,
-               0, 20, 60, 0, 6);
-
-  TH2D *EDephadr_offset_all = new TH2D(
-      "EDephadr_offset_all", ";#it{EDep}_{Hadr};Off axis position (cm);Count",
-      100, 0, 20, 80, -3750, 150);
-  TH2D *EDephadr_offset_muhadrsel =
-      new TH2D("EDephadr_offset_muhadrsel",
-               ";#it{EDep}_{Hadr};Off axis position (cm);Count", 100, 0, 20, 80,
-               -3750, 150);
-
-  TH2D *EDephadr_offset_seleff =
-      new TH2D("EDephadr_offset_seleff",
-               ";#it{EDep}_{Hadr};Off axis position (cm);#epsilon", 100, 0, 20,
-               80, -3750, 150);
-
-  TH2D *EDephadr_FV_offset_all =
-      new TH2D("EDephadr_FV_offset_all",
-               ";#it{EDep}_{Hadr};Off axis position (cm);Count", 100, 0, 20, 80,
-               -3750, 150);
-  TH2D *EDephadr_FV_offset_muhadrsel =
-      new TH2D("EDephadr_FV_offset_muhadrsel",
-               ";#it{EDep}_{Hadr};Off axis position (cm);Count", 100, 0, 20, 80,
-               -3750, 150);
-
-  TH2D *EDephadr_FV_offset_seleff =
-      new TH2D("EDephadr_FV_offset_seleff",
-               ";#it{EDep}_{Hadr};Off axis position (cm);#epsilon", 100, 0, 20,
-               80, -3750, 150);
-
-  TH2D *Ehadr_FV_offset_all = new TH2D(
-      "Ehadr_FV_offset_all", ";#it{EHadr}_{Hadr};Off axis position (cm);Count",
-      100, 0, 20, 80, -3750, 150);
-  TH2D *Ehadr_FV_offset_hadrsel =
-      new TH2D("Ehadr_FV_offset_hadrsel",
-               ";#it{EHadr}_{Hadr};Off axis position (cm);Count", 100, 0, 20,
-               80, -3750, 150);
-
-  TH2D *Ehadr_FV_offset_seleff =
-      new TH2D("Ehadr_FV_offset_seleff",
-               ";#it{EHadr}_{Hadr};Off axis position (cm);#epsilon", 100, 0, 20,
-               80, -3750, 150);
-
-  TH2D *Ehadr_FV_detpos_all =
-      new TH2D("Ehadr_FV_detpos_all",
-               ";#it{EHadr}_{Hadr};Detector X position (cm);Count", 100, 0, 20,
-               90, -150, 150);
-  TH2D *Ehadr_FV_detpos_hadrsel =
-      new TH2D("Ehadr_FV_detpos_hadrsel",
-               ";#it{EHadr}_{Hadr};Detector X position (cm);Count", 100, 0, 20,
-               90, -150, 150);
-
-  TH2D *Ehadr_FV_detpos_seleff =
-      new TH2D("Ehadr_FV_detpos_seleff",
-               ";#it{EHadr}_{Hadr};Detector X position (cm);#epsilon", 100, 0,
-               20, 90, -150, 150);
+  for (Int_t stop_it = 0; stop_it < NStops; ++stop_it) {
+    StopEventRates_Selected.push_back(new TH1D(
+        (std::string("StopEventRates_Selected_Stop") + to_str(stop_it)).c_str(),
+        ";Offset (cm);Count", 400, -250, 3750));
+    StopEventRates_Corrected.push_back(new TH1D(
+        (std::string("StopEventRates_Corrected_Stop") + to_str(stop_it))
+            .c_str(),
+        ";Offset (cm);Count", 400, -250, 3750));
+  }
+  oupD->cd();
 
   size_t loud_every = edr.GetEntries() / 10;
   Long64_t NEntries = edr.GetEntries();
 
+  TTree *friendtree = new TTree("EffWeights", "");
+
+  double effweight, mueffweight, hadreffweight;
+  friendtree->Branch("MuEffWeight", &mueffweight, "MuEffWeight/D");
+  friendtree->Branch("HadrEffWeight", &hadreffweight, "HadrEffWeight/D");
+  friendtree->Branch("EffWeight", &effweight, "EffWeight/D");
+
   for (Long64_t e_it = 0; e_it < NEntries; ++e_it) {
     edr.GetEntry(e_it);
+
+    mueffweight = 0;
+    hadreffweight = 0;
+    effweight = 0;
+
+    if ((edr.stop < 0) || (SelMuExitKE && (edr.LepExitKE < SelMuExitKE)) ||
+        (edr.TotalNonlep_Dep_veto > HadrVeto) || (edr.PrimaryLepPDG != 13)) {
+      friendtree->Fill();
+      continue;
+    }
+
     if (loud_every && !(e_it % loud_every)) {
       std::cout << "\r[INFO]: Read " << e_it << " entries... ( vtx: {"
                 << edr.vtx[0] << ", " << edr.vtx[1] << ", " << edr.vtx[2]
                 << "}, Enu: " << edr.nu_4mom[3] << " )" << std::endl;
     }
 
-    if ((edr.stop == -1) || (edr.PrimaryLepPDG != 13)) {
-      continue;
-    }
+    if (SelMuExit) {
+      TVector3 TrStr(edr.vtx[0], edr.vtx[1], edr.vtx[2]);
+      TVector3 TrDir(edr.PrimaryLep_4mom[0], edr.PrimaryLep_4mom[1],
+                     edr.PrimaryLep_4mom[2]);
+      TrDir = TrDir.Unit();
 
-    TVector3 TrStr(edr.vtx[0], edr.vtx[1], edr.vtx[2]);
-    TVector3 TrDir(edr.PrimaryLep_4mom[0], edr.PrimaryLep_4mom[1],
-                   edr.PrimaryLep_4mom[2]);
-    TrDir = TrDir.Unit();
+      double MuToWall = CalculateToWall(BBs[edr.stop], TrStr, TrDir) * 1E-2;
+      Int_t mu_eff_x_bin =
+          MuonKinematics_seleff->GetXaxis()->FindFixBin(edr.PrimaryLep_4mom[3]);
+      Int_t mu_eff_y_bin =
+          MuonKinematics_seleff->GetYaxis()->FindFixBin(MuToWall);
 
-    double ToWall = CalculateToWall(BBs[edr.stop], TrStr, TrDir) * 1E-2;
-
-    MuonKinematics_all->Fill(edr.PrimaryLep_4mom[3], ToWall);
-    MuonKinematics_musel->Fill(edr.PrimaryLep_4mom[3], ToWall,
-                               edr.LepExit_AboveThresh);
-    MuonKinematics_muhadrsel->Fill(
-        edr.PrimaryLep_4mom[3], ToWall,
-        edr.LepExit_AboveThresh * (edr.TotalNonlep_Dep_veto < hadrveto_value));
-
-    TVector3 TrDir_rot = TrDir;
-    TrDir_rot.Rotate(TMath::Pi(), (TrStr - BeamPos).Unit());
-
-    double ToWall_hadr =
-        CalculateToWall(BBs[edr.stop], TrStr, TrDir_rot) * 1E-2;
-
-    EDephadr_all->Fill(edr.TotalNonlep_Dep_FV + edr.TotalNonlep_Dep_veto,
-                       ToWall_hadr);
-    EDephadr_hadrsel->Fill(edr.TotalNonlep_Dep_FV + edr.TotalNonlep_Dep_veto,
-                           ToWall_hadr,
-                           (edr.TotalNonlep_Dep_veto < hadrveto_value));
-    EDephadr_muhadrsel->Fill(
-        edr.TotalNonlep_Dep_FV + edr.TotalNonlep_Dep_veto, ToWall_hadr,
-        edr.LepExit_AboveThresh * (edr.TotalNonlep_Dep_veto < hadrveto_value));
-
-    TVector3 HadrShower_dir(0, 0, 0);
-    for (size_t pt_it = 0; pt_it < edr.GetNPassthroughParts(); ++pt_it) {
-      std::pair<Int_t, Double_t *> part = edr.GetPassthroughPart(pt_it);
-
-      if ((abs(part.first) > 9999) || (abs(part.first) == 14) ||
-          (abs(part.first) == 12) || (abs(part.first) == 2112)) {
-        continue;
+      if (MuonKinematics_seleff->GetBinContent(mu_eff_x_bin, mu_eff_y_bin)) {
+        mueffweight =
+            1.0 /
+            MuonKinematics_seleff->GetBinContent(mu_eff_x_bin, mu_eff_y_bin);
+      } else {
+        mueffweight = 1;
       }
-
-      HadrShower_dir +=
-          TVector3(part.second[0], part.second[1], part.second[2]);
     }
 
-    double ToWall_hadr_true =
-        CalculateToWall(BBs[edr.stop], TrStr, HadrShower_dir) * 1E-2;
-
-    EDephadr_true_all->Fill(edr.TotalNonlep_Dep_FV + edr.TotalNonlep_Dep_veto,
-                            ToWall_hadr_true);
-    EDephadr_true_hadrsel->Fill(
-        edr.TotalNonlep_Dep_FV + edr.TotalNonlep_Dep_veto, ToWall_hadr_true,
-        (edr.TotalNonlep_Dep_veto < hadrveto_value));
-    EDephadr_true_muhadrsel->Fill(
-        edr.TotalNonlep_Dep_FV + edr.TotalNonlep_Dep_veto, ToWall_hadr_true,
-        edr.LepExit_AboveThresh * (edr.TotalNonlep_Dep_veto < hadrveto_value));
-
-    EDephadr_offset_all->Fill(edr.PrimaryLep_4mom[3] + edr.TotalNonlep_Dep_FV +
-                                  edr.TotalNonlep_Dep_veto,
-                              edr.vtx[0]);
-    EDephadr_offset_muhadrsel->Fill(
-        edr.PrimaryLep_4mom[3] + edr.TotalNonlep_Dep_FV +
-            edr.TotalNonlep_Dep_veto,
-        edr.vtx[0],
-        edr.LepExit_AboveThresh * (edr.TotalNonlep_Dep_veto < hadrveto_value));
-
-    EDephadr_FV_offset_all->Fill(
-        edr.PrimaryLep_4mom[3] + edr.TotalNonlep_Dep_FV, edr.vtx[0]);
-    EDephadr_FV_offset_muhadrsel->Fill(
-        edr.PrimaryLep_4mom[3] + edr.TotalNonlep_Dep_FV, edr.vtx[0],
-        edr.LepExit_AboveThresh * (edr.TotalNonlep_Dep_veto < hadrveto_value));
-
-    Ehadr_FV_offset_all->Fill(edr.ERecProxy_True - edr.PrimaryLep_4mom[3],
-                              edr.vtx[0]);
-    Ehadr_FV_offset_hadrsel->Fill(edr.ERecProxy_True - edr.PrimaryLep_4mom[3],
-                                  edr.vtx[0],
-                                  (edr.TotalNonlep_Dep_veto < hadrveto_value));
-
-    Ehadr_FV_detpos_all->Fill(edr.ERecProxy_True - edr.PrimaryLep_4mom[3],
-                              edr.vtxInDetX);
-    Ehadr_FV_detpos_hadrsel->Fill(edr.ERecProxy_True - edr.PrimaryLep_4mom[3],
-                                  edr.vtxInDetX,
-                                  (edr.TotalNonlep_Dep_veto < hadrveto_value));
-  }
-
-  MuonKinematics_seleff->Divide(MuonKinematics_musel, MuonKinematics_all);
-  EDephadr_seleff->Divide(EDephadr_hadrsel, EDephadr_all);
-  EDephadr_true_seleff->Divide(EDephadr_true_hadrsel, EDephadr_true_all);
-  EDephadr_offset_seleff->Divide(EDephadr_offset_muhadrsel,
-                                 EDephadr_offset_all);
-  EDephadr_FV_offset_seleff->Divide(EDephadr_FV_offset_muhadrsel,
-                                    EDephadr_FV_offset_all);
-  Ehadr_FV_offset_seleff->Divide(Ehadr_FV_offset_hadrsel, Ehadr_FV_offset_all);
-  Ehadr_FV_detpos_seleff->Divide(Ehadr_FV_detpos_hadrsel, Ehadr_FV_detpos_all);
-
-  TTree *friendtree = new TTree("EffWeights", "");
-
-  double effweight, mueffweight, hadreffweight, MuToWall, HadrToWall,
-      hadreffweight_true, HadrToWall_true, dumbeffweight, dumbeffweight_FV,
-      dumbeffweight_TrueHadrE, poseffweight_TrueHadrE;
-  double HadrShower_dir_arr[3], RotMu_dir_arr[3], Mu_dir_arr[3];
-  friendtree->Branch("MuEffWeight", &mueffweight, "MuEffWeight/D");
-  friendtree->Branch("HadrEffWeight", &hadreffweight, "HadrEffWeight/D");
-  friendtree->Branch("HadrEffWeight_true", &hadreffweight_true,
-                     "HadrEffWeight_true/D");
-  friendtree->Branch("EffWeight", &effweight, "EffWeight/D");
-  friendtree->Branch("MuToWall", &MuToWall, "MuToWall/D");
-  friendtree->Branch("HadrToWall", &HadrToWall, "HadrToWall/D");
-  friendtree->Branch("HadrToWall_true", &HadrToWall_true, "HadrToWall_true/D");
-  friendtree->Branch("HadrShower_dir", &HadrShower_dir_arr,
-                     "HadrShower_dir[3]/D");
-  friendtree->Branch("RotMu_dir", &RotMu_dir_arr, "RotMu_dir[3]/D");
-  friendtree->Branch("Mu_dir", &Mu_dir_arr, "Mu_dir[3]/D");
-  friendtree->Branch("DumbEffWeight", &dumbeffweight, "DumbEffWeight/D");
-  friendtree->Branch("DumbEffWeight_FV", &dumbeffweight_FV,
-                     "DumbEffWeight_FV/D");
-  friendtree->Branch("DumbEffWeight_TrueHadrE", &dumbeffweight_TrueHadrE,
-                     "DumbEffWeight_TrueHadrE/D");
-  friendtree->Branch("PosEffWeight_TrueHadrE", &poseffweight_TrueHadrE,
-                     "PosEffWeight_TrueHadrE/D");
-
-  for (Long64_t e_it = 0; e_it < NEntries; ++e_it) {
-    edr.GetEntry(e_it);
-    MuToWall = 0;
-    HadrToWall = 0;
-    std::fill_n(Mu_dir_arr, 3, 0);
-    std::fill_n(RotMu_dir_arr, 3, 0);
-    std::fill_n(HadrShower_dir_arr, 3, 0);
-    HadrToWall_true = 0;
-
-    mueffweight = 0;
-    hadreffweight = 0;
-    hadreffweight_true = 0;
-    dumbeffweight = 0;
-    dumbeffweight_FV = 0;
-    dumbeffweight_TrueHadrE = 0;
-    poseffweight_TrueHadrE = 0;
-
-    if ((edr.stop == -1) || (edr.PrimaryLepPDG != 13)) {
-      friendtree->Fill();
-      continue;
-    }
-
-    TVector3 TrStr(edr.vtx[0], edr.vtx[1], edr.vtx[2]);
-    TVector3 TrDir(edr.PrimaryLep_4mom[0], edr.PrimaryLep_4mom[1],
-                   edr.PrimaryLep_4mom[2]);
-    TrDir = TrDir.Unit();
-    Mu_dir_arr[0] = TrDir[0];
-    Mu_dir_arr[1] = TrDir[1];
-    Mu_dir_arr[2] = TrDir[2];
-
-    MuToWall = CalculateToWall(BBs[edr.stop], TrStr, TrDir) * 1E-2;
-
-    TVector3 TrDir_rot = TrDir;
-    TrDir_rot.Rotate(TMath::Pi(), (TrStr - BeamPos).Unit());
-
-    RotMu_dir_arr[0] = TrDir_rot[0];
-    RotMu_dir_arr[1] = TrDir_rot[1];
-    RotMu_dir_arr[2] = TrDir_rot[2];
-
-    HadrToWall = CalculateToWall(BBs[edr.stop], TrStr, TrDir_rot) * 1E-2;
-
-    TVector3 HadrShower_dir(0, 0, 0);
-    for (size_t pt_it = 0; pt_it < edr.GetNPassthroughParts(); ++pt_it) {
-      std::pair<Int_t, Double_t *> part = edr.GetPassthroughPart(pt_it);
-
-      if ((abs(part.first) > 9999) || (abs(part.first) == 14) ||
-          (abs(part.first) == 12) || (abs(part.first) == 2112)) {
-        continue;
-      }
-
-      HadrShower_dir +=
-          TVector3(part.second[0], part.second[1], part.second[2]);
-    }
-    HadrShower_dir = HadrShower_dir.Unit();
-    HadrShower_dir_arr[0] = HadrShower_dir[0];
-    HadrShower_dir_arr[1] = HadrShower_dir[1];
-    HadrShower_dir_arr[2] = HadrShower_dir[2];
-
-    HadrToWall_true =
-        CalculateToWall(BBs[edr.stop], TrStr, HadrShower_dir) * 1E-2;
-
-    Int_t twmu_bin = MuonKinematics_seleff->GetYaxis()->FindFixBin(MuToWall);
-    Int_t Emu_bin =
-        MuonKinematics_seleff->GetXaxis()->FindFixBin(edr.PrimaryLep_4mom[3]);
-
-    Int_t twhadr_bin = EDephadr_seleff->GetYaxis()->FindFixBin(HadrToWall);
-    Int_t Ehadr_bin = EDephadr_seleff->GetXaxis()->FindFixBin(
-        edr.TotalNonlep_Dep_FV + edr.TotalNonlep_Dep_veto);
-
-    Int_t twhadr_true_bin =
-        EDephadr_true_seleff->GetYaxis()->FindFixBin(HadrToWall_true);
-    Int_t Ehadr_true_bin = EDephadr_true_seleff->GetXaxis()->FindFixBin(
-        edr.TotalNonlep_Dep_FV + edr.TotalNonlep_Dep_veto);
-
-    Int_t dumbeff_x_bin =
-        EDephadr_offset_seleff->GetYaxis()->FindFixBin(edr.vtx[0]);
-    Int_t dumbeff_edep_bin = EDephadr_offset_seleff->GetXaxis()->FindFixBin(
-        edr.PrimaryLep_4mom[3] + edr.TotalNonlep_Dep_FV +
-        edr.TotalNonlep_Dep_veto);
-
-    Int_t dumbeff_fv_x_bin =
-        EDephadr_FV_offset_seleff->GetYaxis()->FindFixBin(edr.vtx[0]);
-    Int_t dumbeff_fv_edep_bin =
-        EDephadr_FV_offset_seleff->GetXaxis()->FindFixBin(
-            edr.PrimaryLep_4mom[3] + edr.TotalNonlep_Dep_FV);
-
-    Int_t dumbeffweight_TrueHadrE_y_bin =
-        Ehadr_FV_offset_seleff->GetYaxis()->FindFixBin(edr.vtx[0]);
-    Int_t dumbeffweight_TrueHadrE_x_bin =
-        Ehadr_FV_offset_seleff->GetXaxis()->FindFixBin(edr.ERecProxy_True -
-                                                       edr.PrimaryLep_4mom[3]);
-
-    Int_t poseffweight_TrueHadrE_y_bin =
+    Int_t hadr_eff_x_bin = Ehadr_FV_detpos_seleff->GetXaxis()->FindFixBin(
+        edr.ERecProxy_True - edr.PrimaryLep_4mom[3]);
+    Int_t hadr_eff_y_bin =
         Ehadr_FV_detpos_seleff->GetYaxis()->FindFixBin(edr.vtxInDetX);
-    Int_t poseffweight_TrueHadrE_x_bin =
-        Ehadr_FV_detpos_seleff->GetXaxis()->FindFixBin(edr.ERecProxy_True -
-                                                       edr.PrimaryLep_4mom[3]);
 
-    if (MuonKinematics_seleff->GetBinContent(Emu_bin, twmu_bin)) {
-      mueffweight =
-          1.0 / MuonKinematics_seleff->GetBinContent(Emu_bin, twmu_bin);
-    } else {
-      mueffweight = 1;
-    }
-
-    if (EDephadr_seleff->GetBinContent(Ehadr_bin, twhadr_bin)) {
+    if (Ehadr_FV_detpos_seleff->GetBinContent(hadr_eff_x_bin, hadr_eff_y_bin)) {
       hadreffweight =
-          1.0 / EDephadr_seleff->GetBinContent(Ehadr_bin, twhadr_bin);
+          1.0 /
+          Ehadr_FV_detpos_seleff->GetBinContent(hadr_eff_x_bin, hadr_eff_y_bin);
     } else {
       hadreffweight = 1;
     }
 
-    if (EDephadr_true_seleff->GetBinContent(Ehadr_true_bin, twhadr_true_bin)) {
-      hadreffweight_true =
-          1.0 /
-          EDephadr_true_seleff->GetBinContent(Ehadr_true_bin, twhadr_true_bin);
-    } else {
-      hadreffweight_true = 1;
-    }
+    effweight = (SelMuExit ? mueffweight : 1) * hadreffweight;
 
-    if (EDephadr_offset_seleff->GetBinContent(dumbeff_edep_bin,
-                                              dumbeff_x_bin)) {
-      dumbeffweight = 1.0 /
-                      EDephadr_offset_seleff->GetBinContent(dumbeff_edep_bin,
-                                                            dumbeff_x_bin);
-    } else {
-      dumbeffweight = 1;
-    }
+    // Fill selected histos
+    EventRates_Selected->Fill(-1 * edr.vtx[0], edr.stop_weight);
+    ERec_Selected->Fill(edr.PrimaryLep_4mom[3] + edr.TotalNonlep_Dep_FV +
+                            edr.TotalNonlep_Dep_veto,
+                        edr.stop_weight);
+    EHadr_Selected->Fill(edr.ERecProxy_True - edr.PrimaryLep_4mom[3],
+                         edr.stop_weight);
 
-    if (EDephadr_FV_offset_seleff->GetBinContent(dumbeff_fv_edep_bin,
-                                                 dumbeff_fv_x_bin)) {
-      dumbeffweight_FV = 1.0 /
-                         EDephadr_FV_offset_seleff->GetBinContent(
-                             dumbeff_fv_edep_bin, dumbeff_fv_x_bin);
-    } else {
-      dumbeffweight_FV = 1;
-    }
+    EvRateERec_Selected->Fill(edr.PrimaryLep_4mom[3] + edr.TotalNonlep_Dep_FV +
+                                  edr.TotalNonlep_Dep_veto,
+                              -1 * edr.vtx[0], edr.stop_weight);
+    EvRateEHadr_Selected->Fill(edr.ERecProxy_True - edr.PrimaryLep_4mom[3],
+                               -1 * edr.vtx[0], edr.stop_weight);
+    StopEventRates_Selected[edr.stop]->Fill(-1 * edr.vtx[0], edr.stop_weight);
 
-    if (Ehadr_FV_offset_seleff->GetBinContent(dumbeffweight_TrueHadrE_x_bin,
-                                              dumbeffweight_TrueHadrE_y_bin)) {
-      dumbeffweight_TrueHadrE =
-          1.0 /
-          Ehadr_FV_offset_seleff->GetBinContent(dumbeffweight_TrueHadrE_x_bin,
-                                                dumbeffweight_TrueHadrE_y_bin);
-    } else {
-      dumbeffweight_TrueHadrE = 1;
-    }
+    EventRates_Corrected->Fill(-1 * edr.vtx[0], edr.stop_weight * effweight);
+    ERec_Corrected->Fill(edr.PrimaryLep_4mom[3] + edr.TotalNonlep_Dep_FV +
+                             edr.TotalNonlep_Dep_veto,
+                         edr.stop_weight * effweight);
+    EHadr_Corrected->Fill(edr.ERecProxy_True - edr.PrimaryLep_4mom[3],
+                          edr.stop_weight * effweight);
 
-    if (Ehadr_FV_detpos_seleff->GetBinContent(poseffweight_TrueHadrE_x_bin,
-                                              poseffweight_TrueHadrE_y_bin)) {
-      poseffweight_TrueHadrE =
-          1.0 /
-          Ehadr_FV_detpos_seleff->GetBinContent(poseffweight_TrueHadrE_x_bin,
-                                                poseffweight_TrueHadrE_y_bin);
-    } else {
-      poseffweight_TrueHadrE = 1;
-    }
-
-    effweight = mueffweight * hadreffweight;
+    EvRateERec_Corrected->Fill(edr.PrimaryLep_4mom[3] + edr.TotalNonlep_Dep_FV +
+                                   edr.TotalNonlep_Dep_veto,
+                               -1 * edr.vtx[0], edr.stop_weight * effweight);
+    EvRateEHadr_Corrected->Fill(edr.ERecProxy_True - edr.PrimaryLep_4mom[3],
+                                -1 * edr.vtx[0], edr.stop_weight * effweight);
+    StopEventRates_Corrected[edr.stop]->Fill(-1 * edr.vtx[0],
+                                             edr.stop_weight * effweight);
 
     friendtree->Fill();
   }

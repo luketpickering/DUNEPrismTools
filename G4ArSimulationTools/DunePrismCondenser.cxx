@@ -14,7 +14,7 @@
 std::vector<double> detmin;
 std::vector<double> detmax;
 std::vector<double> fvgap;
-int nxsteps = 400;
+int nxsteps = 402;
 int ntrackingsteps = 1000;
 std::string inputG4ArFileName;
 std::string inputRooTrackerFileName;
@@ -40,6 +40,8 @@ void SayUsage(char* argv[]) {
                "\n\t-T : Will add XXX_timesep branches to the output that "
                "contain all deposits ocurring more than -T <timesep> "
                "microseconds after the neutrino interaction."
+               "\n\t-nx <nxsteps : N.B. Two steps will be added for the X out "
+               "of FV bins."
             << std::endl;
 }
 
@@ -47,7 +49,7 @@ void handleOpts(int argc, char* argv[]) {
   int opt = 1;
   while (opt < argc) {
     if (std::string(argv[opt]) == "-nx") {
-      nxsteps = str2T<int>(argv[++opt]);
+      nxsteps = str2T<int>(argv[++opt]) + 2;
     } else if (std::string(argv[opt]) == "-nt") {
       ntrackingsteps = str2T<int>(argv[++opt]);
     } else if (std::string(argv[opt]) == "-n") {
@@ -66,6 +68,8 @@ void handleOpts(int argc, char* argv[]) {
       outputFileName = argv[++opt];
     } else if (std::string(argv[opt]) == "-P") {
       POTPerFile = str2T<double>(argv[++opt]);
+      std::cout << "[INFO]: Using " << POTPerFile << " POT as the POTPerFile"
+                << std::endl;
     } else if (std::string(argv[opt]) == "-T") {
       timesep_us = str2T<double>(argv[++opt]);
     } else if (std::string(argv[opt]) == "-A") {

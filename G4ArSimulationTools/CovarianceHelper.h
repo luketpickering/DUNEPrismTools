@@ -1,5 +1,6 @@
 #include "TAxis.h"
 #include "TDecompChol.h"
+#include "TH1.h"
 #include "TMatrixD.h"
 #include "TMatrixDSym.h"
 #include "TRandom3.h"
@@ -9,6 +10,7 @@
 
 class CovarianceBuilder {
   TMatrixD *CovMatrix;
+  TMatrixD *CorrMatrix;
   TMatrixD *MeanVector;
   size_t NThrows_MeanCalc, NThrows_CovMatCalc;
 
@@ -25,6 +27,7 @@ class CovarianceBuilder {
         MeanCalcFinalize(false),
         ZeroMean(false) {
     CovMatrix = new TMatrixD(NRows, NRows);
+    CorrMatrix = nullptr;
     MeanVector = new TMatrixD(NRows, 1);
 
     for (int i = 0; i < NRows; ++i) {
@@ -44,6 +47,15 @@ class CovarianceBuilder {
     TMatrixD v(NRows, 1);
     for (int i = 0; i < NRows; ++i) {
       v[i][0] = t[i];
+    }
+
+    AddThrow_MeanCalc(&v);
+  }
+
+  void AddThrow_MeanCalc(TH1 *t) {
+    TMatrixD v(NRows, 1);
+    for (int i = 0; i < NRows; ++i) {
+      v[i][0] = t->GetBinContent(i + 1);
     }
 
     AddThrow_MeanCalc(&v);
@@ -78,6 +90,15 @@ class CovarianceBuilder {
     TMatrixD v(NRows, 1);
     for (int i = 0; i < NRows; ++i) {
       v[i][0] = t[i];
+    }
+
+    AddThrow_CovMatCalc(&v);
+  }
+
+  void AddThrow_CovMatCalc(TH1 *t) {
+    TMatrixD v(NRows, 1);
+    for (int i = 0; i < NRows; ++i) {
+      v[i][0] = t->GetBinContent(i + 1);
     }
 
     AddThrow_CovMatCalc(&v);
@@ -121,6 +142,25 @@ class CovarianceBuilder {
   }
 
   TMatrixD *GetCovMatrix() { return CovMatrix; }
+
+  TMatrixD *GetCorrMatrix() {
+    if(CorrMatrix){ delete CorrMatrix; }
+    CorrMatrix = new TMatrixD(NRows, NRows);
+
+    for (Int_t ix = 0; ix < NRows; ++ix) {
+      for (Int_t jy = 0; jy < NRows; ++jy) {
+        Double_t BinC = (*CovMatrix)[ix][jy];
+
+        Double_t BinCx = (*CovMatrix)[ix][ix];
+        Double_t BinCy = (*CovMatrix)[jy][jy];
+        Double_t CVar = BinC / (sqrt(BinCx) * sqrt(BinCy));
+
+        (*CorrMatrix)[ix][jy] = CVar;
+      }
+    }
+
+    return CorrMatrix;
+  }
 
   void Write() {
     CovMatrix->Write("CovMatVariations");
@@ -282,7 +322,7 @@ class EVCovMatWeightEngine {
 void NormColumnMatrix(TMatrixD &UncertMatrix) {
   double sum = 0;
   for (Int_t i = 0; i < UncertMatrix.GetNrows(); ++i) {
-    sum += (UncertMatrix[i][0]*UncertMatrix[i][0]);
+    sum += (UncertMatrix[i][0] * UncertMatrix[i][0]);
   }
   for (Int_t i = 0; i < UncertMatrix.GetNrows(); ++i) {
     UncertMatrix[i][0] /= sqrt(sum);

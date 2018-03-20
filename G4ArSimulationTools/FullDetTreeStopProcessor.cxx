@@ -62,7 +62,7 @@ void SayUsage(char const *argv[]) {
          "\t                                documentation for XML "
          "structure.   \n"
          "\t-o <output.root>              : Output file name.\n"
-         "\t-v <veto threshold>           : Threshold energy deposit in "
+         "\t-v <veto threshold MeV>       : Threshold energy deposit in "
          "veto region to pass \n"
          "\t                                selection {default = 10 MeV}.\n"
          "\t-A                            : Write out all events regardless "
@@ -95,7 +95,7 @@ void handleOpts(int argc, char const *argv[]) {
         runPlanName = params[1];
       }
     } else if (std::string(argv[opt]) == "-v") {
-      VetoThreshold = str2T<double>(argv[++opt]);
+      VetoThreshold = str2T<double>(argv[++opt])*1E-3;
     } else if (std::string(argv[opt]) == "-A") {
       WriteOutNonStop = true;
     } else if (std::string(argv[opt]) == "-n") {

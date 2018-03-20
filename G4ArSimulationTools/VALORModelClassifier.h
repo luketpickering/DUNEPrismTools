@@ -205,6 +205,11 @@ std::vector<VALORModel::TrueClass> GetApplicableDials(EDep const &ed) {
       }
       break;
     }
+    case VALORModel::TrueChannel::kMEC:{
+      AppDials.push_back(ed.IsAntinu ? VALORModel::TrueClass::kNuBar_MEC
+                                       : VALORModel::TrueClass::kNu_MEC);
+      break;
+    }
     case VALORModel::TrueChannel::kRES: {
       if (ed.Is1Pi0) {
         if (ed.Q2_True < 0.35) {

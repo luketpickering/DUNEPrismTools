@@ -27,7 +27,7 @@ TH3D* DetectorAndFVDimensions::BuildDetectorMap() {
             << std::flush;
 #endif
 
-  for (int i = 0; i < (NXSteps-2); ++i) {
+  for (int i = 0; i < (NXSteps - 2); ++i) {
     XBins.push_back(XBins.back() + step);
 #ifdef DEBUG
     std::cout << XBins.back() << ((i != (NXSteps - 1)) ? ", " : "")
