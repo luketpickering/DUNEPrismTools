@@ -1,3 +1,5 @@
+#include "Utils.hxx"
+
 #include "TChain.h"
 #include "TObjString.h"
 
@@ -9,11 +11,12 @@
 struct EDep {
   EDep() : tree(nullptr), timesep_us(0xdeadbeef), EventCode(nullptr) {}
   EDep(std::string treeName, std::string inputFiles,
-       double timesep_us = 0xdeadbeef)
+       double timesep_us = 0xdeadbeef, bool IsLite = false)
       : EDep() {
     tree = new TChain(treeName.c_str());
 
     this->timesep_us = timesep_us;
+    this->IsLite = IsLite;
 
     NFiles = tree->Add(inputFiles.c_str());
     NEntries = tree->GetEntries();
@@ -35,6 +38,7 @@ struct EDep {
   UInt_t GetEntries() { return NEntries; }
 
   double timesep_us;
+  bool IsLite;
 
   ~EDep() { delete tree; };
 
@@ -75,6 +79,18 @@ struct EDep {
   /// choice is weighted by the POTExposure branch in the input run plan
   /// xml.
   int stop;
+
+  ///\brief Event weight used to account for overlapping stops only giving each
+  /// event to a single stop.
+  ///
+  /// If not using a runplan with overlapping stops, this should always be 1.
+  double stop_weight;
+  ///\brief Event weight used to account for the POT exposure specified in the
+  /// runplan.
+  ///
+  /// Applying this weight will rescale event from generated POT to correct POT
+  /// given the runplan.
+  double POT_weight;
 
   /// [GENIE P/T]:  The vertex 3-position in cm
   double vtx[3];
@@ -172,6 +188,11 @@ struct EDep {
   /// proton or neutron. N times the nucleon mass should probably be removed
   /// from these events.
   int NBaryonicRes;
+  ///\brief [GENIE P/T]:  The number of anti-matter nucleons in the event.
+  ///
+  /// Note that the anti-nucleons will will also be counted by NNeutron and
+  /// NProton.
+  int NAntiNucleons;
   ///\brief [GENIE P/T]:  The number of final state other particles in the
   /// event.
   ///
@@ -699,6 +720,8 @@ struct EDep {
 
   void Reset() {
     stop = 0;
+    stop_weight = 1;
+    POT_weight = 1;
     std::fill_n(vtx, 3, 0);
     vtxInDetX = 0;
     XOffset = 0;
@@ -720,6 +743,7 @@ struct EDep {
     NPiC = 0;
     NProton = 0;
     NNeutron = 0;
+    NAntiNucleons = 0;
     NGamma = 0;
     NOther = 0;
     NBaryonicRes = 0;
@@ -797,12 +821,119 @@ struct EDep {
     PrimaryLeptonContainedInFV = 0;
   }
 
-  static EDep *MakeTreeWriter(TTree *OutputTree,
-                              double timesep_us = 0xdeadbeef) {
+  void Copy(EDep const &other) {
+    stop = other.stop;
+    stop_weight = other.stop_weight;
+    POT_weight = other.POT_weight;
+    std::copy_n(other.vtx, 3, vtx);
+    vtxInDetX = other.vtxInDetX;
+    XOffset = other.XOffset;
+    GENIEInteractionTopology = other.GENIEInteractionTopology;
+    std::copy_n(other.nu_4mom, 4, nu_4mom);
+    y_True = other.y_True;
+    Q2_True = other.Q2_True;
+    std::copy_n(other.FourMomTransfer_True, 4, FourMomTransfer_True);
+    W_Rest = other.W_Rest;
+    nu_PDG = other.nu_PDG;
+    PrimaryLepPDG = other.PrimaryLepPDG;
+    std::copy_n(other.PrimaryLep_4mom, 4, PrimaryLep_4mom);
+    NFSParts = other.NFSParts;
+    std::copy_n(other.FSPart_PDG, kNMaxPassthroughParts, FSPart_PDG);
+    NFSPart4MomEntries = other.NFSPart4MomEntries;
+    std::copy_n(other.FSPart_4Mom, kNMaxPassthroughParts * 4, FSPart_4Mom);
+    NLep = other.NLep;
+    NPi0 = other.NPi0;
+    NPiC = other.NPiC;
+    NProton = other.NProton;
+    NNeutron = other.NNeutron;
+    NAntiNucleons = other.NAntiNucleons;
+    NGamma = other.NGamma;
+    NOther = other.NOther;
+    NBaryonicRes = other.NBaryonicRes;
+    EKinPi0_True = other.EKinPi0_True;
+    EMassPi0_True = other.EMassPi0_True;
+    EKinPiC_True = other.EKinPiC_True;
+    EMassPiC_True = other.EMassPiC_True;
+    EKinProton_True = other.EKinProton_True;
+    EMassProton_True = other.EMassProton_True;
+    EKinNeutron_True = other.EKinNeutron_True;
+    EMassNeutron_True = other.EMassNeutron_True;
+    EGamma_True = other.EGamma_True;
+    EOther_True = other.EOther_True;
+    Total_ENonPrimaryLep_True = other.Total_ENonPrimaryLep_True;
+    std::copy_n(other.TotalFS_3mom, 3, TotalFS_3mom);
+    ENonPrimaryLep_KinNucleonTotalOther_True =
+        other.ENonPrimaryLep_KinNucleonTotalOther_True;
+    ERecProxy_True = other.ERecProxy_True;
+    LepDep_FV = other.LepDep_FV;
+    LepDep_veto = other.LepDep_veto;
+    LepDepDescendent_FV = other.LepDepDescendent_FV;
+    LepDepDescendent_veto = other.LepDepDescendent_veto;
+    ProtonDep_FV = other.ProtonDep_FV;
+    ProtonDep_veto = other.ProtonDep_veto;
+    NeutronDep_FV = other.NeutronDep_FV;
+    NeutronDep_ChrgWAvgTime_FV = other.NeutronDep_ChrgWAvgTime_FV;
+    NeutronDep_veto = other.NeutronDep_veto;
+    NeutronDep_ChrgWAvgTime_veto = other.NeutronDep_ChrgWAvgTime_veto;
+    PiCDep_FV = other.PiCDep_FV;
+    PiCDep_veto = other.PiCDep_veto;
+    Pi0Dep_FV = other.Pi0Dep_FV;
+    Pi0Dep_veto = other.Pi0Dep_veto;
+    OtherDep_FV = other.OtherDep_FV;
+    OtherDep_veto = other.OtherDep_veto;
+    TotalNonlep_Dep_FV = other.TotalNonlep_Dep_FV;
+    TotalNonlep_Dep_veto = other.TotalNonlep_Dep_veto;
+    LepDep_timesep_FV = other.LepDep_timesep_FV;
+    LepDep_timesep_veto = other.LepDep_timesep_veto;
+    LepDepDescendent_timesep_FV = other.LepDepDescendent_timesep_FV;
+    LepDepDescendent_timesep_veto = other.LepDepDescendent_timesep_veto;
+    ProtonDep_timesep_FV = other.ProtonDep_timesep_FV;
+    ProtonDep_timesep_veto = other.ProtonDep_timesep_veto;
+    NeutronDep_timesep_FV = other.NeutronDep_timesep_FV;
+    NeutronDep_timesep_veto = other.NeutronDep_timesep_veto;
+    PiCDep_timesep_FV = other.PiCDep_timesep_FV;
+    PiCDep_timesep_veto = other.PiCDep_timesep_veto;
+    Pi0Dep_timesep_FV = other.Pi0Dep_timesep_FV;
+    Pi0Dep_timesep_veto = other.Pi0Dep_timesep_veto;
+    OtherDep_timesep_FV = other.OtherDep_timesep_FV;
+    OtherDep_timesep_veto = other.OtherDep_timesep_veto;
+    TotalNonlep_Dep_timesep_FV = other.TotalNonlep_Dep_timesep_FV;
+    TotalNonlep_Dep_timesep_veto = other.TotalNonlep_Dep_timesep_veto;
+    LepExit = other.LepExit;
+    LepExit_AboveThresh = other.LepExit_AboveThresh;
+    LepExitBack = other.LepExitBack;
+    LepExitFront = other.LepExitFront;
+    LepExitYLow = other.LepExitYLow;
+    LepExitYHigh = other.LepExitYHigh;
+    LepExitXLow = other.LepExitXLow;
+    LepExitXHigh = other.LepExitXHigh;
+    LepExitTopology = other.LepExitTopology;
+    std::copy_n(other.LepExitingPos, 3, LepExitingPos);
+    std::copy_n(other.LepExitingMom, 3, LepExitingMom);
+    LepExitKE = other.LepExitKE;
+    IsNumu = other.IsNumu;
+    IsAntinu = other.IsAntinu;
+    IsCC = other.IsCC;
+    Is0Pi = other.Is0Pi;
+    Is1PiC = other.Is1PiC;
+    Is1Pi0 = other.Is1Pi0;
+    Is1Pi = other.Is1Pi;
+    IsNPi = other.IsNPi;
+    IsOther = other.IsOther;
+    Topology = other.Topology;
+    HadrShowerContainedInFV = other.HadrShowerContainedInFV;
+    PrimaryLeptonContainedInFV = other.PrimaryLeptonContainedInFV;
+  }
+
+  static EDep *MakeTreeWriter(TTree *OutputTree, double timesep_us = 0xdeadbeef,
+                              bool IsLite = false) {
     EDep *rtn = new EDep();
     rtn->timesep_us = timesep_us;
+    rtn->IsLite = IsLite;
 
     OutputTree->Branch("stop", &rtn->stop, "stop/I");
+    OutputTree->Branch("stop_weight", &rtn->stop_weight, "stop_weight/D");
+    OutputTree->Branch("POT_weight", &rtn->POT_weight, "POT_weight/D");
 
     OutputTree->Branch("vtx", &rtn->vtx, "vtx[3]/D");
     OutputTree->Branch("vtxInDetX", &rtn->vtxInDetX, "vtxInDetX/D");
@@ -812,48 +943,56 @@ struct EDep {
                        &rtn->GENIEInteractionTopology);
 
     OutputTree->Branch("nu_4mom", &rtn->nu_4mom, "nu_4mom[4]/D");
-    OutputTree->Branch("y_True", &rtn->y_True, "y_True/D");
-    OutputTree->Branch("W_Rest", &rtn->W_Rest, "W_Rest/D");
-    OutputTree->Branch("Q2_True", &rtn->Q2_True, "Q2_True/D");
-    OutputTree->Branch("FourMomTransfer_True", &rtn->FourMomTransfer_True,
-                       "FourMomTransfer_True[4]/D");
+    if (!IsLite) {
+      OutputTree->Branch("y_True", &rtn->y_True, "y_True/D");
+      OutputTree->Branch("W_Rest", &rtn->W_Rest, "W_Rest/D");
+      OutputTree->Branch("Q2_True", &rtn->Q2_True, "Q2_True/D");
+      OutputTree->Branch("FourMomTransfer_True", &rtn->FourMomTransfer_True,
+                         "FourMomTransfer_True[4]/D");
+    }
 
     OutputTree->Branch("nu_PDG", &rtn->nu_PDG, "nu_PDG/I");
     OutputTree->Branch("PrimaryLepPDG", &rtn->PrimaryLepPDG, "PrimaryLepPDG/I");
     OutputTree->Branch("PrimaryLep_4mom", &rtn->PrimaryLep_4mom,
                        "PrimaryLep_4mom[4]/D");
 
-    OutputTree->Branch("NFSParts", &rtn->NFSParts, "NFSParts/I");
-    OutputTree->Branch("FSPart_PDG", &rtn->FSPart_PDG,
-                       "FSPart_PDG[NFSParts]/I");
-    OutputTree->Branch("NFSPart4MomEntries", &rtn->NFSPart4MomEntries,
-                       "NFSPart4MomEntries/I");
-    OutputTree->Branch("FSPart_4Mom", &rtn->FSPart_4Mom,
-                       "FSPart_4Mom[NFSPart4MomEntries]/D");
+    if (!IsLite) {
+      OutputTree->Branch("NFSParts", &rtn->NFSParts, "NFSParts/I");
+      OutputTree->Branch("FSPart_PDG", &rtn->FSPart_PDG,
+                         "FSPart_PDG[NFSParts]/I");
+      OutputTree->Branch("NFSPart4MomEntries", &rtn->NFSPart4MomEntries,
+                         "NFSPart4MomEntries/I");
+      OutputTree->Branch("FSPart_4Mom", &rtn->FSPart_4Mom,
+                         "FSPart_4Mom[NFSPart4MomEntries]/D");
 
-    OutputTree->Branch("NLep", &rtn->NLep, "NLep/I");
-    OutputTree->Branch("NPi0", &rtn->NPi0, "NPi0/I");
-    OutputTree->Branch("NPiC", &rtn->NPiC, "NPiC/I");
-    OutputTree->Branch("NProton", &rtn->NProton, "NProton/I");
-    OutputTree->Branch("NNeutron", &rtn->NNeutron, "NNeutron/I");
-    OutputTree->Branch("NGamma", &rtn->NGamma, "NGamma/I");
-    OutputTree->Branch("NOther", &rtn->NOther, "NOther/I");
-    OutputTree->Branch("NBaryonicRes", &rtn->NBaryonicRes, "NBaryonicRes/I");
+      OutputTree->Branch("NLep", &rtn->NLep, "NLep/I");
+      OutputTree->Branch("NPi0", &rtn->NPi0, "NPi0/I");
+      OutputTree->Branch("NPiC", &rtn->NPiC, "NPiC/I");
+      OutputTree->Branch("NProton", &rtn->NProton, "NProton/I");
+      OutputTree->Branch("NNeutron", &rtn->NNeutron, "NNeutron/I");
+      OutputTree->Branch("NGamma", &rtn->NGamma, "NGamma/I");
+      OutputTree->Branch("NOther", &rtn->NOther, "NOther/I");
+      OutputTree->Branch("NBaryonicRes", &rtn->NBaryonicRes, "NBaryonicRes/I");
+      OutputTree->Branch("NAntiNucleons", &rtn->NAntiNucleons,
+                         "NAntiNucleons/I");
 
-    OutputTree->Branch("EKinPi0_True", &rtn->EKinPi0_True, "EKinPi0_True/D");
-    OutputTree->Branch("EMassPi0_True", &rtn->EMassPi0_True, "EMassPi0_True/D");
-    OutputTree->Branch("EKinPiC_True", &rtn->EKinPiC_True, "EKinPiC_True/D");
-    OutputTree->Branch("EMassPiC_True", &rtn->EMassPiC_True, "EMassPiC_True/D");
-    OutputTree->Branch("EKinProton_True", &rtn->EKinProton_True,
-                       "EKinProton_True/D");
-    OutputTree->Branch("EMassProton_True", &rtn->EMassProton_True,
-                       "EMassProton_True/D");
-    OutputTree->Branch("EKinNeutron_True", &rtn->EKinNeutron_True,
-                       "EKinNeutron_True/D");
-    OutputTree->Branch("EMassNeutron_True", &rtn->EMassNeutron_True,
-                       "EMassNeutron_True/D");
-    OutputTree->Branch("EGamma_True", &rtn->EGamma_True, "EGamma_True/D");
-    OutputTree->Branch("EOther_True", &rtn->EOther_True, "EOther_True/D");
+      OutputTree->Branch("EKinPi0_True", &rtn->EKinPi0_True, "EKinPi0_True/D");
+      OutputTree->Branch("EMassPi0_True", &rtn->EMassPi0_True,
+                         "EMassPi0_True/D");
+      OutputTree->Branch("EKinPiC_True", &rtn->EKinPiC_True, "EKinPiC_True/D");
+      OutputTree->Branch("EMassPiC_True", &rtn->EMassPiC_True,
+                         "EMassPiC_True/D");
+      OutputTree->Branch("EKinProton_True", &rtn->EKinProton_True,
+                         "EKinProton_True/D");
+      OutputTree->Branch("EMassProton_True", &rtn->EMassProton_True,
+                         "EMassProton_True/D");
+      OutputTree->Branch("EKinNeutron_True", &rtn->EKinNeutron_True,
+                         "EKinNeutron_True/D");
+      OutputTree->Branch("EMassNeutron_True", &rtn->EMassNeutron_True,
+                         "EMassNeutron_True/D");
+      OutputTree->Branch("EGamma_True", &rtn->EGamma_True, "EGamma_True/D");
+      OutputTree->Branch("EOther_True", &rtn->EOther_True, "EOther_True/D");
+    }
 
     OutputTree->Branch("Total_ENonPrimaryLep_True",
                        &rtn->Total_ENonPrimaryLep_True,
@@ -939,13 +1078,14 @@ struct EDep {
     OutputTree->Branch("LepExit", &rtn->LepExit, "LepExit/O");
     OutputTree->Branch("LepExit_AboveThresh", &rtn->LepExit_AboveThresh,
                        "LepExit_AboveThresh/O");
-
-    OutputTree->Branch("LepExitBack", &rtn->LepExitBack, "LepExitBack/O");
-    OutputTree->Branch("LepExitFront", &rtn->LepExitFront, "LepExitFront/O");
-    OutputTree->Branch("LepExitYLow", &rtn->LepExitYLow, "LepExitYLow/O");
-    OutputTree->Branch("LepExitYHigh", &rtn->LepExitYHigh, "LepExitYHigh/O");
-    OutputTree->Branch("LepExitXLow", &rtn->LepExitXLow, "LepExitXLow/O");
-    OutputTree->Branch("LepExitXHigh", &rtn->LepExitXHigh, "LepExitXHigh/O");
+    if (!IsLite) {
+      OutputTree->Branch("LepExitBack", &rtn->LepExitBack, "LepExitBack/O");
+      OutputTree->Branch("LepExitFront", &rtn->LepExitFront, "LepExitFront/O");
+      OutputTree->Branch("LepExitYLow", &rtn->LepExitYLow, "LepExitYLow/O");
+      OutputTree->Branch("LepExitYHigh", &rtn->LepExitYHigh, "LepExitYHigh/O");
+      OutputTree->Branch("LepExitXLow", &rtn->LepExitXLow, "LepExitXLow/O");
+      OutputTree->Branch("LepExitXHigh", &rtn->LepExitXHigh, "LepExitXHigh/O");
+    }
 
     OutputTree->Branch("LepExitTopology", &rtn->LepExitTopology,
                        "LepExitTopology/I");
@@ -976,7 +1116,17 @@ struct EDep {
   }
 
   void SetBranchAddresses() {
+    if (!CheckTTreeHasBranch(tree, "y_True") && !IsLite) {
+      std::cout << "[INFO]: Switching EDepReader to LiteMode as missing "
+                   "expected branch."
+                << std::endl;
+      IsLite = true;
+    }
+
     tree->SetBranchAddress("stop", &stop);
+    tree->SetBranchAddress("stop_weight", &stop_weight);
+    tree->SetBranchAddress("POT_weight", &POT_weight);
+
     tree->SetBranchAddress("vtx", &vtx);
     tree->SetBranchAddress("vtxInDetX", &vtxInDetX);
     tree->SetBranchAddress("XOffset", &XOffset);
@@ -984,35 +1134,40 @@ struct EDep {
     tree->SetBranchAddress("GENIEInteractionTopology",
                            &GENIEInteractionTopology);
     tree->SetBranchAddress("nu_4mom", &nu_4mom);
-    tree->SetBranchAddress("y_True", &y_True);
-    tree->SetBranchAddress("Q2_True", &Q2_True);
-    tree->SetBranchAddress("FourMomTransfer_True", &FourMomTransfer_True);
-    tree->SetBranchAddress("W_Rest", &W_Rest);
+    if (!IsLite) {
+      tree->SetBranchAddress("y_True", &y_True);
+      tree->SetBranchAddress("Q2_True", &Q2_True);
+      tree->SetBranchAddress("FourMomTransfer_True", &FourMomTransfer_True);
+      tree->SetBranchAddress("W_Rest", &W_Rest);
+    }
     tree->SetBranchAddress("nu_PDG", &nu_PDG);
     tree->SetBranchAddress("PrimaryLepPDG", &PrimaryLepPDG);
     tree->SetBranchAddress("PrimaryLep_4mom", &PrimaryLep_4mom);
-    tree->SetBranchAddress("NFSParts", &NFSParts);
-    tree->SetBranchAddress("FSPart_PDG", FSPart_PDG);
-    tree->SetBranchAddress("NFSPart4MomEntries", &NFSPart4MomEntries);
-    tree->SetBranchAddress("FSPart_4Mom", FSPart_4Mom);
-    tree->SetBranchAddress("NLep", &NLep);
-    tree->SetBranchAddress("NPi0", &NPi0);
-    tree->SetBranchAddress("NPiC", &NPiC);
-    tree->SetBranchAddress("NProton", &NProton);
-    tree->SetBranchAddress("NNeutron", &NNeutron);
-    tree->SetBranchAddress("NGamma", &NGamma);
-    tree->SetBranchAddress("NOther", &NOther);
-    tree->SetBranchAddress("NBaryonicRes", &NBaryonicRes);
-    tree->SetBranchAddress("EKinPi0_True", &EKinPi0_True);
-    tree->SetBranchAddress("EMassPi0_True", &EMassPi0_True);
-    tree->SetBranchAddress("EKinPiC_True", &EKinPiC_True);
-    tree->SetBranchAddress("EMassPiC_True", &EMassPiC_True);
-    tree->SetBranchAddress("EKinProton_True", &EKinProton_True);
-    tree->SetBranchAddress("EMassProton_True", &EMassProton_True);
-    tree->SetBranchAddress("EKinNeutron_True", &EKinNeutron_True);
-    tree->SetBranchAddress("EMassNeutron_True", &EMassNeutron_True);
-    tree->SetBranchAddress("EGamma_True", &EGamma_True);
-    tree->SetBranchAddress("EOther_True", &EOther_True);
+    if (!IsLite) {
+      tree->SetBranchAddress("NFSParts", &NFSParts);
+      tree->SetBranchAddress("FSPart_PDG", FSPart_PDG);
+      tree->SetBranchAddress("NFSPart4MomEntries", &NFSPart4MomEntries);
+      tree->SetBranchAddress("FSPart_4Mom", FSPart_4Mom);
+      tree->SetBranchAddress("NLep", &NLep);
+      tree->SetBranchAddress("NPi0", &NPi0);
+      tree->SetBranchAddress("NPiC", &NPiC);
+      tree->SetBranchAddress("NProton", &NProton);
+      tree->SetBranchAddress("NNeutron", &NNeutron);
+      tree->SetBranchAddress("NGamma", &NGamma);
+      tree->SetBranchAddress("NOther", &NOther);
+      tree->SetBranchAddress("NBaryonicRes", &NBaryonicRes);
+      tree->SetBranchAddress("NAntiNucleons", &NAntiNucleons);
+      tree->SetBranchAddress("EKinPi0_True", &EKinPi0_True);
+      tree->SetBranchAddress("EMassPi0_True", &EMassPi0_True);
+      tree->SetBranchAddress("EKinPiC_True", &EKinPiC_True);
+      tree->SetBranchAddress("EMassPiC_True", &EMassPiC_True);
+      tree->SetBranchAddress("EKinProton_True", &EKinProton_True);
+      tree->SetBranchAddress("EMassProton_True", &EMassProton_True);
+      tree->SetBranchAddress("EKinNeutron_True", &EKinNeutron_True);
+      tree->SetBranchAddress("EMassNeutron_True", &EMassNeutron_True);
+      tree->SetBranchAddress("EGamma_True", &EGamma_True);
+      tree->SetBranchAddress("EOther_True", &EOther_True);
+    }
     tree->SetBranchAddress("Total_ENonPrimaryLep_True",
                            &Total_ENonPrimaryLep_True);
     tree->SetBranchAddress("TotalFS_3mom", &TotalFS_3mom);
@@ -1065,15 +1220,18 @@ struct EDep {
     tree->SetBranchAddress("LepExit", &LepExit);
     tree->SetBranchAddress("LepExitKE", &LepExitKE);
     tree->SetBranchAddress("LepExit_AboveThresh", &LepExit_AboveThresh);
-    tree->SetBranchAddress("LepExitBack", &LepExitBack);
-    tree->SetBranchAddress("LepExitFront", &LepExitFront);
-    tree->SetBranchAddress("LepExitYLow", &LepExitYLow);
-    tree->SetBranchAddress("LepExitYHigh", &LepExitYHigh);
-    tree->SetBranchAddress("LepExitXLow", &LepExitXLow);
-    tree->SetBranchAddress("LepExitXHigh", &LepExitXHigh);
+    if (!IsLite) {
+      tree->SetBranchAddress("LepExitBack", &LepExitBack);
+      tree->SetBranchAddress("LepExitFront", &LepExitFront);
+      tree->SetBranchAddress("LepExitYLow", &LepExitYLow);
+      tree->SetBranchAddress("LepExitYHigh", &LepExitYHigh);
+      tree->SetBranchAddress("LepExitXLow", &LepExitXLow);
+      tree->SetBranchAddress("LepExitXHigh", &LepExitXHigh);
+    }
     tree->SetBranchAddress("LepExitTopology", &LepExitTopology);
     tree->SetBranchAddress("LepExitingPos", &LepExitingPos);
     tree->SetBranchAddress("LepExitingMom", &LepExitingMom);
+
     tree->SetBranchAddress("IsNumu", &IsNumu);
     tree->SetBranchAddress("IsAntinu", &IsAntinu);
     tree->SetBranchAddress("IsCC", &IsCC);

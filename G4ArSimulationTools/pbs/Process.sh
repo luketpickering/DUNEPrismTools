@@ -29,6 +29,12 @@ if [ -z ${PROCESSED_OUTPUT_DIR} ]; then
   exit 1
 fi
 
+PPFARG=""
+if [ ! -z ${POTPERFILE} ]; then
+  echo "[INFO]: Using ${POTPERFILE} as POT per file."
+  PPFARG=" -P ${POTPERFILE} "
+fi
+
 CONDFILE=$(cat ${INPUT_FILE_LIST} | head -${PBS_ARRAYID} | tail -1)
 
 mkdir ${TMPDIR}/Process_${PBS_JOBID}.${PBS_ARRAYID}
@@ -43,8 +49,8 @@ RPFileName=${RUNPLAN_CONFIG##*/}
 ProcFileName=$( echo ${CONDFileName} | sed "s/Condensed/Processed/g" )
 
 echo "Processing at $(date "+%Y.%m.%d %H:%M:%S %Z")"
-echo "dp_FullDetTreeStopProcessor -i ${CONDFileName} -r ${RPFileName} -o ${ProcFileName}"
-dp_FullDetTreeStopProcessor -i ${CONDFileName} -r ${RPFileName} -o ${ProcFileName}
+echo "dp_FullDetTreeStopProcessor -i ${CONDFileName} -r ${RPFileName} -o ${ProcFileName} ${PPFARG}"
+dp_FullDetTreeStopProcessor -i ${CONDFileName} -r ${RPFileName} -o ${ProcFileName} ${PPFARG}
 
 echo "cp ${ProcFileName} ${PROCESSED_OUTPUT_DIR}"
 cp ${ProcFileName} ${PROCESSED_OUTPUT_DIR}

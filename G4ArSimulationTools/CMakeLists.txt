@@ -1,6 +1,7 @@
 SET(APPS DunePrismCondenser FullDetTreeStopProcessor
   FluxVarFriendTreeBuilder XSecVarFriendTreeBuilder G4ArEventDisplay
-  MatrixToolsTester EfficiencyWeightFriendTreeBuilder)
+  MatrixToolsTester EfficiencyWeightFriendTreeBuilder PRISMAnalysis
+  BuildFDPrediction RunSelection ProduceEfficiencyCorrector)
 
 include_directories(${INCLUDE_DIRECTORIES})
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})

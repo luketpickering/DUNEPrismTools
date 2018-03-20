@@ -61,6 +61,8 @@ std::vector<double> FluxOffaxisPositions_2D_inputs;
 std::vector<bool> ApplyReg;
 std::vector<double> SliceXWidth_m;
 
+std::vector<std::pair<double, double> > MergedOffAxisRanges_2D_inputs;
+
 double referencePOT = std::numeric_limits<double>::min();
 std::vector<double> MeasurementFactor;
 std::vector<TH1D *> Fluxes;
@@ -74,7 +76,14 @@ TF1 *TargetGauss;
 
 std::vector<std::pair<std::string, TGraph> > GENIEXSecs;
 
-enum OutOfRangeModeEnum { kIgnore = 0, kZero, kExponentialDecay, kGaussianDecay };
+std::vector<std::pair<double, double> > XRanges;
+
+enum OutOfRangeModeEnum {
+  kIgnore = 0,
+  kZero,
+  kExponentialDecay,
+  kGaussianDecay
+};
 /// If using a FitBetween mode:
 /// 0: Ignore all bins outside range
 /// 1: Try to force bins to 0
@@ -100,30 +109,33 @@ void FindPeaks(TH1D *OscFlux, int &left, int &right, int n = 3) {
   std::cout << "[INFO] Looking for peaks..." << std::endl;
 
   TH1D *temp = new TH1D();
-  OscFlux -> Copy(*temp);
-  temp -> Smooth(10);
 
-  double threshold = (temp -> Integral())/(5*(temp -> GetNbinsX()));
+  OscFlux->Copy(*temp);
+  temp->Smooth(10);
+
+  double threshold = (temp->Integral()) / (5 * (temp->GetNbinsX()));
+
   // double threshold = 1.e-16;
 
-  std::cout<< "[INFO] Peak threshold " << threshold << std::endl;
+  std::cout << "[INFO] Peak threshold " << threshold << std::endl;
 
   int nfound = 0;
   double content[3] = {0};
 
-  for ( int bin_ind = temp -> GetNbinsX(); bin_ind > 0 && nfound < n; bin_ind-- ) {
-    content[2] = temp -> GetBinContent(bin_ind - 1);
-    if ( content[0] < content[1] && content[1] > content[2] && content[1] > threshold ) {
-      if ( nfound == 0 ) right = bin_ind;
-      if ( nfound == n-1 ) left = bin_ind;
-      nfound ++;
-      std::cout << "[INFO] found a peak of height " << content[1] << " at bin " << bin_ind << std::endl;
+  for (int bin_ind = temp->GetNbinsX(); bin_ind > 0 && nfound < n; bin_ind--) {
+    content[2] = temp->GetBinContent(bin_ind - 1);
+    if (content[0] < content[1] && content[1] > content[2] &&
+        content[1] > threshold) {
+      if (nfound == 0) right = bin_ind;
+      if (nfound == n - 1) left = bin_ind;
+      nfound++;
+      std::cout << "[INFO] found a peak of height " << content[1] << " at bin "
+                << bin_ind << std::endl;
     }
     content[0] = content[1];
     content[1] = content[2];
   }
 }
-
 
 void BuildTargetFlux(TH1D *OscFlux) {
   TargetFlux = static_cast<TH1D *>(OscFlux->Clone());
@@ -153,7 +165,8 @@ void BuildTargetFlux(TH1D *OscFlux) {
         double sigma5_range = enu_first_counted_bin - enu_bottom_bin;
         target =
             content_first_counted_bin *
-	  exp(-ExpDecayRate * (enu_first_counted_bin - enu) * (enu_first_counted_bin - enu) / (sigma5_range * sigma5_range));
+            exp(-ExpDecayRate * (enu_first_counted_bin - enu) *
+                (enu_first_counted_bin - enu) / (sigma5_range * sigma5_range));
       }
       TargetFlux->SetBinContent(bi_it, target);
     } else {
@@ -195,7 +208,8 @@ void BuildTargetFlux(TH1D *OscFlux) {
         double sigma5_range = enu_top_bin - enu_last_counted_bin;
         target =
             content_last_counted_bin *
-	  exp(-ExpDecayRate * (enu - enu_last_counted_bin) * (enu - enu_last_counted_bin) / (sigma5_range * sigma5_range));
+            exp(-ExpDecayRate * (enu - enu_last_counted_bin) *
+                (enu - enu_last_counted_bin) / (sigma5_range * sigma5_range));
       }
       TargetFlux->SetBinContent(bi_it, target);
     } else {
@@ -587,6 +601,15 @@ void SayUsage(char const *argv[]) {
          "fit fluxes at \n"
          "\t                                     1, 2, 4, 6, and 7 m off axis."
          "\n"
+         "\t-M  <OA1>:<OA_W>,<OA2>_<OAN>:<OA_W>,<OAN+1>:<OA_W>,...\n "
+         "\t                                   : Merge bins in off axis flux "
+         "positions from a -h \n"
+         "\t                                     input. The format differs "
+         "slightly from the \n"
+         "\t                                     -I option in that each stop "
+         "has a specified width \n"
+         "\t                                     rather than a stop step."
+         "\n"
       << std::endl;
 }
 
@@ -733,7 +756,7 @@ void handleOpts(int argc, char const *argv[]) {
       for (size_t bin_it = 1; bin_it < InterpolatedOAAValues.size(); ++bin_it) {
         if (InterpolatedOAAValues[bin_it] ==
             InterpolatedOAAValues[bin_it - 1]) {
-          std::cout << "[INFO]: Removing duplciate interpolated oaa values ["
+          std::cout << "[INFO]: Removing duplciate interpolated oap values ["
                     << bin_it << "] = " << InterpolatedOAAValues[bin_it]
                     << std::endl;
           InterpolatedOAAValues.erase(InterpolatedOAAValues.begin() + bin_it);
@@ -741,14 +764,77 @@ void handleOpts(int argc, char const *argv[]) {
       }
 
       for (size_t bin_it = 1; bin_it < InterpolatedOAAValues.size(); ++bin_it) {
-        if (InterpolatedOAAValues[bin_it] < InterpolatedOAAValues[bin_it - 1]) {
-          std::cout << "[ERROR]: Interpolated oaa value #" << bin_it << " = "
+        if ((InterpolatedOAAValues[bin_it - 1] -
+             InterpolatedOAAValues[bin_it]) > 1E-5) {
+          std::cout << "[ERROR]: Interpolated oap value #" << bin_it << " = "
                     << InterpolatedOAAValues[bin_it] << ". however, #"
                     << (bin_it - 1) << " = "
                     << InterpolatedOAAValues[bin_it - 1] << std::endl;
           exit(1);
         }
       }
+    } else if (std::string(argv[opt]) == "-M") {
+      std::vector<std::string> mergeDescriptors =
+          ParseToVect<std::string>(argv[++opt], ",");
+      MergedOffAxisRanges_2D_inputs.clear();
+
+      for (size_t mit = 0; mit < mergeDescriptors.size(); ++mit) {
+        if (mergeDescriptors[mit].find("_") != std::string::npos) {
+          std::vector<std::string> stopdescriptor =
+              ParseToVect<std::string>(mergeDescriptors[mit], ":");
+
+          if (!stopdescriptor.size() == 2) {
+            std::cout << "[ERROR]: Merge descriptor: \"" << argv[opt]
+                      << "\" contained bad descriptor: \""
+                      << mergeDescriptors[mit]
+                      << "\", expected <OAPos1_m>_<OAPosN_m>:<OAWidth_m>."
+                      << std::endl;
+            SayUsage(argv);
+            exit(0);
+          }
+
+          std::vector<double> stoppositions =
+              BuildDoubleList(mergeDescriptors[mit]);
+          double width = str2T<double>(stopdescriptor[1]);
+
+          for (size_t sp_it = 0; sp_it < stoppositions.size(); ++sp_it) {
+            MergedOffAxisRanges_2D_inputs.push_back(
+                std::make_pair(stoppositions[sp_it] - (width / 2.0),
+                               stoppositions[sp_it] + (width / 2.0)));
+          }
+
+        } else {
+          std::vector<double> stopdescriptor =
+              ParseToVect<double>(mergeDescriptors[mit], ":");
+          if (!stopdescriptor.size() == 2) {
+            std::cout << "[ERROR]: Merge descriptor: \"" << argv[opt]
+                      << "\" contained bad descriptor: \""
+                      << mergeDescriptors[mit]
+                      << "\", expected <OAPos_m>:<OAWidth_m>." << std::endl;
+            SayUsage(argv);
+            exit(0);
+          }
+          MergedOffAxisRanges_2D_inputs.push_back(
+              std::make_pair(stopdescriptor[0] - (stopdescriptor[1] / 2.0),
+                             stopdescriptor[0] + (stopdescriptor[1] / 2.0)));
+        }
+      }
+
+      for (size_t bin_it = 1; bin_it < MergedOffAxisRanges_2D_inputs.size();
+           ++bin_it) {
+        if ((MergedOffAxisRanges_2D_inputs[bin_it - 1].second -
+             MergedOffAxisRanges_2D_inputs[bin_it].first) > 1E-5) {
+          std::cout << "[ERROR]: Interpolated oap stop range #" << bin_it
+                    << " = {" << MergedOffAxisRanges_2D_inputs[bin_it].first
+                    << " -- " << MergedOffAxisRanges_2D_inputs[bin_it].second
+                    << "} . however, #" << (bin_it - 1) << " = {"
+                    << MergedOffAxisRanges_2D_inputs[bin_it - 1].first << " -- "
+                    << MergedOffAxisRanges_2D_inputs[bin_it - 1].second << "}."
+                    << std::endl;
+          exit(1);
+        }
+      }
+
     } else if ((std::string(argv[opt]) == "-?") ||
                std::string(argv[opt]) == "--help") {
       SayUsage(argv);
@@ -793,7 +879,7 @@ int main(int argc, char const *argv[]) {
       binHigh = OscFlux->GetXaxis()->FindFixBin(FitBetween_high);
     }
 
-    if ( fitBetweenPeaks ) {
+    if (fitBetweenPeaks) {
       FindPeaks(OscFlux, binLow, binHigh);
     }
 
@@ -913,86 +999,128 @@ int main(int argc, char const *argv[]) {
         Flux2D->Scale(1.0 / double(MergeENuBins));
       }
 
-      std::vector<std::pair<double, TH1D *> > Fluxes_and_OAPs;
-      if (InterpolatedOAAValues.size()) {
-        Fluxes_and_OAPs =
-            InterpolateSplitTH2D(Flux2D, true, InterpolatedOAAValues);
+      if (MergedOffAxisRanges_2D_inputs.size()) {
+        Fluxes = MergeSplitTH2D(Flux2D, true, MergedOffAxisRanges_2D_inputs);
 
-        for (size_t f_it = 0; f_it < Fluxes_and_OAPs.size(); ++f_it) {
+        for (size_t i = 0; i < MergedOffAxisRanges_2D_inputs.size(); ++i) {
+          std::cout << "[INFO]: Built flux for slice " << i << " between "
+                    << MergedOffAxisRanges_2D_inputs[i].first << ", and "
+                    << MergedOffAxisRanges_2D_inputs[i].second << " m."
+                    << std::endl;
+          SliceXWidth_m.push_back(MergedOffAxisRanges_2D_inputs[i].second -
+                                  MergedOffAxisRanges_2D_inputs[i].first);
+          if (i != 0) {
+            // Don't regularise across gaps
+            if (fabs(MergedOffAxisRanges_2D_inputs[i].first -
+                     MergedOffAxisRanges_2D_inputs[i - 1].second) > 1E-5) {
+              ApplyReg.back() = false;
+            }
+          }
           ApplyReg.push_back(true);
-          FluxOffaxisPositions_2D_inputs.push_back(Fluxes_and_OAPs[f_it].first);
-          Fluxes.push_back(Fluxes_and_OAPs[f_it].second);
         }
+        XRanges = MergedOffAxisRanges_2D_inputs;
       } else {
-        Fluxes_and_OAPs = SplitTH2D(Flux2D, true, 0);
+        std::vector<std::pair<double, TH1D *> > Fluxes_and_OAPs;
+        if (InterpolatedOAAValues.size()) {
+          Fluxes_and_OAPs =
+              InterpolateSplitTH2D(Flux2D, true, InterpolatedOAAValues);
 
-        if (!IncludedOffAxisRange_2D_inputs.size()) {
           for (size_t f_it = 0; f_it < Fluxes_and_OAPs.size(); ++f_it) {
             ApplyReg.push_back(true);
             FluxOffaxisPositions_2D_inputs.push_back(
                 Fluxes_and_OAPs[f_it].first);
             Fluxes.push_back(Fluxes_and_OAPs[f_it].second);
+
+            if (f_it == 0) {
+              double xhr =
+                  (Fluxes_and_OAPs[1].first - Fluxes_and_OAPs[0].first) / 2.0;
+              XRanges.push_back(std::make_pair(Fluxes_and_OAPs[0].first - xhr,
+                                               Fluxes_and_OAPs[0].first + xhr));
+            } else {
+              double xhr = Fluxes_and_OAPs[f_it].first - XRanges.back().second;
+              XRanges.push_back(
+                  std::make_pair(Fluxes_and_OAPs[f_it].first - xhr,
+                                 Fluxes_and_OAPs[f_it].first + xhr));
+            }
+
+            std::cout << "[INFO]: Slice " << (f_it) << " {"
+                      << XRanges[f_it].first << ", " << XRanges[f_it].second
+                      << "}, w = "
+                      << (XRanges[f_it].second - XRanges[f_it].first)
+                      << std::endl;
           }
         } else {
-          size_t this_kept_range = -1,
-                 last_kept_range = std::numeric_limits<size_t>::max();
-          for (size_t f_it = 0; f_it < Fluxes_and_OAPs.size(); ++f_it) {
-            bool keep = false;
-            for (size_t inc_it = 0;
-                 inc_it < IncludedOffAxisRange_2D_inputs.size(); ++inc_it) {
-              bool ge_low =
-                  ((Fluxes_and_OAPs[f_it].first >
-                    IncludedOffAxisRange_2D_inputs[inc_it].first) ||
-                   (fabs(Fluxes_and_OAPs[f_it].first -
-                         IncludedOffAxisRange_2D_inputs[inc_it].first)) < 1E-5);
-              bool le_up =
-                  ((Fluxes_and_OAPs[f_it].first <
-                    IncludedOffAxisRange_2D_inputs[inc_it].second) ||
-                   (fabs(Fluxes_and_OAPs[f_it].first -
-                         IncludedOffAxisRange_2D_inputs[inc_it].second)) <
-                       1E-5);
-              if (ge_low && le_up) {
-                keep = true;
-                this_kept_range = inc_it;
-                break;
+          Fluxes_and_OAPs = SplitTH2D(Flux2D, true, 0);
+
+          if (!IncludedOffAxisRange_2D_inputs.size()) {
+            for (size_t f_it = 0; f_it < Fluxes_and_OAPs.size(); ++f_it) {
+              ApplyReg.push_back(true);
+              FluxOffaxisPositions_2D_inputs.push_back(
+                  Fluxes_and_OAPs[f_it].first);
+              Fluxes.push_back(Fluxes_and_OAPs[f_it].second);
+            }
+          } else {
+            size_t this_kept_range = -1,
+                   last_kept_range = std::numeric_limits<size_t>::max();
+            for (size_t f_it = 0; f_it < Fluxes_and_OAPs.size(); ++f_it) {
+              bool keep = false;
+              for (size_t inc_it = 0;
+                   inc_it < IncludedOffAxisRange_2D_inputs.size(); ++inc_it) {
+                bool ge_low =
+                    ((Fluxes_and_OAPs[f_it].first >
+                      IncludedOffAxisRange_2D_inputs[inc_it].first) ||
+                     (fabs(Fluxes_and_OAPs[f_it].first -
+                           IncludedOffAxisRange_2D_inputs[inc_it].first)) <
+                         1E-5);
+                bool le_up =
+                    ((Fluxes_and_OAPs[f_it].first <
+                      IncludedOffAxisRange_2D_inputs[inc_it].second) ||
+                     (fabs(Fluxes_and_OAPs[f_it].first -
+                           IncludedOffAxisRange_2D_inputs[inc_it].second)) <
+                         1E-5);
+                if (ge_low && le_up) {
+                  keep = true;
+                  this_kept_range = inc_it;
+                  break;
+                }
               }
-            }
-            if (!keep) {
-              delete Fluxes_and_OAPs[f_it].second;
-              continue;
-            }
+              if (!keep) {
+                delete Fluxes_and_OAPs[f_it].second;
+                continue;
+              }
 
-            std::cout << "[INFO]: Keeping flux slice at "
-                      << Fluxes_and_OAPs[f_it].first << " m OAP." << std::endl;
-
-            if ((last_kept_range != std::numeric_limits<size_t>::max()) &&
-                (this_kept_range != last_kept_range)) {
-              ApplyReg.back() = false;
-              std::cout << "[INFO]: Ignoring reg factor for flux at "
-                        << FluxOffaxisPositions_2D_inputs.back() << " m OAP."
+              std::cout << "[INFO]: Keeping flux slice at "
+                        << Fluxes_and_OAPs[f_it].first << " m OAP."
                         << std::endl;
+
+              if ((last_kept_range != std::numeric_limits<size_t>::max()) &&
+                  (this_kept_range != last_kept_range)) {
+                ApplyReg.back() = false;
+                std::cout << "[INFO]: Ignoring reg factor for flux at "
+                          << FluxOffaxisPositions_2D_inputs.back() << " m OAP."
+                          << std::endl;
+              }
+
+              ApplyReg.push_back(true);
+              FluxOffaxisPositions_2D_inputs.push_back(
+                  Fluxes_and_OAPs[f_it].first);
+              Fluxes.push_back(Fluxes_and_OAPs[f_it].second);
+
+              Int_t ybi_it =
+                  Flux2D->GetYaxis()->FindFixBin(Fluxes_and_OAPs[f_it].first);
+              SliceXWidth_m.push_back(Flux2D->GetYaxis()->GetBinWidth(ybi_it));
+              last_kept_range = this_kept_range;
             }
-
-            ApplyReg.push_back(true);
-            FluxOffaxisPositions_2D_inputs.push_back(
-                Fluxes_and_OAPs[f_it].first);
-            Fluxes.push_back(Fluxes_and_OAPs[f_it].second);
-
-            Int_t ybi_it =
-                Flux2D->GetYaxis()->FindFixBin(Fluxes_and_OAPs[f_it].first);
-            SliceXWidth_m.push_back(Flux2D->GetYaxis()->GetBinWidth(ybi_it));
-            last_kept_range = this_kept_range;
           }
         }
+        if (!Fluxes_and_OAPs.size()) {
+          std::cout << "[ERROR]: Couldn't find any fluxes in split TH2D."
+                    << std::endl;
+          throw;  // exit(1);
+        }
+        std::cout << "[INFO]: Found " << Fluxes_and_OAPs.size()
+                  << " input fluxes." << std::endl;
       }
-      if (!Fluxes_and_OAPs.size()) {
-        std::cout << "[ERROR]: Couldn't find any fluxes in split TH2D."
-                  << std::endl;
-        throw;  // exit(1);
-      }
-      std::cout << "[INFO]: Found " << Fluxes_and_OAPs.size()
-                << " input fluxes." << std::endl;
-
     } else if (inpFluxHistsPattern.size()) {
       Fluxes = GetHistograms<TH1D>(FluxesFile, inpFluxHistsPattern);
       if (!Fluxes.size()) {
@@ -1204,11 +1332,9 @@ int main(int argc, char const *argv[]) {
     TGraph peak_coeffs(1);
     peak_coeffs.Set(Fluxes.size());
     for (size_t flux_it = 0; flux_it < Fluxes.size(); flux_it++) {
-      peak_coeffs.SetPoint(flux_it,
-                           FluxOffaxisPositions_2D_inputs.size()
-                               ? FluxOffaxisPositions_2D_inputs[flux_it]
-                               : flux_it,
-                           coeffs[flux_it]);
+      peak_coeffs.SetPoint(
+          flux_it, (XRanges[flux_it].second + XRanges[flux_it].first) / 2.0,
+          coeffs[flux_it]);
     }
     peak_coeffs.Write("coeffs");
   }
@@ -1396,25 +1522,25 @@ int main(int argc, char const *argv[]) {
 
         for (Int_t bi_it = 1;
              bi_it < CCIncEvr.back()->GetXaxis()->GetNbins() + 1; ++bi_it) {
-          double xsec_cm2_gev = 0;
+          double xsec_cm2 = 0;
           double Enu = CCIncEvr.back()->GetXaxis()->GetBinCenter(bi_it);
 
           for (size_t xsec_it = 0; xsec_it < GENIEXSecs.size(); ++xsec_it) {
-            xsec_cm2_gev += GENIEXSecs[xsec_it].second.Eval(Enu);
+            xsec_cm2 += GENIEXSecs[xsec_it].second.Eval(Enu);
           }
 
-          double flux_pcm2_pgev_pnuc_pPOT =
-              CCIncEvr.back()->GetBinContent(bi_it);
+          double flux_pcm2_pnuc_pPOT = CCIncEvr.back()->GetBinContent(bi_it);
 
           double nnuc = detYZ_m * SliceXWidth_m[fl_it] * detDensity_kgm3 /
                         mass_nucleon_kg;
 
-          double NEv = flux_pcm2_pgev_pnuc_pPOT * xsec_cm2_gev * nnuc * POT;
+          double NEv = flux_pcm2_pnuc_pPOT * xsec_cm2 * nnuc * POT;
 
-          if (fl_it == 0 && bi_it == 80) {
-            std::cout << "ENu: " << Enu << ", TXSec: " << xsec_cm2_gev
+          if (bi_it == 80) {
+            std::cout << "ENu: " << Enu << ", TXSec: " << xsec_cm2
                       << ", DetMass: "
                       << detYZ_m * SliceXWidth_m[fl_it] * detDensity_kgm3
+                      << " (SW = " << SliceXWidth_m[fl_it] << ")"
                       << ", POT: " << POT << ", NEv: " << NEv << std::endl;
           }
 
@@ -1435,17 +1561,33 @@ int main(int argc, char const *argv[]) {
               bi_it, NEv * sqrt(frac_evr_error * frac_evr_error +
                                 frac_flux_error * frac_flux_error));
         }
+
+        TH1D *wclone = static_cast<TH1D *>(
+            CCIncEvr.back()->Clone((ss.str() + "_Weighted").c_str()));
+        wclone->SetDirectory(wD);
+
+        TH1D *uclone = static_cast<TH1D *>(
+            CCIncEvr.back()->Clone((ss.str() + "_norm").c_str()));
+        uclone->Scale(1.0 / uclone->Integral("width"));
+        uclone->SetDirectory(wD);
       }
 
-      TH1D *evr = static_cast<TH1D *>(SummedFlux->Clone());
+      TH1D *evr =
+          static_cast<TH1D *>(SummedFlux->Clone("PredictedMeasurement"));
       SumHistograms(evr, coeffs, CCIncEvr);
       evr->SetDirectory(wD);
       evr->GetYaxis()->SetTitle("Events / GeV");
       evr->SetName("PredictedMeasurement");
 
-      TH1D *target = static_cast<TH1D *>(SummedFlux->Clone());
+      TH1D *evr_unorm =
+          static_cast<TH1D *>(evr->Clone("PredictedMeasurement_unorm"));
+      evr_unorm->Scale(1.0 / evr_unorm->Integral("width"));
+      evr_unorm->SetDirectory(wD);
+
+      TH1D *target =
+          static_cast<TH1D *>(TargetFlux->Clone("PredictedTargetMeasurement"));
       target->SetDirectory(wD);
-      target->GetYaxis()->SetTitle("Events / GeV");
+      target->GetYaxis()->SetTitle("Events / GeV 1E3 Kg");
       target->SetName("PredictedTargetMeasurement");
 
       target->Reset();
@@ -1460,19 +1602,19 @@ int main(int argc, char const *argv[]) {
           target->SetBinContent(bi_it, OscFlux->GetBinContent(bi_it));
         }
 
-        double xsec_cm2_gev = 0;
+        double xsec_cm2 = 0;
         double Enu = target->GetXaxis()->GetBinCenter(bi_it);
 
         for (size_t xsec_it = 0; xsec_it < GENIEXSecs.size(); ++xsec_it) {
-          xsec_cm2_gev += GENIEXSecs[xsec_it].second.Eval(Enu);
+          xsec_cm2 += GENIEXSecs[xsec_it].second.Eval(Enu);
         }
 
-        double flux_pcm2_pgev_pnuc_pPOT = target->GetBinContent(bi_it);
+        double flux_pcm2_pnuc_pPOT = target->GetBinContent(bi_it);
 
-        double nnuc =
-            detYZ_m * SliceXWidth_m[0] * detDensity_kgm3 / mass_nucleon_kg;
+        double nnuc = 1.0E3 / mass_nucleon_kg;
 
-        double NEv = flux_pcm2_pgev_pnuc_pPOT * xsec_cm2_gev * nnuc * POT;
+        double NEv = flux_pcm2_pnuc_pPOT * xsec_cm2 * nnuc * POT;
+
         target->SetBinContent(bi_it, NEv);
         double frac_flux_error =
             target->GetBinError(bi_it) / target->GetBinContent(bi_it);
@@ -1490,6 +1632,48 @@ int main(int argc, char const *argv[]) {
                             NEv * sqrt(frac_evr_error * frac_evr_error +
                                        frac_flux_error * frac_flux_error));
       }
+
+      TH1D *bf =
+          static_cast<TH1D *>(SummedFlux->Clone("PredictedBestFitMeasurement"));
+      bf->SetDirectory(wD);
+      bf->GetYaxis()->SetTitle("Events / GeV 1E3 Kg");
+      bf->SetName("PredictedBestFitMeasurement");
+
+      for (Int_t bi_it = 1; bi_it < bf->GetXaxis()->GetNbins() + 1; ++bi_it) {
+        double xsec_cm2 = 0;
+        double Enu = bf->GetXaxis()->GetBinCenter(bi_it);
+
+        for (size_t xsec_it = 0; xsec_it < GENIEXSecs.size(); ++xsec_it) {
+          xsec_cm2 += GENIEXSecs[xsec_it].second.Eval(Enu);
+        }
+
+        double flux_pcm2_pnuc_pPOT = bf->GetBinContent(bi_it);
+
+        double nnuc = 1.0E3 / mass_nucleon_kg;
+
+        double NEv = flux_pcm2_pnuc_pPOT * xsec_cm2 * nnuc * POT;
+
+        bf->SetBinContent(bi_it, NEv);
+        double frac_flux_error =
+            bf->GetBinError(bi_it) / bf->GetBinContent(bi_it);
+        double frac_evr_error = 1.0 / sqrt(NEv);
+
+        if ((NEv < 1E-6)) {
+          frac_evr_error = 0;
+        }
+
+        if (bf->GetBinContent(bi_it) < 1E-15) {
+          frac_flux_error = 0;
+        }
+
+        bf->SetBinError(bi_it, NEv * sqrt(frac_evr_error * frac_evr_error +
+                                          frac_flux_error * frac_flux_error));
+      }
+
+      TH1D *bf_unorm =
+          static_cast<TH1D *>(bf->Clone("PredictedBestFitMeasurement_unorm"));
+      bf_unorm->Scale(1.0 / bf_unorm->Integral("width"));
+      bf_unorm->SetDirectory(wD);
 
       oupD->cd();
     }
@@ -1568,6 +1752,22 @@ int main(int argc, char const *argv[]) {
   if (fitstatus > 0) {
     std::cout << "[WARN]: Failed to find minimum (STATUS: " << fitstatus << ")."
               << std::endl;
+  }
+
+  TTree *CoeffTree = new TTree("CoeffTree", "");
+
+  double XRange[2];
+  double Coeff;
+
+  CoeffTree->Branch("XRange", &XRange, "XRange[2]/D");
+  CoeffTree->Branch("Coeff", &Coeff, "Coeff/D");
+
+  for (size_t i = 0; i < Fluxes.size(); ++i) {
+    XRange[0] = XRanges[i].first * 100.0;
+    XRange[1] = XRanges[i].second * 100.0;
+    Coeff = coeffs[i];
+
+    CoeffTree->Fill();
   }
 
   oupF->Write();

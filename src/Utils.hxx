@@ -6,7 +6,9 @@
 #include "TH1D.h"
 #include "TH2D.h"
 #include "TKey.h"
+#include "TObjArray.h"
 #include "TRegexp.h"
+#include "TTree.h"
 #include "TXMLEngine.h"
 
 #include <algorithm>
@@ -231,10 +233,10 @@ inline std::vector<std::pair<double, TH1D *> > InterpolateSplitTH2D(
               (AlongY ? v : dummyProj->GetXaxis()->GetBinCenter(bi_it))));
       Int_t OBin = (AlongY ? t2->GetYaxis() : t2->GetXaxis())->FindFixBin(v);
 
-      if(AlongY){
-        dummyProj->SetBinError(bi_it,t2->GetBinError(bi_it,OBin));
+      if (AlongY) {
+        dummyProj->SetBinError(bi_it, t2->GetBinError(bi_it, OBin));
       } else {
-        dummyProj->SetBinError(bi_it,t2->GetBinError(OBin,bi_it));
+        dummyProj->SetBinError(bi_it, t2->GetBinError(OBin, bi_it));
       }
     }
 
@@ -243,6 +245,89 @@ inline std::vector<std::pair<double, TH1D *> > InterpolateSplitTH2D(
   }
 
   return split;
+}
+
+std::pair<Int_t, Int_t> GetProjectionBinRange(
+    std::pair<double, double> ValRange, TAxis *axis) {
+  Int_t low_bin = axis->FindFixBin(ValRange.first);
+  if (fabs(axis->GetBinUpEdge(low_bin) - ValRange.first) < 1E-5) {
+    std::cout << "[INFO]: Axis-selected bin = " << low_bin
+              << ", with high edge = " << axis->GetBinUpEdge(low_bin)
+              << ", starting range was requested as " << ValRange.first
+              << ". Up-shifting low bin." << std::endl;
+    low_bin += 1;
+  }
+  Int_t high_bin = axis->FindFixBin(ValRange.second);
+  if (fabs(axis->GetBinLowEdge(high_bin) - ValRange.second) < 1E-5) {
+    std::cout << "[INFO]: Axis-selected bin = " << high_bin
+              << ", with low edge = " << axis->GetBinLowEdge(high_bin)
+              << ", ending range was requested as " << ValRange.second
+              << ". Down-shifting high bin." << std::endl;
+    high_bin -= 1;
+  }
+
+  if (fabs(axis->GetBinLowEdge(low_bin) - ValRange.first) > 1E-5) {
+    std::cout << "[ERROR]: Chose first projection bin = " << low_bin
+              << ", with low edge = " << axis->GetBinLowEdge(low_bin)
+              << ", but the starting range was requested as " << ValRange.first
+              << std::endl;
+    exit(1);
+  }
+  if (fabs(axis->GetBinUpEdge(high_bin) - ValRange.second) > 1E-5) {
+    std::cout << "[ERROR]: Chose last projection bin = " << high_bin
+              << ", with up edge = " << axis->GetBinLowEdge(high_bin)
+              << ", but the ending range was requested as " << ValRange.second
+              << std::endl;
+    exit(1);
+  }
+
+  if (low_bin == 0) {
+    std::cout << "[ERROR]: Low bin is underflow bin, 2D flux is not adequate "
+                 "for this splitting scheme"
+              << std::endl;
+    exit(1);
+  }
+  if (high_bin == (axis->GetNbins() + 1)) {
+    std::cout << "[ERROR]: High bin is overflow bin, 2D flux is not adequate "
+                 "for this splitting scheme"
+              << std::endl;
+    exit(1);
+  }
+  return std::make_pair(low_bin, high_bin);
+}
+
+inline std::vector<TH1D *> MergeSplitTH2D(
+    TH2D *t2, bool AlongY, std::vector<std::pair<double, double> > Vals) {
+  std::vector<TH1D *> split;
+
+  for (std::pair<double, double> v : Vals) {
+    std::pair<Int_t, Int_t> binr =
+        GetProjectionBinRange(v, (AlongY ? t2->GetYaxis() : t2->GetXaxis()));
+
+    split.push_back(
+        (AlongY
+             ? t2->ProjectionX(
+                   (to_str(v.first) + "_to_" + to_str(v.second)).c_str(),
+                   binr.first, binr.second)
+             : t2->ProjectionY(
+                   (to_str(v.first) + "_to_" + to_str(v.second)).c_str(),
+                   binr.first, binr.second)));
+    split.back()->Scale(1.0 / double(binr.second - binr.first + 1));
+    split.back()->SetDirectory(NULL);
+  }
+
+  return split;
+}
+
+inline bool CheckTTreeHasBranch(TTree *tree, std::string const &BranchName) {
+  TObjArray *branches = tree->GetListOfBranches();
+
+  for (Int_t b_it = 0; b_it < branches->GetEntries(); ++b_it) {
+    if (BranchName == branches->At(b_it)->GetName()) {
+      return true;
+    }
+  }
+  return false;
 }
 
 inline void SumHistograms(TH1D *summed, double *coeffs,

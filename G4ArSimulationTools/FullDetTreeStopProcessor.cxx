@@ -46,6 +46,8 @@ double LepExitThreshold = 50E-3;
 bool WriteOutNonStop = false;
 Long64_t NMax = std::numeric_limits<Long64_t>::max();
 Long64_t NSkip = 0;
+double POTPerFile = 0xdeadbeef;
+double TotalPOTPerFile = 0xdeadbeef;
 
 void SayUsage(char const *argv[]) {
   std::cout
@@ -66,8 +68,10 @@ void SayUsage(char const *argv[]) {
          "\t-A                            : Write out all events regardless "
          "of whether they\n"
          "\t                                fall within a stop.\n"
-         "\t-n                            : NMax events to write."
-         "\t-ns                           : N events to skip."
+         "\t-n  <NEvents>                 : NMax events to write."
+         "\t-ns <NEvents>                 : N events to skip."
+         "\t-P <POTPerFile>               : POT Per input file. Overrides POT "
+         "info stored in Condesed config tree."
       << std::endl;
 }
 
@@ -98,6 +102,8 @@ void handleOpts(int argc, char const *argv[]) {
       NMax = str2T<Long64_t>(argv[++opt]);
     } else if (std::string(argv[opt]) == "-ns") {
       NSkip = str2T<Long64_t>(argv[++opt]);
+    } else if (std::string(argv[opt]) == "-P") {
+      POTPerFile = str2T<double>(argv[++opt]);
     } else {
       std::cout << "[ERROR]: Unknown option: " << argv[opt] << std::endl;
       SayUsage(argv);
@@ -203,7 +209,19 @@ int main(int argc, char const *argv[]) {
   config->SetBranchAddress("NMaxTrackSteps", &NMaxTrackSteps);
   config->SetBranchAddress("timesep_us", &timesep_us);
 
+  // If input file has POTPerFile then read it.
+  double POTPerFile_config = 0xdeadbeef;
+  if (CheckTTreeHasBranch(config, "POTPerFile")) {
+    config->SetBranchAddress("POTPerFile", &POTPerFile_config);
+  }
+
   config->GetEntry(0);
+
+  // If input file does have POTPerFile and no override specified here, use it
+  // as the POTPerFile.
+  if ((POTPerFile_config != 0xdeadbeef) && (POTPerFile == 0xdeadbeef)) {
+    POTPerFile = POTPerFile_config;
+  }
 
   TH3D *DetMap = detdims.BuildDetectorMap();
 
@@ -216,6 +234,12 @@ int main(int argc, char const *argv[]) {
   }
   if (!runPlanCfg.length()) {
     std::cout << "[ERROR]: Found no run plan configuration file." << std::endl;
+  }
+
+  if (POTPerFile != 0xdeadbeef) {
+    TotalPOTPerFile = POTPerFile * rdr->NFiles;
+    std::cout << "[INFO]: Processing " << TotalPOTPerFile << " POT from "
+              << rdr->NFiles << " input files." << std::endl;
   }
 
   TFile *outfile = CheckOpenFile(outputFile, "RECREATE");
@@ -233,14 +257,16 @@ int main(int argc, char const *argv[]) {
   Int_t NStops = NDets;
   config_out->Branch("NStops", &NStops, "NStops/I");
   config_out->Branch("FVGap", &detdims.FVGap, "FVGap[3]/D");
+  config_out->Branch("timesep_us", &timesep_us, "timesep_us/D");
   config_out->Fill();
 
   TTree *stopConfig_out = new TTree("stopConfigTree", "");
   Double_t Min[3], Max[3];
-  Double_t Offset;
+  Double_t Offset, POTExposure;
   stopConfig_out->Branch("Min", &Min, "Min[3]/D");
   stopConfig_out->Branch("Max", &Max, "Max[3]/D");
   stopConfig_out->Branch("Offset", &Offset, "Offset/D");
+  stopConfig_out->Branch("POTExposure", &POTExposure, "POTExposure/D");
   // translate to detboxes
   for (size_t d_it = 0; d_it < NDets; ++d_it) {
     DetBox db;
@@ -253,6 +279,7 @@ int main(int argc, char const *argv[]) {
     db.YWidth_det = db.YWidth_fv + 2 * detdims.FVGap[1];
     db.ZWidth_det = db.ZWidth_fv + 2 * detdims.FVGap[2];
     db.POTExposure = DetectorStops[d_it].POTExposure;
+    POTExposure = db.POTExposure;
 
     double Detlow = db.XOffset - db.XWidth_det / 2.0;
     double DetHigh = db.XOffset + db.XWidth_det / 2.0;
@@ -323,6 +350,8 @@ int main(int argc, char const *argv[]) {
     overlapping_stops.clear();
 
     int stop = -1;
+    double stop_weight = 1;
+    double POT_weight = 1;
     for (size_t d_it = 0; d_it < NDets; ++d_it) {
       DetBox &db = Detectors[d_it];
 
@@ -335,6 +364,7 @@ int main(int argc, char const *argv[]) {
         continue;
       }
       stop = d_it;
+      POT_weight = db.POTExposure / TotalPOTPerFile;
       overlapping_stops.push_back(stop);
     }
 
@@ -354,12 +384,18 @@ int main(int argc, char const *argv[]) {
         running_POT += Detectors.at(s_it).POTExposure;
         if (rand_val < running_POT) {
           stop = overlapping_stops[s_it];
+          stop_weight = total_POT / Detectors.at(s_it).POTExposure;
+          if (TotalPOTPerFile != 0xdeadbeef) {
+            POT_weight = Detectors.at(s_it).POTExposure / TotalPOTPerFile;
+          }
           break;
         }
       }
     }
 
     OutputEDep->stop = stop;
+    OutputEDep->stop_weight = stop_weight;
+    OutputEDep->POT_weight = POT_weight;
     (*OutputEDep->EventCode) = (*rdr->EventCode);
 
     GENIECodeStringParser gcp(rdr->EventCode->GetString().Data());
@@ -391,6 +427,7 @@ int main(int argc, char const *argv[]) {
     OutputEDep->NGamma = rdr->NGamma;
     OutputEDep->NOther = rdr->NOther;
     OutputEDep->NBaryonicRes = rdr->NBaryonicRes;
+    OutputEDep->NAntiNucleons = rdr->NAntiNucleons;
 
     OutputEDep->EKinPi0_True = rdr->EKinPi0_True;
     OutputEDep->EMassPi0_True = rdr->EMassPi0_True;
@@ -413,7 +450,7 @@ int main(int argc, char const *argv[]) {
         rdr->EKinPi0_True + rdr->EMassPi0_True + rdr->EKinPiC_True +
         rdr->EMassPiC_True + rdr->EKinProton_True + rdr->EKinNeutron_True +
         rdr->EGamma_True + rdr->EOther_True - rdr->NBaryonicRes * 0.938 +
-        rdr->PrimaryLep_4mom[3];
+        2 * rdr->NAntiNucleons * 0.938 + rdr->PrimaryLep_4mom[3];
 
     OutputEDep->IsNumu = (abs(rdr->nu_PDG) == 14);
     OutputEDep->IsAntinu = (rdr->nu_PDG < 0);

@@ -101,6 +101,7 @@ struct FullDetTreeReader {
   Int_t NGamma;
   Int_t NOther;
   Int_t NBaryonicRes;
+  Int_t NAntiNucleons;
 
   Double_t EKinPi0_True;
   Double_t EMassPi0_True;
@@ -259,6 +260,7 @@ struct FullDetTreeReader {
     NGamma = 0;
     NOther = 0;
     NBaryonicRes = 0;
+    NAntiNucleons = 0;
     EKinPi0_True = 0;
     EMassPi0_True = 0;
     EKinPiC_True = 0;
@@ -341,6 +343,7 @@ struct FullDetTreeReader {
     tree->SetBranchAddress("NGamma", &NGamma);
     tree->SetBranchAddress("NOther", &NOther);
     tree->SetBranchAddress("NBaryonicRes", &NBaryonicRes);
+    tree->SetBranchAddress("NAntiNucleons", &NAntiNucleons);
 
     tree->SetBranchAddress("EKinPi0_True", &EKinPi0_True);
     tree->SetBranchAddress("EMassPi0_True", &EMassPi0_True);
@@ -773,6 +776,7 @@ struct FullDetTreeReader {
     tree->Branch("NGamma", &fdr->NGamma, "NGamma/I");
     tree->Branch("NOther", &fdr->NOther, "NOther/I");
     tree->Branch("NBaryonicRes", &fdr->NBaryonicRes, "NBaryonicRes/I");
+    tree->Branch("NAntiNucleons", &fdr->NAntiNucleons, "NAntiNucleons/I");
     tree->Branch("EKinPi0_True", &fdr->EKinPi0_True, "EKinPi0_True/D");
     tree->Branch("EMassPi0_True", &fdr->EMassPi0_True, "EMassPi0_True/D");
     tree->Branch("EKinPiC_True", &fdr->EKinPiC_True, "EKinPiC_True/D");

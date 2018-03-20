@@ -3,6 +3,8 @@
 #PBS -l mem=512MB
 #PBS -j oe
 
+touch ${PBS_O_WORKDIR}/CondenseProcess.${PBS_ARRAYID}.running
+
 if [ -z ${ENVSETUPSCRIPT} ]; then
   echo "[ERROR]: Was not passed the location of an environment setup script."
   exit 1
@@ -32,6 +34,21 @@ if [ -z ${PROCESSED_OUTPUT_DIR} ]; then
   exit 1
 fi
 
+if [ -z ${CONDENSERCONFIG} ]; then
+  echo "[ERROR]: Was not passed a condenser configuration."
+  exit 1
+fi
+
+PPFARG=""
+if [ ! -z ${POTPERFILE} ]; then
+  echo "[INFO]: Using ${POTPERFILE} as POT per file."
+  PPFARG=" -P ${POTPERFILE} "
+fi
+
+UENCCC=$(echo ${CONDENSERCONFIG} | tr "_" " " | tr "|" ",")
+
+echo "[INFO]: Unencoded CONDENSERCONFIG = \"${UENCCC}\""
+
 G4PYFile=$(cat ${INPUT_FILE_LIST} | head -${PBS_ARRAYID} | tail -1 | cut -d " " -f 1)
 RTFile=$(cat ${INPUT_FILE_LIST} | head -${PBS_ARRAYID} | tail -1 | cut -d " " -f 2)
 
@@ -48,8 +65,8 @@ RPFileName=${RUNPLAN_CONFIG##*/}
 CONDFileName=$( echo ${G4PYFileName} | awk '{split($0,a,"."); print a[1] "." a[2] ".Condensed.root"};' )
 
 echo "Condensing at $(date "+%Y.%m.%d %H:%M:%S %Z")"
-echo "dp_DunePrismCondenser -i ${G4PYFileName} -ir ${RTFileName} -nx 400 -dmn -3800,-150,-250 -dmx 200,150,250 -fv 50,50,50 -o ${CONDFileName} -nt 1000 -T 250"
-dp_DunePrismCondenser -i ${G4PYFileName} -ir ${RTFileName} -nx 400 -dmn -3800,-150,-250 -dmx 200,150,250 -fv 50,50,50 -o ${CONDFileName} -nt 1000 -T 250
+echo "dp_DunePrismCondenser -i ${G4PYFileName} -ir ${RTFileName} ${UENCCC} -o ${CONDFileName} ${PPFARG}"
+dp_DunePrismCondenser -i ${G4PYFileName} -ir ${RTFileName} ${UENCCC} -o ${CONDFileName} ${PPFARG}
 
 ProcFileName=$( echo ${G4PYFileName} | awk '{split($0,a,"."); print a[1] "." a[2] ".Processed.root"};' )
 
@@ -65,3 +82,5 @@ echo "cp ${ProcFileName} ${PROCESSED_OUTPUT_DIR}"
 cp ${ProcFileName} ${PROCESSED_OUTPUT_DIR}
 
 echo "Job finished at $(date "+%Y.%m.%d %H:%M:%S %Z")"
+
+rm ${PBS_O_WORKDIR}/CondenseProcess.${PBS_ARRAYID}.running

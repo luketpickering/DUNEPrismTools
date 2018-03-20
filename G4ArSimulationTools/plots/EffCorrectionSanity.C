@@ -457,16 +457,18 @@ void EffCorrectionSanity(char const* inps, char const* wfile) {
               "GOFF");
 
   TH1D* ERecSel = new TH1D("ERecSel", "ERecSel;E (GeV);Count", 50, 0, 10);
-  EDeps->Draw("TotalNonlep_Dep_FV+TotalNonlep_Dep_veto+PrimaryLep_4mom[3] >> ERecSel",
-              "((stop>=0)&&(PrimaryLepPDG==13)&&("
-              "LepExit_AboveThresh)&&(HadrShowerContainedInFV))",
-              "GOFF");
+  EDeps->Draw(
+      "TotalNonlep_Dep_FV+TotalNonlep_Dep_veto+PrimaryLep_4mom[3] >> ERecSel",
+      "((stop>=0)&&(PrimaryLepPDG==13)&&("
+      "LepExit_AboveThresh)&&(HadrShowerContainedInFV))",
+      "GOFF");
 
   TH1D* ERecCorr = new TH1D("ERecCorr", "ERecCorr;E (GeV);Count", 50, 0, 10);
-  EDeps->Draw("TotalNonlep_Dep_FV+TotalNonlep_Dep_veto+PrimaryLep_4mom[3] >> ERecCorr",
-              "EffWeight*((stop>=0)&&(PrimaryLepPDG==13)&&("
-              "LepExit_AboveThresh)&&(HadrShowerContainedInFV))",
-              "GOFF");
+  EDeps->Draw(
+      "TotalNonlep_Dep_FV+TotalNonlep_Dep_veto+PrimaryLep_4mom[3] >> ERecCorr",
+      "EffWeight*((stop>=0)&&(PrimaryLepPDG==13)&&("
+      "LepExit_AboveThresh)&&(HadrShowerContainedInFV))",
+      "GOFF");
 
   ETrueSel->SetLineColor(kRed);
   ERecSel->SetLineColor(kBlack);
@@ -489,17 +491,21 @@ void EffCorrectionSanity(char const* inps, char const* wfile) {
 
   TH1D* ERecSel_offsetcorr =
       new TH1D("ERecSel_offsetcorr", "ERecSel;E (GeV);Count", 50, 0, 10);
-  EDeps->Draw("TotalNonlep_Dep_FV+TotalNonlep_Dep_veto+PrimaryLep_4mom[3] >> ERecSel_offsetcorr",
-              "((stop>=0)&&(PrimaryLepPDG==13)&&("
-              "LepExit_AboveThresh)&&(HadrShowerContainedInFV))",
-              "GOFF");
+  EDeps->Draw(
+      "TotalNonlep_Dep_FV+TotalNonlep_Dep_veto+PrimaryLep_4mom[3] >> "
+      "ERecSel_offsetcorr",
+      "((stop>=0)&&(PrimaryLepPDG==13)&&("
+      "LepExit_AboveThresh)&&(HadrShowerContainedInFV))",
+      "GOFF");
 
   TH1D* ERecCorr_offsetcorr = new TH1D(
       "ERecCorr_offsetcorr", "ERecCorr (edep,x);E (GeV);Count", 50, 0, 10);
-  EDeps->Draw("TotalNonlep_Dep_FV+TotalNonlep_Dep_veto+PrimaryLep_4mom[3] >> ERecCorr_offsetcorr",
-              "DumbEffWeight*((stop>=0)&&(PrimaryLepPDG==13)&&("
-              "LepExit_AboveThresh)&&(HadrShowerContainedInFV))",
-              "GOFF");
+  EDeps->Draw(
+      "TotalNonlep_Dep_FV+TotalNonlep_Dep_veto+PrimaryLep_4mom[3] >> "
+      "ERecCorr_offsetcorr",
+      "DumbEffWeight*((stop>=0)&&(PrimaryLepPDG==13)&&("
+      "LepExit_AboveThresh)&&(HadrShowerContainedInFV))",
+      "GOFF");
 
   ETrueSel_offsetcorr->SetLineColor(kRed);
   ERecSel_offsetcorr->SetLineColor(kBlack);
@@ -522,17 +528,21 @@ void EffCorrectionSanity(char const* inps, char const* wfile) {
 
   TH1D* ERecSel_offsetcorr_fv =
       new TH1D("ERecSel_offsetcorr_fv", "ERecSel;E (GeV);Count", 50, 0, 10);
-  EDeps->Draw("TotalNonlep_Dep_FV+TotalNonlep_Dep_veto+PrimaryLep_4mom[3] >> ERecSel_offsetcorr_fv",
-              "((stop>=0)&&(PrimaryLepPDG==13)&&("
-              "LepExit_AboveThresh)&&(HadrShowerContainedInFV))",
-              "GOFF");
+  EDeps->Draw(
+      "TotalNonlep_Dep_FV+TotalNonlep_Dep_veto+PrimaryLep_4mom[3] >> "
+      "ERecSel_offsetcorr_fv",
+      "((stop>=0)&&(PrimaryLepPDG==13)&&("
+      "LepExit_AboveThresh)&&(HadrShowerContainedInFV))",
+      "GOFF");
 
   TH1D* ERecCorr_offsetcorr_fv = new TH1D(
       "ERecCorr_offsetcorr_fv", "ERecCorr (edep,x);E (GeV);Count", 50, 0, 10);
-  EDeps->Draw("TotalNonlep_Dep_FV+TotalNonlep_Dep_veto+PrimaryLep_4mom[3] >> ERecCorr_offsetcorr_fv",
-              "DumbEffWeight_FV*((stop>=0)&&(PrimaryLepPDG==13)&&("
-              "LepExit_AboveThresh)&&(HadrShowerContainedInFV))",
-              "GOFF");
+  EDeps->Draw(
+      "TotalNonlep_Dep_FV+TotalNonlep_Dep_veto+PrimaryLep_4mom[3] >> "
+      "ERecCorr_offsetcorr_fv",
+      "DumbEffWeight_FV*((stop>=0)&&(PrimaryLepPDG==13)&&("
+      "LepExit_AboveThresh)&&(HadrShowerContainedInFV))",
+      "GOFF");
 
   ETrueSel_offsetcorr_fv->SetLineColor(kRed);
   ERecSel_offsetcorr_fv->SetLineColor(kBlack);
@@ -542,6 +552,40 @@ void EffCorrectionSanity(char const* inps, char const* wfile) {
   ETrueSel_offsetcorr_fv->Draw("SAME");
   ERecSel_offsetcorr_fv->Draw("SAME");
   ERecCorr_offsetcorr_fv->Draw("SAME");
+
+  c1->BuildLegend(0.7, 0.7, 0.95, 0.95);
+  c1->SaveAs("EffCorrectionSanityPlots.pdf");
+
+  TH1D* ETrueSel_offsetcorr_ehadrtrue_fv =
+      new TH1D("ETrueSel_offsetcorr_ehadrtrue_fv", "EHadrTrueSel;E (GeV);Count",
+               50, 0, 10);
+  EDeps->Draw("nu_4mom[3] >> ETrueSel_offsetcorr_ehadrtrue_fv",
+              "((stop>=0)&&(PrimaryLepPDG==13)&&(HadrShowerContainedInFV))",
+              "GOFF");
+
+  TH1D* ERecSel_offsetcorr_ehadrtrue_fv =
+      new TH1D("ERecSel_offsetcorr_ehadrtrue_fv", "EProxySel;E (GeV);Count",
+               50, 0, 10);
+  EDeps->Draw("ERecProxy_True >> ERecSel_offsetcorr_ehadrtrue_fv",
+              "((stop>=0)&&(PrimaryLepPDG==13)&&(HadrShowerContainedInFV))",
+              "GOFF");
+
+  TH1D* ERecCorr_offsetcorr_ehadrtrue_fv =
+      new TH1D("ERecCorr_offsetcorr_ehadrtrue_fv",
+               "EHadrCorr (EHadrTrue,x);E (GeV);Count", 50, 0, 10);
+  EDeps->Draw("ERecProxy_True >> EProxyCorr_offsetcorr_ehadrtrue_fv",
+              "DumbEffWeight_TrueHadrE*((stop>=0)&&(PrimaryLepPDG==13)&&("
+              "HadrShowerContainedInFV))",
+              "GOFF");
+
+  ETrueSel_offsetcorr_ehadrtrue_fv->SetLineColor(kRed);
+  ERecSel_offsetcorr_ehadrtrue_fv->SetLineColor(kBlack);
+  ERecCorr_offsetcorr_ehadrtrue_fv->SetLineColor(kMagenta);
+
+  ETrue->Draw();
+  ETrueSel_offsetcorr_ehadrtrue_fv->Draw("SAME");
+  ERecSel_offsetcorr_ehadrtrue_fv->Draw("SAME");
+  ERecCorr_offsetcorr_ehadrtrue_fv->Draw("SAME");
 
   c1->BuildLegend(0.7, 0.7, 0.95, 0.95);
   c1->SaveAs("EffCorrectionSanityPlots.pdf");

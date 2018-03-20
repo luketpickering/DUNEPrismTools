@@ -586,7 +586,8 @@ struct GENIEXSecReader {
 
   void Read(std::string gxmlfile) { saxParser->ParseFile(gxmlfile.c_str()); }
 
-  std::vector<std::pair<std::string, TGraph>> GetTGraphs(double min, double max) {
+  std::vector<std::pair<std::string, TGraph>> GetTGraphs(double min,
+                                                         double max) {
     std::vector<TGraph> splines = saxParser->GetTGraphs();
 
     std::vector<std::pair<std::string, TGraph>> rtn;
@@ -600,16 +601,15 @@ struct GENIEXSecReader {
       double step = (max - min) / double(Np);
 
       for (Int_t p_it = 0; p_it < Sum.GetN(); ++p_it) {
-        Sum.SetPoint(p_it, min + p_it * step,0);
+        Sum.SetPoint(p_it, min + p_it * step, 0);
       }
 
       for (size_t s_it = 0; s_it < XSecComponents[c_it].second.size(); ++s_it) {
-
         for (Int_t p_it = 0; p_it < Sum.GetN(); ++p_it) {
           double x1, y1, ev;
           Sum.GetPoint(p_it, x1, y1);
 
-          ev = splines[tc].Eval(x1);
+          ev = splines[tc].Eval(x1) * 3.2333E-29;
 
           Sum.SetPoint(p_it, x1, y1 + ev);
         }

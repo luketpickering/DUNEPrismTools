@@ -17,21 +17,24 @@ TH3D* DetectorAndFVDimensions::BuildDetectorMap() {
                                DetMax[2] - FVGap[2], DetMax[2]};
 
   std::vector<double> XBins;
-  double step = (DetMax[0] - DetMin[0]) / double(NXSteps);
+  double step =
+      ((DetMax[0] - FVGap[0]) - (DetMin[0] + FVGap[0])) / double(NXSteps - 2);
   XBins.push_back(DetMin[0]);
+  XBins.push_back(DetMin[0] + FVGap[0]);
 
 #ifdef DEBUG
   std::cout << "Building detector map: X { " << XBins.back() << ", "
             << std::flush;
 #endif
 
-  for (int i = 0; i < NXSteps; ++i) {
+  for (int i = 0; i < (NXSteps-2); ++i) {
     XBins.push_back(XBins.back() + step);
 #ifdef DEBUG
     std::cout << XBins.back() << ((i != (NXSteps - 1)) ? ", " : "")
               << std::flush;
 #endif
   }
+  XBins.push_back(XBins.back() + FVGap[0]);
 #ifdef DEBUG
 
   std::cout << "}" << std::endl;

@@ -62,7 +62,7 @@ while [[ ${#} -gt 0 ]]; do
       fi
 
       NMAX="$2"
-      echo "[OPT]: Writing output list to ${NMAX}"
+      echo "[OPT]: Reading a maximum of ${NMAX} file"
       shift # past argument
       ;;
 
@@ -107,10 +107,13 @@ if [ -e ${OUPFILE} ]; then
 fi
 touch ${OUPFILE}
 
-FILES=$(ls /mnt/scratch/calcuttj/DunePrism/FHC/*.root)
+FILES=$(ls ${G4PYSCRATCHDIR}/*.root)
 NFOUND=0
 
 for F in ${FILES}; do
+  echo "[INFO]:===="
+  echo "[INFO]: File = ${F}"
+  echo "[INFO]: Filename = ${F##*/}"
   PROCID=$( echo ${F##*/} | awk '{split($0,a,"."); print a[1]}' )
   CLUSTID=$( echo ${F##*/} | awk '{split($0,a,"."); print a[2]}' )
 
@@ -125,6 +128,8 @@ for F in ${FILES}; do
     fi
   fi
   RTFILE=$(ls ${ROOTRACKERDIR}/g4lbne_v3r5p4_QGSP_BERT_OptimizedEngineeredSept2017Review_*.rootracker.${PROCID}.${CLUSTID}.root)
+
+  echo "[INFO]:===="
 
   echo "${F} ${RTFILE}" >> ${OUPFILE}
 

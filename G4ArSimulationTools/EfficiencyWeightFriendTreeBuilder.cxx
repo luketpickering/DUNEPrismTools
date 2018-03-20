@@ -19,6 +19,8 @@ std::vector<double> fvgap;
 
 TVector3 BeamPos{0, 58.1, -575.0};
 
+double hadrveto_value = 10E-3;  // GeV
+
 void SayUsage(char const *argv[]) {
   std::cout << "[USAGE]: " << argv[0]
             << "\n"
@@ -26,6 +28,7 @@ void SayUsage(char const *argv[]) {
                " input tree. \n"
                "\t-o <outputfile.root>                 : Output file to write "
                "friend tree to.\n"
+               "\t-v <veto threshold>                  : Hadronic shower veto threshold in MeV.\n"
             << std::endl;
 }
 
@@ -40,6 +43,8 @@ void handleOpts(int argc, char const *argv[]) {
       inpfile = argv[++opt];
     } else if (std::string(argv[opt]) == "-o") {
       oupfile = argv[++opt];
+    }else if (std::string(argv[opt]) == "-v") {
+      hadrveto_value = str2T<double>(argv[++opt])*1E-3;
     } else {
       std::cout << "[ERROR]: Unknown option: " << argv[opt] << std::endl;
       SayUsage(argv);
@@ -53,7 +58,7 @@ int main(int argc, char const *argv[]) {
   TH1::SetDefaultSumw2();
   handleOpts(argc, argv);
 
-  TChain *config_in = new TChain("stopConfigTree", "");
+  TChain *config_in = new TChain("configTree", "");
   config_in->Add(inpfile.c_str());
   Int_t NDets;
   Double_t FVGap[3];
@@ -165,6 +170,33 @@ int main(int argc, char const *argv[]) {
                ";#it{EDep}_{Hadr};Off axis position (cm);#epsilon", 100, 0, 20,
                80, -3750, 150);
 
+  TH2D *Ehadr_FV_offset_all = new TH2D(
+      "Ehadr_FV_offset_all", ";#it{EHadr}_{Hadr};Off axis position (cm);Count",
+      100, 0, 20, 80, -3750, 150);
+  TH2D *Ehadr_FV_offset_hadrsel =
+      new TH2D("Ehadr_FV_offset_hadrsel",
+               ";#it{EHadr}_{Hadr};Off axis position (cm);Count", 100, 0, 20,
+               80, -3750, 150);
+
+  TH2D *Ehadr_FV_offset_seleff =
+      new TH2D("Ehadr_FV_offset_seleff",
+               ";#it{EHadr}_{Hadr};Off axis position (cm);#epsilon", 100, 0, 20,
+               80, -3750, 150);
+
+  TH2D *Ehadr_FV_detpos_all =
+      new TH2D("Ehadr_FV_detpos_all",
+               ";#it{EHadr}_{Hadr};Detector X position (cm);Count", 100, 0, 20,
+               90, -150, 150);
+  TH2D *Ehadr_FV_detpos_hadrsel =
+      new TH2D("Ehadr_FV_detpos_hadrsel",
+               ";#it{EHadr}_{Hadr};Detector X position (cm);Count", 100, 0, 20,
+               90, -150, 150);
+
+  TH2D *Ehadr_FV_detpos_seleff =
+      new TH2D("Ehadr_FV_detpos_seleff",
+               ";#it{EHadr}_{Hadr};Detector X position (cm);#epsilon", 100, 0,
+               20, 90, -150, 150);
+
   size_t loud_every = edr.GetEntries() / 10;
   Long64_t NEntries = edr.GetEntries();
 
@@ -192,7 +224,7 @@ int main(int argc, char const *argv[]) {
                                edr.LepExit_AboveThresh);
     MuonKinematics_muhadrsel->Fill(
         edr.PrimaryLep_4mom[3], ToWall,
-        edr.LepExit_AboveThresh * edr.HadrShowerContainedInFV);
+        edr.LepExit_AboveThresh * (edr.TotalNonlep_Dep_veto < hadrveto_value));
 
     TVector3 TrDir_rot = TrDir;
     TrDir_rot.Rotate(TMath::Pi(), (TrStr - BeamPos).Unit());
@@ -203,10 +235,11 @@ int main(int argc, char const *argv[]) {
     EDephadr_all->Fill(edr.TotalNonlep_Dep_FV + edr.TotalNonlep_Dep_veto,
                        ToWall_hadr);
     EDephadr_hadrsel->Fill(edr.TotalNonlep_Dep_FV + edr.TotalNonlep_Dep_veto,
-                           ToWall_hadr, edr.HadrShowerContainedInFV);
+                           ToWall_hadr,
+                           (edr.TotalNonlep_Dep_veto < hadrveto_value));
     EDephadr_muhadrsel->Fill(
         edr.TotalNonlep_Dep_FV + edr.TotalNonlep_Dep_veto, ToWall_hadr,
-        edr.LepExit_AboveThresh * edr.HadrShowerContainedInFV);
+        edr.LepExit_AboveThresh * (edr.TotalNonlep_Dep_veto < hadrveto_value));
 
     TVector3 HadrShower_dir(0, 0, 0);
     for (size_t pt_it = 0; pt_it < edr.GetNPassthroughParts(); ++pt_it) {
@@ -228,10 +261,10 @@ int main(int argc, char const *argv[]) {
                             ToWall_hadr_true);
     EDephadr_true_hadrsel->Fill(
         edr.TotalNonlep_Dep_FV + edr.TotalNonlep_Dep_veto, ToWall_hadr_true,
-        edr.HadrShowerContainedInFV);
+        (edr.TotalNonlep_Dep_veto < hadrveto_value));
     EDephadr_true_muhadrsel->Fill(
         edr.TotalNonlep_Dep_FV + edr.TotalNonlep_Dep_veto, ToWall_hadr_true,
-        edr.LepExit_AboveThresh * edr.HadrShowerContainedInFV);
+        edr.LepExit_AboveThresh * (edr.TotalNonlep_Dep_veto < hadrveto_value));
 
     EDephadr_offset_all->Fill(edr.PrimaryLep_4mom[3] + edr.TotalNonlep_Dep_FV +
                                   edr.TotalNonlep_Dep_veto,
@@ -239,13 +272,26 @@ int main(int argc, char const *argv[]) {
     EDephadr_offset_muhadrsel->Fill(
         edr.PrimaryLep_4mom[3] + edr.TotalNonlep_Dep_FV +
             edr.TotalNonlep_Dep_veto,
-        edr.vtx[0], edr.LepExit_AboveThresh * edr.HadrShowerContainedInFV);
+        edr.vtx[0],
+        edr.LepExit_AboveThresh * (edr.TotalNonlep_Dep_veto < hadrveto_value));
 
     EDephadr_FV_offset_all->Fill(
         edr.PrimaryLep_4mom[3] + edr.TotalNonlep_Dep_FV, edr.vtx[0]);
     EDephadr_FV_offset_muhadrsel->Fill(
         edr.PrimaryLep_4mom[3] + edr.TotalNonlep_Dep_FV, edr.vtx[0],
-        edr.LepExit_AboveThresh * edr.HadrShowerContainedInFV);
+        edr.LepExit_AboveThresh * (edr.TotalNonlep_Dep_veto < hadrveto_value));
+
+    Ehadr_FV_offset_all->Fill(edr.ERecProxy_True - edr.PrimaryLep_4mom[3],
+                              edr.vtx[0]);
+    Ehadr_FV_offset_hadrsel->Fill(edr.ERecProxy_True - edr.PrimaryLep_4mom[3],
+                                  edr.vtx[0],
+                                  (edr.TotalNonlep_Dep_veto < hadrveto_value));
+
+    Ehadr_FV_detpos_all->Fill(edr.ERecProxy_True - edr.PrimaryLep_4mom[3],
+                              edr.vtxInDetX);
+    Ehadr_FV_detpos_hadrsel->Fill(edr.ERecProxy_True - edr.PrimaryLep_4mom[3],
+                                  edr.vtxInDetX,
+                                  (edr.TotalNonlep_Dep_veto < hadrveto_value));
   }
 
   MuonKinematics_seleff->Divide(MuonKinematics_musel, MuonKinematics_all);
@@ -254,12 +300,15 @@ int main(int argc, char const *argv[]) {
   EDephadr_offset_seleff->Divide(EDephadr_offset_muhadrsel,
                                  EDephadr_offset_all);
   EDephadr_FV_offset_seleff->Divide(EDephadr_FV_offset_muhadrsel,
-                                 EDephadr_FV_offset_all);
+                                    EDephadr_FV_offset_all);
+  Ehadr_FV_offset_seleff->Divide(Ehadr_FV_offset_hadrsel, Ehadr_FV_offset_all);
+  Ehadr_FV_detpos_seleff->Divide(Ehadr_FV_detpos_hadrsel, Ehadr_FV_detpos_all);
 
   TTree *friendtree = new TTree("EffWeights", "");
 
   double effweight, mueffweight, hadreffweight, MuToWall, HadrToWall,
-      hadreffweight_true, HadrToWall_true, dumbeffweight, dumbeffweight_FV;
+      hadreffweight_true, HadrToWall_true, dumbeffweight, dumbeffweight_FV,
+      dumbeffweight_TrueHadrE, poseffweight_TrueHadrE;
   double HadrShower_dir_arr[3], RotMu_dir_arr[3], Mu_dir_arr[3];
   friendtree->Branch("MuEffWeight", &mueffweight, "MuEffWeight/D");
   friendtree->Branch("HadrEffWeight", &hadreffweight, "HadrEffWeight/D");
@@ -276,19 +325,27 @@ int main(int argc, char const *argv[]) {
   friendtree->Branch("DumbEffWeight", &dumbeffweight, "DumbEffWeight/D");
   friendtree->Branch("DumbEffWeight_FV", &dumbeffweight_FV,
                      "DumbEffWeight_FV/D");
+  friendtree->Branch("DumbEffWeight_TrueHadrE", &dumbeffweight_TrueHadrE,
+                     "DumbEffWeight_TrueHadrE/D");
+  friendtree->Branch("PosEffWeight_TrueHadrE", &poseffweight_TrueHadrE,
+                     "PosEffWeight_TrueHadrE/D");
 
   for (Long64_t e_it = 0; e_it < NEntries; ++e_it) {
     edr.GetEntry(e_it);
-    effweight = 0;
-    mueffweight = 0;
-    hadreffweight = 0;
     MuToWall = 0;
     HadrToWall = 0;
     std::fill_n(Mu_dir_arr, 3, 0);
     std::fill_n(RotMu_dir_arr, 3, 0);
     std::fill_n(HadrShower_dir_arr, 3, 0);
     HadrToWall_true = 0;
+
+    mueffweight = 0;
+    hadreffweight = 0;
     hadreffweight_true = 0;
+    dumbeffweight = 0;
+    dumbeffweight_FV = 0;
+    dumbeffweight_TrueHadrE = 0;
+    poseffweight_TrueHadrE = 0;
 
     if ((edr.stop == -1) || (edr.PrimaryLepPDG != 13)) {
       friendtree->Fill();
@@ -359,6 +416,18 @@ int main(int argc, char const *argv[]) {
         EDephadr_FV_offset_seleff->GetXaxis()->FindFixBin(
             edr.PrimaryLep_4mom[3] + edr.TotalNonlep_Dep_FV);
 
+    Int_t dumbeffweight_TrueHadrE_y_bin =
+        Ehadr_FV_offset_seleff->GetYaxis()->FindFixBin(edr.vtx[0]);
+    Int_t dumbeffweight_TrueHadrE_x_bin =
+        Ehadr_FV_offset_seleff->GetXaxis()->FindFixBin(edr.ERecProxy_True -
+                                                       edr.PrimaryLep_4mom[3]);
+
+    Int_t poseffweight_TrueHadrE_y_bin =
+        Ehadr_FV_detpos_seleff->GetYaxis()->FindFixBin(edr.vtxInDetX);
+    Int_t poseffweight_TrueHadrE_x_bin =
+        Ehadr_FV_detpos_seleff->GetXaxis()->FindFixBin(edr.ERecProxy_True -
+                                                       edr.PrimaryLep_4mom[3]);
+
     if (MuonKinematics_seleff->GetBinContent(Emu_bin, twmu_bin)) {
       mueffweight =
           1.0 / MuonKinematics_seleff->GetBinContent(Emu_bin, twmu_bin);
@@ -397,6 +466,26 @@ int main(int argc, char const *argv[]) {
                              dumbeff_fv_edep_bin, dumbeff_fv_x_bin);
     } else {
       dumbeffweight_FV = 1;
+    }
+
+    if (Ehadr_FV_offset_seleff->GetBinContent(dumbeffweight_TrueHadrE_x_bin,
+                                              dumbeffweight_TrueHadrE_y_bin)) {
+      dumbeffweight_TrueHadrE =
+          1.0 /
+          Ehadr_FV_offset_seleff->GetBinContent(dumbeffweight_TrueHadrE_x_bin,
+                                                dumbeffweight_TrueHadrE_y_bin);
+    } else {
+      dumbeffweight_TrueHadrE = 1;
+    }
+
+    if (Ehadr_FV_detpos_seleff->GetBinContent(poseffweight_TrueHadrE_x_bin,
+                                              poseffweight_TrueHadrE_y_bin)) {
+      poseffweight_TrueHadrE =
+          1.0 /
+          Ehadr_FV_detpos_seleff->GetBinContent(poseffweight_TrueHadrE_x_bin,
+                                                poseffweight_TrueHadrE_y_bin);
+    } else {
+      poseffweight_TrueHadrE = 1;
     }
 
     effweight = mueffweight * hadreffweight;

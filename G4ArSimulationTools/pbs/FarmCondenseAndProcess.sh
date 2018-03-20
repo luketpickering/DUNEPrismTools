@@ -12,6 +12,8 @@ NMAXJOBS=""
 OUTPUTDIR=""
 ENVSETUPSCRIPT="${DUNEPRISMTOOLSROOT}/setup.sh"
 FORCE="0"
+CONDENSERCONFIG="-nx 400 -dmn -3800,-150,-250 -dmx 200,150,250 -fv 50,50,50 -nt 1000 -T 250"
+POTPERFILE=""
 
 while [[ ${#} -gt 0 ]]; do
 
@@ -42,6 +44,30 @@ while [[ ${#} -gt 0 ]]; do
       shift # past argument
       ;;
 
+      -C|--runplan-config)
+
+      if [[ ${#} -lt 2 ]]; then
+        echo "[ERROR]: ${1} expected a value."
+        exit 1
+      fi
+
+      CONFIG="$2"
+      echo "[OPT]: Will use ${CONFIG} as runplan configuration"
+      shift # past argument
+      ;;
+
+      -F|--condenser-config)
+
+      if [[ ${#} -lt 2 ]]; then
+        echo "[ERROR]: ${1} expected a value."
+        exit 1
+      fi
+
+      CONDENSERCONFIG="$2"
+      echo "[OPT]: Will use ${CONDENSERCONFIG} as condenser configuration"
+      shift # past argument
+      ;;
+
       -N|--N-max-jobs)
 
       if [[ ${#} -lt 2 ]]; then
@@ -66,6 +92,18 @@ while [[ ${#} -gt 0 ]]; do
       shift # past argument
       ;;
 
+      -P|--POT-per-file)
+
+      if [[ ${#} -lt 2 ]]; then
+        echo "[ERROR]: ${1} expected a value."
+        exit 1
+      fi
+
+      POTPERFILE="$2"
+      echo "[OPT]: Using: \"${POTPERFILE}\" POT per file."
+      shift # past argument
+      ;;
+
       -E|--env-script)
 
       if [[ ${#} -lt 2 ]]; then
@@ -82,7 +120,6 @@ while [[ ${#} -gt 0 ]]; do
 
       FORCE="1"
       echo "[OPT]: Will force overwrite of output."
-      shift # past argument
       ;;
 
       -?|--help)
@@ -90,9 +127,11 @@ while [[ ${#} -gt 0 ]]; do
       echo "[RUNLIKE] ${SCRIPTNAME}"
       echo -e "\t-G|--g4py-input-dir        : Build process list from all g4py files found here."
       echo -e "\t-R|--rootracker-input-dir  : Look here for associated rootracker files."
+      echo -e "\t-C|--runplan-config        : Override default runplan configuration."
       echo -e "\t-N|--NMAXJobs              : Maximum number of jobs to submit."
       echo -e "\t-o|--output-dir            : Write output to <-o>/Condensed.<date> and <-o>/Processed.<date>."
       echo -e "\t-E|--env-script            : An environment setup script to source on the processing node {default: \${DUNEPRISMTOOLSROOT}/setup.sh}"
+      echo -e "\t-P|--POT-per-file          : POT per processed file."
       echo -e "\t-f|--force                 : Will remove previous output directories if they exist"
       echo -e "\t-?|--help                  : Print this message."
       exit 0
@@ -129,6 +168,11 @@ fi
 
 if [ -z ${ENVSETUPSCRIPT} ]; then
   echo "[ERROR]: No environment set up script passed."
+  exit 1
+fi
+
+if [ ! -e ${CONFIG} ]; then
+  echo "[ERROR]: Config script \"${CONFIG}\" doesn't exist."
   exit 1
 fi
 
@@ -183,7 +227,10 @@ if [ ! -e ${PDIR} ]; then
   exit 1
 fi
 
+ENCCC=$(echo ${CONDENSERCONFIG} | tr " " "_" | tr "," "|")
+
+echo "[INFO]: Encoded condenser config = \"${ENCCC}\""
 
 qsub ${DUNEPRISMTOOLSROOT}/scripts/CondenseAndProcess.sh -t 1-${NJOBSTORUN} -N DP_CondAndProc \
-  -v INPUT_FILE_LIST=${IPFL},RUNPLAN_CONFIG=${CONFIG},CONDENSED_OUTPUT_DIR=${CDIR},PROCESSED_OUTPUT_DIR=${PDIR},ENVSETUPSCRIPT=${ENVSETUPSCRIPT} \
+  -v INPUT_FILE_LIST=${IPFL},RUNPLAN_CONFIG=${CONFIG},CONDENSED_OUTPUT_DIR=${CDIR},PROCESSED_OUTPUT_DIR=${PDIR},ENVSETUPSCRIPT=${ENVSETUPSCRIPT},CONDENSERCONFIG=${ENCCC},POTPERFILE=${POTPERFILE} \
   -o sub.log

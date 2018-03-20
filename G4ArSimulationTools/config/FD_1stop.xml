@@ -1,5 +1,0 @@
-<DUNEPrism>
- <RunPlan Name="Equal">
-  <Detector detectorSizeX="26.8" detectorSizeY="23.6" detectorSizeZ="57.6" fiducialGapX="0.5" fiducialGapY="0.5" fiducialGapZ="0.5" shift="0" />
- </RunPlan>
-</DUNEPrism>

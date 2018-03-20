@@ -23,7 +23,7 @@ Long64_t nmaxevents = std::numeric_limits<int>::max();
 bool KeepOOFVYZEvents = false;
 double timesep_us = 0xdeadbeef;
 
-double IntegratedPOT = 0;
+double POTPerFile = 0;
 
 // #define DEBUG
 
@@ -31,7 +31,7 @@ void SayUsage(char* argv[]) {
   std::cout << "[INFO]: Use like: " << argv[0]
             << " -i <inputg4arbofile> -ir <inputGENIERooTrackerfile> -dmn "
                "<detxmin,ymin,zmin> -dmx <detxmax,ymax,zmax> -fv <fidgapx,y,z> "
-               "-o <outputfile> [-P <integratedPOT> -nx <nxsteps> -nt "
+               "-o <outputfile> [-P <POTPerFile> -nx <nxsteps> -nt "
                "<ntrackingsteps> -n <nmaxevents> -A -T <timing cut to separate "
                "deposits in us>]\n"
                "\n\t-A : Will keep all input events, otherwise will skip "
@@ -65,7 +65,7 @@ void handleOpts(int argc, char* argv[]) {
     } else if (std::string(argv[opt]) == "-o") {
       outputFileName = argv[++opt];
     } else if (std::string(argv[opt]) == "-P") {
-      IntegratedPOT = str2T<double>(argv[++opt]);
+      POTPerFile = str2T<double>(argv[++opt]);
     } else if (std::string(argv[opt]) == "-T") {
       timesep_us = str2T<double>(argv[++opt]);
     } else if (std::string(argv[opt]) == "-A") {
@@ -107,7 +107,7 @@ int main(int argc, char* argv[]) {
   config->Branch("DetMax", &detdims.DetMax, "DetMax[3]/D");
   config->Branch("FVGap", &detdims.FVGap, "FVGap[3]/D");
   config->Branch("NMaxTrackSteps", &NMaxTrackSteps, "NMaxTrackSteps/I");
-  config->Branch("IntegratedPOT", &IntegratedPOT, "IntegratedPOT/D");
+  config->Branch("POTPerFile", &POTPerFile, "POTPerFile/D");
   config->Branch("timesep_us", &timesep_us, "timesep_us/D");
   config->Fill();
 
@@ -297,6 +297,9 @@ int main(int argc, char* argv[]) {
             break;
           }
           case 2212: {
+            if (p.PDG < 0) {
+              fdw->NAntiNucleons++;
+            }
             fdw->NProton++;
             fdw->EKinProton_True += p.EKin;
             fdw->EMassProton_True += p.EMass;
@@ -304,6 +307,9 @@ int main(int argc, char* argv[]) {
             break;
           }
           case 2112: {
+            if (p.PDG < 0) {
+              fdw->NAntiNucleons++;
+            }
             fdw->NNeutron++;
             fdw->EKinNeutron_True += p.EKin;
             fdw->EMassNeutron_True += p.EMass;

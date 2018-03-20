@@ -8,8 +8,9 @@ fi
 cd subdir_FHCp
 
 ${DUNEPRISMTOOLSROOT}/scripts/FarmProcess.sh \
-  -C /mnt/research/NuInt/Dune_Flux/OptimizedEngineeredSept2017Review/Analysis/Condensed.2018-03-05 \
-  -o /mnt/research/NuInt/Dune_Flux/OptimizedEngineeredSept2017Review/Analysis \
-  -N 2
+  -C /mnt/research/NuInt/Dune_Flux/OptimizedEngineeredSept2017Review/Analysis_withmec/FHC/Condensed.2018-03-13 \
+  -o /mnt/research/NuInt/Dune_Flux/OptimizedEngineeredSept2017Review/Analysis_withmec/FHC_withintermediates \
+  -R ${DUNEPRISMTOOLSROOT}/configs/RunPlan.39mLAr.3mFV.10cm.2mx4m_withintermediates.xml \
+  -P 5E16 -f
 
 cd -

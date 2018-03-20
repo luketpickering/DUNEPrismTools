@@ -11,6 +11,7 @@ NMAXJOBS=""
 OUTPUTDIR=""
 ENVSETUPSCRIPT="${DUNEPRISMTOOLSROOT}/setup.sh"
 FORCE="0"
+POTPERFILE=""
 
 while [[ ${#} -gt 0 ]]; do
 
@@ -26,6 +27,18 @@ while [[ ${#} -gt 0 ]]; do
 
       CONDENSEDDIR="$2"
       echo "[OPT]: Looking for condensed input files in ${CONDENSEDDIR}"
+      shift # past argument
+      ;;
+
+      -R|--runplan-config)
+
+      if [[ ${#} -lt 2 ]]; then
+        echo "[ERROR]: ${1} expected a value."
+        exit 1
+      fi
+
+      CONFIG="$2"
+      echo "[OPT]: Using ${CONFIG} as the runplan configuration file."
       shift # past argument
       ;;
 
@@ -65,6 +78,18 @@ while [[ ${#} -gt 0 ]]; do
       shift # past argument
       ;;
 
+      -P|--POT-per-file)
+
+      if [[ ${#} -lt 2 ]]; then
+        echo "[ERROR]: ${1} expected a value."
+        exit 1
+      fi
+
+      POTPERFILE="$2"
+      echo "[OPT]: Using: \"${POTPERFILE}\" POT per file."
+      shift # past argument
+      ;;
+
       -f|--force)
 
       FORCE="1"
@@ -75,11 +100,12 @@ while [[ ${#} -gt 0 ]]; do
       -?|--help)
 
       echo "[RUNLIKE] ${SCRIPTNAME}"
-      echo -e "\t-G|--g4py-input-dir        : Build process list from all g4py files found here."
-      echo -e "\t-R|--rootracker-input-dir  : Look here for associated rootracker files."
+      echo -e "\t-C|--condensed-input-dir   : Re-process condensed files found here."
+      echo -e "\t-R|--runplan-config        : Use the specified runplan config xml."
       echo -e "\t-N|--NMAXJobs              : Maximum number of jobs to submit."
       echo -e "\t-o|--output-dir            : Write output to <-o>/Condensed.<date> and <-o>/Processed.<date>."
       echo -e "\t-E|--env-script            : An environment setup script to source on the processing node {default: \${DUNEPRISMTOOLSROOT}/setup.sh}"
+      echo -e "\t-P|--POT-per-file          : POT per processed file."
       echo -e "\t-f|--force                 : Will remove previous output directories if they exist"
       echo -e "\t-?|--help                  : Print this message."
       exit 0
@@ -156,5 +182,5 @@ echo "qsub ${DUNEPRISMTOOLSROOT}/scripts/Process.sh -t 1-${NJOBSTORUN} -N DP_Pro
   -o process.sub.log"
 
 qsub ${DUNEPRISMTOOLSROOT}/scripts/Process.sh -t 1-${NJOBSTORUN} -N DP_Proc \
-  -v INPUT_FILE_LIST=${IPFL},RUNPLAN_CONFIG=${CONFIG},PROCESSED_OUTPUT_DIR=${PDIR},ENVSETUPSCRIPT=${ENVSETUPSCRIPT} \
+  -v INPUT_FILE_LIST=${IPFL},RUNPLAN_CONFIG=${CONFIG},PROCESSED_OUTPUT_DIR=${PDIR},ENVSETUPSCRIPT=${ENVSETUPSCRIPT},POTPERFILE=${POTPERFILE} \
   -o process.sub.log
