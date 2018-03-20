@@ -101,9 +101,9 @@ void FindPeaks(TH1D *OscFlux, int &left, int &right, int n = 3) {
 
   TH1D *temp = new TH1D();
   OscFlux -> Copy(*temp);
-  temp -> Smooth();
+  temp -> Smooth(10);
 
-  double threshold = (temp -> Integral())/(4*(temp -> GetNbinsX()));
+  double threshold = (temp -> Integral())/(5*(temp -> GetNbinsX()));
   // double threshold = 1.e-16;
 
   std::cout<< "[INFO] Peak threshold " << threshold << std::endl;
