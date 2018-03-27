@@ -1,0 +1,375 @@
+<config>
+
+  <PlotStyles>
+
+    <Style Name="Default">
+
+      <FrameBorderMode>0</FrameBorderMode>
+      <CanvasBorderMode>0</CanvasBorderMode>
+      <CanvasColor>0</CanvasColor>
+      <CanvasFillStyle>4000</CanvasFillStyle>
+      <CanvasLineStyle>0</CanvasLineStyle>
+      <CanvasLineWidth>0</CanvasLineWidth>
+      <CanvasLineColor>0</CanvasLineColor>
+
+      <PadBorderMode>0</PadBorderMode>
+      <PadColor>0</PadColor>
+      <PadFillStyle>4000</PadFillStyle>
+      <PadLineStyle>0</PadLineStyle>
+      <PadLineWidth>0</PadLineWidth>
+      <PadLineColor>kBlack</PadLineColor>
+      <PadTickScale>0.5</PadTickScale>
+
+      <PadTopMargin>0.1</PadTopMargin>
+      <PadBottomMargin>0.175</PadBottomMargin>
+      <PadLeftMargin>0.15</PadLeftMargin>
+      <PadRightMargin>0.03</PadRightMargin>
+      <PadGridX>0</PadGridX>
+      <PadGridY>0</PadGridY>
+      <PadTickX>1</PadTickX>
+      <PadTickY>1</PadTickY>
+      <StatColor>kWhite</StatColor>
+      <FillColor>kWhite</FillColor>
+      <LegendBorderSize>0</LegendBorderSize>
+      <LegendFillColor>0</LegendFillColor>
+      <LegendFillStyle>4000</LegendFillStyle>
+      <LegendTextSize>0.06</LegendTextSize>
+      <LegendTextColor>kBlack</LegendTextColor>
+      <LegendFont>132</LegendFont>
+
+      <PaperSize>20</PaperSize>
+      <PaperMargin>26</PaperMargin>
+
+      <TextFont>132</TextFont>
+      <TextSize>1.0</TextSize>
+      <TitleFillColor>kWhite</TitleFillColor>
+      <TitleX>0.4</TitleX>
+      <TitleFontSize>2</TitleFontSize>
+      <TitleFont>132</TitleFont>
+
+      <MarkerStyle>20</MarkerStyle>
+      <HistLineWidth>1.85</HistLineWidth>
+      <ErrorX>0.5</ErrorX>
+      <OptTitle>0</OptTitle>
+      <OptStat>0</OptStat>
+      <OptFit>0</OptFit>
+      <HatchesLineWidth>1.5</HatchesLineWidth>
+
+      <MaxAxisDigits>3</MaxAxisDigits>
+
+      <LabelFontX>132</LabelFontX>
+      <LabelFontY>132</LabelFontY>
+      <LabelFontZ>132</LabelFontZ>
+
+      <TitleFontX>132</TitleFontX>
+      <TitleFontY>132</TitleFontY>
+      <TitleFontZ>132</TitleFontZ>
+
+      <LabelOffsetX>0.0075</LabelOffsetX>
+      <LabelOffsetY>0.0075</LabelOffsetY>
+      <LabelOffsetZ>0.0075</LabelOffsetZ>
+
+      <TitleOffsetX>1.0</TitleOffsetX>
+      <TitleOffsetY>1.0</TitleOffsetY>
+      <TitleOffsetZ>1.0</TitleOffsetZ>
+
+      <LabelSizeX>0.06</LabelSizeX>
+      <LabelSizeY>0.06</LabelSizeY>
+      <LabelSizeZ>0.06</LabelSizeZ>
+
+      <TitleSizeX>0.06</TitleSizeX>
+      <TitleSizeY>0.06</TitleSizeY>
+      <TitleSizeZ>0.06</TitleSizeZ>
+
+      <LabelColorX>kBlack</LabelColorX>
+      <LabelColorY>kBlack</LabelColorY>
+      <LabelColorZ>kBlack</LabelColorZ>
+
+      <TitleColorX>kBlack</TitleColorX>
+      <TitleColorY>kBlack</TitleColorY>
+      <TitleColorZ>kBlack</TitleColorZ>
+
+      <AxisColorX>kBlack</AxisColorX>
+      <AxisColorY>kBlack</AxisColorY>
+      <AxisColorZ>kBlack</AxisColorZ>
+
+    </Style>
+
+  </PlotStyles>
+
+  <Plots>
+
+    <Canvas StyleName="Default" SeriesStyleHint="Variety_7" Name="LinCombDiagnostPlots" StyleName="Default" XWidth="600" YWidth="600" PrintName="LinCombDiagnostPlots.pdf" >
+      <Pad xnd="505" ynd="505" yto="1.35" xto="1.15" ats="0.5" ml="0.175" mt="0.08" mb="0.15" mr="0.15" YTitle="Weighted flux component" XTitle="E_{#nu} (GeV)" ds="1.2">
+
+        <Legend Position="TopRight" Width="0.3" Height="0.3" Title="" TextScale="0.5" NColumns="1" />
+
+        <ExternalTH1 rf="FluxFit.root" tn="weighted_fluxes/-0.3_to_0.3" do="EHIST" lc="Variety_0" lt="Slice 0" />
+        <ExternalTH1 rf="FluxFit.root" tn="weighted_fluxes/0.3_to_0.9" do="EHIST" lc="Variety_1" lt="Slice 1" />
+        <ExternalTH1 rf="FluxFit.root" tn="weighted_fluxes/0.9_to_1.5" do="EHIST" lc="Variety_2" lt="Slice 2" />
+        <ExternalTH1 rf="FluxFit.root" tn="weighted_fluxes/1.5_to_2.1" do="EHIST" lc="Variety_3" lt="Slice 3" />
+
+      </Pad>
+      <Pad xnd="505" ynd="505" yto="1.35" xto="1.15" ats="0.5" ml="0.175" mt="0.08" mb="0.15" mr="0.15" YTitle="Weighted flux component" XTitle="E_{#nu} (GeV)" ds="1.2">
+
+        <Legend Position="BottomRight" Width="0.3" Height="0.3" Title="" TextScale="0.5" NColumns="1" />
+
+        <ExternalTH1 rf="FluxFit.root" tn="weighted_fluxes/11.7_to_12.3" do="EHIST" lc="Variety_0" lt="Slice 10" />
+        <ExternalTH1 rf="FluxFit.root" tn="weighted_fluxes/12.3_to_12.9" do="EHIST" lc="Variety_1" lt="Slice 11" />
+        <ExternalTH1 rf="FluxFit.root" tn="weighted_fluxes/12.9_to_13.5" do="EHIST" lc="Variety_2" lt="Slice 12" />
+        <ExternalTH1 rf="FluxFit.root" tn="weighted_fluxes/13.5_to_14.1" do="EHIST" lc="Variety_3" lt="Slice 13" />
+
+      </Pad>
+
+      <Pad xnd="505" ynd="505" yto="1.35" xto="1.15" ats="0.5" ml="0.175" mt="0.08" mb="0.15" mr="0.15" YTitle="Weighted event rate per 1 GeV" XTitle="E_{#nu, Proxy} (GeV)" ds="1.2">
+
+        <Legend Position="TopRight" Width="0.4" Height="0.15" Title="" TextScale="0.5" NColumns="1" />
+
+        <ExternalTH1 sw="1" rf="Selected.root" tn="TruthLinearCombinations/SliceEProxy_True_LinCombWeighted_Slice0" lc="Variety_0" do="CHIST" lt="True" />
+        <ExternalTH1 sw="1" rf="Selected.root" tn="TruthLinearCombinations/SliceEProxy_True_LinCombWeighted_Slice1" lc="Variety_1" do="CHIST" />
+        <ExternalTH1 sw="1" rf="Selected.root" tn="TruthLinearCombinations/SliceEProxy_True_LinCombWeighted_Slice2" lc="Variety_2" do="CHIST" />
+        <ExternalTH1 sw="1" rf="Selected.root" tn="TruthLinearCombinations/SliceEProxy_True_LinCombWeighted_Slice3" lc="Variety_3" do="CHIST" />
+
+        <ExternalTH1 sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/EProxy_WeightedSlice0" do="P" lc="Variety_0" ms="20" mc="Variety_0" mw="0.5" lt="Sel.+Corr." />
+        <ExternalTH1 sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/EProxy_WeightedSlice1" do="P" lc="Variety_1" ms="20" mc="Variety_1" mw="0.5" />
+        <ExternalTH1 sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/EProxy_WeightedSlice2" do="P" lc="Variety_2" ms="20" mc="Variety_2" mw="0.5" />
+        <ExternalTH1 sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/EProxy_WeightedSlice3" do="P" lc="Variety_3" ms="20" mc="Variety_3" mw="0.5" />
+
+      </Pad>
+
+      <Pad xnd="505" ynd="505" yto="1.35" xto="1.15" ats="0.5" ml="0.175" mt="0.08" mb="0.15" mr="0.15" YTitle="Weighted event rate per 1 GeV" XTitle="E_{#nu, Proxy} (GeV)" ds="1.2">
+
+        <ExternalTH1 sw="1" rf="Selected.root" tn="TruthLinearCombinations/SliceEProxy_True_LinCombWeighted_Slice10" lc="Variety_0" do="CHIST" lt="True" />
+        <ExternalTH1 sw="1" rf="Selected.root" tn="TruthLinearCombinations/SliceEProxy_True_LinCombWeighted_Slice11" lc="Variety_1" do="CHIST" />
+        <ExternalTH1 sw="1" rf="Selected.root" tn="TruthLinearCombinations/SliceEProxy_True_LinCombWeighted_Slice12" lc="Variety_2" do="CHIST" />
+        <ExternalTH1 sw="1" rf="Selected.root" tn="TruthLinearCombinations/SliceEProxy_True_LinCombWeighted_Slice13" lc="Variety_3" do="CHIST" />
+
+        <ExternalTH1 sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/EProxy_WeightedSlice10"  do="P" lc="Variety_0" ms="20" mc="Variety_0" mw="0.5" lt="Sel.+Corr." />
+        <ExternalTH1 sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/EProxy_WeightedSlice11"  do="P" lc="Variety_1" ms="20" mc="Variety_1" mw="0.5" />
+        <ExternalTH1 sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/EProxy_WeightedSlice12"  do="P" lc="Variety_2" ms="20" mc="Variety_2" mw="0.5" />
+        <ExternalTH1 sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/EProxy_WeightedSlice13"  do="P" lc="Variety_3" ms="20" mc="Variety_3" mw="0.5" />
+
+      </Pad>
+    </Canvas>
+
+    <Canvas StyleName="Default" SeriesStyleHint="Variety_7" Name="ManualSum" StyleName="Default" XWidth="600" YWidth="600" PrintName="ManualSum.pdf" >
+
+      <Pad xnd="505" ynd="505" yto="1.35" xto="1.15" ats="0.5" ml="0.175" mt="0.08" mb="0.15" mr="0.15" YTitle="Weighted event rate per 1 GeV" XTitle="E_{#nu, Proxy} (GeV)" ds="1.2">
+
+        <ExternalTH1Array sw="1" rf="Selected.root" sd="TruthLinearCombinations" thn="SliceEProxy_True_LinCombWeighted_Slice*" do="CHIST" />
+
+      </Pad>
+
+      <Pad xnd="505" ynd="505" yto="1.35" xto="1.15" ats="0.5" ml="0.175" mt="0.08" mb="0.15" mr="0.15" YTitle="Weighted event rate per 1 GeV" XTitle="E_{#nu, Proxy} (GeV)" ds="1.2">
+
+        <ExternalTH1Array sw="1" rf="PRISMPrediction.root" sd="SliceDistributions" thn="EProxy_WeightedSlice*" do="P" />
+
+      </Pad>
+
+      <Pad xnd="505" ynd="505" yto="1.35" xto="1.15" ats="0.5" ml="0.175" mt="0.08" mb="0.15" mr="0.15" YTitle="Weighted event rate per 1 GeV" XTitle="E_{#nu, Proxy} (GeV)" ds="1.2">
+
+        <Legend Position="TopRight" Width="0.3" Height="0.3" Title="" TextScale="0.5" NColumns="1" />
+
+        <StackedHist1D>
+          <ExternalTH1 lt="E_{#nu, Proxy} True" sw="1" rf="Selected.root" tn="TruthLinearCombinations/SliceEProxy_True_LinCombWeighted_Slice0" />
+          <ExternalTH1 draw="0" sw="1" rf="Selected.root" tn="TruthLinearCombinations/SliceEProxy_True_LinCombWeighted_Slice1" />
+          <ExternalTH1 draw="0" sw="1" rf="Selected.root" tn="TruthLinearCombinations/SliceEProxy_True_LinCombWeighted_Slice2" />
+          <ExternalTH1 draw="0" sw="1" rf="Selected.root" tn="TruthLinearCombinations/SliceEProxy_True_LinCombWeighted_Slice3" />
+          <ExternalTH1 draw="0" sw="1" rf="Selected.root" tn="TruthLinearCombinations/SliceEProxy_True_LinCombWeighted_Slice4" />
+          <ExternalTH1 draw="0" sw="1" rf="Selected.root" tn="TruthLinearCombinations/SliceEProxy_True_LinCombWeighted_Slice5" />
+          <ExternalTH1 draw="0" sw="1" rf="Selected.root" tn="TruthLinearCombinations/SliceEProxy_True_LinCombWeighted_Slice6" />
+          <ExternalTH1 draw="0" sw="1" rf="Selected.root" tn="TruthLinearCombinations/SliceEProxy_True_LinCombWeighted_Slice7" />
+          <ExternalTH1 draw="0" sw="1" rf="Selected.root" tn="TruthLinearCombinations/SliceEProxy_True_LinCombWeighted_Slice8" />
+          <ExternalTH1 draw="0" sw="1" rf="Selected.root" tn="TruthLinearCombinations/SliceEProxy_True_LinCombWeighted_Slice9" />
+          <ExternalTH1 draw="0" sw="1" rf="Selected.root" tn="TruthLinearCombinations/SliceEProxy_True_LinCombWeighted_Slice10" />
+          <ExternalTH1 draw="0" sw="1" rf="Selected.root" tn="TruthLinearCombinations/SliceEProxy_True_LinCombWeighted_Slice11" />
+          <ExternalTH1 draw="0" sw="1" rf="Selected.root" tn="TruthLinearCombinations/SliceEProxy_True_LinCombWeighted_Slice12" />
+          <ExternalTH1 draw="0" sw="1" rf="Selected.root" tn="TruthLinearCombinations/SliceEProxy_True_LinCombWeighted_Slice13" />
+          <ExternalTH1 draw="0" sw="1" rf="Selected.root" tn="TruthLinearCombinations/SliceEProxy_True_LinCombWeighted_Slice14" />
+          <ExternalTH1 draw="0" sw="1" rf="Selected.root" tn="TruthLinearCombinations/SliceEProxy_True_LinCombWeighted_Slice15" />
+          <ExternalTH1 draw="0" sw="1" rf="Selected.root" tn="TruthLinearCombinations/SliceEProxy_True_LinCombWeighted_Slice16" />
+          <ExternalTH1 draw="0" sw="1" rf="Selected.root" tn="TruthLinearCombinations/SliceEProxy_True_LinCombWeighted_Slice17" />
+          <ExternalTH1 draw="0" sw="1" rf="Selected.root" tn="TruthLinearCombinations/SliceEProxy_True_LinCombWeighted_Slice18" />
+          <ExternalTH1 draw="0" sw="1" rf="Selected.root" tn="TruthLinearCombinations/SliceEProxy_True_LinCombWeighted_Slice19" />
+          <ExternalTH1 draw="0" sw="1" rf="Selected.root" tn="TruthLinearCombinations/SliceEProxy_True_LinCombWeighted_Slice20" />
+          <ExternalTH1 draw="0" sw="1" rf="Selected.root" tn="TruthLinearCombinations/SliceEProxy_True_LinCombWeighted_Slice21" />
+          <ExternalTH1 draw="0" sw="1" rf="Selected.root" tn="TruthLinearCombinations/SliceEProxy_True_LinCombWeighted_Slice22" />
+          <ExternalTH1 draw="0" sw="1" rf="Selected.root" tn="TruthLinearCombinations/SliceEProxy_True_LinCombWeighted_Slice23" />
+          <ExternalTH1 draw="0" sw="1" rf="Selected.root" tn="TruthLinearCombinations/SliceEProxy_True_LinCombWeighted_Slice24" />
+          <ExternalTH1 draw="0" sw="1" rf="Selected.root" tn="TruthLinearCombinations/SliceEProxy_True_LinCombWeighted_Slice25" />
+          <ExternalTH1 draw="0" sw="1" rf="Selected.root" tn="TruthLinearCombinations/SliceEProxy_True_LinCombWeighted_Slice26" />
+          <ExternalTH1 draw="0" sw="1" rf="Selected.root" tn="TruthLinearCombinations/SliceEProxy_True_LinCombWeighted_Slice27" />
+          <ExternalTH1 draw="0" sw="1" rf="Selected.root" tn="TruthLinearCombinations/SliceEProxy_True_LinCombWeighted_Slice28" />
+          <ExternalTH1 draw="0" sw="1" rf="Selected.root" tn="TruthLinearCombinations/SliceEProxy_True_LinCombWeighted_Slice29" />
+          <ExternalTH1 draw="0" sw="1" rf="Selected.root" tn="TruthLinearCombinations/SliceEProxy_True_LinCombWeighted_Slice30" />
+          <ExternalTH1 draw="0" sw="1" rf="Selected.root" tn="TruthLinearCombinations/SliceEProxy_True_LinCombWeighted_Slice31" />
+          <ExternalTH1 draw="0" sw="1" rf="Selected.root" tn="TruthLinearCombinations/SliceEProxy_True_LinCombWeighted_Slice32" />
+          <ExternalTH1 draw="0" sw="1" rf="Selected.root" tn="TruthLinearCombinations/SliceEProxy_True_LinCombWeighted_Slice33" />
+          <ExternalTH1 draw="0" sw="1" rf="Selected.root" tn="TruthLinearCombinations/SliceEProxy_True_LinCombWeighted_Slice34" />
+          <ExternalTH1 draw="0" sw="1" rf="Selected.root" tn="TruthLinearCombinations/SliceEProxy_True_LinCombWeighted_Slice35" />
+          <ExternalTH1 draw="0" sw="1" rf="Selected.root" tn="TruthLinearCombinations/SliceEProxy_True_LinCombWeighted_Slice36" />
+          <ExternalTH1 draw="0" sw="1" rf="Selected.root" tn="TruthLinearCombinations/SliceEProxy_True_LinCombWeighted_Slice37" />
+          <ExternalTH1 draw="0" sw="1" rf="Selected.root" tn="TruthLinearCombinations/SliceEProxy_True_LinCombWeighted_Slice38" />
+          <ExternalTH1 draw="0" sw="1" rf="Selected.root" tn="TruthLinearCombinations/SliceEProxy_True_LinCombWeighted_Slice39" />
+          <ExternalTH1 draw="0" sw="1" rf="Selected.root" tn="TruthLinearCombinations/SliceEProxy_True_LinCombWeighted_Slice40" />
+          <ExternalTH1 draw="0" sw="1" rf="Selected.root" tn="TruthLinearCombinations/SliceEProxy_True_LinCombWeighted_Slice41" />
+          <ExternalTH1 draw="0" sw="1" rf="Selected.root" tn="TruthLinearCombinations/SliceEProxy_True_LinCombWeighted_Slice42" />
+          <ExternalTH1 draw="0" sw="1" rf="Selected.root" tn="TruthLinearCombinations/SliceEProxy_True_LinCombWeighted_Slice43" />
+          <ExternalTH1 draw="0" sw="1" rf="Selected.root" tn="TruthLinearCombinations/SliceEProxy_True_LinCombWeighted_Slice44" />
+          <ExternalTH1 draw="0" sw="1" rf="Selected.root" tn="TruthLinearCombinations/SliceEProxy_True_LinCombWeighted_Slice45" />
+          <ExternalTH1 draw="0" sw="1" rf="Selected.root" tn="TruthLinearCombinations/SliceEProxy_True_LinCombWeighted_Slice46" />
+          <ExternalTH1 draw="0" sw="1" rf="Selected.root" tn="TruthLinearCombinations/SliceEProxy_True_LinCombWeighted_Slice47" />
+          <ExternalTH1 draw="0" sw="1" rf="Selected.root" tn="TruthLinearCombinations/SliceEProxy_True_LinCombWeighted_Slice48" />
+          <ExternalTH1 draw="0" sw="1" rf="Selected.root" tn="TruthLinearCombinations/SliceEProxy_True_LinCombWeighted_Slice49" />
+          <ExternalTH1 draw="0" sw="1" rf="Selected.root" tn="TruthLinearCombinations/SliceEProxy_True_LinCombWeighted_Slice50" />
+          <ExternalTH1 draw="0" sw="1" rf="Selected.root" tn="TruthLinearCombinations/SliceEProxy_True_LinCombWeighted_Slice51" />
+          <ExternalTH1 draw="0" sw="1" rf="Selected.root" tn="TruthLinearCombinations/SliceEProxy_True_LinCombWeighted_Slice52" />
+          <ExternalTH1 draw="0" sw="1" rf="Selected.root" tn="TruthLinearCombinations/SliceEProxy_True_LinCombWeighted_Slice53" />
+          <ExternalTH1 draw="0" sw="1" rf="Selected.root" tn="TruthLinearCombinations/SliceEProxy_True_LinCombWeighted_Slice54" />
+          <ExternalTH1 draw="0" sw="1" rf="Selected.root" tn="TruthLinearCombinations/SliceEProxy_True_LinCombWeighted_Slice55" />
+          <ExternalTH1 draw="0" sw="1" rf="Selected.root" tn="TruthLinearCombinations/SliceEProxy_True_LinCombWeighted_Slice56" />
+          <ExternalTH1 draw="0" sw="1" rf="Selected.root" tn="TruthLinearCombinations/SliceEProxy_True_LinCombWeighted_Slice57" />
+          <ExternalTH1 draw="0" sw="1" rf="Selected.root" tn="TruthLinearCombinations/SliceEProxy_True_LinCombWeighted_Slice58" />
+          <ExternalTH1 draw="0" sw="1" rf="Selected.root" tn="TruthLinearCombinations/SliceEProxy_True_LinCombWeighted_Slice59" />
+          <ExternalTH1 draw="0" sw="1" rf="Selected.root" tn="TruthLinearCombinations/SliceEProxy_True_LinCombWeighted_Slice60" />
+        </StackedHist1D>
+      </Pad>
+
+      <Pad xnd="505" ynd="505" yto="1.35" xto="1.15" ats="0.5" ml="0.175" mt="0.08" mb="0.15" mr="0.15" YTitle="Weighted event rate" XTitle="E (GeV)" ds="1.2">
+
+        <Legend Position="TopRight" Width="0.5" Height="0.3" Title="" TextScale="0.5" NColumns="1" />
+
+        <StackedHist1D do="EHIST" >
+          <ExternalTH1 lt="E_{#nu,Proxy} Sel.+Corr." sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/EProxy_WeightedSlice0" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/EProxy_WeightedSlice1" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/EProxy_WeightedSlice2" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/EProxy_WeightedSlice3" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/EProxy_WeightedSlice4" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/EProxy_WeightedSlice5" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/EProxy_WeightedSlice6" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/EProxy_WeightedSlice7" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/EProxy_WeightedSlice8" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/EProxy_WeightedSlice9" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/EProxy_WeightedSlice10" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/EProxy_WeightedSlice11" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/EProxy_WeightedSlice12" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/EProxy_WeightedSlice13" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/EProxy_WeightedSlice14" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/EProxy_WeightedSlice15" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/EProxy_WeightedSlice16" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/EProxy_WeightedSlice17" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/EProxy_WeightedSlice18" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/EProxy_WeightedSlice19" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/EProxy_WeightedSlice20" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/EProxy_WeightedSlice21" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/EProxy_WeightedSlice22" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/EProxy_WeightedSlice23" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/EProxy_WeightedSlice24" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/EProxy_WeightedSlice25" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/EProxy_WeightedSlice26" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/EProxy_WeightedSlice27" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/EProxy_WeightedSlice28" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/EProxy_WeightedSlice29" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/EProxy_WeightedSlice30" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/EProxy_WeightedSlice31" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/EProxy_WeightedSlice32" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/EProxy_WeightedSlice33" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/EProxy_WeightedSlice34" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/EProxy_WeightedSlice35" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/EProxy_WeightedSlice36" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/EProxy_WeightedSlice37" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/EProxy_WeightedSlice38" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/EProxy_WeightedSlice39" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/EProxy_WeightedSlice40" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/EProxy_WeightedSlice41" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/EProxy_WeightedSlice42" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/EProxy_WeightedSlice43" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/EProxy_WeightedSlice44" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/EProxy_WeightedSlice45" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/EProxy_WeightedSlice46" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/EProxy_WeightedSlice47" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/EProxy_WeightedSlice48" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/EProxy_WeightedSlice49" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/EProxy_WeightedSlice50" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/EProxy_WeightedSlice51" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/EProxy_WeightedSlice52" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/EProxy_WeightedSlice53" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/EProxy_WeightedSlice54" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/EProxy_WeightedSlice55" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/EProxy_WeightedSlice56" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/EProxy_WeightedSlice57" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/EProxy_WeightedSlice58" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/EProxy_WeightedSlice59" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/EProxy_WeightedSlice60" />
+        </StackedHist1D>
+
+        <StackedHist1D do="EHIST" >
+          <ExternalTH1 lt="E_{Rec} Sel.+Corr." sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/ERec_WeightedSlice0" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/ERec_WeightedSlice1" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/ERec_WeightedSlice2" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/ERec_WeightedSlice3" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/ERec_WeightedSlice4" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/ERec_WeightedSlice5" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/ERec_WeightedSlice6" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/ERec_WeightedSlice7" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/ERec_WeightedSlice8" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/ERec_WeightedSlice9" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/ERec_WeightedSlice10" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/ERec_WeightedSlice11" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/ERec_WeightedSlice12" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/ERec_WeightedSlice13" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/ERec_WeightedSlice14" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/ERec_WeightedSlice15" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/ERec_WeightedSlice16" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/ERec_WeightedSlice17" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/ERec_WeightedSlice18" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/ERec_WeightedSlice19" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/ERec_WeightedSlice20" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/ERec_WeightedSlice21" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/ERec_WeightedSlice22" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/ERec_WeightedSlice23" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/ERec_WeightedSlice24" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/ERec_WeightedSlice25" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/ERec_WeightedSlice26" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/ERec_WeightedSlice27" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/ERec_WeightedSlice28" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/ERec_WeightedSlice29" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/ERec_WeightedSlice30" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/ERec_WeightedSlice31" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/ERec_WeightedSlice32" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/ERec_WeightedSlice33" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/ERec_WeightedSlice34" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/ERec_WeightedSlice35" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/ERec_WeightedSlice36" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/ERec_WeightedSlice37" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/ERec_WeightedSlice38" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/ERec_WeightedSlice39" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/ERec_WeightedSlice40" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/ERec_WeightedSlice41" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/ERec_WeightedSlice42" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/ERec_WeightedSlice43" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/ERec_WeightedSlice44" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/ERec_WeightedSlice45" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/ERec_WeightedSlice46" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/ERec_WeightedSlice47" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/ERec_WeightedSlice48" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/ERec_WeightedSlice49" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/ERec_WeightedSlice50" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/ERec_WeightedSlice51" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/ERec_WeightedSlice52" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/ERec_WeightedSlice53" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/ERec_WeightedSlice54" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/ERec_WeightedSlice55" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/ERec_WeightedSlice56" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/ERec_WeightedSlice57" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/ERec_WeightedSlice58" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/ERec_WeightedSlice59" />
+          <ExternalTH1 draw="0" sw="1" rf="PRISMPrediction.root" tn="SliceDistributions/ERec_WeightedSlice60" />
+        </StackedHist1D>
+
+      </Pad>
+
+    </Canvas>
+
+  </Plots>
+</config>

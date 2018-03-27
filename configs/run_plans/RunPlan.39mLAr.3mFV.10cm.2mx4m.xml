@@ -1,0 +1,20 @@
+<DUNEPrism>
+  <RunPlan Name="RunPlan.39mLAr.3mFV.10cm.2mx4m">
+    <Detector DetectorWidth_m="3" DetectorHeight_m="2" DetectorDepth_m="4" />
+    <Stops>
+      <Stop LateralOffset_m="0" POTExposure="9.166666667E19"/>
+      <Stop LateralOffset_m="3" POTExposure="9.166666667E19"/>
+      <Stop LateralOffset_m="6" POTExposure="9.166666667E19"/>
+      <Stop LateralOffset_m="9" POTExposure="9.166666667E19"/>
+      <Stop LateralOffset_m="12" POTExposure="9.166666667E19"/>
+      <Stop LateralOffset_m="15" POTExposure="9.166666667E19"/>
+      <Stop LateralOffset_m="18" POTExposure="9.166666667E19"/>
+      <Stop LateralOffset_m="21" POTExposure="9.166666667E19"/>
+      <Stop LateralOffset_m="24" POTExposure="9.166666667E19"/>
+      <Stop LateralOffset_m="27" POTExposure="9.166666667E19"/>
+      <Stop LateralOffset_m="30" POTExposure="9.166666667E19"/>
+      <Stop LateralOffset_m="33" POTExposure="9.166666667E19"/>
+      <Stop LateralOffset_m="36" POTExposure="9.166666667E19"/>
+    </Stops>
+  </RunPlan>
+</DUNEPrism>
