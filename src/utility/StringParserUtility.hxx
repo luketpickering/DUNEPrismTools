@@ -52,7 +52,7 @@ inline bool str2T<bool>(std::string const &str) {
 }
 
 template <typename T>
-inline std::vector<T> ParseToVect(std::string str, const char *del) {
+inline std::vector<T> ParseToVect(std::string const &str, const char *del) {
   std::istringstream stream(str);
   std::string temp_string;
   std::vector<T> vals;
@@ -67,6 +67,19 @@ inline std::vector<T> ParseToVect(std::string str, const char *del) {
 }
 
 template <typename T>
+inline std::vector<T> strsToTs(std::vector<std::string> const &strs) {
+  std::vector<T> vals;
+
+  for(std::string const &s : strs){
+    if (s.empty()) {
+      continue;
+    }
+    vals.push_back(str2T<T>(s));
+  }
+  return vals;
+}
+
+template <typename T>
 inline void AppendVect(std::vector<T> &target, std::vector<T> const &toApp) {
   for (size_t i = 0; i < toApp.size(); ++i) {
     target.push_back(toApp[i]);
@@ -75,6 +88,10 @@ inline void AppendVect(std::vector<T> &target, std::vector<T> const &toApp) {
 
 // Converts "5_10:1" into a vector containing: 5,6,7,8,9,10
 std::vector<double> BuildDoubleList(std::string const &str);
+// Converts "1,5_10:1,15" into a vector containing: 1,5,6,7,8,9,10,15
+std::vector<double> ParseDoubleListDescriptor(std::string const &str);
+// Converts "1_5:2,5_10:1,15" into a vector containing: 1,3,5,6,7,8,9,10,15
+std::vector<double> BuildBinEdges(std::string const &str);
 void chomp(std::string &str);
 
 #endif

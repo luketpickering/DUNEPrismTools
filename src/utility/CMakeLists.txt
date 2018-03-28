@@ -12,7 +12,6 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 install(TARGETS dp_utility DESTINATION lib)
 
-target_link_libraries(dp_utility ${MODULETargets})
 target_link_libraries(dp_utility ${ROOT_LIBS})
 
 if(NOT "${CMAKE_LINK_FLAGS}" STREQUAL "")
@@ -22,3 +21,5 @@ endif()
 if(NOT "${CMAKE_DEPENDLIB_FLAGS}" STREQUAL "")
   target_link_libraries(dp_utility ${CMAKE_DEPENDLIB_FLAGS})
 endif()
+
+SET(MODULETargets ${MODULETargets};dp_utility PARENT_SCOPE)

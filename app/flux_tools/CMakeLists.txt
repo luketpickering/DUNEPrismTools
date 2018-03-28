@@ -1,12 +1,13 @@
 SET(FLUX_APPS BuildFluxes
-  FitFluxes
-  OscillateFlux
-  PredictRunPlanEventRates
-  CombineBuiltFluxes
-  BuildUncertaintyMatrix
-  MakeLitedk2nu)
+  # FitFluxes
+  # OscillateFlux
+#  PredictRunPlanEventRates -- Deprecated
+  # CombineBuiltFluxes
+  # BuildUncertaintyMatrix
+  # MakeLitedk2nu
+)
 
-  include_directories(${INCLUDE_DIRECTORIES})
+include_directories(${INCLUDE_DIRECTORIES})
 
 foreach(appname ${FLUX_APPS})
 
@@ -24,6 +25,5 @@ foreach(appname ${FLUX_APPS})
   endif()
 
   install(TARGETS dp_${appname} DESTINATION bin)
-
 
 endforeach()

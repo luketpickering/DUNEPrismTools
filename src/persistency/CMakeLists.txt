@@ -13,7 +13,6 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 install(TARGETS dp_persistency DESTINATION lib)
 
-target_link_libraries(dp_persistency ${MODULETargets})
 target_link_libraries(dp_persistency ${ROOT_LIBS})
 
 if(NOT "${CMAKE_LINK_FLAGS}" STREQUAL "")
@@ -23,3 +22,5 @@ endif()
 if(NOT "${CMAKE_DEPENDLIB_FLAGS}" STREQUAL "")
   target_link_libraries(dp_persistency ${CMAKE_DEPENDLIB_FLAGS})
 endif()
+
+SET(MODULETargets ${MODULETargets};dp_persistency PARENT_SCOPE)

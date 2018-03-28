@@ -53,7 +53,10 @@ include(${CMAKE_SOURCE_DIR}/cmake/doxSetup.cmake)
 
 add_subdirectory(src)
 
-# add_subdirectory(app)
+cmessage(DEBUG "SRC INCLUDE_DIRECTORIES: ${INCLUDE_DIRECTORIES}")
+cmessage(DEBUG "Module Targets: ${MODULETargets}")
+
+add_subdirectory(app)
 
 configure_file(cmake/setup.sh.in
   "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/setup.sh" @ONLY)
