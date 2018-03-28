@@ -5,7 +5,7 @@
 #include "TH1.h"
 #include "TTree.h"
 
-#include "NuDataReader.hxx"
+#include "dk2nu_TreeReader.hxx"
 
 std::string inpDir = ".";
 std::string outputFile;

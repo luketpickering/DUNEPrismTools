@@ -1,4 +1,6 @@
-#include "Utils.hxx"
+#include "StringParserUtility.hxx"
+#include "ROOTUtility.hxx"
+#include "OscillationHelper.hxx"
 
 #include "TFile.h"
 #include "TGraph.h"
@@ -187,33 +189,24 @@ int main(int argc, char const *argv[]) {
     exit(1);
   }
 
-  TFile *inpF = new TFile(inpFile.c_str());
-  if (!inpF || !inpF->IsOpen()) {
-    std::cout << "[ERROR]: Couldn't open input file: " << inpFile << std::endl;
-    exit(1);
-  }
+  TFile *inpF = CheckOpenFile(inpFile, "READ");
 
-  TH1 *inpH = dynamic_cast<TH1 *>(inpF->Get(inpHistName.c_str()));
-
-  if (!inpH) {
-    std::cout << "[ERROR]: Couldn't get TH1: " << inpHistName
-              << " from input file: " << inpFile << std::endl;
-    exit(1);
-  }
+  TH1 *inpH = GetHistogram<TH1D>(inpF,inpHistName);
 
   inpH = static_cast<TH1 *>(inpH->Clone());
 
-  TFile *oupF = new TFile(oupFile.c_str(), "RECREATE");
-  if (!oupF || !oupF->IsOpen()) {
-    std::cout << "[ERROR]: Couldn't open output file: " << oupFile << std::endl;
-    exit(1);
-  }
+  TFile *oupF = CheckOpenFile(oupFile.c_str(), "READ");
+  oupF->cd();
 
   inpH->Write();
   inpH->SetDirectory(NULL);
 
+  OscillationHelper oh;
+  oh.Setup(OscParams,DipAngle);
+  oh.SetOscillationChannel(nuPDGFrom,nuPDGTo);
+
   for (Int_t bi_it = 1; bi_it < inpH->GetXaxis()->GetNbins() + 1; ++bi_it) {
-    double ow = OscWeight(inpH->GetXaxis()->GetBinCenter(bi_it));
+    double ow = oh.GetWeight(inpH->GetXaxis()->GetBinCenter(bi_it));
     inpH->SetBinContent(bi_it, inpH->GetBinContent(bi_it) * ow);
   }
   inpH->SetName(oupHistName.c_str());
@@ -229,7 +222,7 @@ int main(int argc, char const *argv[]) {
                 double(1E4);
   for (size_t i = 1; i < 1E4; ++i) {
     double enu = min + i * step;
-    double ow = OscWeight(enu);
+    double ow = oh.GetWeight(enu);
     if (ow != ow) {
       std::cout << "Bad osc weight for ENu: " << enu << std::endl;
     }
@@ -238,10 +231,7 @@ int main(int argc, char const *argv[]) {
 
   POsc->Write("POsc");
 
-  TTree *OscConfigTree = new TTree("OscConfigTree", "");
-  OscConfigTree->Branch("DipAngle", &DipAngle, "DipAngle/D");
-  OscConfigTree->Branch("OscParams", &OscParams, "OscParams[6]/D");
-  OscConfigTree->Fill();
+  oh.WriteConfigTree(oupF);
 
   oupF->Write();
   oupF->Close();

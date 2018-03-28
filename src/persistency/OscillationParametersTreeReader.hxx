@@ -12,6 +12,7 @@ OscillationParameters(std::string const &treeName, std::string const &inputFile)
 
   Double_t DipAngle_degrees;
   Double_t OscParams[6];
+  Int_t FromNuPDG,ToNuPDG;
 
   TChain *tree;
   UInt_t NFiles;

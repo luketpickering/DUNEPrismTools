@@ -1,10 +1,11 @@
-SET(FLUX_APPS BuildFluxes
+SET(FLUX_APPS
+  BuildFluxes
   # FitFluxes
-  # OscillateFlux
+  OscillateFlux
 #  PredictRunPlanEventRates -- Deprecated
-  # CombineBuiltFluxes
+  CombineBuiltFluxes
   # BuildUncertaintyMatrix
-  # MakeLitedk2nu
+  MakeLitedk2nu
 )
 
 include_directories(${INCLUDE_DIRECTORIES})

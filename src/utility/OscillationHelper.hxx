@@ -3,6 +3,8 @@
 
 #include "BargerPropagator.h"
 
+#include "TFile.h"
+
 struct OscillationHelper {
   enum NuTypes {
     kNuebarType = -1,
@@ -20,6 +22,7 @@ struct OscillationHelper {
   bool IsSetUp;
 
   BargerPropagator bp;
+  Int_t FromPDG, ToPDG;
   NuTypes FromType, ToType;
 
   NuTypes GetNuType(int pdg);
@@ -31,6 +34,8 @@ struct OscillationHelper {
 
   void SetOscillationChannel(int PDGFrom, int PDGTo);
   double GetWeight(double ENu_GeV);
+
+  void WriteConfigTree(TFile *f);
 };
 
 #endif

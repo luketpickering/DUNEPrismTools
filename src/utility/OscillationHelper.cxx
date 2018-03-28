@@ -74,6 +74,8 @@ void OscillationHelper::Setup(double OscParams[6], double DipAngle_degrees){
 }
 
 void OscillationHelper::SetOscillationChannel(int PDGFrom, int PDGTo) {
+  FromPDG = PDGFrom;
+  ToPDG = PDGTo;
   FromType = GetNuType(PDGFrom);
   ToType = GetNuType(PDGTo);
 }
@@ -90,4 +92,20 @@ double OscillationHelper::GetWeight(double ENu_GeV) {
   bp.propagate(ToType);
 
   return bp.GetProb(FromType, ToType);
+}
+
+void OscillationHelper::WriteConfigTree(TFile *f){
+  f->cd();
+  TTree *t = new TTree("OscConfigTree","Oscillation parameters used");
+  t->SetDirectory(f);
+
+  OscillationParameters * tw = OscillationParameters::MakeTreeWriter(t);
+
+  tw->DipAngle_degrees = DipAngle_degrees;
+  std::copy_n(OscParams,6,tw->OscParams);
+  tw->FromNuPDG = FromPDG;
+  tw->ToNuPDG = ToPDG;
+
+  t->Fill();
+
 }
