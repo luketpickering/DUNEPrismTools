@@ -58,7 +58,7 @@ void OscillationHelper::Setup(double OscParams[6], double DipAngle_degrees){
   std::copy_n(OscParams,6,this->OscParams);
   this->DipAngle_degrees = DipAngle_degrees;
 
-  std::cout << "[INFO]: Using oscillation parameters: " << std::cout
+  std::cout << "[INFO]: Using oscillation parameters: " << std::endl
             << "\tSin^2(Theta_12) = " << this->OscParams[0] << std::endl;
   std::cout << "\tSin^2(Theta_13) = " << this->OscParams[1] << std::endl;
   std::cout << "\tSin^2(Theta_23) = " << this->OscParams[2] << std::endl;
