@@ -4,8 +4,7 @@
 #include <iostream>
 
   DK2NuReader::DK2NuReader(std::string treeName, std::string inputFiles, bool DK2NULite) {
-    tree = new TChain(treeName.c_str());
-    NFiles = tree->Add(inputFiles.c_str());
+    tree = OpenTChainWithFileList(treeName, inputFiles, NFiles);
     NEntries = tree->GetEntries();
 
     SetBranchAddresses(DK2NULite);
@@ -217,8 +216,7 @@
         tgtcfg(0),
         horncfg(0),
         dkvolcfg(0) */{
-    tree = new TChain(treeName.c_str());
-    NFiles = tree->Add(inputFiles.c_str());
+    tree = OpenTChainWithFileList(treeName, inputFiles, NFiles);
     NEntries = tree->GetEntries();
 
     SetBranchAddresses(DK2NULite);

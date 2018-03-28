@@ -505,7 +505,7 @@ int main(int argc, char const *argv[]) {
 
   if(!EnergyBinning.size()){
     int argc_dum = 3;
-    char const *argv_dum[] = {"", "-b", "0_10:0.25"};
+    char const *argv_dum[] = {"", "-b", "40,0,10"};
     handleOpts(argc_dum, argv_dum);
   }
 
