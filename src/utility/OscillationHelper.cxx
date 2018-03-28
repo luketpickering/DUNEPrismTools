@@ -40,7 +40,7 @@ void OscillationHelper::Setup(std::string const &FileWithConfTree) {
   std::copy_n(op.OscParams,6,OscParams);
 
 
-  std::cout << "[INFO]: Using oscillation parameters: " << std::cout
+  std::cout << "[INFO]: Using oscillation parameters: " << std::endl
             << "\tSin^2(Theta_12) = " << OscParams[0] << std::endl;
   std::cout << "\tSin^2(Theta_13) = " << OscParams[1] << std::endl;
   std::cout << "\tSin^2(Theta_23) = " << OscParams[2] << std::endl;
