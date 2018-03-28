@@ -105,7 +105,7 @@ inline std::vector<TH *> GetHistograms(std::string const &fname,
   return histos;
 }
 
-std::vector<std::pair<double, TH1D *> > SplitTH2D(
+std::vector<std::pair<std::pair<double,double>, TH1D *> > SplitTH2D(
     TH2D *t2, bool AlongY, double min = -std::numeric_limits<double>::max(),
     double max = std::numeric_limits<double>::max());
 

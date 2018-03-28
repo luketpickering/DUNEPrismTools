@@ -32,6 +32,34 @@ SliceConfig::SliceConfig(std::string const &treeName, std::string const &inputFi
   UInt_t SliceConfig::GetEntry() { return CEnt; }
   UInt_t SliceConfig::GetEntries() { return NEntries; }
 
+  std::pair< std::vector<double>, std::vector<double> >
+    SliceConfig::BuildXRangeBinsCoeffs(
+      std::vector< std::pair<double, double> > const &XRanges,
+      double const *Coeffs){
+
+    std::vector<double> XRangeBins;
+    std::vector<double> CoeffVector;
+
+    std::cout << "[INFO]: XRange bins: " << std::flush;
+    XRangeBins.push_back(XRanges[0].first);
+    CoeffVector.push_back(Coeffs[0]);
+    XRangeBins.push_back(XRanges[0].second);
+    std::cout << XRangeBins[0] << ", " << XRangeBins[1] << std::flush;
+    for (size_t i = 1; i < XRanges.size(); ++i) {
+      // If non-contiguous, must push an empty bit between.
+      if (fabs(XRangeBins.back() - XRanges[i].first) > 1E-5) {
+        CoeffVector.push_back(0);
+        XRangeBins.push_back(XRanges[i].first);
+        std::cout << ", " << XRangeBins.back() << std::flush;
+      }
+      CoeffVector.push_back(Coeffs[i]);
+      XRangeBins.push_back(XRanges[i].second);
+      std::cout << ", " << XRangeBins.back() << std::flush;
+    }
+    std::cout << std::endl;
+    return std::make_pair(XRangeBins, CoeffVector);
+  }
+
   void SliceConfig::ReadTree(){
     if(!tree){
       std::cout << "[ERROR]: SliceConfig attempted to read input tree "
@@ -39,31 +67,35 @@ SliceConfig::SliceConfig(std::string const &treeName, std::string const &inputFi
       throw;
     }
 
-    XRangeBins.clear();
-    CoeffsVector.clear();
+    XRanges.clear();
+    Coeffs.clear();
 
-    std::cout << "[INFO]: XRange bins: " << std::flush;
-    tree->GetEntry(0);
-    XRangeBins.push_back(XRange[0]);
-    CoeffsVector.push_back(Coeff);
     XRangeBins.push_back(XRange[1]);
     std::cout << XRangeBins[0] << ", " << XRangeBins[1] << std::flush;
-    for (Long64_t i = 1; i < tree->GetEntries(); ++i) {
+    for (Long64_t i = 0; i < tree->GetEntries(); ++i) {
       tree->GetEntry(i);
-
-      // If non-contiguous, must push an empty bit between.
-      if (fabs(XRangeBins.back() - XRange[0]) > 1E-5) {
-        CoeffsVector.push_back(0);
-        XRangeBins.push_back(XRange[0]);
-        std::cout << ", " << XRangeBins.back() << std::flush;
-      }
-
-      CoeffsVector.push_back(Coeff);
-      XRangeBins.push_back(XRange[1]);
-      std::cout << ", " << XRangeBins.back() << std::flush;
+      XRanges.push_back(std::make_pair(XRange[0],XRange[1]));
+      Coeffs.push_back(Coeff);
     }
-    std::cout << std::endl;
 
+    std::pair< std::vector<double>, std::vector<double> > XRBC =
+      BuildXRangeBinsCoeffs(XRanges, Coeffs.data());
+    XRangeBins = XRBC.first;
+    BinCoeffsVector = XRBC.second;
+  }
+
+  std::vector< std::pair<double, double> > SliceConfig::GetXRanges() {
+    if(!XRanges.size()){
+      ReadTree();
+    }
+    return XRanges;
+  }
+
+  std::vector<double> SliceConfig::GetCoeffs() {
+    if(!Coeffs.size()){
+      ReadTree();
+    }
+    return Coeffs;
   }
 
   std::vector<double> SliceConfig::GetXRangeBins() {
@@ -73,11 +105,11 @@ SliceConfig::SliceConfig(std::string const &treeName, std::string const &inputFi
     return XRangeBins;
   }
 
-  std::vector<double> SliceConfig::GetCoeffs() {
-    if(!CoeffsVector.size()){
+  std::vector<double> SliceConfig::GetBinCoeffs() {
+    if(!BinCoeffsVector.size()){
       ReadTree();
     }
-    return CoeffsVector;
+    return BinCoeffsVector;
   }
 
   TH1D *SliceConfig::BuildSliceBinningHelper(std::string const &histName){

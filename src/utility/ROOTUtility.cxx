@@ -18,9 +18,9 @@ TChain *OpenTChainWithFileList(std::string const &tname,
   return OpenTChainWithFileList(tname, flist, dummy);
 }
 
-std::vector<std::pair<double, TH1D *> > SplitTH2D(
+std::vector<std::pair<std::pair<double,double>, TH1D *> > SplitTH2D(
     TH2D *t2, bool AlongY, double min, double max) {
-  std::vector<std::pair<double, TH1D *> > split;
+  std::vector<std::pair<std::pair<double,double>, TH1D *> > split;
 
   for (Int_t bi_it = 1;
        bi_it < (AlongY ? t2->GetYaxis() : t2->GetXaxis())->GetNbins() + 1;
@@ -32,7 +32,10 @@ std::vector<std::pair<double, TH1D *> > SplitTH2D(
     }
 
     split.push_back(std::make_pair(
-        (AlongY ? t2->GetYaxis() : t2->GetXaxis())->GetBinCenter(bi_it),
+        std::make_pair(
+          (AlongY ? t2->GetYaxis() : t2->GetXaxis())->GetBinLowEdge(bi_it),
+          (AlongY ? t2->GetYaxis() : t2->GetXaxis())->GetBinUpEdge(bi_it)
+          ),
         (AlongY ? t2->ProjectionX(to_str(bi_it).c_str(), bi_it, bi_it)
                 : t2->ProjectionY(to_str(bi_it).c_str(), bi_it, bi_it))));
     split.back().second->SetDirectory(NULL);

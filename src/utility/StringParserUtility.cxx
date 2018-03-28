@@ -58,6 +58,69 @@ std::vector<double> BuildBinEdges(std::string const &str){
   return varbins;
 }
 
+std::vector< std::pair<double,double> > BuildRangesList(std::string const &str){
+  std::vector<std::string> listDescriptor =
+      ParseToVect<std::string>(str, ",");
+  std::vector< std::pair<double,double> > RangesList;
+
+  for (size_t l_it = 0; l_it < listDescriptor.size(); ++l_it) {
+    //If this includes a range to build
+    if (listDescriptor[l_it].find("_") != std::string::npos) {
+      std::vector<std::string> rangeDescriptor =
+          ParseToVect<std::string>(listDescriptor[l_it], ":");
+
+      if (!rangeDescriptor.size() == 2) {
+        std::cout << "[ERROR]: Range descriptor: \"" << str
+                  << "\" contained bad descriptor: \""
+                  << listDescriptor[l_it]
+                  << "\", expected <RangeCenterLow>_<RangeCenterHigh>:<RangeWidths>."
+                  << std::endl;
+        exit(0);
+      }
+
+      std::vector<double> rangeCenters =
+          BuildDoubleList(listDescriptor[l_it]);
+      double width = str2T<double>(rangeDescriptor[1]);
+
+      for (size_t sp_it = 0; sp_it < rangeCenters.size(); ++sp_it) {
+        RangesList.push_back(
+            std::make_pair(rangeCenters[sp_it] - (width / 2.0),
+                           rangeCenters[sp_it] + (width / 2.0)));
+      }
+
+    } else {
+      std::vector<double> rangeDescriptor =
+          ParseToVect<double>(listDescriptor[l_it], ":");
+      if (!rangeDescriptor.size() == 2) {
+        std::cout << "[ERROR]: Range descriptor: \"" << str
+                  << "\" contained bad descriptor: \""
+                  << listDescriptor[l_it]
+                  << "\", expected <RangeCenter>:<RangeWidth>." << std::endl;
+        exit(0);
+      }
+      RangesList.push_back(
+          std::make_pair(rangeDescriptor[0] - (rangeDescriptor[1] / 2.0),
+                         rangeDescriptor[0] + (rangeDescriptor[1] / 2.0)));
+    }
+  }
+
+  for (size_t range_it = 1; range_it < RangesList.size();
+       ++range_it) {
+    if ((RangesList[range_it - 1].second -
+         RangesList[range_it].first) > 1E-5) {
+      std::cout << "[ERROR]: Range #" << range_it
+                << " = {" << RangesList[range_it].first
+                << " -- " << RangesList[range_it].second
+                << "}, but #" << (range_it - 1) << " = {"
+                << RangesList[range_it - 1].first << " -- "
+                << RangesList[range_it - 1].second << "}."
+                << std::endl;
+      exit(1);
+    }
+  }
+  return RangesList;
+}
+
 void chomp(std::string &str) {
   size_t lnf = str.find_last_not_of("\r\n");
   if (lnf != std::string::npos) {

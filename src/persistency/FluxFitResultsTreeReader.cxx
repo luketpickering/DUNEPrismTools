@@ -47,13 +47,13 @@ FluxFitResultsTreeReader::FluxFitResultsTreeReader(std::string const &treeName, 
     tree->SetBranchAddress("NIterations", &NIterations);
     tree->SetBranchAddress("Chi2", &Chi2);
     tree->SetBranchAddress("RegularisationPenalty", &RegularisationPenalty);
+    tree->SetBranchAddress("FitRange", &FitRange);
 
     IsGaussFit = CheckTTreeHasBranch(tree, "GaussCenter_GeV");
     if(IsGaussFit){
       tree->SetBranchAddress("GaussCenter_GeV", &GaussCenter_GeV);
       tree->SetBranchAddress("GaussWidth_GeV", &GaussWidth_GeV);
     } else {
-      tree->SetBranchAddress("FitRange", &FitRange);
       tree->SetBranchAddress("OutOfRangePenalty", &OutOfRangePenalty);
       tree->SetBranchAddress("NDOverFDFitScaleFactor", &NDOverFDFitScaleFactor);
     }
@@ -74,12 +74,12 @@ FluxFitResultsTreeReader::FluxFitResultsTreeReader(std::string const &treeName, 
     tree->Branch("NIterations", &fdr->NIterations,"NIterations/D");
     tree->Branch("Chi2", &fdr->Chi2,"Chi2/D");
     tree->Branch("RegularisationPenalty", &fdr->RegularisationPenalty,"RegularisationPenalty/D");
+    tree->Branch("FitRange", &fdr->FitRange,"FitRange[2]/D");
 
     if(IsGaussFit){
       tree->Branch("GaussCenter_GeV", &fdr->GaussCenter_GeV,"GaussCenter_GeV/D");
       tree->Branch("GaussWidth_GeV", &fdr->GaussWidth_GeV,"GaussWidth_GeV/D");
     } else {
-      tree->Branch("FitRange", &fdr->FitRange,"FitRange[2]/D");
       tree->Branch("OutOfRangePenalty", &fdr->OutOfRangePenalty,"OutOfRangePenalty/D");
       tree->Branch("NDOverFDFitScaleFactor", &fdr->NDOverFDFitScaleFactor,"NDOverFDFitScaleFactor/D");
     }

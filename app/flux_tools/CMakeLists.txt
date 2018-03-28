@@ -1,6 +1,6 @@
 SET(FLUX_APPS
   BuildFluxes
-  # FitFluxes
+  FitFluxes
   OscillateFlux
 #  PredictRunPlanEventRates -- Deprecated
   CombineBuiltFluxes
