@@ -1,5 +1,7 @@
 #include "dk2nu_TreeReader.hxx"
 
+#include "ROOTUtility.hxx"
+
 #include <vector>
 #include <iostream>
 
