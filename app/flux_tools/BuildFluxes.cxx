@@ -314,7 +314,12 @@ std::pair<double, TVector3> GetRandomFluxWindowPosition(TRandom3 &rnjesus,
 void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
   TRandom3 rnjesus;
 
-  size_t NOffAxisBins = OffAxisSteps.size();
+  Int_t NOffAxisBins = Int_t(OffAxisSteps.size()) - 1;
+  if(NOffAxisBins == -1){
+    std::cout << "[ERROR]: No off-axis positions specified (Try `-x 0`)."
+      << std::endl;
+    throw;
+  }
   size_t NNeutrinos = (NMaxNeutrinos == -1)
                     ? dk2nuRdr.GetEntries()
                     : std::min(NMaxNeutrinos, int(dk2nuRdr.GetEntries()));
@@ -364,7 +369,7 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
     }
 
     Hists[nuPDG_it].push_back(
-        (NOffAxisBins == 1) ? new TH1D(hist_name.str().c_str(),
+        (NOffAxisBins < 2) ? new TH1D(hist_name.str().c_str(),
                   hist_title.c_str(),
                   (EnergyBinning.size() - 1), EnergyBinning.data())
                   : static_cast<TH1 *>(new TH2D(hist_name.str().c_str(),
@@ -378,7 +383,7 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
 
     if (DoExtra) {
       Hists[nuPDG_it].push_back(
-          (NOffAxisBins == 1) ? new TH1D((hist_name.str() + "_pi").c_str(),
+          (NOffAxisBins < 2) ? new TH1D((hist_name.str() + "_pi").c_str(),
                     hist_title.c_str(),
                     (EnergyBinning.size() - 1), EnergyBinning.data())
                     : static_cast<TH1 *>(new TH2D((hist_name.str() + "_pi").c_str(),
@@ -390,7 +395,7 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
         Hists_2D[nuPDG_it].push_back(static_cast<TH2D *>(Hists[nuPDG_it].back()));
       }
       Hists[nuPDG_it].push_back(
-          (NOffAxisBins == 1) ? new TH1D((hist_name.str() + "_k").c_str(),
+          (NOffAxisBins < 2) ? new TH1D((hist_name.str() + "_k").c_str(),
                     hist_title.c_str(),
                     (EnergyBinning.size() - 1), EnergyBinning.data())
                     : static_cast<TH1 *>(new TH2D((hist_name.str() + "_k").c_str(),
@@ -402,7 +407,7 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
         Hists_2D[nuPDG_it].push_back(static_cast<TH2D *>(Hists[nuPDG_it].back()));
       }
       Hists[nuPDG_it].push_back(
-          (NOffAxisBins == 1) ? new TH1D((hist_name.str() + "_k0").c_str(),
+          (NOffAxisBins < 2) ? new TH1D((hist_name.str() + "_k0").c_str(),
                     hist_title.c_str(),
                     (EnergyBinning.size() - 1), EnergyBinning.data())
                     : static_cast<TH1 *>(new TH2D((hist_name.str() + "_k0").c_str(),
@@ -414,7 +419,7 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
         Hists_2D[nuPDG_it].push_back(static_cast<TH2D *>(Hists[nuPDG_it].back()));
       }
       Hists[nuPDG_it].push_back(
-          (NOffAxisBins == 1) ? new TH1D((hist_name.str() + "_mu").c_str(),
+          (NOffAxisBins < 2) ? new TH1D((hist_name.str() + "_mu").c_str(),
                     hist_title.c_str(),
                     (EnergyBinning.size() - 1), EnergyBinning.data())
                     : static_cast<TH1 *>(new TH2D((hist_name.str() + "_mu").c_str(),
@@ -442,7 +447,8 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
 
     double wF = (dk2nuRdr.decay_nimpwt / TMath::Pi()) * (1.0 / TotalPOT);
 
-    for (size_t ang_it = 0; ang_it < NOffAxisBins; ++ang_it) {
+    for (size_t ang_it = 0; (!NOffAxisBins) || (ang_it < NOffAxisBins);
+      ++ang_it) {
 
       //If we are not re-using the decay parents, then this is placed randomly
       //over the whole off-axis range.
@@ -514,6 +520,12 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
       if(!ReUseParents){
         break;
       }
+
+      //If we only have a single position, then we must use this to break out of
+      //the loop.
+      if(!NOffAxisBins){
+        break;
+      }
     }
   }
 
@@ -577,7 +589,7 @@ int main(int argc, char const *argv[]) {
 
   if(!OffAxisSteps.size()){
     int argc_dum = 3;
-    char const *argv_dum[] = {"", "-x", "0_35:0.05"};
+    char const *argv_dum[] = {"", "-x", "0"};
     handleOpts(argc_dum, argv_dum);
   }
 
