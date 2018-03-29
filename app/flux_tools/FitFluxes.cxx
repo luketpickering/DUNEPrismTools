@@ -78,17 +78,14 @@ bool UseNuPrismChi2 = false;
 
 int MergeOAABins = 0, MergeENuBins = 0;
 
-void FindPeaks(TH1D *OscFlux, int &left, int &right, int n = 3) {
+void FindPeaks(TH1D *OscFlux, int &left, int &right, int n) {
   std::cout << "[INFO] Looking for peaks..." << std::endl;
 
-  TH1D *temp = new TH1D();
-
-  OscFlux->Copy(*temp);
+  TH1D *temp = static_cast<TH1D *>(OscFlux->Clone("peakfindingtemp"));
+  temp->SetDirectory(nullptr);
   temp->Smooth(10);
 
   double threshold = (temp->Integral()) / (5 * (temp->GetNbinsX()));
-
-  // double threshold = 1.e-16;
 
   std::cout << "[INFO] Peak threshold " << threshold << std::endl;
 
@@ -97,10 +94,10 @@ void FindPeaks(TH1D *OscFlux, int &left, int &right, int n = 3) {
 
   for (int bin_ind = temp->GetNbinsX(); bin_ind > 0 && nfound < n; bin_ind--) {
     content[2] = temp->GetBinContent(bin_ind - 1);
-    if (content[0] < content[1] && content[1] > content[2] &&
-        content[1] > threshold) {
-      if (nfound == 0) right = bin_ind;
-      if (nfound == n - 1) left = bin_ind;
+    if ((content[0] < content[1]) && (content[1] > content[2]) &&
+        (content[1] > threshold)) {
+      if (nfound == 0){ right = bin_ind; }
+      if (nfound == (n - 1)){ left = bin_ind; }
       nfound++;
       std::cout << "[INFO] found a peak of height " << content[1] << " at bin "
                 << bin_ind << std::endl;
@@ -108,6 +105,8 @@ void FindPeaks(TH1D *OscFlux, int &left, int &right, int n = 3) {
     content[0] = content[1];
     content[1] = content[2];
   }
+
+  delete temp;
 }
 
 void BuildTargetFlux(TH1D *OscFlux) {
@@ -679,7 +678,12 @@ int main(int argc, char const *argv[]) {
     OscFlux = GetHistogram<TH1D>(InputTargetFluxFile, InputTargetFluxName);
 
     if (FitBetweenFoundPeaks) {
-      FindPeaks(OscFlux, FitBinLow, FitBinHigh);
+      FindPeaks(OscFlux, FitBinLow, FitBinHigh, 3);
+      if(FitBinLow = 0){
+        std::cout << "[ERROR]: Failed to find the expected number of "
+        "peaks, -p option has failed." << std::endl;
+        throw;
+      }
     } else {
       if (FitBetween_low == 0xdeadbeef) {
         FitBinLow = 1;
