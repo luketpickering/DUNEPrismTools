@@ -195,7 +195,7 @@ int main(int argc, char const *argv[]) {
 
   inpH = static_cast<TH1 *>(inpH->Clone());
 
-  TFile *oupF = CheckOpenFile(oupFile.c_str(), "READ");
+  TFile *oupF = CheckOpenFile(oupFile.c_str(), "RECREATE");
   oupF->cd();
 
   inpH->Write();
