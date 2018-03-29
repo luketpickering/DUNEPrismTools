@@ -679,7 +679,7 @@ int main(int argc, char const *argv[]) {
 
     if (FitBetweenFoundPeaks) {
       FindPeaks(OscFlux, FitBinLow, FitBinHigh, 3);
-      if(FitBinLow = 0){
+      if(FitBinLow == 0){
         std::cout << "[ERROR]: Failed to find the expected number of "
         "peaks, -p option has failed." << std::endl;
         throw;
