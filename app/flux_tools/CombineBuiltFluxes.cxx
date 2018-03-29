@@ -74,16 +74,7 @@ int main(int argc, char const *argv[]) {
   for (size_t ip_it = 0; ip_it < input_patterns.size(); ++ip_it) {
     std::string input_pattern = input_patterns[ip_it];
     size_t AsteriskPos = input_pattern.find_last_of('*');
-    if (AsteriskPos == std::string::npos) {
-      std::cout
-          << "[ERROR]: Expected to find a wildcard in the argument of "
-             "the -i parameter. This executable just joins the output of "
-             "dp_BuildFluxes, if you only have a single input, something "
-             "is wrong."
-          << std::endl;
-      return 1;
-    }
-
+    
     DIR *dir;
     struct dirent *ent;
     size_t lastFSlash = input_pattern.find_last_of('/');
