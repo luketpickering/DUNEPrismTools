@@ -12,7 +12,7 @@ SimConfig(std::string const &treeName, std::string const &inputFile);
 
   Double_t DetMin[3];
   Double_t DetMax[3];
-  Double_t FVGap[3];
+  Double_t VetoGap[3];
   Int_t NXSteps;
   Int_t NMaxTrackSteps;
   Double_t POTPerFile;

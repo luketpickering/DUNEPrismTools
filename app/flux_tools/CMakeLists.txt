@@ -2,7 +2,7 @@ SET(FLUX_APPS
   BuildFluxes
   FitFluxes
   OscillateFlux
-#  PredictRunPlanEventRates -- Deprecated
+  # PredictRunPlanEventRates -- Deprecated
   CombineBuiltFluxes
   # BuildUncertaintyMatrix
   MakeLitedk2nu

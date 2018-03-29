@@ -15,11 +15,11 @@ DetectorStop::DetectorStop() {
 bool DetectorStop::ConfigureDetector(XMLNodePointer_t node) {
   std::array<bool, 3> found;
   ActiveExent[0] =
-      GetXMLAttributeValue<double>(node, "DetectorWidth_m", found[0]);
+      GetXMLAttributeValue<double>(node, "DetectorActiveWidth_m", found[0]);
   ActiveExent[1] = GetXMLAttributeValue<double>(
-      node, "DetectorHeight_m", found[1]);
+      node, "DetectorActiveHeight_m", found[1]);
   ActiveExent[2] =
-      GetXMLAttributeValue<double>(node, "DetectorDepth_m", found[2]);
+      GetXMLAttributeValue<double>(node, "DetectorActiveDepth_m", found[2]);
 
   if (std::count(found.begin(), found.end(), true) != 3) {
     std::cerr << "[ERROR]: When reading " << dstagname

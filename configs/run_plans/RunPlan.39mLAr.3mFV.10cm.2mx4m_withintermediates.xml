@@ -1,27 +1,28 @@
 <DUNEPrism>
   <RunPlan Name="RunPlan.39mLAr.3mFV.10cm.2mx4m_withintermediates">
-    <Detector DetectorWidth_m="3" DetectorHeight_m="2" DetectorDepth_m="4" />
+    <!-- Veto region pads inside of these dimensions -->
+    <Detector DetectorActiveWidth_m="4" DetectorActiveHeight_m="3" DetectorActiveDepth_m="5" />
     <Stops>
       <!-- Total POT 1.1E21 -->
       <Stop LateralOffset_m="0" POTExposure="5.79E19"/>
-      <Stop LateralOffset_m="1.5" POTExposure="5.79E19"/>
-      <Stop LateralOffset_m="3" POTExposure="5.79E19"/>
-      <Stop LateralOffset_m="4.5" POTExposure="5.79E19"/>
-      <Stop LateralOffset_m="6" POTExposure="5.79E19"/>
-      <Stop LateralOffset_m="7.5" POTExposure="5.79E19"/>
-      <Stop LateralOffset_m="9" POTExposure="5.79E19"/>
-      <Stop LateralOffset_m="10.5" POTExposure="5.79E19"/>
-      <Stop LateralOffset_m="12" POTExposure="5.79E19"/>
-      <Stop LateralOffset_m="13.5" POTExposure="5.79E19"/>
-      <Stop LateralOffset_m="15" POTExposure="5.79E19"/>
-      <Stop LateralOffset_m="16.5" POTExposure="5.79E19"/>
-      <Stop LateralOffset_m="18" POTExposure="5.79E19"/>
-      <Stop LateralOffset_m="21" POTExposure="5.79E19"/>
-      <Stop LateralOffset_m="24" POTExposure="5.79E19"/>
-      <Stop LateralOffset_m="27" POTExposure="5.79E19"/>
-      <Stop LateralOffset_m="30" POTExposure="5.79E19"/>
-      <Stop LateralOffset_m="33" POTExposure="5.79E19"/>
-      <Stop LateralOffset_m="36" POTExposure="5.79E19"/>
+      <Stop LateralOffset_m="-1.5" POTExposure="5.79E19"/>
+      <Stop LateralOffset_m="-3" POTExposure="5.79E19"/>
+      <Stop LateralOffset_m="-4.5" POTExposure="5.79E19"/>
+      <Stop LateralOffset_m="-6" POTExposure="5.79E19"/>
+      <Stop LateralOffset_m="-7.5" POTExposure="5.79E19"/>
+      <Stop LateralOffset_m="-9" POTExposure="5.79E19"/>
+      <Stop LateralOffset_m="-10.5" POTExposure="5.79E19"/>
+      <Stop LateralOffset_m="-12" POTExposure="5.79E19"/>
+      <Stop LateralOffset_m="-13.5" POTExposure="5.79E19"/>
+      <Stop LateralOffset_m="-15" POTExposure="5.79E19"/>
+      <Stop LateralOffset_m="-16.5" POTExposure="5.79E19"/>
+      <Stop LateralOffset_m="-18" POTExposure="5.79E19"/>
+      <Stop LateralOffset_m="-21" POTExposure="5.79E19"/>
+      <Stop LateralOffset_m="-24" POTExposure="5.79E19"/>
+      <Stop LateralOffset_m="-27" POTExposure="5.79E19"/>
+      <Stop LateralOffset_m="-30" POTExposure="5.79E19"/>
+      <Stop LateralOffset_m="-33" POTExposure="5.79E19"/>
+      <Stop LateralOffset_m="-36" POTExposure="5.79E19"/>
     </Stops>
   </RunPlan>
 </DUNEPrism>

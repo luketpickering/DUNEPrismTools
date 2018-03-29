@@ -228,12 +228,18 @@ void handleOpts(int argc, char const *argv[]) {
     } else if (std::string(argv[opt]) == "-o") {
       outputFile = argv[++opt];
     } else if (std::string(argv[opt]) == "-m") {
+      std::cout << "\t--Handling off-axis position specifier: " << argv[opt]
+        << " " << argv[opt+1] << std::endl;
       OffAxisSteps = BuildBinEdges(argv[++opt]);
       stepType = kmrad;
     } else if (std::string(argv[opt]) == "-d") {
+      std::cout << "\t--Handling off-axis position specifier: " << argv[opt]
+        << " " << argv[opt+1] << std::endl;
       OffAxisSteps = BuildBinEdges(argv[++opt]);
       stepType = kdegrees;
     }  else if (std::string(argv[opt]) == "-x") {
+      std::cout << "\t--Handling off-axis position specifier: " << argv[opt]
+        << " " << argv[opt+1] << std::endl;
       OffAxisSteps = BuildBinEdges(argv[++opt]);
       stepType = kPostion_m;
     } else if (std::string(argv[opt]) == "-e") {
@@ -289,6 +295,9 @@ std::pair<double, TVector3> GetRandomFluxWindowPosition(TRandom3 &rnjesus,
     (OffAxisSteps.back()-OffAxisSteps.front()) :
     (OffAxisSteps[FluxWindow+1] - OffAxisSteps[FluxWindow])) / 2.0;
 
+    // std::cout << "[INFO]: Flux window[" << FluxWindow << "/" << OffAxisSteps.size() << "] = {"
+    // << OffAxisCenter << " \\pm " << OffAxisHalfRange << "}" << std::endl;
+
     TVector3 rndDetPos(0, (2.0 * rnjesus.Uniform() - 1.0) * detector_half_height, ZDist);
 
     double RandomOffAxisPos = OffAxisCenter + (2.0 * rnjesus.Uniform() - 1.0) * OffAxisHalfRange;
@@ -307,6 +316,9 @@ std::pair<double, TVector3> GetRandomFluxWindowPosition(TRandom3 &rnjesus,
         break;
       }
     }
+
+    // std::cout << "\t Threw = { " << rndDetPos[0] << ", "
+    //   << rndDetPos[1] << ", " << rndDetPos[2] << "}." << std::endl;
 
     return std::make_pair(RandomOffAxisPos, rndDetPos);
 }
@@ -351,17 +363,17 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
     if(NOffAxisBins > 1){
       switch(stepType){
         case kPostion_m:{
-          hist_title = ";Off-axis postion (cm);#it{E}_{#nu} (GeV);#Phi_{#nu} "
+          hist_title = ";#it{E}_{#nu} (GeV);Off-axis postion (m);#Phi_{#nu} "
           "(cm^{-2} per POT per 1 GeV)";
           break;
         }
         case kmrad:{
-          hist_title = ";Off-axis angle (mrad);#it{E}_{#nu} (GeV);#Phi_{#nu} "
+          hist_title = ";#it{E}_{#nu} (GeV);Off-axis angle (mrad);#Phi_{#nu} "
           "(cm^{-2} per POT per 1 GeV)";
           break;
         }
         case kdegrees:{
-          hist_title = ";Off-axis angle (degrees);#it{E}_{#nu} (GeV);#Phi_{#nu} "
+          hist_title = ";#it{E}_{#nu} (GeV);Off-axis angle (degrees);#Phi_{#nu} "
           "(cm^{-2} per POT per 1 GeV)";
           break;
         }
@@ -447,7 +459,7 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
 
     double wF = (dk2nuRdr.decay_nimpwt / TMath::Pi()) * (1.0 / TotalPOT);
 
-    for (size_t ang_it = 0; (!NOffAxisBins) || (ang_it < NOffAxisBins);
+    for (Int_t ang_it = 0; (!NOffAxisBins) || (ang_it < NOffAxisBins);
       ++ang_it) {
 
       //If we are not re-using the decay parents, then this is placed randomly

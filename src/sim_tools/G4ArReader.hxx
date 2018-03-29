@@ -1,28 +1,15 @@
-#include "DepoParticle.h"
+#ifndef G4ARREADER_HXX_SEEN
+#define G4ARREADER_HXX_SEEN
+
+#include "StopDimensions.hxx"
+#include "DepoEvent.hxx"
 
 #include "TFile.h"
 #include "TH3D.h"
 #include "TTree.h"
 
 #include <string>
-
-struct DetectorAndFVDimensions {
-  int NXSteps;
-  double DetMin[3];
-  double DetMax[3];
-  double FVGap[3];
-  int NYSteps;
-  int NZSteps;
-  DetectorAndFVDimensions()
-      : NXSteps(400),
-        DetMin{0, 0, 0},
-        DetMax{0, 0, 0},
-        FVGap{0, 0, 0},
-        NYSteps(3),
-        NZSteps(3) {}
-
-  TH3D* BuildDetectorMap();
-};
+#include <vector>
 
 struct G4ArReader {
   TFile* InputG4ArFile;
@@ -40,7 +27,7 @@ struct G4ArReader {
 
   TH3D* GetCacheMap(size_t i);
 
-  G4ArReader(std::string inputG4ArFileName, DetectorAndFVDimensions& detdims,
+  G4ArReader(std::string inputG4ArFileName, StopDimensions& detdims,
              std::string inputGENIERooTrackerFileName = "",
              double timesep_us = 0xdeadbeef, Long64_t MaxEntries = -1);
 
@@ -120,5 +107,7 @@ struct G4ArReader {
 
   void ShoutRooTracker();
 
-  Event BuildEvent();
+  DepoEvent BuildEvent();
 };
+
+#endif

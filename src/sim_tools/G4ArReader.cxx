@@ -1,82 +1,8 @@
-#include "G4ArReader.h"
-
-#include "TFile.h"
-#include "TH3D.h"
-#include "TTree.h"
+#include "G4ArReader.hxx"
 
 #include <csignal>
 #include <iostream>
-#include <string>
-
-// #define DEBUG
-
-TH3D* DetectorAndFVDimensions::BuildDetectorMap() {
-  std::vector<double> YBins = {DetMin[1], DetMin[1] + FVGap[1],
-                               DetMax[1] - FVGap[1], DetMax[1]};
-  std::vector<double> ZBins = {DetMin[2], DetMin[2] + FVGap[2],
-                               DetMax[2] - FVGap[2], DetMax[2]};
-
-  std::vector<double> XBins;
-  double step =
-      ((DetMax[0] - FVGap[0]) - (DetMin[0] + FVGap[0])) / double(NXSteps - 2);
-  XBins.push_back(DetMin[0]);
-  XBins.push_back(DetMin[0] + FVGap[0]);
-
-#ifdef DEBUG
-  std::cout << "Building detector map: X { " << XBins[0] << ", " << XBins.back()
-            << ", " << std::flush;
-#endif
-
-  for (int i = 0; i < (NXSteps - 2); ++i) {
-    XBins.push_back(XBins.back() + step);
-#ifdef DEBUG
-    std::cout << XBins.back() << ((i != (NXSteps - 1)) ? ", " : "")
-              << std::flush;
-#endif
-  }
-  XBins.push_back(XBins.back() + FVGap[0]);
-#ifdef DEBUG
-
-  std::cout << XBins.back() << "}" << std::endl;
-  std::cout << "\t\t: Y {" << YBins[0] << ", " << YBins[1] << ", " << YBins[2]
-            << ", " << YBins[3] << " }" << std::endl;
-  std::cout << "\t\t: Z {" << ZBins[0] << ", " << ZBins[1] << ", " << ZBins[2]
-            << ", " << ZBins[3] << " }" << std::endl;
-#endif
-
-  if (NYSteps == 0) {
-    NYSteps = 3;
-  }
-  if (NZSteps == 0) {
-    NZSteps = 3;
-  }
-
-  if (NYSteps != 3) {
-    YBins.clear();
-    double step_y = (DetMax[1] - DetMin[1]) / double(NYSteps);
-    YBins.push_back(DetMin[1]);
-    for (int i = 0; i < NYSteps; ++i) {
-      YBins.push_back(YBins.back() + step_y);
-    }
-  }
-
-  if (NZSteps != 3) {
-    ZBins.clear();
-    double step_z = (DetMax[2] - DetMin[2]) / double(NZSteps);
-    ZBins.push_back(DetMin[2]);
-    for (int i = 0; i < NYSteps; ++i) {
-      ZBins.push_back(ZBins.back() + step_z);
-    }
-  }
-
-  TH3D* Dm =
-      new TH3D("dm", "", (XBins.size() - 1), XBins.data(), (YBins.size() - 1),
-               YBins.data(), (ZBins.size() - 1), ZBins.data());
-  Dm->SetDirectory(nullptr);
-  Dm->SetName("dm_c");
-
-  return Dm;
-}
+#include <algorithm>
 
 TH3D* G4ArReader::GetCacheMap(size_t i) {
   if (i >= CacheDetectorMaps.size()) {
@@ -95,7 +21,7 @@ TH3D* G4ArReader::GetCacheMap(size_t i) {
 }
 
 G4ArReader::G4ArReader(std::string inputG4ArFileName,
-                       DetectorAndFVDimensions& detdims,
+                       StopDimensions& detdims,
                        std::string inputGENIERooTrackerFileName,
                        double timesep_us, Long64_t MaxEntries)
     : InputG4ArFile(nullptr),
@@ -267,8 +193,8 @@ G4ArReader::~G4ArReader() {
 bool G4ArReader::IsBindino(int pdg) { return (pdg == 2000000101); }
 bool G4ArReader::IsNuclearPDG(int pdg) { return (pdg > 1000000000); }
 
-Event G4ArReader::BuildEvent() {
-  Event ev;
+DepoEvent G4ArReader::BuildEvent() {
+  DepoEvent ev;
 
   ev.ev_id = ev_id;
   ev.RooTrackerInteractionCode = RooTrackerInteractionCode;

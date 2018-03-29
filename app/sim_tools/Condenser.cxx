@@ -1,6 +1,10 @@
-#include "FullDetTreeReader.h"
-#include "G4ArReader.h"
-#include "Utils.hxx"
+#include "CondensedDepositsTreeReader.hxx"
+#include "SimConfigTreeReader.hxx"
+
+#include "G4ArReader.hxx"
+#include "StopDimensions.hxx"
+
+#include "ROOTUtility.hxx"
 
 #include "TFile.h"
 #include "TLorentzVector.h"
@@ -13,35 +17,65 @@
 
 std::vector<double> detmin;
 std::vector<double> detmax;
-std::vector<double> fvgap;
-int nxsteps = 402;
-int ntrackingsteps = 1000;
-std::string inputG4ArFileName;
-std::string inputRooTrackerFileName;
-std::string outputFileName;
-Long64_t nmaxevents = std::numeric_limits<int>::max();
+std::vector<double> stopVetoGap;
+int NXSteps = 0;
+int NMaxTrackSteps = 1000;
+std::string InputG4ArFileName;
+std::string InputRooTrackerFileName;
+std::string OutputFileName;
+Long64_t NMaxEvents = std::numeric_limits<int>::max();
 bool KeepOOFVYZEvents = false;
 double timesep_us = 0xdeadbeef;
-
-double POTPerFile = 0;
+double POTPerFile = 0xdeadbeef;
 
 // #define DEBUG
 
 void SayUsage(char* argv[]) {
   std::cout << "[INFO]: Use like: " << argv[0]
-            << " -i <inputg4arbofile> -ir <inputGENIERooTrackerfile> -dmn "
-               "<detxmin,ymin,zmin> -dmx <detxmax,ymax,zmax> -fv <fidgapx,y,z> "
-               "-o <outputfile> [-P <POTPerFile> -nx <nxsteps> -nt "
-               "<ntrackingsteps> -n <nmaxevents> -A -T <timing cut to separate "
-               "deposits in us>]\n"
-               "\n\t-A : Will keep all input events, otherwise will skip "
-               "events that occur outside of the Y/Z dimensions of the FV "
-               "specified by -dmn, -dmx, and -fv."
-               "\n\t-T : Will add XXX_timesep branches to the output that "
-               "contain all deposits ocurring more than -T <timesep> "
-               "microseconds after the neutrino interaction."
-               "\n\t-nx <nxsteps : N.B. Two steps will be added for the X out "
-               "of FV bins."
+            << "\n\t-i <inputg4arbofile>     : Input G4Py root file."
+               "\n\t-ir <GENIERTFile>        : Input GENIE rootracker file "
+               "(index sync'd with -i argument)"
+               "\n\t-o <outputfile>          : File to write output to"
+               "\n\t-dmn <detxmin,ymin,zmin> : Active detector minimum (cm)"
+               "\n\t-dmx <detxmax,ymax,zmax> : Active detector maximum (cm)"
+               "\n\t-V <vetogap x,y,z>       : Active veto region to pad each "
+               "corresponding face of the "
+               "\n\t                           active volume with."
+               "\n\t                          -- N.B. If -dmn -1,-1,-1 "
+               "-dmx 1,1,1 -V 0.5,0.5,0.5 "
+               "\n\t                           then the non-veto volume will be"
+               " 1x1x1 cm^{3} centered on "
+               "\n\t                           the origin."
+               "\n\t-P <POTPerFile>          : Adds POTPerFile information to "
+               "the metadata, used for "
+               "\n\t                           POT-normalising predicted event "
+               "rates and Near/Far "
+               "\n\t                           comparisons downstream."
+               "\n\t-n <NMaxEvents>          : Run no more than -n events."
+               "\n\t-A                       : Output all events even if they "
+               "occured outside of the "
+               "\n\t                           non-veto active volume."
+               "\n\t-T                       : Will add timesep branches to the"
+               " output that "
+               "\n\t                           contain all deposits ocurring "
+               "more than -T <timesep>"
+               "\n\t                           microseconds after the neutrino "
+               "interaction."
+               "\n\t-nx <NXSteps>            : Number of x slices to break up "
+               "total non-veto active "
+               "\n\t                           region into. "
+               "\n\t                          -- N.B. two steps will be added "
+               "for the X veto gap "
+               "\n\t                             passed to -V. "
+               "\n\t                          -- N.B. The non-veto active "
+               "region X dimension, "
+               "\n\t                             i.e. -dmx less -dmn less times"
+               " the -V should be "
+               "\n\t                             easily divisible by this "
+               "number: e.g. 10 cm steps."
+               "\n\t-nt <NMaxTrackSteps>     : Track final state charged lepton"
+               " through up to -nt GEANT4"
+               "\n\t                           steps."
             << std::endl;
 }
 
@@ -49,23 +83,23 @@ void handleOpts(int argc, char* argv[]) {
   int opt = 1;
   while (opt < argc) {
     if (std::string(argv[opt]) == "-nx") {
-      nxsteps = str2T<int>(argv[++opt]) + 2;
+      NXSteps = str2T<int>(argv[++opt]) + 2;
     } else if (std::string(argv[opt]) == "-nt") {
-      ntrackingsteps = str2T<int>(argv[++opt]);
+      NMaxTrackSteps = str2T<int>(argv[++opt]);
     } else if (std::string(argv[opt]) == "-n") {
-      nmaxevents = str2T<Long64_t>(argv[++opt]);
+      NMaxEvents = str2T<Long64_t>(argv[++opt]);
     } else if (std::string(argv[opt]) == "-dmn") {
       detmin = ParseToVect<double>(argv[++opt], ",");
     } else if (std::string(argv[opt]) == "-dmx") {
       detmax = ParseToVect<double>(argv[++opt], ",");
-    } else if (std::string(argv[opt]) == "-fv") {
-      fvgap = ParseToVect<double>(argv[++opt], ",");
+    } else if (std::string(argv[opt]) == "-V") {
+      stopVetoGap = ParseToVect<double>(argv[++opt], ",");
     } else if (std::string(argv[opt]) == "-i") {
-      inputG4ArFileName = argv[++opt];
+      InputG4ArFileName = argv[++opt];
     } else if (std::string(argv[opt]) == "-ir") {
-      inputRooTrackerFileName = argv[++opt];
+      InputRooTrackerFileName = argv[++opt];
     } else if (std::string(argv[opt]) == "-o") {
-      outputFileName = argv[++opt];
+      OutputFileName = argv[++opt];
     } else if (std::string(argv[opt]) == "-P") {
       POTPerFile = str2T<double>(argv[++opt]);
       std::cout << "[INFO]: Using " << POTPerFile << " POT as the POTPerFile"
@@ -90,30 +124,37 @@ void handleOpts(int argc, char* argv[]) {
 int main(int argc, char* argv[]) {
   handleOpts(argc, argv);
 
-  DetectorAndFVDimensions detdims;
-  detdims.NXSteps = nxsteps;
-  for (size_t dim_it = 0; dim_it < 3; ++dim_it) {
-    detdims.DetMin[dim_it] = detmin[dim_it];
-    detdims.DetMax[dim_it] = detmax[dim_it];
-    detdims.FVGap[dim_it] = fvgap[dim_it];
+  if(NXSteps == 0){
+    std::cout << "[ERROR]: Must specify -nx option. For the standard "
+    "configuration of: -dmn -3800,-150,-250 -dmx 200,150,250 -V 50,50,50, using"
+    " -nx 390 is recommended, which corresponds to 10cm deposit slices."
+    << std::endl;
+    throw;
   }
 
-  G4ArReader g4ar(inputG4ArFileName, detdims, inputRooTrackerFileName,
+  StopDimensions detdims;
+  detdims.NXSteps = NXSteps;
+  std::copy_n(detmin.data(),3,detdims.DetMin);
+  std::copy_n(detmax.data(),3,detdims.DetMax);
+  std::copy_n(stopVetoGap.data(),3,detdims.VetoGap);
+
+  G4ArReader g4ar(InputG4ArFileName, detdims, InputRooTrackerFileName,
                   timesep_us);
 
   // WriteConfigTree
-  TFile* outfile = new TFile(outputFileName.c_str(), "RECREATE");
+  TFile* outfile = CheckOpenFile(OutputFileName.c_str(), "RECREATE");
 
-  Int_t NMaxTrackSteps = ntrackingsteps;
-  TTree* config = new TTree("configTree", "Run configuration tree");
-  config->Branch("NXSteps", &detdims.NXSteps, "NXSteps/I");
-  config->Branch("DetMin", &detdims.DetMin, "DetMin[3]/D");
-  config->Branch("DetMax", &detdims.DetMax, "DetMax[3]/D");
-  config->Branch("FVGap", &detdims.FVGap, "FVGap[3]/D");
-  config->Branch("NMaxTrackSteps", &NMaxTrackSteps, "NMaxTrackSteps/I");
-  config->Branch("POTPerFile", &POTPerFile, "POTPerFile/D");
-  config->Branch("timesep_us", &timesep_us, "timesep_us/D");
-  config->Fill();
+  TTree* SimConfigTree = new TTree("SimConfigTree", "Run configuration tree");
+
+  SimConfig *sc = SimConfig::MakeTreeWriter(SimConfigTree);
+  std::copy_n(detdims.DetMin,3,sc->DetMin);
+  std::copy_n(detdims.DetMax,3,sc->DetMax);
+  std::copy_n(detdims.VetoGap,3,sc->VetoGap);
+  sc->NXSteps = detdims.NXSteps;
+  sc->NMaxTrackSteps = NMaxTrackSteps;
+  sc->POTPerFile = POTPerFile;
+  sc->timesep_us = timesep_us;
+  SimConfigTree->Fill();
 
   g4ar.SetNMaxTrackSteps(NMaxTrackSteps);
 
@@ -153,23 +194,24 @@ int main(int argc, char* argv[]) {
                              detdims.BuildDetectorMap());
 
   TTree* fdTree =
-      new TTree("fulldetTree", "G4 and GENIE passthrough information");
+      new TTree("CondensedDepositsTree",
+      "G4 and GENIE passthrough information");
 
-  FullDetTreeReader* fdw = FullDetTreeReader::MakeTreeWriter(
-      fdTree, nxsteps, NMaxTrackSteps, timesep_us);
+  CondensedDeposits* fdw = CondensedDeposits::MakeTreeWriter(
+      fdTree, NXSteps, NMaxTrackSteps, timesep_us);
 
   g4ar.ResetCurrentEntry();
   g4ar.TrackTimeForPDG(2112);
   int evnum = 0;
-  int loudevery = std::min(nmaxevents, g4ar.NInputEntries) / 10;
+  int loudevery = std::min(NMaxEvents, g4ar.NInputEntries) / 10;
   int nfills = 0;
   do {
-    Event ev = g4ar.BuildEvent();
+    DepoEvent ev = g4ar.BuildEvent();
 
     if (!KeepOOFVYZEvents) {
       int ybin = LepDep.Deposits->GetYaxis()->FindFixBin(ev.VertexPosition[1]);
       int zbin = LepDep.Deposits->GetZaxis()->FindFixBin(ev.VertexPosition[2]);
-      // Skips event if is not in YZ fiducial volume.
+      // Skips event if is not in YZ non-veto volume.
       if ((ybin != 2) || (zbin != 2)) {
         evnum++;
         continue;
@@ -687,11 +729,12 @@ int main(int argc, char* argv[]) {
     nfills++;
 
     if (loudevery && !(evnum % loudevery)) {
-      std::cout << "[INFO]: Processed " << evnum << " entries." << std::endl;
+      std::cout << "[INFO]: Processed " << evnum << "/" << NMaxEvents
+        << " entries." << std::endl;
     }
 
     evnum++;
-  } while (g4ar.GetNextEvent() && (evnum < nmaxevents));
+  } while (g4ar.GetNextEvent() && (evnum < NMaxEvents));
 
   std::cout << "[INFO]: Filled the output tree " << nfills << " times."
             << std::endl;

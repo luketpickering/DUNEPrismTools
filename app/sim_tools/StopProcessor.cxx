@@ -1,10 +1,14 @@
-#include "DetectorStop.hxx"
-#include "Utils.hxx"
+#include "StopDimensions.hxx"
 
-#include "EDepTreeReader.h"
-#include "FullDetTreeReader.h"
-#include "G4ArReader.h"
-#include "VALORModelClassifier.h"
+#include "DetectorStop.hxx"
+
+#include "ROOTUtility.hxx"
+#include "PhysicsUtility.hxx"
+
+#include "DepositsSummaryTreeReader.hxx"
+#include "CondensedDepositsTreeReader.hxx"
+#include "SimConfigTreeReader.hxx"
+#include "StopConfigTreeReader.hxx"
 
 #include "TH3D.h"
 #include "TRandom3.h"
@@ -12,24 +16,25 @@
 
 #include <limits>
 #include <utility>
+#include <algorithm>
 
 // #define DEBUG
 
 struct DetBox {
   double XOffset;
-  double XWidth_fv;
-  double YWidth_fv;
-  double ZWidth_fv;
+  double XWidth_nonveto;
+  double YWidth_nonveto;
+  double ZWidth_nonveto;
 
   double XWidth_det;
   double YWidth_det;
   double ZWidth_det;
 
-  double X_Range_fv[2];
-  double Y_Range_fv[2];
-  double Z_Range_fv[2];
+  double X_Range_nonveto[2];
+  double Y_Range_nonveto[2];
+  double Z_Range_nonveto[2];
 
-  size_t X_fv[2];
+  size_t X_nonveto[2];
   size_t X_veto_left[2];
   size_t X_veto_right[2];
 
@@ -57,10 +62,9 @@ void SayUsage(char const *argv[]) {
          "condensed arbox.py output.\n"
          "\t-r <RunPlan.XML>              : An XML file specifying a run "
          "plan  \n"
-         "\t                                to build fluxes for. See     "
-         "      \n"
-         "\t                                documentation for XML "
-         "structure.   \n"
+         "\t                                to place stops for. \n"
+         "\t                              -- See ${DUNEPRISMTOOLSROOT}/configs"
+         "/run_plans for examples.\n"
          "\t-o <output.root>              : Output file name.\n"
          "\t-v <veto threshold MeV>       : Threshold energy deposit in "
          "veto region to pass \n"
@@ -68,10 +72,10 @@ void SayUsage(char const *argv[]) {
          "\t-A                            : Write out all events regardless "
          "of whether they\n"
          "\t                                fall within a stop.\n"
-         "\t-n  <NEvents>                 : NMax events to write."
-         "\t-ns <NEvents>                 : N events to skip."
+         "\t-n  <NEvents>                 : NMax events to write.\n"
+         "\t-ns <NEvents>                 : N events to skip.\n"
          "\t-P <POTPerFile>               : POT Per input file. Overrides POT "
-         "info stored in Condesed config tree."
+         "info stored in Condesed config tree.\n"
       << std::endl;
 }
 
@@ -118,6 +122,7 @@ enum OOFVInclusion {
   kIncludeOOFVYZ = 2,
   kIncludeWholeDet = 3
 };
+
 double Jaccumulate(double ***arr, size_t ind1, size_t ind2, double init,
                    OOFVInclusion fvincl) {
   double sum = init;
@@ -195,37 +200,20 @@ int main(int argc, char const *argv[]) {
   TH1::SetDefaultSumw2();
   handleOpts(argc, argv);
 
-  TChain *config = OpenTChainWithFileList("configTree",inpDir);
-
-  DetectorAndFVDimensions detdims;
-  Int_t NMaxTrackSteps;
-  double timesep_us;
-
-  config->SetBranchAddress("NXSteps", &detdims.NXSteps);
-  config->SetBranchAddress("DetMin", &detdims.DetMin);
-  config->SetBranchAddress("DetMax", &detdims.DetMax);
-  config->SetBranchAddress("FVGap", &detdims.FVGap);
-  config->SetBranchAddress("NMaxTrackSteps", &NMaxTrackSteps);
-  config->SetBranchAddress("timesep_us", &timesep_us);
-
-  // If input file has POTPerFile then read it.
-  double POTPerFile_config = 0xdeadbeef;
-  if (CheckTTreeHasBranch(config, "POTPerFile")) {
-    config->SetBranchAddress("POTPerFile", &POTPerFile_config);
-  }
-
-  config->GetEntry(0);
+  SimConfig sc("SimConfigTree",inpDir);
 
   // If input file does have POTPerFile and no override specified here, use it
   // as the POTPerFile.
-  if ((POTPerFile_config != 0xdeadbeef) && (POTPerFile == 0xdeadbeef)) {
-    POTPerFile = POTPerFile_config;
+  if ((sc.POTPerFile != 0xdeadbeef) && (POTPerFile == 0xdeadbeef)) {
+    POTPerFile = sc.POTPerFile;
   }
 
+  StopDimensions detdims(inpDir);
   TH3D *DetMap = detdims.BuildDetectorMap();
 
-  FullDetTreeReader *rdr = new FullDetTreeReader(
-      "fulldetTree", inpDir, detdims.NXSteps, NMaxTrackSteps, timesep_us);
+  CondensedDeposits *rdr = new CondensedDeposits(
+      "CondensedDepositsTree", inpDir, sc.NXSteps, sc.NMaxTrackSteps,
+      sc.timesep_us);
 
   if (!rdr->GetEntries()) {
     std::cout << "No valid input files found." << std::endl;
@@ -243,90 +231,88 @@ int main(int argc, char const *argv[]) {
 
   TFile *outfile = CheckOpenFile(outputFile, "RECREATE");
 
+  //Copy Sim Tree
+  TTree* SimConfigTree = new TTree("SimConfigTree", "Run configuration tree");
+
+  SimConfig *sc_copy = SimConfig::MakeTreeWriter(SimConfigTree);
+  sc_copy->Copy(sc);
+  SimConfigTree->Fill();
+
   // Read in det stops
   DetectorStops = ReadDetectorStopConfig(runPlanCfg, runPlanName);
 
   size_t NDets = DetectorStops.size();
   Detectors.reserve(NDets);
 
-  TTree *OutputTree = new TTree("EDeps", "");
-  EDep *OutputEDep = EDep::MakeTreeWriter(OutputTree, timesep_us);
+  TTree *StopConfigTree = new TTree("StopConfigTree","");
+  StopConfig *stc = StopConfig::MakeTreeWriter(StopConfigTree);
 
-  TTree *config_out = new TTree("configTree", "");
-  Int_t NStops = NDets;
-  config_out->Branch("NStops", &NStops, "NStops/I");
-  config_out->Branch("FVGap", &detdims.FVGap, "FVGap[3]/D");
-  config_out->Branch("timesep_us", &timesep_us, "timesep_us/D");
-  config_out->Fill();
-
-  TTree *stopConfig_out = new TTree("stopConfigTree", "");
-  Double_t Min[3], Max[3];
-  Double_t Offset, POTExposure;
-  stopConfig_out->Branch("Min", &Min, "Min[3]/D");
-  stopConfig_out->Branch("Max", &Max, "Max[3]/D");
-  stopConfig_out->Branch("Offset", &Offset, "Offset/D");
-  stopConfig_out->Branch("POTExposure", &POTExposure, "POTExposure/D");
-  // translate to detboxes
   for (size_t d_it = 0; d_it < NDets; ++d_it) {
     DetBox db;
-
-    db.XOffset = -DetectorStops[d_it].LateralOffset * 100.0;
-    db.XWidth_fv = DetectorStops[d_it].DetectorFiducialWidth * 100.0;
-    db.YWidth_fv = DetectorStops[d_it].DetectorFiducialHeight * 100.0;
-    db.ZWidth_fv = DetectorStops[d_it].DetectorFiducialDepth * 100.0;
-    db.XWidth_det = db.XWidth_fv + 2 * detdims.FVGap[0];
-    db.YWidth_det = db.YWidth_fv + 2 * detdims.FVGap[1];
-    db.ZWidth_det = db.ZWidth_fv + 2 * detdims.FVGap[2];
+    // ActiveExent
+    // CenterPosition
+    db.XOffset = DetectorStops[d_it].CenterPosition[0] * 100.0;
+    db.XWidth_det = DetectorStops[d_it].ActiveExent[0] * 100.0;
+    db.YWidth_det = DetectorStops[d_it].ActiveExent[1] * 100.0;
+    db.ZWidth_det = DetectorStops[d_it].ActiveExent[2] * 100.0;
+    db.XWidth_nonveto = db.XWidth_det - 2 * detdims.VetoGap[0];
+    db.YWidth_nonveto = db.YWidth_det - 2 * detdims.VetoGap[1];
+    db.ZWidth_nonveto = db.ZWidth_det - 2 * detdims.VetoGap[2];
     db.POTExposure = DetectorStops[d_it].POTExposure;
-    POTExposure = db.POTExposure;
 
     double Detlow = db.XOffset - db.XWidth_det / 2.0;
     double DetHigh = db.XOffset + db.XWidth_det / 2.0;
 
-    db.X_Range_fv[0] = db.XOffset - db.XWidth_fv / 2.0;
-    db.X_Range_fv[1] = db.XOffset + db.XWidth_fv / 2.0;
+    db.X_Range_nonveto[0] = db.XOffset - db.XWidth_nonveto / 2.0;
+    db.X_Range_nonveto[1] = db.XOffset + db.XWidth_nonveto / 2.0;
 
-    db.Y_Range_fv[0] = -db.YWidth_fv / 2.0;
-    db.Y_Range_fv[1] = db.YWidth_fv / 2.0;
+    db.Y_Range_nonveto[0] = -db.YWidth_nonveto / 2.0;
+    db.Y_Range_nonveto[1] = db.YWidth_nonveto / 2.0;
 
-    db.Z_Range_fv[0] = -db.ZWidth_fv / 2.0;
-    db.Z_Range_fv[1] = db.ZWidth_fv / 2.0;
+    db.Z_Range_nonveto[0] = -db.ZWidth_nonveto / 2.0;
+    db.Z_Range_nonveto[1] = db.ZWidth_nonveto / 2.0;
 
     std::cout << "[INFO]: Det: [" << Detlow << ", " << DetHigh << "], FV: ["
-              << db.X_Range_fv[0] << ", " << db.X_Range_fv[1] << "]."
+              << db.X_Range_nonveto[0] << ", " << db.X_Range_nonveto[1] << "]."
               << std::endl;
 
-    db.X_fv[0] = DetMap->GetXaxis()->FindFixBin(db.X_Range_fv[0]) - 1;
-    db.X_fv[1] = DetMap->GetXaxis()->FindFixBin(db.X_Range_fv[1]) - 1;
+    db.X_nonveto[0] = DetMap->GetXaxis()->FindFixBin(db.X_Range_nonveto[0]) - 1;
+    db.X_nonveto[1] = DetMap->GetXaxis()->FindFixBin(db.X_Range_nonveto[1]) - 1;
 
     db.X_veto_left[0] = DetMap->GetXaxis()->FindFixBin(Detlow) - 1;
     db.X_veto_left[1] =
-        DetMap->GetXaxis()->FindFixBin(Detlow + detdims.FVGap[0]) - 1;
+        DetMap->GetXaxis()->FindFixBin(Detlow + detdims.VetoGap[0]) - 1;
 
     db.X_veto_right[0] =
-        DetMap->GetXaxis()->FindFixBin(DetHigh - detdims.FVGap[0]) - 1;
+        DetMap->GetXaxis()->FindFixBin(DetHigh - detdims.VetoGap[0]) - 1;
     db.X_veto_right[1] = DetMap->GetXaxis()->FindFixBin(DetHigh) - 1;
 
-    Min[0] = db.XOffset - db.XWidth_det / 2.0;
-    Max[0] = db.XOffset + db.XWidth_det / 2.0;
-    Min[1] = -db.YWidth_det / 2.0;
-    Max[1] = db.YWidth_det / 2.0;
-    Min[2] = -db.ZWidth_det / 2.0;
-    Max[2] = db.ZWidth_det / 2.0;
-    Offset = db.XOffset;
+    stc->ActiveMin[0] = db.XOffset - db.XWidth_det / 2.0;
+    stc->ActiveMax[0] = db.XOffset + db.XWidth_det / 2.0;
+    stc->ActiveMin[1] = -db.YWidth_det / 2.0;
+    stc->ActiveMax[1] = db.YWidth_det / 2.0;
+    stc->ActiveMin[2] = -db.ZWidth_det / 2.0;
+    stc->ActiveMax[2] = db.ZWidth_det / 2.0;
+    std::copy_n(detdims.VetoGap,3,stc->VetoGap);
+    for(size_t dim_it = 0; dim_it < 3; ++dim_it){
+      stc->CenterPosition[dim_it] = DetectorStops[d_it].CenterPosition[0]*100.0;
+    }
+    stc->POTExposure = DetectorStops[d_it].POTExposure;
 
-    stopConfig_out->Fill();
+    StopConfigTree->Fill();
 
     Detectors.push_back(db);
   }
 
-  // Add branches
-
   std::cout << "[INFO]: Reading " << rdr->GetEntries() << " input entries."
             << std::endl;
 
-  size_t loud_every = std::min(Long64_t(rdr->GetEntries()), NMax) / 100;
+  size_t loud_every = std::min(Long64_t(rdr->GetEntries()), NMax) / 10;
   TRandom3 *rnjesus = new TRandom3();
+
+  TTree *OutputTree = new TTree("DepositsSummaryTree", "");
+  DepositsSummary *OutputEDep =
+    DepositsSummary::MakeTreeWriter(OutputTree, sc.timesep_us);
 
   std::vector<int> overlapping_stops;
   size_t NFills = 0;
@@ -335,13 +321,13 @@ int main(int argc, char const *argv[]) {
     rdr->GetEntry(e_it);
 
     if (loud_every && !(e_it % loud_every)) {
-      std::cout << "\r[INFO]: Read " << e_it << " entries... ( vtx: {"
-                << rdr->VertexPosition[0] << ", " << rdr->VertexPosition[1]
-                << ", " << rdr->VertexPosition[2]
+      std::cout << "\r[INFO]: Read " << e_it << "/" << NEntries
+                << " entries... ( vtx: {" << rdr->VertexPosition[0] << ", "
+                << rdr->VertexPosition[1] << ", " << rdr->VertexPosition[2]
                 << "}, Enu: " << rdr->nu_4mom[3] << " )" << std::endl;
     }
 
-    // DetBox + Reader -> EDep -> Fill out tree
+    // DetBox + Reader -> DepositsSummary -> Fill out tree
     //
     //
     // Jake: Adding in a vector of overlapping stops
@@ -354,12 +340,12 @@ int main(int argc, char const *argv[]) {
     for (size_t d_it = 0; d_it < NDets; ++d_it) {
       DetBox &db = Detectors[d_it];
 
-      if ((rdr->VertexPosition[0] < db.X_Range_fv[0]) ||
-          (rdr->VertexPosition[0] > db.X_Range_fv[1]) ||
-          (rdr->VertexPosition[1] < db.Y_Range_fv[0]) ||
-          (rdr->VertexPosition[1] > db.Y_Range_fv[1]) ||
-          (rdr->VertexPosition[2] < db.Z_Range_fv[0]) ||
-          (rdr->VertexPosition[2] > db.Z_Range_fv[1])) {
+      if ((rdr->VertexPosition[0] < db.X_Range_nonveto[0]) ||
+          (rdr->VertexPosition[0] > db.X_Range_nonveto[1]) ||
+          (rdr->VertexPosition[1] < db.Y_Range_nonveto[0]) ||
+          (rdr->VertexPosition[1] > db.Y_Range_nonveto[1]) ||
+          (rdr->VertexPosition[2] < db.Z_Range_nonveto[0]) ||
+          (rdr->VertexPosition[2] > db.Z_Range_nonveto[1])) {
         continue;
       }
       stop = d_it;
@@ -624,8 +610,8 @@ int main(int argc, char const *argv[]) {
            5 * OutputEDep->LepExitXLow + 6 * OutputEDep->LepExitXHigh);
     }
     ////////End exiting lepton section
-    OutputEDep->LepDep_FV = Jaccumulate(rdr->LepDep, stopBox.X_fv[0],
-                                        stopBox.X_fv[1], 0, kIncludeFVYZ);
+    OutputEDep->LepDep_FV = Jaccumulate(rdr->LepDep, stopBox.X_nonveto[0],
+                                        stopBox.X_nonveto[1], 0, kIncludeFVYZ);
 
 #ifdef DEBUG
     for (Int_t x_it = 0; x_it < detdims.NXSteps; ++x_it) {
@@ -656,23 +642,23 @@ int main(int argc, char const *argv[]) {
         Jaccumulate(rdr->LepDep, stopBox.X_veto_right[0],
                     stopBox.X_veto_right[1], 0, kIncludeWholeDet) +
 
-        Jaccumulate(rdr->LepDep, stopBox.X_fv[0], stopBox.X_fv[1], 0,
+        Jaccumulate(rdr->LepDep, stopBox.X_nonveto[0], stopBox.X_nonveto[1], 0,
                     kIncludeOOFVYZ);
 
     OutputEDep->LepDepDescendent_FV = Jaccumulate(
-        rdr->LepDaughterDep, stopBox.X_fv[0], stopBox.X_fv[1], 0, kIncludeFVYZ);
+        rdr->LepDaughterDep, stopBox.X_nonveto[0], stopBox.X_nonveto[1], 0, kIncludeFVYZ);
     OutputEDep->LepDepDescendent_veto =
         Jaccumulate(rdr->LepDaughterDep, stopBox.X_veto_left[0],
                     stopBox.X_veto_left[1], 0, kIncludeWholeDet) +
         Jaccumulate(rdr->LepDaughterDep, stopBox.X_veto_right[0],
                     stopBox.X_veto_right[1], 0, kIncludeWholeDet) +
-        Jaccumulate(rdr->LepDaughterDep, stopBox.X_fv[0], stopBox.X_fv[1], 0,
+        Jaccumulate(rdr->LepDaughterDep, stopBox.X_nonveto[0], stopBox.X_nonveto[1], 0,
                     kIncludeOOFVYZ);
 
     OutputEDep->ProtonDep_FV =
-        Jaccumulate(rdr->ProtonDep, stopBox.X_fv[0], stopBox.X_fv[1], 0,
+        Jaccumulate(rdr->ProtonDep, stopBox.X_nonveto[0], stopBox.X_nonveto[1], 0,
                     kIncludeFVYZ) +
-        Jaccumulate(rdr->ProtonDaughterDep, stopBox.X_fv[0], stopBox.X_fv[1], 0,
+        Jaccumulate(rdr->ProtonDaughterDep, stopBox.X_nonveto[0], stopBox.X_nonveto[1], 0,
                     kIncludeFVYZ);
     OutputEDep->ProtonDep_veto =
         Jaccumulate(rdr->ProtonDep, stopBox.X_veto_left[0],
@@ -683,15 +669,15 @@ int main(int argc, char const *argv[]) {
                     stopBox.X_veto_right[1], 0, kIncludeWholeDet) +
         Jaccumulate(rdr->ProtonDaughterDep, stopBox.X_veto_right[0],
                     stopBox.X_veto_right[1], 0, kIncludeWholeDet) +
-        Jaccumulate(rdr->ProtonDep, stopBox.X_fv[0], stopBox.X_fv[1], 0,
+        Jaccumulate(rdr->ProtonDep, stopBox.X_nonveto[0], stopBox.X_nonveto[1], 0,
                     kIncludeOOFVYZ) +
-        Jaccumulate(rdr->ProtonDaughterDep, stopBox.X_fv[0], stopBox.X_fv[1], 0,
+        Jaccumulate(rdr->ProtonDaughterDep, stopBox.X_nonveto[0], stopBox.X_nonveto[1], 0,
                     kIncludeOOFVYZ);
 
     OutputEDep->NeutronDep_FV =
-        Jaccumulate(rdr->NeutronDep, stopBox.X_fv[0], stopBox.X_fv[1], 0,
+        Jaccumulate(rdr->NeutronDep, stopBox.X_nonveto[0], stopBox.X_nonveto[1], 0,
                     kIncludeFVYZ) +
-        Jaccumulate(rdr->NeutronDaughterDep, stopBox.X_fv[0], stopBox.X_fv[1],
+        Jaccumulate(rdr->NeutronDaughterDep, stopBox.X_nonveto[0], stopBox.X_nonveto[1],
                     0, kIncludeFVYZ);
     OutputEDep->NeutronDep_veto =
         Jaccumulate(rdr->NeutronDep, stopBox.X_veto_left[0],
@@ -702,16 +688,16 @@ int main(int argc, char const *argv[]) {
                     stopBox.X_veto_right[1], 0, kIncludeWholeDet) +
         Jaccumulate(rdr->NeutronDaughterDep, stopBox.X_veto_right[0],
                     stopBox.X_veto_right[1], 0, kIncludeWholeDet) +
-        Jaccumulate(rdr->NeutronDep, stopBox.X_fv[0], stopBox.X_fv[1], 0,
+        Jaccumulate(rdr->NeutronDep, stopBox.X_nonveto[0], stopBox.X_nonveto[1], 0,
                     kIncludeOOFVYZ) +
-        Jaccumulate(rdr->NeutronDaughterDep, stopBox.X_fv[0], stopBox.X_fv[1],
+        Jaccumulate(rdr->NeutronDaughterDep, stopBox.X_nonveto[0], stopBox.X_nonveto[1],
                     0, kIncludeOOFVYZ);
 
     OutputEDep->NeutronDep_ChrgWAvgTime_FV =
-        Jaccumulate(rdr->NeutronDep_ChrgWSumTime, stopBox.X_fv[0],
-                    stopBox.X_fv[1], 0, kIncludeFVYZ) +
-        Jaccumulate(rdr->NeutronDaughterDep_ChrgWSumTime, stopBox.X_fv[0],
-                    stopBox.X_fv[1], 0, kIncludeFVYZ);
+        Jaccumulate(rdr->NeutronDep_ChrgWSumTime, stopBox.X_nonveto[0],
+                    stopBox.X_nonveto[1], 0, kIncludeFVYZ) +
+        Jaccumulate(rdr->NeutronDaughterDep_ChrgWSumTime, stopBox.X_nonveto[0],
+                    stopBox.X_nonveto[1], 0, kIncludeFVYZ);
     OutputEDep->NeutronDep_ChrgWAvgTime_veto =
         Jaccumulate(rdr->NeutronDep_ChrgWSumTime, stopBox.X_veto_left[0],
                     stopBox.X_veto_left[1], 0, kIncludeWholeDet) +
@@ -723,18 +709,18 @@ int main(int argc, char const *argv[]) {
         Jaccumulate(rdr->NeutronDaughterDep_ChrgWSumTime,
                     stopBox.X_veto_right[0], stopBox.X_veto_right[1], 0,
                     kIncludeWholeDet) +
-        Jaccumulate(rdr->NeutronDep_ChrgWSumTime, stopBox.X_fv[0],
-                    stopBox.X_fv[1], 0, kIncludeOOFVYZ) +
-        Jaccumulate(rdr->NeutronDaughterDep_ChrgWSumTime, stopBox.X_fv[0],
-                    stopBox.X_fv[1], 0, kIncludeOOFVYZ);
+        Jaccumulate(rdr->NeutronDep_ChrgWSumTime, stopBox.X_nonveto[0],
+                    stopBox.X_nonveto[1], 0, kIncludeOOFVYZ) +
+        Jaccumulate(rdr->NeutronDaughterDep_ChrgWSumTime, stopBox.X_nonveto[0],
+                    stopBox.X_nonveto[1], 0, kIncludeOOFVYZ);
 
     OutputEDep->NeutronDep_ChrgWAvgTime_FV /= OutputEDep->NeutronDep_FV;
     OutputEDep->NeutronDep_ChrgWAvgTime_veto /= OutputEDep->NeutronDep_veto;
 
-    OutputEDep->PiCDep_FV = Jaccumulate(rdr->PiCDep, stopBox.X_fv[0],
-                                        stopBox.X_fv[1], 0, kIncludeFVYZ) +
-                            Jaccumulate(rdr->PiCDaughterDep, stopBox.X_fv[0],
-                                        stopBox.X_fv[1], 0, kIncludeFVYZ);
+    OutputEDep->PiCDep_FV = Jaccumulate(rdr->PiCDep, stopBox.X_nonveto[0],
+                                        stopBox.X_nonveto[1], 0, kIncludeFVYZ) +
+                            Jaccumulate(rdr->PiCDaughterDep, stopBox.X_nonveto[0],
+                                        stopBox.X_nonveto[1], 0, kIncludeFVYZ);
     OutputEDep->PiCDep_veto =
         Jaccumulate(rdr->PiCDep, stopBox.X_veto_left[0], stopBox.X_veto_left[1],
                     0, kIncludeWholeDet) +
@@ -744,15 +730,15 @@ int main(int argc, char const *argv[]) {
                     stopBox.X_veto_right[1], 0, kIncludeWholeDet) +
         Jaccumulate(rdr->PiCDaughterDep, stopBox.X_veto_right[0],
                     stopBox.X_veto_right[1], 0, kIncludeWholeDet) +
-        Jaccumulate(rdr->PiCDep, stopBox.X_fv[0], stopBox.X_fv[1], 0,
+        Jaccumulate(rdr->PiCDep, stopBox.X_nonveto[0], stopBox.X_nonveto[1], 0,
                     kIncludeOOFVYZ) +
-        Jaccumulate(rdr->PiCDaughterDep, stopBox.X_fv[0], stopBox.X_fv[1], 0,
+        Jaccumulate(rdr->PiCDaughterDep, stopBox.X_nonveto[0], stopBox.X_nonveto[1], 0,
                     kIncludeOOFVYZ);
 
-    OutputEDep->Pi0Dep_FV = Jaccumulate(rdr->Pi0Dep, stopBox.X_fv[0],
-                                        stopBox.X_fv[1], 0, kIncludeFVYZ) +
-                            Jaccumulate(rdr->Pi0DaughterDep, stopBox.X_fv[0],
-                                        stopBox.X_fv[1], 0, kIncludeFVYZ);
+    OutputEDep->Pi0Dep_FV = Jaccumulate(rdr->Pi0Dep, stopBox.X_nonveto[0],
+                                        stopBox.X_nonveto[1], 0, kIncludeFVYZ) +
+                            Jaccumulate(rdr->Pi0DaughterDep, stopBox.X_nonveto[0],
+                                        stopBox.X_nonveto[1], 0, kIncludeFVYZ);
     OutputEDep->Pi0Dep_veto =
         Jaccumulate(rdr->Pi0Dep, stopBox.X_veto_left[0], stopBox.X_veto_left[1],
                     0, kIncludeWholeDet) +
@@ -762,15 +748,15 @@ int main(int argc, char const *argv[]) {
                     stopBox.X_veto_right[1], 0, kIncludeWholeDet) +
         Jaccumulate(rdr->Pi0DaughterDep, stopBox.X_veto_right[0],
                     stopBox.X_veto_right[1], 0, kIncludeWholeDet) +
-        Jaccumulate(rdr->Pi0Dep, stopBox.X_fv[0], stopBox.X_fv[1], 0,
+        Jaccumulate(rdr->Pi0Dep, stopBox.X_nonveto[0], stopBox.X_nonveto[1], 0,
                     kIncludeOOFVYZ) +
-        Jaccumulate(rdr->Pi0DaughterDep, stopBox.X_fv[0], stopBox.X_fv[1], 0,
+        Jaccumulate(rdr->Pi0DaughterDep, stopBox.X_nonveto[0], stopBox.X_nonveto[1], 0,
                     kIncludeOOFVYZ);
 
     OutputEDep->OtherDep_FV =
-        Jaccumulate(rdr->OtherDep, stopBox.X_fv[0], stopBox.X_fv[1], 0,
+        Jaccumulate(rdr->OtherDep, stopBox.X_nonveto[0], stopBox.X_nonveto[1], 0,
                     kIncludeFVYZ) +
-        Jaccumulate(rdr->OtherDaughterDep, stopBox.X_fv[0], stopBox.X_fv[1], 0,
+        Jaccumulate(rdr->OtherDaughterDep, stopBox.X_nonveto[0], stopBox.X_nonveto[1], 0,
                     kIncludeFVYZ);
     OutputEDep->OtherDep_veto =
         Jaccumulate(rdr->OtherDep, stopBox.X_veto_left[0],
@@ -781,9 +767,9 @@ int main(int argc, char const *argv[]) {
                     stopBox.X_veto_right[1], 0, kIncludeWholeDet) +
         Jaccumulate(rdr->OtherDaughterDep, stopBox.X_veto_right[0],
                     stopBox.X_veto_right[1], 0, kIncludeWholeDet) +
-        Jaccumulate(rdr->OtherDep, stopBox.X_fv[0], stopBox.X_fv[1], 0,
+        Jaccumulate(rdr->OtherDep, stopBox.X_nonveto[0], stopBox.X_nonveto[1], 0,
                     kIncludeOOFVYZ) +
-        Jaccumulate(rdr->OtherDaughterDep, stopBox.X_fv[0], stopBox.X_fv[1], 0,
+        Jaccumulate(rdr->OtherDaughterDep, stopBox.X_nonveto[0], stopBox.X_nonveto[1], 0,
                     kIncludeOOFVYZ);
 
     OutputEDep->TotalNonlep_Dep_FV =
@@ -799,8 +785,8 @@ int main(int argc, char const *argv[]) {
          (!std::isnormal(OutputEDep->TotalNonlep_Dep_veto))) ||
         ((OutputEDep->TotalNonlep_Dep_FV != 0) &&
          (!std::isnormal(OutputEDep->TotalNonlep_Dep_FV)))) {
-      std::cout << "\n[INFO] XBins: " << stopBox.X_fv[0] << " -- "
-                << stopBox.X_fv[1] << ", Veto left: " << stopBox.X_veto_left[0]
+      std::cout << "\n[INFO] XBins: " << stopBox.X_nonveto[0] << " -- "
+                << stopBox.X_nonveto[1] << ", Veto left: " << stopBox.X_veto_left[0]
                 << " -- " << stopBox.X_veto_left[1]
                 << ", Veto right: " << stopBox.X_veto_right[0] << " -- "
                 << stopBox.X_veto_right[1] << std::endl;
@@ -823,7 +809,7 @@ int main(int argc, char const *argv[]) {
 
     if (rdr->timesep_us != 0xdeadbeef) {
       OutputEDep->LepDep_timesep_FV =
-          Jaccumulate(rdr->LepDep_timesep, stopBox.X_fv[0], stopBox.X_fv[1], 0,
+          Jaccumulate(rdr->LepDep_timesep, stopBox.X_nonveto[0], stopBox.X_nonveto[1], 0,
                       kIncludeFVYZ);
 
       OutputEDep->LepDep_timesep_veto =
@@ -831,25 +817,25 @@ int main(int argc, char const *argv[]) {
                       stopBox.X_veto_left[1], 0, kIncludeWholeDet) +
           Jaccumulate(rdr->LepDep_timesep, stopBox.X_veto_right[0],
                       stopBox.X_veto_right[1], 0, kIncludeWholeDet) +
-          Jaccumulate(rdr->LepDep_timesep, stopBox.X_fv[0], stopBox.X_fv[1], 0,
+          Jaccumulate(rdr->LepDep_timesep, stopBox.X_nonveto[0], stopBox.X_nonveto[1], 0,
                       kIncludeOOFVYZ);
 
       OutputEDep->LepDepDescendent_timesep_FV =
-          Jaccumulate(rdr->LepDaughterDep, stopBox.X_fv[0], stopBox.X_fv[1], 0,
+          Jaccumulate(rdr->LepDaughterDep, stopBox.X_nonveto[0], stopBox.X_nonveto[1], 0,
                       kIncludeFVYZ);
       OutputEDep->LepDepDescendent_timesep_veto =
           Jaccumulate(rdr->LepDaughterDep_timesep, stopBox.X_veto_left[0],
                       stopBox.X_veto_left[1], 0, kIncludeWholeDet) +
           Jaccumulate(rdr->LepDaughterDep_timesep, stopBox.X_veto_right[0],
                       stopBox.X_veto_right[1], 0, kIncludeWholeDet) +
-          Jaccumulate(rdr->LepDaughterDep_timesep, stopBox.X_fv[0],
-                      stopBox.X_fv[1], 0, kIncludeOOFVYZ);
+          Jaccumulate(rdr->LepDaughterDep_timesep, stopBox.X_nonveto[0],
+                      stopBox.X_nonveto[1], 0, kIncludeOOFVYZ);
 
       OutputEDep->ProtonDep_timesep_FV =
-          Jaccumulate(rdr->ProtonDep_timesep, stopBox.X_fv[0], stopBox.X_fv[1],
+          Jaccumulate(rdr->ProtonDep_timesep, stopBox.X_nonveto[0], stopBox.X_nonveto[1],
                       0, kIncludeFVYZ) +
-          Jaccumulate(rdr->ProtonDaughterDep_timesep, stopBox.X_fv[0],
-                      stopBox.X_fv[1], 0, kIncludeFVYZ);
+          Jaccumulate(rdr->ProtonDaughterDep_timesep, stopBox.X_nonveto[0],
+                      stopBox.X_nonveto[1], 0, kIncludeFVYZ);
 
       OutputEDep->ProtonDep_timesep_veto =
           Jaccumulate(rdr->ProtonDep_timesep, stopBox.X_veto_left[0],
@@ -860,16 +846,16 @@ int main(int argc, char const *argv[]) {
                       stopBox.X_veto_right[1], 0, kIncludeWholeDet) +
           Jaccumulate(rdr->ProtonDaughterDep_timesep, stopBox.X_veto_right[0],
                       stopBox.X_veto_right[1], 0, kIncludeWholeDet) +
-          Jaccumulate(rdr->ProtonDep_timesep, stopBox.X_fv[0], stopBox.X_fv[1],
+          Jaccumulate(rdr->ProtonDep_timesep, stopBox.X_nonveto[0], stopBox.X_nonveto[1],
                       0, kIncludeOOFVYZ) +
-          Jaccumulate(rdr->ProtonDaughterDep_timesep, stopBox.X_fv[0],
-                      stopBox.X_fv[1], 0, kIncludeOOFVYZ);
+          Jaccumulate(rdr->ProtonDaughterDep_timesep, stopBox.X_nonveto[0],
+                      stopBox.X_nonveto[1], 0, kIncludeOOFVYZ);
 
       OutputEDep->NeutronDep_timesep_FV =
-          Jaccumulate(rdr->NeutronDep_timesep, stopBox.X_fv[0], stopBox.X_fv[1],
+          Jaccumulate(rdr->NeutronDep_timesep, stopBox.X_nonveto[0], stopBox.X_nonveto[1],
                       0, kIncludeFVYZ) +
-          Jaccumulate(rdr->NeutronDaughterDep_timesep, stopBox.X_fv[0],
-                      stopBox.X_fv[1], 0, kIncludeFVYZ);
+          Jaccumulate(rdr->NeutronDaughterDep_timesep, stopBox.X_nonveto[0],
+                      stopBox.X_nonveto[1], 0, kIncludeFVYZ);
       OutputEDep->NeutronDep_timesep_veto =
           Jaccumulate(rdr->NeutronDep_timesep, stopBox.X_veto_left[0],
                       stopBox.X_veto_left[1], 0, kIncludeWholeDet) +
@@ -879,16 +865,16 @@ int main(int argc, char const *argv[]) {
                       stopBox.X_veto_right[1], 0, kIncludeWholeDet) +
           Jaccumulate(rdr->NeutronDaughterDep_timesep, stopBox.X_veto_right[0],
                       stopBox.X_veto_right[1], 0, kIncludeWholeDet) +
-          Jaccumulate(rdr->NeutronDep_timesep, stopBox.X_fv[0], stopBox.X_fv[1],
+          Jaccumulate(rdr->NeutronDep_timesep, stopBox.X_nonveto[0], stopBox.X_nonveto[1],
                       0, kIncludeOOFVYZ) +
-          Jaccumulate(rdr->NeutronDaughterDep_timesep, stopBox.X_fv[0],
-                      stopBox.X_fv[1], 0, kIncludeOOFVYZ);
+          Jaccumulate(rdr->NeutronDaughterDep_timesep, stopBox.X_nonveto[0],
+                      stopBox.X_nonveto[1], 0, kIncludeOOFVYZ);
 
       OutputEDep->PiCDep_timesep_FV =
-          Jaccumulate(rdr->PiCDep_timesep, stopBox.X_fv[0], stopBox.X_fv[1], 0,
+          Jaccumulate(rdr->PiCDep_timesep, stopBox.X_nonveto[0], stopBox.X_nonveto[1], 0,
                       kIncludeFVYZ) +
-          Jaccumulate(rdr->PiCDaughterDep_timesep, stopBox.X_fv[0],
-                      stopBox.X_fv[1], 0, kIncludeFVYZ);
+          Jaccumulate(rdr->PiCDaughterDep_timesep, stopBox.X_nonveto[0],
+                      stopBox.X_nonveto[1], 0, kIncludeFVYZ);
       OutputEDep->PiCDep_timesep_veto =
           Jaccumulate(rdr->PiCDep_timesep, stopBox.X_veto_left[0],
                       stopBox.X_veto_left[1], 0, kIncludeWholeDet) +
@@ -898,16 +884,16 @@ int main(int argc, char const *argv[]) {
                       stopBox.X_veto_right[1], 0, kIncludeWholeDet) +
           Jaccumulate(rdr->PiCDaughterDep_timesep, stopBox.X_veto_right[0],
                       stopBox.X_veto_right[1], 0, kIncludeWholeDet) +
-          Jaccumulate(rdr->PiCDep_timesep, stopBox.X_fv[0], stopBox.X_fv[1], 0,
+          Jaccumulate(rdr->PiCDep_timesep, stopBox.X_nonveto[0], stopBox.X_nonveto[1], 0,
                       kIncludeOOFVYZ) +
-          Jaccumulate(rdr->PiCDaughterDep_timesep, stopBox.X_fv[0],
-                      stopBox.X_fv[1], 0, kIncludeOOFVYZ);
+          Jaccumulate(rdr->PiCDaughterDep_timesep, stopBox.X_nonveto[0],
+                      stopBox.X_nonveto[1], 0, kIncludeOOFVYZ);
 
       OutputEDep->Pi0Dep_timesep_FV =
-          Jaccumulate(rdr->Pi0Dep_timesep, stopBox.X_fv[0], stopBox.X_fv[1], 0,
+          Jaccumulate(rdr->Pi0Dep_timesep, stopBox.X_nonveto[0], stopBox.X_nonveto[1], 0,
                       kIncludeFVYZ) +
-          Jaccumulate(rdr->Pi0DaughterDep_timesep, stopBox.X_fv[0],
-                      stopBox.X_fv[1], 0, kIncludeFVYZ);
+          Jaccumulate(rdr->Pi0DaughterDep_timesep, stopBox.X_nonveto[0],
+                      stopBox.X_nonveto[1], 0, kIncludeFVYZ);
       OutputEDep->Pi0Dep_timesep_veto =
           Jaccumulate(rdr->Pi0Dep_timesep, stopBox.X_veto_left[0],
                       stopBox.X_veto_left[1], 0, kIncludeWholeDet) +
@@ -917,16 +903,16 @@ int main(int argc, char const *argv[]) {
                       stopBox.X_veto_right[1], 0, kIncludeWholeDet) +
           Jaccumulate(rdr->Pi0DaughterDep_timesep, stopBox.X_veto_right[0],
                       stopBox.X_veto_right[1], 0, kIncludeWholeDet) +
-          Jaccumulate(rdr->Pi0Dep_timesep, stopBox.X_fv[0], stopBox.X_fv[1], 0,
+          Jaccumulate(rdr->Pi0Dep_timesep, stopBox.X_nonveto[0], stopBox.X_nonveto[1], 0,
                       kIncludeOOFVYZ) +
-          Jaccumulate(rdr->Pi0DaughterDep_timesep, stopBox.X_fv[0],
-                      stopBox.X_fv[1], 0, kIncludeOOFVYZ);
+          Jaccumulate(rdr->Pi0DaughterDep_timesep, stopBox.X_nonveto[0],
+                      stopBox.X_nonveto[1], 0, kIncludeOOFVYZ);
 
       OutputEDep->OtherDep_timesep_FV =
-          Jaccumulate(rdr->OtherDep_timesep, stopBox.X_fv[0], stopBox.X_fv[1],
+          Jaccumulate(rdr->OtherDep_timesep, stopBox.X_nonveto[0], stopBox.X_nonveto[1],
                       0, kIncludeFVYZ) +
-          Jaccumulate(rdr->OtherDaughterDep_timesep, stopBox.X_fv[0],
-                      stopBox.X_fv[1], 0, kIncludeFVYZ);
+          Jaccumulate(rdr->OtherDaughterDep_timesep, stopBox.X_nonveto[0],
+                      stopBox.X_nonveto[1], 0, kIncludeFVYZ);
       OutputEDep->OtherDep_timesep_veto =
           Jaccumulate(rdr->OtherDep_timesep, stopBox.X_veto_left[0],
                       stopBox.X_veto_left[1], 0, kIncludeWholeDet) +
@@ -936,9 +922,9 @@ int main(int argc, char const *argv[]) {
                       stopBox.X_veto_right[1], 0, kIncludeWholeDet) +
           Jaccumulate(rdr->OtherDaughterDep_timesep, stopBox.X_veto_right[0],
                       stopBox.X_veto_right[1], 0, kIncludeWholeDet) +
-          Jaccumulate(rdr->OtherDep_timesep, stopBox.X_fv[0], stopBox.X_fv[1],
+          Jaccumulate(rdr->OtherDep_timesep, stopBox.X_nonveto[0], stopBox.X_nonveto[1],
                       0, kIncludeOOFVYZ) +
-          Jaccumulate(rdr->OtherDaughterDep, stopBox.X_fv[0], stopBox.X_fv[1],
+          Jaccumulate(rdr->OtherDaughterDep, stopBox.X_nonveto[0], stopBox.X_nonveto[1],
                       0, kIncludeOOFVYZ);
 
       if (OutputEDep->ProtonDep_FV &&

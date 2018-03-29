@@ -1,9 +1,8 @@
 SET(SIM_APPS
-  DunePrismCondenser
-  FullDetTreeStopProcessor)
+  Condenser
+  StopProcessor)
 
 include_directories(${INCLUDE_DIRECTORIES})
-include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 foreach(appname ${SIM_APPS})
 
@@ -11,7 +10,6 @@ foreach(appname ${SIM_APPS})
 
   target_link_libraries(dp_${appname} ${MODULETargets})
   target_link_libraries(dp_${appname} ${ROOT_LIBS})
-  target_link_libraries(dp_${appname} G4ArReader)
 
   if(NOT "${CMAKE_LINK_FLAGS}" STREQUAL "")
     set_target_properties(dp_${appname} PROPERTIES LINK_FLAGS ${CMAKE_LINK_FLAGS})
