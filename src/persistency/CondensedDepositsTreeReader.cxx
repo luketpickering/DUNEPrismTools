@@ -28,8 +28,8 @@
 
     EventCode = nullptr;
     SetBranchAddresses();
-    std::cout << "[CondensedDeposits]: Loaded TChain: " << NFiles
-              << " files and " << NEntries << " entries." << std::endl;
+    std::cout << "[CondensedDeposits]: Loaded TChain with " << NEntries 
+    << " entries." << std::endl;
     GetEntry(0);
   }
 

@@ -11,8 +11,8 @@ FluxFitResultsTreeReader::FluxFitResultsTreeReader(std::string const &treeName, 
 
     NEntries = tree->GetEntries();
     SetBranchAddresses();
-    std::cout << "[FluxFitResultsTreeReader]: Loaded TChain: " << NFiles
-              << " files and " << NEntries << " entries." << std::endl;
+    std::cout << "[FluxFitResultsTreeReader]: Loaded TChain with " << NEntries 
+      << " entries." << std::endl;
     GetEntry(0);
   }
 

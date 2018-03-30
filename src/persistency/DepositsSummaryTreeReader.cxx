@@ -18,6 +18,8 @@
 
     NEntries = tree->GetEntries();
     SetBranchAddresses();
+    std::cout << "[DepositsSummary]: Loaded TChain with " << NEntries 
+      << " entries." << std::endl;
     GetEntry(0);
   }
   void DepositsSummary::GetEntry(UInt_t e) {
