@@ -1,5 +1,5 @@
 <DUNEPrism>
-  <RunPlan Name="RunPlan.39mLAr.3mFV.10cm.2mx4m">
+  <RunPlan Name="RunPlan.39mLAr.4mx3mx5mActive">
     <!-- Veto region pads inside of these dimensions -->
     <Detector DetectorActiveWidth_m="4" DetectorActiveHeight_m="3" DetectorActiveDepth_m="5" />
     <Stops>

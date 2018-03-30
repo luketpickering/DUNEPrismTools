@@ -1,0 +1,10 @@
+<DUNEPrism>
+  <RunPlan Name="LArDUNEFD_25.8mx23.8mx56.6mFV">
+    <!-- Veto region pads inside of these dimensions -->
+    <!-- 1m added to each dimensions for 50cm veto regions -->
+    <Detector DetectorActiveWidth_m="26.8" DetectorActiveHeight_m="23.6" DetectorActiveDepth_m="57.6" />
+    <Stops>
+      <Stop LateralOffset_m="0" POTExposure="7.35E21"/>
+    </Stops>
+  </RunPlan>
+</DUNEPrism>

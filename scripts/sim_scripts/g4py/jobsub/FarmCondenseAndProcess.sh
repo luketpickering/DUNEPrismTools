@@ -194,9 +194,9 @@ fi
 source ${ENVSETUPSCRIPT}
 
 if [ -z ${NMAXJOBS} ]; then
-  ${DUNEPRISMTOOLSROOT}/scripts/g4py/BuildInputsList_ProcessFromG4Ar.sh -G ${G4PYSCRATCHDIR} -R ${ROOTRACKERDIR} -o process.list -S ${SKIP}
+  ${DUNEPRISMTOOLSROOT}/scripts/sim_scripts/g4py/BuildInputsList_ProcessFromG4Ar.sh -G ${G4PYSCRATCHDIR} -R ${ROOTRACKERDIR} -o process.list -S ${SKIP}
 else
-  ${DUNEPRISMTOOLSROOT}/scripts/g4py/BuildInputsList_ProcessFromG4Ar.sh -G ${G4PYSCRATCHDIR} -R ${ROOTRACKERDIR} -o process.list -N ${NMAXJOBS} -S ${SKIP}
+  ${DUNEPRISMTOOLSROOT}/scripts/sim_scripts/g4py/BuildInputsList_ProcessFromG4Ar.sh -G ${G4PYSCRATCHDIR} -R ${ROOTRACKERDIR} -o process.list -N ${NMAXJOBS} -S ${SKIP}
 fi
 
 IPFL=$(readlink -f process.list)
@@ -246,6 +246,6 @@ ENCCC=$(echo ${CONDENSERCONFIG} | tr " " "_" | tr "," "|")
 
 echo "[INFO]: Encoded condenser config = \"${ENCCC}\""
 
-qsub ${DUNEPRISMTOOLSROOT}/scripts/g4py/CondenseAndProcess.sh -t 1-${NJOBSTORUN} -N DP_CondAndProc \
+qsub ${DUNEPRISMTOOLSROOT}/scripts/sim_scripts/g4py/CondenseAndProcess.sh -t 1-${NJOBSTORUN} -N DP_CondAndProc \
   -v INPUT_FILE_LIST=${IPFL},RUNPLAN_CONFIG=${CONFIG},CONDENSED_OUTPUT_DIR=${CDIR},PROCESSED_OUTPUT_DIR=${PDIR},ENVSETUPSCRIPT=${ENVSETUPSCRIPT},CONDENSERCONFIG=${ENCCC},POTPERFILE=${POTPERFILE} \
   -o sub.log

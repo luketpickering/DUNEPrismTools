@@ -7,7 +7,7 @@
 
 # cd subdir_FHC
 
-# ${DUNEPRISMTOOLSROOT}/scripts/FarmCondenseAndProcess.sh \
+# ${DUNEPRISMTOOLSROOT}/scripts/sim_scripts/g4py/FarmCondenseAndProcess.sh \
 #   -G /mnt/scratch/calcuttj/DunePrism/FHC/G4Py_2018.3.13 \
 #   -R /mnt/research/NuInt/Dune_Flux/OptimizedEngineeredSept2017Review/gevgen_fnal/rootracker_withmec/FHC \
 #   -o /mnt/research/NuInt/Dune_Flux/OptimizedEngineeredSept2017Review/Analysis/FHC \
@@ -22,7 +22,7 @@
 
 # cd subdir_RHC
 
-# ${DUNEPRISMTOOLSROOT}/scripts/FarmCondenseAndProcess.sh \
+# ${DUNEPRISMTOOLSROOT}/scripts/sim_scripts/g4py/FarmCondenseAndProcess.sh \
 #   -G /mnt/scratch/calcuttj/DunePrism/RHC/G4Py_2018.3.14 \
 #   -R /mnt/research/NuInt/Dune_Flux/OptimizedEngineeredSept2017Review/gevgen_fnal/rootracker_withmec/RHC \
 #   -o /mnt/research/NuInt/Dune_Flux/OptimizedEngineeredSept2017Review/Analysis/RHC \
@@ -37,11 +37,11 @@
 
 # cd subdir_FHC_fd
 
-# ${DUNEPRISMTOOLSROOT}/scripts/FarmCondenseAndProcess.sh \
+# ${DUNEPRISMTOOLSROOT}/scripts/sim_scripts/g4py/FarmCondenseAndProcess.sh \
 #   -G /mnt/scratch/calcuttj/DunePrism/FHC_FD/G4Py_2018.3.19/ \
 #   -R /mnt/research/NuInt/Dune_Flux/OptimizedEngineeredSept2017Review/gevgen_fnal/rootracker_withmec/FHC_FD \
 #   -o /mnt/research/NuInt/Dune_Flux/OptimizedEngineeredSept2017Review/Analysis/FHC_FD \
-#   -C ${DUNEPRISMTOOLSROOT}/configs/RunPlan.LArDUNEFV_25.8mx23.8mx56.6m.xml \
+#   -C ${DUNEPRISMTOOLSROOT}/configs/run_plans/RunPlan.LArDUNEFD.25.8mx23.8mx56.6mFV.xml \
 #   -F "-nx 1 -dmn -1340,-1180,-2880 -dmx 1340,1180,2880 -fv 50,50,50 -nt 5000 -T 1000" \
 #   -f -P 5E20
 
@@ -54,11 +54,11 @@
 
 # cd subdir_RHC_fd
 
-# ${DUNEPRISMTOOLSROOT}/scripts/FarmCondenseAndProcess.sh \
+# ${DUNEPRISMTOOLSROOT}/scripts/sim_scripts/g4py/FarmCondenseAndProcess.sh \
 #   -G /mnt/scratch/calcuttj/DunePrism/RHC_FD/G4Py_2018.3.19/ \
 #   -R /mnt/research/NuInt/Dune_Flux/OptimizedEngineeredSept2017Review/gevgen_fnal/rootracker_withmec/RHC_FD \
 #   -o /mnt/research/NuInt/Dune_Flux/OptimizedEngineeredSept2017Review/Analysis/RHC_FD \
-#   -C ${DUNEPRISMTOOLSROOT}/configs/RunPlan.LArDUNEFV_25.8mx23.8mx56.6m.xml \
+#   -C ${DUNEPRISMTOOLSROOT}/configs/run_plans/RunPlan.LArDUNEFD.25.8mx23.8mx56.6mFV.xml \
 #   -F "-nx 1 -dmn -1340,-1180,-2880 -dmx 1340,1180,2880 -fv 50,50,50 -nt 5000 -T 1000" \
 #   -f -P 5E20
 
@@ -72,7 +72,7 @@
 
 # cd subdir_FHC2
 
-# ${DUNEPRISMTOOLSROOT}/scripts/FarmCondenseAndProcess.sh \
+# ${DUNEPRISMTOOLSROOT}/scripts/sim_scripts/g4py/FarmCondenseAndProcess.sh \
 #   -G /mnt/scratch/calcuttj/DunePrism/FHC/G4Py_2018.3.18 \
 #   -R /mnt/research/NuInt/Dune_Flux/OptimizedEngineeredSept2017Review/gevgen_fnal/rootracker_withmec/FHC_2E8POT \
 #   -o /mnt/home/picker24/Generation/GENIE/DUNE-PRISM/Analysis/FHC_2E8POT_p1 \
@@ -87,7 +87,7 @@ fi
 
 cd subdir_FHC3
 
-${DUNEPRISMTOOLSROOT}/scripts/FarmCondenseAndProcess.sh \
+${DUNEPRISMTOOLSROOT}/scripts/sim_scripts/g4py/FarmCondenseAndProcess.sh \
   -G /mnt/scratch/calcuttj/DunePrism/FHC/G4Py_2018.3.18 \
   -R /mnt/research/NuInt/Dune_Flux/OptimizedEngineeredSept2017Review/gevgen_fnal/rootracker_withmec/FHC_2E8POT \
   -o /mnt/home/picker24/Generation/GENIE/DUNE-PRISM/Analysis/FHC_2E8POT_p2 \
