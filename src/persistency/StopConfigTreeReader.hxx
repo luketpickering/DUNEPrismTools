@@ -1,6 +1,8 @@
 #ifndef STOPCONFIGTREEREADER_HXX_SEEN
 #define STOPCONFIGTREEREADER_HXX_SEEN
 
+#include "BoundingBox.hxx"
+
 #include "TChain.h"
 
 #include <string>
@@ -31,7 +33,7 @@ StopConfig(std::string const &treeName, std::string const &inputFile);
   UInt_t GetEntry();
   UInt_t GetEntries();
 
-  std::vector<BoundingBox> GetStopBoundingBoxes(bool RemoveVeto=false, 
+  std::vector<BoundingBox> GetStopBoundingBoxes(bool RemoveVeto=false,
     std::array<double,3> FVReduction={0,0,0});
 
   static StopConfig *MakeTreeWriter(TTree *tree);

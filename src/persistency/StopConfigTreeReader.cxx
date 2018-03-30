@@ -48,7 +48,7 @@ StopConfig::StopConfig(std::string const &treeName, std::string const &inputFile
   UInt_t StopConfig::GetEntry() { return CEnt; }
   UInt_t StopConfig::GetEntries() { return NEntries; }
 
-  std::vector<BoundingBox> GetStopBoundingBoxes(bool RemoveVeto,
+  std::vector<BoundingBox> StopConfig::GetStopBoundingBoxes(bool RemoveVeto,
     std::array<double,3> FVReduction){
     if(!tree){
       std::cout << "[ERROR]: Attempted to get stop bounding boxes from "

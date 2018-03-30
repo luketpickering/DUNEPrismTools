@@ -59,6 +59,7 @@ cmessage(DEBUG "Module Targets: ${MODULETargets}")
 add_subdirectory(app)
 
 add_subdirectory(configs)
+add_subdirectory(scripts)
 
 configure_file(cmake/setup.sh.in
   "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/setup.sh" @ONLY)

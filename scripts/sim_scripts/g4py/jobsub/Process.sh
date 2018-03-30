@@ -49,8 +49,8 @@ RPFileName=${RUNPLAN_CONFIG##*/}
 ProcFileName=$( echo ${CONDFileName} | sed "s/Condensed/Processed/g" )
 
 echo "Processing at $(date "+%Y.%m.%d %H:%M:%S %Z")"
-echo "dp_FullDetTreeStopProcessor -i ${CONDFileName} -r ${RPFileName} -o ${ProcFileName} ${PPFARG}"
-dp_FullDetTreeStopProcessor -i ${CONDFileName} -r ${RPFileName} -o ${ProcFileName} ${PPFARG}
+echo "dp_StopProcessor -i ${CONDFileName} -r ${RPFileName} -o ${ProcFileName} ${PPFARG}"
+dp_StopProcessor -i ${CONDFileName} -r ${RPFileName} -o ${ProcFileName} ${PPFARG}
 
 echo "cp ${ProcFileName} ${PROCESSED_OUTPUT_DIR}"
 cp ${ProcFileName} ${PROCESSED_OUTPUT_DIR}

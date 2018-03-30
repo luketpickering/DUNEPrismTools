@@ -69,7 +69,7 @@ std::vector< std::pair<double,double> > BuildRangesList(std::string const &str){
       std::vector<std::string> rangeDescriptor =
           ParseToVect<std::string>(listDescriptor[l_it], ":");
 
-      if (!rangeDescriptor.size() == 2) {
+      if (rangeDescriptor.size() != 2) {
         std::cout << "[ERROR]: Range descriptor: \"" << str
                   << "\" contained bad descriptor: \""
                   << listDescriptor[l_it]
@@ -91,7 +91,7 @@ std::vector< std::pair<double,double> > BuildRangesList(std::string const &str){
     } else {
       std::vector<double> rangeDescriptor =
           ParseToVect<double>(listDescriptor[l_it], ":");
-      if (!rangeDescriptor.size() == 2) {
+      if (rangeDescriptor.size() != 2) {
         std::cout << "[ERROR]: Range descriptor: \"" << str
                   << "\" contained bad descriptor: \""
                   << listDescriptor[l_it]

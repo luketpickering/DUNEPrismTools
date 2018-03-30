@@ -4,7 +4,7 @@ SET(ANA_APPS
   # EfficiencyWeightFriendTreeBuilder
   # PRISMAnalysis
   RunSelection
-  # ProduceEfficiencyCorrector
+  ProduceEfficiencyCorrector
 )
 
 include_directories(${INCLUDE_DIRECTORIES})

@@ -5,14 +5,12 @@ if [ -z ${DUNEPRISMTOOLSROOT} ]; then
   exit 1
 fi
 
-CONFIG=${DUNEPRISMTOOLSROOT}/configs/RunPlan.39mLAr.3mFV.10cm.2mx4m.xml
-G4PYSCRATCHDIR=""
-ROOTRACKERDIR=""
+CONFIG=${DUNEPRISMTOOLSROOT}/configs/run_plans/RunPlan.39mLAr.4mx3mx5mActive.xml
+CONDENSEDDIR=""
 NMAXJOBS=""
 OUTPUTDIR=""
 ENVSETUPSCRIPT="${DUNEPRISMTOOLSROOT}/setup.sh"
 FORCE="0"
-CONDENSERCONFIG="-nx 390 -dmn -3800,-150,-250 -dmx 200,150,250 -fv 50,50,50 -nt 1000 -T 250"
 POTPERFILE=""
 SKIP="0"
 
@@ -21,31 +19,19 @@ while [[ ${#} -gt 0 ]]; do
   key="$1"
   case $key in
 
-      -G|--g4py-input-dir)
+      -C|--condensed-input-dir)
 
       if [[ ${#} -lt 2 ]]; then
         echo "[ERROR]: ${1} expected a value."
         exit 1
       fi
 
-      G4PYSCRATCHDIR="$2"
-      echo "[OPT]: Reading g4py files from ${G4PYSCRATCHDIR}"
+      CONDENSEDDIR="$2"
+      echo "[OPT]: Looking for condensed input files in ${CONDENSEDDIR}"
       shift # past argument
       ;;
 
-      -R|--rootracker-input-dir)
-
-      if [[ ${#} -lt 2 ]]; then
-        echo "[ERROR]: ${1} expected a value."
-        exit 1
-      fi
-
-      ROOTRACKERDIR="$2"
-      echo "[OPT]: Looking for rootracker files from ${ROOTRACKERDIR}"
-      shift # past argument
-      ;;
-
-      -C|--runplan-config)
+      -R|--runplan-config)
 
       if [[ ${#} -lt 2 ]]; then
         echo "[ERROR]: ${1} expected a value."
@@ -53,19 +39,7 @@ while [[ ${#} -gt 0 ]]; do
       fi
 
       CONFIG="$2"
-      echo "[OPT]: Will use ${CONFIG} as runplan configuration"
-      shift # past argument
-      ;;
-
-      -F|--condenser-config)
-
-      if [[ ${#} -lt 2 ]]; then
-        echo "[ERROR]: ${1} expected a value."
-        exit 1
-      fi
-
-      CONDENSERCONFIG="$2"
-      echo "[OPT]: Will use ${CONDENSERCONFIG} as condenser configuration"
+      echo "[OPT]: Using ${CONFIG} as the runplan configuration file."
       shift # past argument
       ;;
 
@@ -105,18 +79,6 @@ while [[ ${#} -gt 0 ]]; do
       shift # past argument
       ;;
 
-      -P|--POT-per-file)
-
-      if [[ ${#} -lt 2 ]]; then
-        echo "[ERROR]: ${1} expected a value."
-        exit 1
-      fi
-
-      POTPERFILE="$2"
-      echo "[OPT]: Using: \"${POTPERFILE}\" POT per file."
-      shift # past argument
-      ;;
-
       -E|--env-script)
 
       if [[ ${#} -lt 2 ]]; then
@@ -129,18 +91,30 @@ while [[ ${#} -gt 0 ]]; do
       shift # past argument
       ;;
 
+      -P|--POT-per-file)
+
+      if [[ ${#} -lt 2 ]]; then
+        echo "[ERROR]: ${1} expected a value."
+        exit 1
+      fi
+
+      POTPERFILE="$2"
+      echo "[OPT]: Using: \"${POTPERFILE}\" POT per file."
+      shift # past argument
+      ;;
+
       -f|--force)
 
       FORCE="1"
       echo "[OPT]: Will force overwrite of output."
+      shift # past argument
       ;;
 
       -?|--help)
 
       echo "[RUNLIKE] ${SCRIPTNAME}"
-      echo -e "\t-G|--g4py-input-dir        : Build process list from all g4py files found here."
-      echo -e "\t-R|--rootracker-input-dir  : Look here for associated rootracker files."
-      echo -e "\t-C|--runplan-config        : Override default runplan configuration."
+      echo -e "\t-C|--condensed-input-dir   : Re-process condensed files found here."
+      echo -e "\t-R|--runplan-config        : Use the specified runplan config xml."
       echo -e "\t-N|--NMAXJobs              : Maximum number of jobs to submit."
       echo -e "\t-S|--skip-first-N          : Number of files to skip when building joblist."
       echo -e "\t-o|--output-dir            : Write output to <-o>/Condensed.<date> and <-o>/Processed.<date>."
@@ -160,18 +134,13 @@ while [[ ${#} -gt 0 ]]; do
   shift # past argument or value
 done
 
-if [ -z ${G4PYSCRATCHDIR} ] || [ -z ${ROOTRACKERDIR} ]; then
-  echo "[ERROR]: Script must be passed both -G and -R options. "
+if [ -z ${CONDENSEDDIR} ] ; then
+  echo "[ERROR]: Script must be passed both -C option. "
   exit 1
 fi
 
-if [ ! -e ${G4PYSCRATCHDIR} ]; then
-  echo "[ERROR]: Invalid -G directory \"${G4PYSCRATCHDIR}\". "
-  exit 1
-fi
-
-if [ ! -e ${ROOTRACKERDIR} ]; then
-  echo "[ERROR]: Invalid -R directory \"${ROOTRACKERDIR}\". "
+if [ ! -e ${CONDENSEDDIR} ]; then
+  echo "[ERROR]: Invalid -C directory \"${CONDENSEDDIR}\". "
   exit 1
 fi
 
@@ -185,39 +154,30 @@ if [ -z ${ENVSETUPSCRIPT} ]; then
   exit 1
 fi
 
-if [ ! -e ${CONFIG} ]; then
-  echo "[ERROR]: Config script \"${CONFIG}\" doesn't exist."
-  exit 1
-fi
-
 source ${ENVSETUPSCRIPT}
 
 if [ -z ${NMAXJOBS} ]; then
-  ${DUNEPRISMTOOLSROOT}/scripts/BuildInputsList_ProcessFromG4Ar.sh -G ${G4PYSCRATCHDIR} -R ${ROOTRACKERDIR} -o process.list -S ${SKIP}
+  ls ${CONDENSEDDIR}/*Condensed.root > condensed.process.list
 else
-  ${DUNEPRISMTOOLSROOT}/scripts/BuildInputsList_ProcessFromG4Ar.sh -G ${G4PYSCRATCHDIR} -R ${ROOTRACKERDIR} -o process.list -N ${NMAXJOBS} -S ${SKIP}
+  ls ${CONDENSEDDIR}/*Condensed.root | head -${NMAXJOBS} > condensed.process.list
 fi
 
-IPFL=$(readlink -f process.list)
+IPFL=$(readlink -f condensed.process.list)
 
 NINPUTS=$(cat ${IPFL} | wc -l)
+NINPUTSAFTERSKIP=$(( ${NINPUTS} - ${SKIP} ))
 
-NJOBSTORUN=${NINPUTS}
+cat ${IPFL} | tail -${NINPUTSAFTERSKIP} > short.list
+mv short.list ${IPFL}
+
+NJOBSTORUN=$(( ${NINPUTS} - ${SKIP} ))
 if [ ! -z ${NMAXJOBS} ]; then
   NJOBSTORUN=$(python -c "print min(${NMAXJOBS},${NJOBSTORUN})")
 fi
 
-CDIR="${OUTPUTDIR}/Condensed.$(date +%Y-%m-%d)"
-PDIR="${OUTPUTDIR}/Processed.$(date +%Y-%m-%d)"
+echo "[INFO]: Running ${NJOBSTORUN} job(s)."
 
-if [ -e ${CDIR} ]; then
-  if [ ${FORCE} == 1 ]; then
-    rm -r ${CDIR}
-  else
-    echo "[ERROR]: Output dir ${CDIR} already exists, will not overrwrite."
-    exit 1
-  fi
-fi
+PDIR="${OUTPUTDIR}/Processed.$(date +%Y-%m-%d)"
 
 if [ -e ${PDIR} ]; then
   if [ ${FORCE} == 1 ]; then
@@ -228,23 +188,17 @@ if [ -e ${PDIR} ]; then
   fi
 fi
 
-mkdir -p ${CDIR}
 mkdir -p ${PDIR}
-
-if [ ! -e ${CDIR} ]; then
-  echo "[ERROR]: Failed to make output dir: ${CDIR}"
-  exit 1
-fi
 
 if [ ! -e ${PDIR} ]; then
   echo "[ERROR]: Failed to make output dir: ${PDIR}"
   exit 1
 fi
 
-ENCCC=$(echo ${CONDENSERCONFIG} | tr " " "_" | tr "," "|")
+echo "qsub ${DUNEPRISMTOOLSROOT}/scripts/g4py/Process.sh -t 1-${NJOBSTORUN} -N DP_Proc \
+  -v INPUT_FILE_LIST=${IPFL},RUNPLAN_CONFIG=${CONFIG},PROCESSED_OUTPUT_DIR=${PDIR},ENVSETUPSCRIPT=${ENVSETUPSCRIPT} \
+  -o process.sub.log"
 
-echo "[INFO]: Encoded condenser config = \"${ENCCC}\""
-
-qsub ${DUNEPRISMTOOLSROOT}/scripts/CondenseAndProcess.sh -t 1-${NJOBSTORUN} -N DP_CondAndProc \
-  -v INPUT_FILE_LIST=${IPFL},RUNPLAN_CONFIG=${CONFIG},CONDENSED_OUTPUT_DIR=${CDIR},PROCESSED_OUTPUT_DIR=${PDIR},ENVSETUPSCRIPT=${ENVSETUPSCRIPT},CONDENSERCONFIG=${ENCCC},POTPERFILE=${POTPERFILE} \
-  -o sub.log
+qsub ${DUNEPRISMTOOLSROOT}/scripts/g4py/Process.sh -t 1-${NJOBSTORUN} -N DP_Proc \
+  -v INPUT_FILE_LIST=${IPFL},RUNPLAN_CONFIG=${CONFIG},PROCESSED_OUTPUT_DIR=${PDIR},ENVSETUPSCRIPT=${ENVSETUPSCRIPT},POTPERFILE=${POTPERFILE} \
+  -o process.sub.log

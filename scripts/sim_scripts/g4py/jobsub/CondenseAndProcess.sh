@@ -65,14 +65,14 @@ RPFileName=${RUNPLAN_CONFIG##*/}
 CONDFileName=$( echo ${G4PYFileName} | awk '{split($0,a,"."); print a[1] "." a[2] ".Condensed.root"};' )
 
 echo "Condensing at $(date "+%Y.%m.%d %H:%M:%S %Z")"
-echo "dp_DunePrismCondenser -i ${G4PYFileName} -ir ${RTFileName} ${UENCCC} -o ${CONDFileName} ${PPFARG}"
-dp_DunePrismCondenser -i ${G4PYFileName} -ir ${RTFileName} ${UENCCC} -o ${CONDFileName} ${PPFARG}
+echo "dp_Condenser -i ${G4PYFileName} -ir ${RTFileName} ${UENCCC} -o ${CONDFileName} ${PPFARG}"
+dp_Condenser -i ${G4PYFileName} -ir ${RTFileName} ${UENCCC} -o ${CONDFileName} ${PPFARG}
 
 ProcFileName=$( echo ${G4PYFileName} | awk '{split($0,a,"."); print a[1] "." a[2] ".Processed.root"};' )
 
 echo "Processing at $(date "+%Y.%m.%d %H:%M:%S %Z")"
-echo "dp_FullDetTreeStopProcessor -i ${CONDFileName} -r ${RPFileName} -o ${ProcFileName}"
-dp_FullDetTreeStopProcessor -i ${CONDFileName} -r ${RPFileName} -o ${ProcFileName}
+echo "dp_StopProcessor -i ${CONDFileName} -r ${RPFileName} -o ${ProcFileName}"
+dp_StopProcessor -i ${CONDFileName} -r ${RPFileName} -o ${ProcFileName}
 
 echo "Copy back at $(date "+%Y.%m.%d %H:%M:%S %Z")"
 echo "cp ${CONDFileName} ${CONDENSED_OUTPUT_DIR}"
