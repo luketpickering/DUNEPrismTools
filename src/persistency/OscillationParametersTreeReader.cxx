@@ -11,8 +11,8 @@ OscillationParameters::OscillationParameters(std::string const &treeName, std::s
 
     NEntries = tree->GetEntries();
     SetBranchAddresses();
-    std::cout << "[OscillationParameters]: Loaded TChain: " << NFiles
-              << " files and " << NEntries << " entries." << std::endl;
+    std::cout << "[OscillationParameters]: Loaded TChain with " << NEntries 
+      << " entries." << std::endl;
     GetEntry(0);
   }
 

@@ -11,8 +11,8 @@ SimConfig::SimConfig(std::string const &treeName, std::string const &inputFile) 
 
     NEntries = tree->GetEntries();
     SetBranchAddresses();
-    std::cout << "[SimConfig]: Loaded TChain: " << NFiles
-              << " files and " << NEntries << " entries." << std::endl;
+    std::cout << "[SimConfig]: Loaded TChain with " << NEntries 
+      << " entries." << std::endl;
     GetEntry(0);
   }
 

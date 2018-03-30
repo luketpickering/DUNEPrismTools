@@ -203,7 +203,8 @@ int main(int argc, char* argv[]) {
   g4ar.ResetCurrentEntry();
   g4ar.TrackTimeForPDG(2112);
   int evnum = 0;
-  int loudevery = std::min(NMaxEvents, g4ar.NInputEntries) / 10;
+  int NEvs = std::min(NEvs, g4ar.NInputEntries);
+  int loudevery =  NEvs / 10;
   int nfills = 0;
   do {
     DepoEvent ev = g4ar.BuildEvent();
@@ -729,7 +730,7 @@ int main(int argc, char* argv[]) {
     nfills++;
 
     if (loudevery && !(evnum % loudevery)) {
-      std::cout << "[INFO]: Processed " << evnum << "/" << NMaxEvents
+      std::cout << "[INFO]: Processed " << evnum << "/" << NEvs
         << " entries." << std::endl;
     }
 
