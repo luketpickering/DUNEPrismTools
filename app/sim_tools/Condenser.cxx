@@ -203,7 +203,7 @@ int main(int argc, char* argv[]) {
   g4ar.ResetCurrentEntry();
   g4ar.TrackTimeForPDG(2112);
   int evnum = 0;
-  int NEvs = std::min(NEvs, g4ar.NInputEntries);
+  int NEvs = std::min(NMaxEvents, g4ar.NInputEntries);
   int loudevery =  NEvs / 10;
   int nfills = 0;
   do {
