@@ -13,8 +13,8 @@ StopConfig(std::string const &treeName, std::string const &inputFile);
   Double_t ActiveMin[3];
   Double_t ActiveMax[3];
   Double_t VetoGap[3];
-  double CenterPosition[3];
-  double POTExposure;
+  Double_t CenterPosition[3];
+  Double_t POTExposure;
 
   TChain *tree;
   UInt_t NFiles;
@@ -30,6 +30,9 @@ StopConfig(std::string const &treeName, std::string const &inputFile);
 
   UInt_t GetEntry();
   UInt_t GetEntries();
+
+  std::vector<BoundingBox> GetStopBoundingBoxes(bool RemoveVeto=false, 
+    std::array<double,3> FVReduction={0,0,0});
 
   static StopConfig *MakeTreeWriter(TTree *tree);
 

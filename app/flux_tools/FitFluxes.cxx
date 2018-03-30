@@ -358,8 +358,11 @@ void TargetSumChi2(int &nDim, double *gout, double &result, double coeffs[],
   OOR_last = OOR;
   reg_last = reg;
 
-  std::cout << "[INFO]: Target flux chi2: " << result << " (reg = " << reg
-            << ", OOR = " << OOR << " )." << std::endl;
+  if(!(NCalls%5000)){
+    std::cout << "[INFO]: (Call " << NCalls << ") Target flux chi2: "
+              << result << " (reg = " << reg
+              << ", OOR = " << OOR << " )." << std::endl;
+  }
 }
 
 void TargetSumGauss(int &nDim, double *gout, double &result, double coeffs[],
@@ -408,8 +411,11 @@ void TargetSumGauss(int &nDim, double *gout, double &result, double coeffs[],
   reg_last = reg;
 
   result = sumdiff;
-  std::cout << "[INFO]: Gauss chi2: " << sumdiff << " (reg = " << reg << " )."
-            << std::endl;
+
+  if(!(NCalls%5000)){
+    std::cout << "[INFO]: (Call " << NCalls << ") Gauss chi2: "
+              << result << " (reg = " << reg << " )." << std::endl;
+  }
 }
 
 void SayUsage(char const *argv[]) {
@@ -763,7 +769,7 @@ int main(int argc, char const *argv[]) {
       InpCoeffDir += "/";
     }
 
-    std::string treeName = InpCoeffDir + "CoeffTree";
+    std::string treeName = InpCoeffDir + "SliceConfigTree";
 
     std::cout << "[INFO]: Reading input previous fit results." << std::endl;
     SliceConfig sc(treeName, InpCoeffFile);
@@ -974,24 +980,7 @@ int main(int argc, char const *argv[]) {
               << std::endl;
   }
 
-  TTree *CoeffTree = new TTree("CoeffTree", "");
-
-  double XRange[2];
-  double Coeff;
-
-  CoeffTree->Branch("XRange", &XRange, "XRange[2]/D");
-  CoeffTree->Branch("Coeff", &Coeff, "Coeff/D");
-
-  for (size_t i = 0; i < Fluxes.size(); ++i) {
-    XRange[0] = XRanges[i].first * 100.0;
-    XRange[1] = XRanges[i].second * 100.0;
-    Coeff = coeffs[i];
-
-    CoeffTree->Fill();
-  }
-
   // Write out configuration trees.
-
   TTree *SliceConfigTree = new TTree("SliceConfigTree", "");
   SliceConfig *sc = SliceConfig::MakeTreeWriter(SliceConfigTree);
   for(size_t i = 0; i < Fluxes.size(); ++i){
@@ -1003,7 +992,8 @@ int main(int argc, char const *argv[]) {
   }
 
   TTree *FluxFitResultsTree = new TTree("FluxFitResultsTree", "");
-  FluxFitResultsTreeReader *fr = FluxFitResultsTreeReader::MakeTreeWriter(FluxFitResultsTree, IsGauss);
+  FluxFitResultsTreeReader *fr =
+    FluxFitResultsTreeReader::MakeTreeWriter(FluxFitResultsTree, IsGauss);
 
   fr->NFluxes = Fluxes.size();
   fr->NIterations = NCalls;
@@ -1014,7 +1004,8 @@ int main(int argc, char const *argv[]) {
 
   if (!IsGauss) {
     fr->OutOfRangePenalty = OOR_last;
-    fr->NDOverFDFitScaleFactor = (SummedFlux->GetMaximum() / OscFlux_orignorm->GetMaximum());
+    fr->NDOverFDFitScaleFactor =
+      (SummedFlux->GetMaximum() / OscFlux_orignorm->GetMaximum());
   } else {
     fr->GaussCenter_GeV = GaussC;
     fr->GaussWidth_GeV = GaussW;
@@ -1022,11 +1013,9 @@ int main(int argc, char const *argv[]) {
   FluxFitResultsTree->Fill();
 
   if (!IsGauss) {
-    OscillationParameters op_in("OscConfigTree", InputTargetFluxFile);
-    TTree *OscConfigTree = new TTree("OscConfigTree", "");
-    OscillationParameters *op_copy = OscillationParameters::MakeTreeWriter(OscConfigTree);
-    op_copy->Copy(op_in);
-    OscConfigTree->Fill();
+    OscillationParameters opTree("OscConfigTree", InputTargetFluxFile);
+    TTree *opTree_copy = opTree.tree->CloneTree();
+    opTree_copy->SetDirectory(oupF);
   }
 
   oupF->Write();

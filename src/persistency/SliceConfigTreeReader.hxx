@@ -12,8 +12,8 @@ struct SliceConfig {
 SliceConfig();
 SliceConfig(std::string const &treeName, std::string const &inputFile);
 
-  double XRange[2];
-  double Coeff;
+  Double_t XRange[2];
+  Double_t Coeff;
 
   TChain *tree;
   UInt_t NFiles;

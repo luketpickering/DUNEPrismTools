@@ -754,6 +754,7 @@
         "MuonTrackMom", fdr->MuonTrackMom_1D,
         (std::string("MuonTrackMom[") + to_str(NMaxTrackSteps) + "][3]/D")
             .c_str());
+    fdr->Reset();
     return fdr;
   }
 

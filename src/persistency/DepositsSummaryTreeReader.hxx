@@ -685,8 +685,8 @@ struct DepositsSummary {
 
   void Copy(DepositsSummary const &other);
 
-  static DepositsSummary *MakeTreeWriter(TTree *OutputTree, double timesep_us = 0xdeadbeef,
-                              bool IsLite = false);
+  static DepositsSummary *MakeTreeWriter(TTree *OutputTree,
+    double timesep_us = 0xdeadbeef, bool IsLite = false);
   void SetBranchAddresses();
 };
 

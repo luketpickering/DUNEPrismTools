@@ -1,8 +1,7 @@
 #include "BoundingBox.h"
-#include "EDepTreeReader.h"
+#include "DepositsSummaryTreeReader.h"
 
-#include "DetectorStop.hxx"
-#include "Utils.hxx"
+#include "StringParserUtility.hxx"
 
 #include "TMath.h"
 #include "TTree.h"
@@ -13,65 +12,20 @@
 std::vector<DetectorStop> DetectorStops;
 std::vector<BoundingBox> BBs;
 
-std::string inpfile;
-std::string oupfile;
+std::string InputDepostisSummaryFile;
+std::string OutputFile;
 
 double HadrVeto = 10E-3;     // GeV
 double SelMuExitKE = 50E-3;  // GeV
 
 std::vector<double> ERecBinning;
-std::vector<double> XRangeBins;
-bool HaveXRangeBins = false;
-std::vector<double> Coeffs;
 bool BuildMissingProtonEFakeData = false;
-
-std::string FluxFitFile = "";
-void GetXRangeBins() {
-  TChain *CoeffTree = OpenTChainWithFileList("CoeffTree", FluxFitFile);
-
-  if (!CoeffTree) {
-    exit(1);
-  }
-
-  double XRange[2];
-  double Coeff;
-
-  CoeffTree->SetBranchAddress("XRange", &XRange);
-  CoeffTree->SetBranchAddress("Coeff", &Coeff);
-
-  std::cout << "[INFO]: XRange bins: " << std::flush;
-  CoeffTree->GetEntry(0);
-  XRangeBins.push_back(XRange[0]);
-  Coeffs.push_back(Coeff);
-  XRangeBins.push_back(XRange[1]);
-  std::cout << XRangeBins[0] << ", " << XRangeBins[1] << std::flush;
-  for (Long64_t i = 1; i < CoeffTree->GetEntries(); ++i) {
-    CoeffTree->GetEntry(i);
-
-    // If non-contiguous, must push an empty bit between.
-    if (fabs(XRangeBins.back() - XRange[0]) > 1E-5) {
-      Coeffs.push_back(0);
-      XRangeBins.push_back(XRange[0]);
-      std::cout << ", " << XRangeBins.back() << std::flush;
-    }
-
-    Coeffs.push_back(Coeff);
-    XRangeBins.push_back(XRange[1]);
-    std::cout << ", " << XRangeBins.back() << std::flush;
-  }
-  std::cout << std::endl;
-
-  delete CoeffTree;
-  HaveXRangeBins = true;
-}
-
-bool OneBin = false;
 
 void SayUsage(char const *argv[]) {
   std::cout
       << "[USAGE]: " << argv[0]
       << "\n"
-         "\t-i <fulldetprocess.root>    : TChain descriptor for"
+         "\t-i <stopprocessor.root>     : TChain descriptor for"
          " input tree. \n"
          "\t-o <outputfile.root>        : Output file to write "
          "selected tree to.\n"
@@ -79,16 +33,10 @@ void SayUsage(char const *argv[]) {
          "MeV {default: 10}.\n"
          "\t-m <muon exit KE>           : Muon exit threshold KE in MeV "
          "{default: 0}.\n"
-         "\t-F <FluxFitFile.root>       : Results of a flux fit that can be "
-         "used to produce a perfect efficiency correction in relevant off-axis "
-         "position bins.\n"
-         "\t-OB                         : Efficiency correct in a single "
-         "absolute position bin. Used to produce perfect efficiency correction "
-         "at the far detector.\n"
          "\t-b <binning descriptor>     : Energy binning descriptor that can "
          "be used to produce a perfect efficiency correction in the relevant "
          "off-axis bins.\n"
-         "\t-FDproton                   : Build missing proton energ fake "
+         "\t-FDproton                   : Build missing proton energy fake "
          "data. This is very hard coded, if you don't know what it is, don't "
          "use it.\n"
       << std::endl;
@@ -102,44 +50,17 @@ void handleOpts(int argc, char const *argv[]) {
       SayUsage(argv);
       exit(0);
     } else if (std::string(argv[opt]) == "-i") {
-      inpfile = argv[++opt];
+      InputDepostisSummaryFile = argv[++opt];
     } else if (std::string(argv[opt]) == "-o") {
-      oupfile = argv[++opt];
+      OutputFile = argv[++opt];
     } else if (std::string(argv[opt]) == "-v") {
       HadrVeto = str2T<double>(argv[++opt]) * 1E-3;
     } else if (std::string(argv[opt]) == "-m") {
       SelMuExitKE = str2T<double>(argv[++opt]) * 1E-3;
-    } else if (std::string(argv[opt]) == "-F") {
-      FluxFitFile = argv[++opt];
     } else if (std::string(argv[opt]) == "-b") {
-      std::vector<std::string> binDescriptors =
-          ParseToVect<std::string>(argv[++opt], ",");
-      ERecBinning.clear();
-      for (size_t vbd_it = 0; vbd_it < binDescriptors.size(); ++vbd_it) {
-        AppendVect(ERecBinning, BuildDoubleList(binDescriptors[vbd_it]));
-      }
-
-      for (size_t bin_it = 1; bin_it < ERecBinning.size(); ++bin_it) {
-        if (ERecBinning[bin_it] == ERecBinning[bin_it - 1]) {
-          std::cout << "[INFO]: Removing duplciate bin low edge " << bin_it
-                    << " low edge: " << ERecBinning[bin_it] << std::endl;
-          ERecBinning.erase(ERecBinning.begin() + bin_it);
-        }
-      }
-
-      for (size_t bin_it = 1; bin_it < ERecBinning.size(); ++bin_it) {
-        if (ERecBinning[bin_it] < ERecBinning[bin_it - 1]) {
-          std::cout << "[ERROR]: Bin " << bin_it
-                    << " low edge: " << ERecBinning[bin_it]
-                    << " is smaller than bin " << (bin_it - 1)
-                    << " low edge: " << ERecBinning[bin_it - 1] << std::endl;
-          exit(1);
-        }
-      }
+      ERecBinning = BuildBinEdges(argv[++opt]);
     } else if (std::string(argv[opt]) == "-FDproton") {
       BuildMissingProtonEFakeData = true;
-    } else if (std::string(argv[opt]) == "-OB") {
-      OneBin = true;
     } else {
       std::cout << "[ERROR]: Unknown option: " << argv[opt] << std::endl;
       SayUsage(argv);
@@ -153,29 +74,17 @@ int main(int argc, char const *argv[]) {
   TH1::SetDefaultSumw2();
   handleOpts(argc, argv);
 
-  if (FluxFitFile.size()) {
-    GetXRangeBins();
-  }
-
   if (!ERecBinning.size()) {
     int argc_dum = 3;
     char const *argv_dum[] = {"", "-b", "0_10:0.1"};
     handleOpts(argc_dum, argv_dum);
   }
 
-  TChain *config_in = OpenTChainWithFileList("configTree", inpfile);
-  Int_t NDets;
-  Double_t FVGap[3];
-  config_in->SetBranchAddress("NStops", &NDets);
-  config_in->SetBranchAddress("FVGap", &FVGap);
-  config_in->GetEntry(0);
+  SimConfig simCRdr("SimConfigTree", InputDepostisSummaryFile);
+  StopConfig csRdr("StopConfigTree", InputDepostisSummaryFile);
 
-  TChain *stopConfig_in = OpenTChainWithFileList("stopConfigTree", inpfile);
-  Double_t StopMin[3], StopMax[3];
-  Double_t Offset;
-  stopConfig_in->SetBranchAddress("Min", &StopMin);
-  stopConfig_in->SetBranchAddress("Max", &StopMax);
-  stopConfig_in->SetBranchAddress("Offset", &Offset);
+
+  std::vector<BoundingBox> StopActiveRegions = csRdr.GetStopBoundingBoxes(false);
 
   Double_t MaxStopWidth = -std::numeric_limits<double>::max();
 
@@ -214,7 +123,7 @@ int main(int argc, char const *argv[]) {
   std::cout << "[INFO]: Max DetXRange = " << MaxStopWidth
             << ", Max ToWall = " << (MaxToWall * 1E-2) << std::endl;
 
-  EDep edr("EDeps", inpfile);
+  EDep edr("EDeps", InputDepostisSummaryFile);
 
   Double_t ProtonFakeDataWeight = 1;
   if (BuildMissingProtonEFakeData) {
@@ -224,7 +133,7 @@ int main(int argc, char const *argv[]) {
     edr.tree->SetBranchAddress("EnuTp", &ProtonFakeDataWeight);
   }
 
-  TFile *of = CheckOpenFile(oupfile, "RECREATE");
+  TFile *of = CheckOpenFile(OutputFile, "RECREATE");
 
   TH2D *MuonKinematics_all =
       new TH2D("MuonKinematics_all", ";#it{E}_{#mu};ToWall_{#mu} (m);Count",

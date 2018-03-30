@@ -452,7 +452,7 @@
     OutputTree->Branch("PrimaryLeptonContainedInFV",
                        &rtn->PrimaryLeptonContainedInFV,
                        "PrimaryLeptonContainedInFV/O");
-
+    rtn->Reset();
     return rtn;
   }
 

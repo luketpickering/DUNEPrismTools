@@ -47,10 +47,12 @@ DetectorStop DetectorStop::CloneDetectorConfig() {
 }
 
 bool DetectorStop::ConfigureStop(XMLNodePointer_t node) {
-  std::array<bool, 2> found;
+  std::array<bool, 4> found;
   CenterPosition[0] =
       GetXMLAttributeValue<double>(node, "LateralOffset_m", found[0]);
-  POTExposure = GetXMLAttributeValue<double>(node, "POTExposure", found[1]);
+  CenterPosition[1] = GetXMLAttributeValue<double>(node, "VerticalOffset_m", found[1]);
+  CenterPosition[2] = 0;
+  POTExposure = GetXMLAttributeValue<double>(node, "POTExposure", found[3]);
 
   if (std::count(found.begin(), found.end(), true) != 2) {
     std::cerr << "[ERROR]: When reading " << stagname

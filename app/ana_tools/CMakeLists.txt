@@ -1,11 +1,11 @@
 SET(ANA_APPS
-  FluxVarFriendTreeBuilder
-  XSecVarFriendTreeBuilder
-  EfficiencyWeightFriendTreeBuilder
-  PRISMAnalysis
-  BuildFDPrediction
+  # FluxVarFriendTreeBuilder
+  # XSecVarFriendTreeBuilder
+  # EfficiencyWeightFriendTreeBuilder
+  # PRISMAnalysis
   RunSelection
-  ProduceEfficiencyCorrector)
+  # ProduceEfficiencyCorrector
+)
 
 include_directories(${INCLUDE_DIRECTORIES})
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})

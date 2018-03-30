@@ -14,7 +14,7 @@ TFile *CheckOpenFile(std::string const &fname, char const *opts) {
 
 TChain *OpenTChainWithFileList(std::string const &tname,
                                       std::string const &flist) {
-  Int_t dummy;
+  Int_t dummy = 0;
   return OpenTChainWithFileList(tname, flist, dummy);
 }
 

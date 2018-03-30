@@ -48,6 +48,30 @@ StopConfig::StopConfig(std::string const &treeName, std::string const &inputFile
   UInt_t StopConfig::GetEntry() { return CEnt; }
   UInt_t StopConfig::GetEntries() { return NEntries; }
 
+  std::vector<BoundingBox> GetStopBoundingBoxes(bool RemoveVeto,
+    std::array<double,3> FVReduction){
+    if(!tree){
+      std::cout << "[ERROR]: Attempted to get stop bounding boxes from "
+        "StopConfig, but tree not initialized." << std::endl;
+      throw;
+    }
+    std::vector<BoundingBox> BBs;
+    std::cout << "[INFO]: Using reduced fiducial volumes:"  << std::endl;
+    for(Long64_t cs_it = 0; cs_it < GetEntries(); ++cs_it){
+      GetEntry(cs_it);
+      std::array<Double_t,3> FVMin, FVMax;
+      for(size_t dim_it = 0; dim_it < 3; ++dim_it){
+        FVMin[dim_it] = ActiveMin[dim_it] + (RemoveVeto?VetoGap[dim_it]:0) +
+          FVReduction[dim_it];
+        FVMax[dim_it] = ActiveMax[dim_it] - (RemoveVeto?VetoGap[dim_it]:0) -
+          FVReduction[dim_it];
+      }
+      BBs.emplace_back(FVMax, FVMin);
+    }
+    return BBs;
+  }
+
+
   StopConfig *StopConfig::MakeTreeWriter(TTree *tree) {
     StopConfig *fdr = new StopConfig();
     tree->Branch("ActiveMin", &fdr->ActiveMin,"ActiveMin[3]/D");
@@ -55,6 +79,7 @@ StopConfig::StopConfig(std::string const &treeName, std::string const &inputFile
     tree->Branch("VetoGap", &fdr->VetoGap,"VetoGap[3]/D");
     tree->Branch("CenterPosition", &fdr->CenterPosition,"CenterPosition[3]/D");
     tree->Branch("POTExposure", &fdr->POTExposure,"POTExposure/D");
+    fdr->Reset();
     return fdr;
   }
 

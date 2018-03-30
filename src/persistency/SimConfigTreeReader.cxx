@@ -63,6 +63,7 @@ SimConfig::SimConfig(std::string const &treeName, std::string const &inputFile) 
     tree->Branch("NMaxTrackSteps", &fdr->NMaxTrackSteps, "NMaxTrackSteps/I");
     tree->Branch("POTPerFile", &fdr->POTPerFile, "POTPerFile/D");
     tree->Branch("timesep_us", &fdr->timesep_us, "timesep_us/D");
+    fdr->Reset();
     return fdr;
   }
 

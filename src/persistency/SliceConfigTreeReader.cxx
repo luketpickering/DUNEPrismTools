@@ -129,6 +129,7 @@ SliceConfig::SliceConfig(std::string const &treeName, std::string const &inputFi
     SliceConfig *fdr = new SliceConfig();
     tree->Branch("XRange", &fdr->XRange, "XRange[2]/D");
     tree->Branch("Coeff", &fdr->Coeff, "Coeff/D");
+    fdr->Reset();
     return fdr;
   }
 

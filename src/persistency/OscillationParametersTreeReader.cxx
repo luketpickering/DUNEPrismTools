@@ -51,7 +51,7 @@ OscillationParameters::OscillationParameters(std::string const &treeName, std::s
     tree->Branch("OscParams", &fdr->OscParams, "OscParams[6]/D");
     tree->Branch("FromNuPDG", &fdr->FromNuPDG, "FromNuPDG/I");
     tree->Branch("ToNuPDG", &fdr->ToNuPDG, "ToNuPDG/I");
-
+    fdr->Reset();
     return fdr;
   }
 

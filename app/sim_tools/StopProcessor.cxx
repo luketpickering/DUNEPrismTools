@@ -232,11 +232,8 @@ int main(int argc, char const *argv[]) {
   TFile *outfile = CheckOpenFile(outputFile, "RECREATE");
 
   //Copy Sim Tree
-  TTree* SimConfigTree = new TTree("SimConfigTree", "Run configuration tree");
-
-  SimConfig *sc_copy = SimConfig::MakeTreeWriter(SimConfigTree);
-  sc_copy->Copy(sc);
-  SimConfigTree->Fill();
+  TTree *SimConfigTree_clone = sc.tree->CloneTree();
+  SimConfigTree_clone->SetDirectory(outfile);
 
   // Read in det stops
   DetectorStops = ReadDetectorStopConfig(runPlanCfg, runPlanName);
@@ -295,7 +292,7 @@ int main(int argc, char const *argv[]) {
     stc->ActiveMax[2] = db.ZWidth_det / 2.0;
     std::copy_n(detdims.VetoGap,3,stc->VetoGap);
     for(size_t dim_it = 0; dim_it < 3; ++dim_it){
-      stc->CenterPosition[dim_it] = DetectorStops[d_it].CenterPosition[0]*100.0;
+      stc->CenterPosition[dim_it] = DetectorStops[d_it].CenterPosition[dim_it]*100.0;
     }
     stc->POTExposure = DetectorStops[d_it].POTExposure;
 

@@ -70,19 +70,25 @@ FluxFitResultsTreeReader::FluxFitResultsTreeReader(std::string const &treeName, 
 
   FluxFitResultsTreeReader *FluxFitResultsTreeReader::MakeTreeWriter(TTree *tree, bool IsGaussFit) {
     FluxFitResultsTreeReader *fdr = new FluxFitResultsTreeReader();
-    tree->Branch("NFluxes", &fdr->NFluxes,"NFluxes/D");
-    tree->Branch("NIterations", &fdr->NIterations,"NIterations/D");
+    tree->Branch("NFluxes", &fdr->NFluxes,"NFluxes/I");
+    tree->Branch("NIterations", &fdr->NIterations,"NIterations/I");
     tree->Branch("Chi2", &fdr->Chi2,"Chi2/D");
-    tree->Branch("RegularisationPenalty", &fdr->RegularisationPenalty,"RegularisationPenalty/D");
+    tree->Branch("RegularisationPenalty", &fdr->RegularisationPenalty,
+      "RegularisationPenalty/D");
     tree->Branch("FitRange", &fdr->FitRange,"FitRange[2]/D");
 
     if(IsGaussFit){
-      tree->Branch("GaussCenter_GeV", &fdr->GaussCenter_GeV,"GaussCenter_GeV/D");
+      tree->Branch("GaussCenter_GeV", &fdr->GaussCenter_GeV,
+        "GaussCenter_GeV/D");
       tree->Branch("GaussWidth_GeV", &fdr->GaussWidth_GeV,"GaussWidth_GeV/D");
     } else {
-      tree->Branch("OutOfRangePenalty", &fdr->OutOfRangePenalty,"OutOfRangePenalty/D");
-      tree->Branch("NDOverFDFitScaleFactor", &fdr->NDOverFDFitScaleFactor,"NDOverFDFitScaleFactor/D");
+      tree->Branch("OutOfRangePenalty", &fdr->OutOfRangePenalty,
+        "OutOfRangePenalty/D");
+      tree->Branch("NDOverFDFitScaleFactor", &fdr->NDOverFDFitScaleFactor,
+        "NDOverFDFitScaleFactor/D");
     }
+
+    fdr->Reset();
     return fdr;
   }
 
