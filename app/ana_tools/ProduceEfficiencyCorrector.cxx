@@ -13,8 +13,6 @@
 #include <string>
 #include <vector>
 
-std::vector<BoundingBox> BBs;
-
 std::string InputDepostisSummaryFile;
 std::string OutputFile;
 
@@ -89,11 +87,15 @@ int main(int argc, char const *argv[]) {
 
   Double_t MaxStopWidth = -std::numeric_limits<double>::max();
   Double_t MaxToWall = -std::numeric_limits<double>::max();
+  Double_t MaxAbsX = -std::numeric_limits<double>::max();
+  Double_t MinAbsX = std::numeric_limits<double>::max();
   for(BoundingBox const & bb : StopActiveRegions){
     MaxStopWidth = std::max(MaxStopWidth, bb.Max[0] - bb.Min[0]);
     MaxToWall = std::max(MaxToWall,
       ( (TVector3(bb.Max.data()) -
          TVector3(bb.Min.data()) ).Mag()));
+     MaxAbsX = std::max(MaxAbsX,bb.Max[0]);
+     MinAbsX = std::min(MinAbsX,bb.Min[0]);
   }
 
   std::cout << "[INFO]: Max DetXRange = " << MaxStopWidth
@@ -132,6 +134,30 @@ int main(int argc, char const *argv[]) {
       new TH2D("Ehadr_FV_detpos_seleff",
                ";#it{E}_{Hadr};Detector X position (cm);#epsilon", 100, 0, 20,
                100, -(MaxStopWidth / 2.0), (MaxStopWidth / 2.0));
+
+   TH2D *EVisHadr_FV_detpos_all = new TH2D(
+       "EVisHadr_FV_detpos_all", ";#it{E}_{Vis,Hadr};Detector X position (cm);Count",
+       100, 0, 20, 100, -(MaxStopWidth / 2.0), (MaxStopWidth / 2.0));
+   TH2D *EVisHadr_FV_detpos_hadrsel =
+       new TH2D("EVisHadr_FV_detpos_hadrsel",
+                ";#it{E}_{Vis,Hadr};Detector X position (cm);Count", 100, 0, 20, 100,
+                -(MaxStopWidth / 2.0), (MaxStopWidth / 2.0));
+   TH2D *EVisHadr_FV_detpos_seleff =
+       new TH2D("EVisHadr_FV_detpos_seleff",
+                ";#it{E}_{Vis,Hadr};Detector X position (cm);#epsilon", 100, 0, 20,
+                100, -(MaxStopWidth / 2.0), (MaxStopWidth / 2.0));
+
+   TH2D *Ehadr_FV_abspos_all = new TH2D(
+       "Ehadr_FV_abspos_all", ";#it{E}_{Hadr};Detector X position (cm);Count",
+       100, 0, 20, 100, MinAbsX, MaxAbsX);
+   TH2D *Ehadr_FV_abspos_hadrsel =
+       new TH2D("Ehadr_FV_abspos_hadrsel",
+                ";#it{E}_{Hadr};Detector X position (cm);Count", 100, 0, 20, 100,
+                  MinAbsX, MaxAbsX);
+   TH2D *Ehadr_FV_abspos_seleff =
+       new TH2D("Ehadr_FV_abspos_seleff",
+                ";#it{E}_{Hadr};Detector X position (cm);#epsilon", 100, 0, 20,
+                100, MinAbsX, MaxAbsX);
 
   size_t loud_every = edr.GetEntries() / 10;
   Long64_t NEntries = edr.GetEntries();
@@ -177,10 +203,26 @@ int main(int argc, char const *argv[]) {
     Ehadr_FV_detpos_hadrsel->Fill(
         edr.ERecProxy_True - edr.PrimaryLep_4mom[3], edr.vtxInDetX,
         ProtonFakeDataWeight * double(edr.TotalNonlep_Dep_veto < HadrVeto));
+
+    EVisHadr_FV_detpos_all->Fill(
+      edr.TotalNonlep_Dep_FV + edr.TotalNonlep_Dep_veto, edr.vtxInDetX,
+      ProtonFakeDataWeight);
+    EVisHadr_FV_detpos_hadrsel->Fill(
+      edr.TotalNonlep_Dep_FV + edr.TotalNonlep_Dep_veto, edr.vtxInDetX,
+      ProtonFakeDataWeight * double(edr.TotalNonlep_Dep_veto < HadrVeto));
+
+    Ehadr_FV_abspos_all->Fill(edr.ERecProxy_True - edr.PrimaryLep_4mom[3],
+      edr.vtx[0], ProtonFakeDataWeight);
+    Ehadr_FV_abspos_hadrsel->Fill(edr.ERecProxy_True - edr.PrimaryLep_4mom[3],
+      edr.vtx[0],
+      ProtonFakeDataWeight * double(edr.TotalNonlep_Dep_veto < HadrVeto));
   }
 
   MuonKinematics_seleff->Divide(MuonKinematics_musel, MuonKinematics_all);
   Ehadr_FV_detpos_seleff->Divide(Ehadr_FV_detpos_hadrsel, Ehadr_FV_detpos_all);
+  EVisHadr_FV_detpos_seleff->Divide(EVisHadr_FV_detpos_hadrsel,
+    EVisHadr_FV_detpos_all);
+  Ehadr_FV_abspos_seleff->Divide(Ehadr_FV_abspos_hadrsel, Ehadr_FV_abspos_all);
 
   of->Write();
   of->Close();

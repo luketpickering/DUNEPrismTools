@@ -554,3 +554,223 @@ if (lincombfile.size()) {
   ETrueERecPion_timesep_Selected_ETrueNorm->SetDirectory(of);
   ETrueERecOther_Selected_ETrueNorm->SetDirectory(of);
   ETrueERecOther_timesep_Selected_ETrueNorm->SetDirectory(of);
+
+
+  TH1D *EventRates_Selected = nullptr;
+  TH1D *ERec_Selected = nullptr;
+  TH1D *EHadr_Selected = nullptr;
+  TH2D *EvRateERec_Selected = nullptr;
+  TH2D *EvRateEHadr_Selected = nullptr;
+  TH2D *EvRateEProxy_Selected = nullptr;
+  TH1D *EventRates_Corrected = nullptr;
+  TH1D *ERec_Corrected = nullptr;
+  TH1D *EHadr_Corrected = nullptr;
+  TH2D *EvRateERec_Corrected = nullptr;
+  TH2D *EvRateEHadr_Corrected = nullptr;
+  TH2D *EvRateEProxy_Corrected = nullptr;
+
+  std::vector<double> XRangeBins;
+  if (CorrectInAbsPos) {
+    for (Int_t bi_it = 0;
+         bi_it < Eproxy_FV_abspos_seleff->GetYaxis()->GetNbins(); ++bi_it) {
+      XRangeBins.push_back(
+          Eproxy_FV_abspos_seleff->GetYaxis()->GetBinLowEdge(bi_it + 1));
+    }
+    XRangeBins.push_back(Eproxy_FV_abspos_seleff->GetYaxis()->GetBinUpEdge(
+        Eproxy_FV_abspos_seleff->GetYaxis()->GetNbins()));
+
+    EventRates_Selected = new TH1D("EventRates_Selected", ";Offset (cm);Count",
+                                   (XRangeBins.size() - 1), XRangeBins.data());
+    ERec_Selected =
+        new TH1D("ERec_Selected", ";E_{Rec} = E_{#mu} + E_{Hadr} (GeV);Count",
+                 (ERecBinning.size() - 1), ERecBinning.data());
+    EHadr_Selected = new TH1D("EHadr_Selected", ";E_{Hadr} (GeV);Count",
+                              (ERecBinning.size() - 1), ERecBinning.data());
+    EvRateERec_Selected =
+        new TH2D("EvRateERec_Selected",
+                 ";E_{Rec} = E_{#mu} + E_{Hadr} (GeV);Offset (cm)",
+                 (ERecBinning.size() - 1), ERecBinning.data(),
+                 (XRangeBins.size() - 1), XRangeBins.data());
+    EvRateEHadr_Selected =
+        new TH2D("EvRateEHadr_Selected", ";E_{Hadr} (GeV);Offset (cm)",
+                 (ERecBinning.size() - 1), ERecBinning.data(),
+                 (XRangeBins.size() - 1), XRangeBins.data());
+    EvRateEProxy_Selected =
+        new TH2D("EvRateEProxy_Selected", ";E_{#nu, proxy} (GeV);Offset (cm)",
+                 (ERecBinning.size() - 1), ERecBinning.data(),
+                 (XRangeBins.size() - 1), XRangeBins.data());
+    EventRates_Corrected =
+        new TH1D("EventRates_Corrected", ";Offset (cm);Count",
+                 (XRangeBins.size() - 1), XRangeBins.data());
+    ERec_Corrected =
+        new TH1D("ERec_Corrected", ";E_{Rec} = E_{#mu} + E_{Hadr} (GeV);Count",
+                 (ERecBinning.size() - 1), ERecBinning.data());
+    EHadr_Corrected = new TH1D("EHadr_Corrected", ";E_{Hadr} (GeV);Count",
+                               (ERecBinning.size() - 1), ERecBinning.data());
+    EvRateERec_Corrected =
+        new TH2D("EvRateERec_Corrected",
+                 ";E_{Rec} = E_{#mu} + E_{Hadr} (GeV);Offset (cm)",
+                 (ERecBinning.size() - 1), ERecBinning.data(),
+                 (XRangeBins.size() - 1), XRangeBins.data());
+    EvRateEHadr_Corrected =
+        new TH2D("EvRateEHadr_Corrected", ";E_{Hadr} (GeV);Offset (cm)",
+                 (ERecBinning.size() - 1), ERecBinning.data(),
+                 (XRangeBins.size() - 1), XRangeBins.data());
+    EvRateEProxy_Corrected =
+        new TH2D("EvRateEProxy_Corrected", ";E_{#nu, proxy} (GeV);Offset (cm)",
+                 (ERecBinning.size() - 1), ERecBinning.data(),
+                 (XRangeBins.size() - 1), XRangeBins.data());
+  } else {
+    EventRates_Selected =
+        new TH1D("EventRates_Selected", ";Offset (cm);Count", 400, -250, 3750);
+    ERec_Selected =
+        new TH1D("ERec_Selected", ";E_{Rec} = E_{#mu} + E_{Hadr} (GeV);Count",
+                 (ERecBinning.size() - 1), ERecBinning.data());
+    EHadr_Selected = new TH1D("EHadr_Selected", ";E_{Hadr} (GeV);Count",
+                              (ERecBinning.size() - 1), ERecBinning.data());
+    EvRateERec_Selected =
+        new TH2D("EvRateERec_Selected",
+                 ";E_{Rec} = E_{#mu} + E_{Hadr} (GeV);Offset (cm)",
+                 (ERecBinning.size() - 1), ERecBinning.data(), 400, -250, 3750);
+    EvRateEHadr_Selected =
+        new TH2D("EvRateEHadr_Selected", ";E_{Hadr} (GeV);Offset (cm)",
+                 (ERecBinning.size() - 1), ERecBinning.data(), 400, -250, 3750);
+    EvRateEProxy_Selected =
+        new TH2D("EvRateEProxy_Selected", ";E_{#nu, proxy} (GeV);Offset (cm)",
+                 (ERecBinning.size() - 1), ERecBinning.data(), 400, -250, 3750);
+    EventRates_Corrected =
+        new TH1D("EventRates_Corrected", ";Offset (cm);Count", 400, -250, 3750);
+    ERec_Corrected =
+        new TH1D("ERec_Corrected", ";E_{Rec} = E_{#mu} + E_{Hadr} (GeV);Count",
+                 (ERecBinning.size() - 1), ERecBinning.data());
+    EHadr_Corrected = new TH1D("EHadr_Corrected", ";E_{Hadr} (GeV);Count",
+                               (ERecBinning.size() - 1), ERecBinning.data());
+    EvRateERec_Corrected =
+        new TH2D("EvRateERec_Corrected",
+                 ";E_{Rec} = E_{#mu} + E_{Hadr} (GeV);Offset (cm)",
+                 (ERecBinning.size() - 1), ERecBinning.data(), 400, -250, 3750);
+    EvRateEHadr_Corrected =
+        new TH2D("EvRateEHadr_Corrected", ";E_{Hadr} (GeV);Offset (cm)",
+                 (ERecBinning.size() - 1), ERecBinning.data(), 400, -250, 3750);
+    EvRateEProxy_Corrected =
+        new TH2D("EvRateEProxy_Corrected", ";E_{#nu, proxy} (GeV);Offset (cm)",
+                 (ERecBinning.size() - 1), ERecBinning.data(), 400, -250, 3750);
+  }
+
+  TDirectory *oupD = of;
+
+  TDirectory *sliceD = oupD->mkdir("SliceEventRates");
+  sliceD->cd();
+
+  std::vector<TH1D *> SliceERec_Selected;
+  std::vector<TH1D *> SliceERec_Corrected;
+  TH1D *SliceHelper = nullptr;
+  if (CorrectInAbsPos) {
+    SliceHelper =
+        new TH1D("SliceHelper", "", (XRangeBins.size() - 1), XRangeBins.data());
+    SliceHelper->SetDirectory(nullptr);
+
+    for (size_t bin_it = 1; bin_it < XRangeBins.size(); ++bin_it) {
+      SliceERec_Selected.push_back(new TH1D(
+          (std::string("SliceERec_Selected") + to_str(bin_it - 1)).c_str(),
+          ";E_{Rec} (GeV);Count", 100, 0, 10));
+      SliceERec_Corrected.push_back(new TH1D(
+          (std::string("SliceERec_Corrected") + to_str(bin_it - 1)).c_str(),
+          ";E_{Rec} (GeV);Count", 100, 0, 10));
+    }
+  }
+
+  TDirectory *stopD = oupD->mkdir("StopEventRates");
+  stopD->cd();
+
+  std::vector<TH1D *> StopEventRates_Selected;
+  std::vector<TH1D *> StopEventRates_Corrected;
+
+  std::vector<TH1D *> StopEProxy_Selected;
+  std::vector<TH1D *> StopEProxy_Corrected;
+
+  std::vector<TH1D *> StopERec_Selected;
+  std::vector<TH1D *> StopERec_Corrected;
+
+  for (Int_t stop_it = 0; stop_it < NStops; ++stop_it) {
+    StopEventRates_Selected.push_back(new TH1D(
+        (std::string("StopEventRates_Selected_Stop") + to_str(stop_it)).c_str(),
+        ";Offset (cm);Count", 400, -250, 3750));
+    StopEventRates_Corrected.push_back(new TH1D(
+        (std::string("StopEventRates_Corrected_Stop") + to_str(stop_it))
+            .c_str(),
+        ";Offset (cm);Count", 400, -250, 3750));
+
+    StopEProxy_Selected.push_back(new TH1D(
+        (std::string("StopEProxy_Selected_Stop") + to_str(stop_it)).c_str(),
+        ";E_{#nu, proxy} (GeV);Count", 100, 0, 10));
+    StopEProxy_Corrected.push_back(new TH1D(
+        (std::string("StopEProxy_Corrected_Stop") + to_str(stop_it)).c_str(),
+        ";E_{#nu, proxy} (GeV);Count", 100, 0, 10));
+
+    StopERec_Selected.push_back(new TH1D(
+        (std::string("StopERec_Selected_Stop") + to_str(stop_it)).c_str(),
+        ";E_{#nu, proxy} (GeV);Count", 100, 0, 10));
+    StopERec_Corrected.push_back(new TH1D(
+        (std::string("StopERec_Corrected_Stop") + to_str(stop_it)).c_str(),
+        ";E_{#nu, proxy} (GeV);Count", 100, 0, 10));
+  }
+  oupD->cd();
+
+  Int_t xb = SliceHelper->GetXaxis()->FindFixBin(-1 * edr.vtx[0]);
+  if (xb && (xb <= Int_t(SliceERec_Selected.size()))) {
+    SliceERec_Selected[xb - 1]->Fill(edr.PrimaryLep_4mom[3] +
+                                         edr.TotalNonlep_Dep_FV +
+                                         edr.TotalNonlep_Dep_veto,
+                                     edr.stop_weight);
+    SliceERec_Corrected[xb - 1]->Fill(edr.PrimaryLep_4mom[3] +
+                                          edr.TotalNonlep_Dep_FV +
+                                          edr.TotalNonlep_Dep_veto,
+                                      edr.stop_weight * effweight);
+  }
+  }
+
+  // Fill selected histos
+  EventRates_Selected->Fill(-1 * edr.vtx[0], edr.stop_weight);
+  ERec_Selected->Fill(edr.PrimaryLep_4mom[3] + edr.TotalNonlep_Dep_FV +
+                        edr.TotalNonlep_Dep_veto,
+                    edr.stop_weight);
+  EHadr_Selected->Fill(edr.ERecProxy_True - edr.PrimaryLep_4mom[3],
+                     edr.stop_weight);
+
+  EvRateERec_Selected->Fill(edr.PrimaryLep_4mom[3] + edr.TotalNonlep_Dep_FV +
+                              edr.TotalNonlep_Dep_veto,
+                          -1 * edr.vtx[0], edr.stop_weight);
+  EvRateEHadr_Selected->Fill(edr.ERecProxy_True - edr.PrimaryLep_4mom[3],
+                           -1 * edr.vtx[0], edr.stop_weight);
+  StopEventRates_Selected[edr.stop]->Fill(-1 * edr.vtx[0], edr.stop_weight);
+  EvRateEProxy_Selected->Fill(edr.ERecProxy_True, -1 * edr.vtx[0],
+                            edr.stop_weight);
+  StopEProxy_Selected[edr.stop]->Fill(edr.ERecProxy_True, edr.stop_weight);
+  StopERec_Selected[edr.stop]->Fill(edr.PrimaryLep_4mom[3] +
+                                      edr.TotalNonlep_Dep_FV +
+                                      edr.TotalNonlep_Dep_veto,
+                                  edr.stop_weight);
+
+  EventRates_Corrected->Fill(-1 * edr.vtx[0], edr.stop_weight * effweight);
+  ERec_Corrected->Fill(edr.PrimaryLep_4mom[3] + edr.TotalNonlep_Dep_FV +
+                         edr.TotalNonlep_Dep_veto,
+                     edr.stop_weight * effweight);
+  EHadr_Corrected->Fill(edr.ERecProxy_True - edr.PrimaryLep_4mom[3],
+                      edr.stop_weight * effweight);
+
+  EvRateERec_Corrected->Fill(edr.PrimaryLep_4mom[3] + edr.TotalNonlep_Dep_FV +
+                               edr.TotalNonlep_Dep_veto,
+                           -1 * edr.vtx[0], edr.stop_weight * effweight);
+  EvRateEHadr_Corrected->Fill(edr.ERecProxy_True - edr.PrimaryLep_4mom[3],
+                            -1 * edr.vtx[0], edr.stop_weight * effweight);
+  StopEventRates_Corrected[edr.stop]->Fill(-1 * edr.vtx[0],
+                                         edr.stop_weight * effweight);
+  EvRateEProxy_Corrected->Fill(edr.ERecProxy_True, -1 * edr.vtx[0],
+                             edr.stop_weight * effweight);
+  StopEProxy_Corrected[edr.stop]->Fill(edr.ERecProxy_True,
+                                     edr.stop_weight * effweight);
+  StopERec_Corrected[edr.stop]->Fill(edr.PrimaryLep_4mom[3] +
+                                       edr.TotalNonlep_Dep_FV +
+                                       edr.TotalNonlep_Dep_veto,
+                                   edr.stop_weight * effweight);

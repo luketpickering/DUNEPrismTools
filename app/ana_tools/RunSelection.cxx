@@ -28,7 +28,7 @@ void SayUsage(char const *argv[]) {
   std::cout
       << "[USAGE]: " << argv[0]
       << "\n"
-         "\t-i <stopprocessor.root>          : TChain descriptor for"
+         "\t-i <stopprocessor.root>     : TChain descriptor for"
          " input tree. \n"
          "\t-o <outputfile.root>        : Output file to write "
          "selected tree to.\n"
@@ -117,10 +117,21 @@ int main(int argc, char const *argv[]) {
   TFile *of = CheckOpenFile(OutputFile, "RECREATE");
   of->cd();
 
-  TTree *simCTree_copy = simCRdr.tree->CloneTree();
-  TTree *csTree_copy = csRdr.tree->CloneTree();
-  simCTree_copy->SetDirectory(of);
-  csTree_copy->SetDirectory(of);
+  TTree *simCTree_copy = new TTree("SimConfigTree", "");
+  TTree *csTree_copy = new TTree("StopConfigTree", "");
+  SimConfig *simCWtr = SimConfig::MakeTreeWriter(simCTree_copy);
+  StopConfig *csWtr = StopConfig::MakeTreeWriter(csTree_copy);
+
+  simCRdr.GetEntry(0);
+  simCWtr->Copy(simCRdr);
+  simCTree_copy->Fill();
+
+  csRdr.DetermineNStops();
+  for(Long64_t stop_it = 0; stop_it < csRdr.NStops; ++stop_it){
+    csRdr.GetEntry(stop_it);
+    csWtr->Copy(csRdr);
+    csTree_copy->Fill();
+  }
 
   //Selection summary tree
   TTree *ssTree = new TTree("SelectionSummaryTree", "");

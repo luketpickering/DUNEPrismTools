@@ -13,12 +13,19 @@
 
     tree = OpenTChainWithFileList(treeName, inputFiles, NFiles);
 
+    if(!tree){
+      std::cout << "[DepositsSummary]: Failed to read input tree from file." 
+        << std::endl;
+        throw;
+    }
+
+
     this->timesep_us = timesep_us;
     this->IsLite = IsLite;
 
     NEntries = tree->GetEntries();
     SetBranchAddresses();
-    std::cout << "[DepositsSummary]: Loaded TChain with " << NEntries 
+    std::cout << "[DepositsSummary]: Loaded TChain with " << NEntries
       << " entries." << std::endl;
     GetEntry(0);
   }

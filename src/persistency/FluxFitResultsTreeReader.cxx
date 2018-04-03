@@ -5,13 +5,19 @@
 #include <algorithm>
 
 FluxFitResultsTreeReader::FluxFitResultsTreeReader() : tree(nullptr), NFiles(0), NEntries(0), CEnt(0) {}
-FluxFitResultsTreeReader::FluxFitResultsTreeReader(std::string const &treeName, std::string const &inputFile) {
+FluxFitResultsTreeReader::FluxFitResultsTreeReader(std::string const &treeName, std::string const &inputFile) : FluxFitResultsTreeReader() {
 
     tree = OpenTChainWithFileList(treeName, inputFile);
 
+    if(!tree){
+      std::cout << "[FluxFitResultsTreeReader]: Failed to read input tree from "
+        "file." << std::endl;
+        throw;
+    }
+
     NEntries = tree->GetEntries();
     SetBranchAddresses();
-    std::cout << "[FluxFitResultsTreeReader]: Loaded TChain with " << NEntries 
+    std::cout << "[FluxFitResultsTreeReader]: Loaded TChain with " << NEntries
       << " entries." << std::endl;
     GetEntry(0);
   }

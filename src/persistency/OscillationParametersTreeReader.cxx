@@ -5,13 +5,19 @@
 #include <algorithm>
 
 OscillationParameters::OscillationParameters() : tree(nullptr), NFiles(0), NEntries(0), CEnt(0) {}
-OscillationParameters::OscillationParameters(std::string const &treeName, std::string const &inputFile) {
+OscillationParameters::OscillationParameters(std::string const &treeName, std::string const &inputFile) : OscillationParameters() {
 
     tree = OpenTChainWithFileList(treeName, inputFile);
 
+    if(!tree){
+      std::cout << "[OscillationParameters]: Failed to read input tree from "
+        "file." << std::endl;
+        throw;
+    }
+
     NEntries = tree->GetEntries();
     SetBranchAddresses();
-    std::cout << "[OscillationParameters]: Loaded TChain with " << NEntries 
+    std::cout << "[OscillationParameters]: Loaded TChain with " << NEntries
       << " entries." << std::endl;
     GetEntry(0);
   }

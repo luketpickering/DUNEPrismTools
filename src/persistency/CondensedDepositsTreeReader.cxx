@@ -16,9 +16,15 @@
 
   CondensedDeposits::CondensedDeposits(std::string const &treeName, std::string const &inputFiles,
                     Int_t NXBins, Int_t NMaxTrackSteps,
-                    Double_t timesep_us) {
+                    Double_t timesep_us) : CondensedDeposits() {
 
     tree = OpenTChainWithFileList(treeName, inputFiles, NFiles);
+
+    if(!tree){
+      std::cout << "[CondensedDeposits]: Failed to read input tree from file."
+        << std::endl;
+        throw;
+    }
 
     NEntries = tree->GetEntries();
 
@@ -28,7 +34,7 @@
 
     EventCode = nullptr;
     SetBranchAddresses();
-    std::cout << "[CondensedDeposits]: Loaded TChain with " << NEntries 
+    std::cout << "[CondensedDeposits]: Loaded TChain with " << NEntries
     << " entries." << std::endl;
     GetEntry(0);
   }

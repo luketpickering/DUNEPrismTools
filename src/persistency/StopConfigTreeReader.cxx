@@ -4,24 +4,30 @@
 
 #include <algorithm>
 
-StopConfig::StopConfig() : tree(nullptr), NFiles(0), NEntries(0), CEnt(0) {}
-StopConfig::StopConfig(std::string const &treeName, std::string const &inputFile) {
+StopConfig::StopConfig() : NStops(0), tree(nullptr), NFiles(0), NEntries(0), CEnt(0) {}
+StopConfig::StopConfig(std::string const &treeName, std::string const &inputFile) : StopConfig() {
 
     tree = OpenTChainWithFileList(treeName, inputFile);
 
+    if(!tree){
+      std::cout << "[StopConfig]: Failed to read input tree from "
+        "file." << std::endl;
+        throw;
+    }
+
     NEntries = tree->GetEntries();
     SetBranchAddresses();
-    std::cout << "[StopConfig]: Loaded TChain with " << NEntries 
+    std::cout << "[StopConfig]: Loaded TChain with " << NEntries
       << " entries." << std::endl;
     GetEntry(0);
   }
 
   void StopConfig::Reset() {
     std::fill_n(ActiveMin,3,0);
-  std::fill_n(ActiveMax,3,0);
-  std::fill_n(VetoGap,3,0);
-  std::fill_n(CenterPosition,3,0);
-  POTExposure = 0xdeadbeef;
+    std::fill_n(ActiveMax,3,0);
+    std::fill_n(VetoGap,3,0);
+    std::fill_n(CenterPosition,3,0);
+    POTExposure = 0xdeadbeef;
   }
 
   void StopConfig::Copy(StopConfig const &other) {
@@ -30,6 +36,25 @@ StopConfig::StopConfig(std::string const &treeName, std::string const &inputFile
     std::copy_n(other.VetoGap,3,VetoGap);
     std::copy_n(other.CenterPosition,3,CenterPosition);
     POTExposure = other.POTExposure;
+  }
+
+  void StopConfig::DetermineNStops(){
+    UInt_t FFUUID = std::numeric_limits<UInt_t>::max();
+    NStops = 0;
+    for(Long64_t cs_it = 0; cs_it < GetEntries(); ++cs_it){
+      GetEntry(cs_it);
+      if(FFUUID == std::numeric_limits<UInt_t>::max()){
+        FFUUID = tree->GetFile()->GetUniqueID();
+        NStops++;
+      } else {
+        // Only read the first file's worth.
+        if(FFUUID != tree->GetFile()->GetUniqueID()){
+          break;
+        } else {
+          NStops++;
+        }
+      }
+    }
   }
 
   void StopConfig::SetBranchAddresses() {
@@ -56,8 +81,9 @@ StopConfig::StopConfig(std::string const &treeName, std::string const &inputFile
       throw;
     }
     std::vector<BoundingBox> BBs;
-    std::cout << "[INFO]: Using reduced fiducial volumes:"  << std::endl;
-    for(Long64_t cs_it = 0; cs_it < GetEntries(); ++cs_it){
+    std::cout << "[INFO]: Using stop volumes:"  << std::endl;
+    DetermineNStops();
+    for(Long64_t cs_it = 0; cs_it < NStops; ++cs_it){
       GetEntry(cs_it);
       std::array<Double_t,3> FVMin, FVMax;
       for(size_t dim_it = 0; dim_it < 3; ++dim_it){
@@ -67,6 +93,7 @@ StopConfig::StopConfig(std::string const &treeName, std::string const &inputFile
           FVReduction[dim_it];
       }
       BBs.emplace_back(FVMax, FVMin);
+      std::cout << "\t[" << cs_it << "]" << BBs.back().Print() << std::endl;
     }
     return BBs;
   }

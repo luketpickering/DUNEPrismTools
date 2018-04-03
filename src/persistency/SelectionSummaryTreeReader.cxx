@@ -5,13 +5,18 @@
 #include <algorithm>
 
 SelectionSummary::SelectionSummary() : tree(nullptr), NFiles(0), NEntries(0), CEnt(0) {}
-SelectionSummary::SelectionSummary(std::string const &treeName, std::string const &inputFile) {
+SelectionSummary::SelectionSummary(std::string const &treeName, std::string const &inputFile) : SelectionSummary() {
 
     tree = OpenTChainWithFileList(treeName, inputFile);
+    if(!tree){
+      std::cout << "[SelectionSummary]: Failed to read input tree from file."
+        << std::endl;
+        throw;
+    }
 
     NEntries = tree->GetEntries();
     SetBranchAddresses();
-    std::cout << "[SelectionSummary]: Loaded TChain with " << NEntries 
+    std::cout << "[SelectionSummary]: Loaded TChain with " << NEntries
       << " entries." << std::endl;
     GetEntry(0);
   }

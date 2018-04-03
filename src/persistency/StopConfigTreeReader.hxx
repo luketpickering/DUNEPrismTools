@@ -18,6 +18,7 @@ StopConfig(std::string const &treeName, std::string const &inputFile);
   Double_t CenterPosition[3];
   Double_t POTExposure;
 
+  UInt_t NStops;
   TChain *tree;
   UInt_t NFiles;
   UInt_t NEntries;
@@ -25,6 +26,7 @@ StopConfig(std::string const &treeName, std::string const &inputFile);
 
   void Reset();
   void Copy(StopConfig const &);
+  void DetermineNStops();
 
   void SetBranchAddresses();
 

@@ -58,6 +58,7 @@ struct DepoTracked : public DepoParticle {
   double **Position;
   double **Momentum;
   size_t NSteps;
+  size_t NSSkippedSteps;
 
   DepoTracked(int PDG, size_t trackID, int NMaxTrackSteps = 1000,
               double timesep_us = 0xdeadbeef);

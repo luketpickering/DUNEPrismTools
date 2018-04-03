@@ -3,13 +3,19 @@
 #include "ROOTUtility.hxx"
 
 SliceConfig::SliceConfig() : tree(nullptr), NFiles(0), NEntries(0), CEnt(0) {}
-SliceConfig::SliceConfig(std::string const &treeName, std::string const &inputFile) {
+SliceConfig::SliceConfig(std::string const &treeName, std::string const &inputFile) : SliceConfig() {
 
     tree = OpenTChainWithFileList(treeName, inputFile);
 
+    if(!tree){
+      std::cout << "[SliceConfig]: Failed to read input tree from "
+        "file." << std::endl;
+        throw;
+    }
+
     NEntries = tree->GetEntries();
     SetBranchAddresses();
-    std::cout << "[SliceConfig]: Loaded TChain with " << NEntries 
+    std::cout << "[SliceConfig]: Loaded TChain with " << NEntries
       << " entries." << std::endl;
     GetEntry(0);
   }

@@ -9,8 +9,8 @@
 #include <string>
 #include <vector>
 
-std::string inpfile;
-std::string oupfile;
+std::string InputDepostisSummaryFile;
+std::string OutputFile;
 
 std::string CovmatFile, CovmatHist;
 Long64_t NThrows = 1;
@@ -19,15 +19,20 @@ UInt_t Seed = 1;
 void SayUsage(char const *argv[]) {
   std::cout << "[USAGE]: " << argv[0]
             << "\n"
-               "\t-i <fulldetprocess.root>   : TChain descriptor for"
-               " input tree. \n"
-               "\t-o <friendoutput.root>     : TFile for output friend tree. \n"
-               "\t-C <covmatfile.root,hname> : Input covariance matrix to "
-               "throw xsec weights from.\n"
-               "\t-N <NThrows>     : Number of throws to make. Special cases "
-               "are \n\t\t\t  1: will produce +1 sigma variation\n\t\t\t  2: "
-               "will produce +1 and -1 sigma variation.\n"
-               "\t-S <Seed>        : Used to make reproducible throws. {Default = 1}"
+            "\t-i <stopprocessor.root>     : TChain descriptor for"
+            " input tree. \n"
+            "\t                              Should be the output of RunSelection."
+            "\t-o <outputfile.root>        : Output file to write "
+            "efficiency friend tree to.\n"
+            "\t-C <covmatfile.root,hname>  : Input covariance matrix to "
+            "throw xsec weights from.\n"
+            "\t-N <NThrows>                : Number of throws to make. Special "
+            "cases are "
+            "\t                              1: will produce +1 sigma variation"
+            "\t                              2: will produce +1 and -1 sigma "
+            "variation.\n"
+            "\t-S <Seed>                   : Used to make reproducible "
+            "throws. {Default = 1}"
             << std::endl;
 }
 
@@ -39,9 +44,9 @@ void handleOpts(int argc, char const *argv[]) {
       SayUsage(argv);
       exit(0);
     } else if (std::string(argv[opt]) == "-i") {
-      inpfile = argv[++opt];
+      InputDepostisSummaryFile = argv[++opt];
     } else if (std::string(argv[opt]) == "-o") {
-      oupfile = argv[++opt];
+      OutputFile = argv[++opt];
     } else if (std::string(argv[opt]) == "-C") {
       std::vector<std::string> params =
           ParseToVect<std::string>(argv[++opt], ",");
@@ -87,9 +92,9 @@ int main(int argc, char const *argv[]) {
     }
   }
 
-  EDep edr("EDeps", inpfile);
+  EDep edr("EDeps", InputDepostisSummaryFile);
 
-  TFile *of = new TFile(oupfile.c_str(), "RECREATE");
+  TFile *of = new TFile(OutputFile.c_str(), "RECREATE");
   TTree *friendtree = new TTree("XSecWeights", "");
   TTree *configtree = new TTree("ConfigTree", "");
   TTree *throwConfigtree = new TTree("ThrowConfigTree", "");

@@ -5,13 +5,19 @@
 #include <algorithm>
 
 SimConfig::SimConfig() : tree(nullptr), NFiles(0), NEntries(0), CEnt(0) {}
-SimConfig::SimConfig(std::string const &treeName, std::string const &inputFile) {
+SimConfig::SimConfig(std::string const &treeName, std::string const &inputFile) : SimConfig() {
 
     tree = OpenTChainWithFileList(treeName, inputFile);
 
+    if(!tree){
+      std::cout << "[SimConfig]: Failed to read input tree from "
+        "file." << std::endl;
+        throw;
+    }
+
     NEntries = tree->GetEntries();
     SetBranchAddresses();
-    std::cout << "[SimConfig]: Loaded TChain with " << NEntries 
+    std::cout << "[SimConfig]: Loaded TChain with " << NEntries
       << " entries." << std::endl;
     GetEntry(0);
   }

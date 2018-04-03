@@ -1,6 +1,7 @@
 #include "DepoParticle.hxx"
 
 #include <iostream>
+#include <algorithm>
 
 DepoParticle::DepoParticle() {
   PDG = 0;
@@ -203,6 +204,7 @@ DepoTracked::DepoTracked(int PDG, size_t trackID, int NMaxTrackSteps,
     Momentum[st_it] = &_Momentum[st_it * 3];
   }
   NSteps = 0;
+  NSSkippedSteps = 0;
 }
 
 
@@ -213,6 +215,7 @@ void DepoTracked::Swap(DepoTracked &&other) {
   Position = other.Position;
   Momentum = other.Momentum;
   NSteps = other.NSteps;
+  NSSkippedSteps = other.NSSkippedSteps;
 
   other._Position = nullptr;
   other._Momentum = nullptr;
@@ -232,13 +235,36 @@ DepoTracked &DepoTracked::operator=(DepoTracked &&other) {
 
 void DepoTracked::AddStep(double *x, double *p) {
   if (NSteps == kMaxTrackedSteps) {
+    size_t StepsToSkip = kMaxTrackedSteps/10;
+    NSSkippedSteps += StepsToSkip;
+
     std::cout << "[WARN]: Tried to add step number " << NSteps
               << ", but this exceeds the maximum number of steps ("
               << kMaxTrackedSteps
-              << "). Please "
-                 "increase DepoTracked::kMaxTrackedSteps and re-run."
+              << "). Ignoring the first " << StepsToSkip
+              << " tracked steps (Total ignored = "
+              << NSSkippedSteps
+              << "). Please considering increasing NMaxTrackedSteps."
               << std::endl;
-    return;
+
+    double *_Position_hldr = new double[(NSteps-StepsToSkip) * 3];
+    double *_Momentum_hldr = new double[(NSteps-StepsToSkip) * 3];
+    
+    std::copy_n(&_Position[StepsToSkip*3], (NSteps-StepsToSkip)*3,
+      _Position_hldr);
+    std::copy_n(&_Momentum[StepsToSkip*3], (NSteps-StepsToSkip)*3,
+      _Momentum_hldr);
+
+    std::copy_n(_Position_hldr, (NSteps-StepsToSkip)*3, _Position);
+    std::copy_n(_Momentum_hldr, (NSteps-StepsToSkip)*3, _Momentum);
+
+    std::fill_n(&_Position[(NSteps-StepsToSkip)], StepsToSkip * 3, 0xdeadbeef);
+    std::fill_n(&_Momentum[(NSteps-StepsToSkip)], StepsToSkip * 3, 0xdeadbeef);
+
+    delete _Position_hldr;
+    delete _Momentum_hldr;
+
+    NSteps = (NSteps-StepsToSkip);
   }
 
   Position[NSteps][0] = x[0];
