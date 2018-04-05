@@ -304,6 +304,7 @@ int main(int argc, char const *argv[]) {
   std::array<
     std::map<
       DepositsSummary::ProjectionVar, TH2D * >, kNSelLevels> AbsPos_plots;
+  std::array<TH1D *, kNSelLevels> AbsPos_plots1D;
 
   TDirectory *StopDir = of->mkdir("StopPlots");
   TDirectory *SliceDir = of->mkdir("SlicePlots");
@@ -392,6 +393,10 @@ int main(int argc, char const *argv[]) {
         GPVB(DepositsSummary::kETrue).data(),
       (GPVB(DepositsSummary::kERec).size() - 1),
         GPVB(DepositsSummary::kERec).data() );
+    AbsPos_plots1D[sel_it]  = new TH1D((
+        std::string("AbsPos_") + "_" + to_str(gsl(sel_it))).c_str(),
+        (std::string(";") + "Off-axis position (cm);Count").c_str(),
+        400, -3800, 200 );
 
   }
 
@@ -509,6 +514,8 @@ int main(int argc, char const *argv[]) {
       DepSumRdr.GetProjection(DepositsSummary::kETrue),
       DepSumRdr.GetProjection(DepositsSummary::kERec),
       DepSumRdr.stop_weight);
+    AbsPos_plots1D[gi(kUnSelected)]->Fill(DepSumRdr.vtx[0],
+      DepSumRdr.stop_weight);
 
     if(sl == kUnSelected){
       continue;
@@ -527,6 +534,8 @@ int main(int argc, char const *argv[]) {
     Integrated_ERecETrue[gi(sl)]->Fill(
       DepSumRdr.GetProjection(DepositsSummary::kETrue),
       DepSumRdr.GetProjection(DepositsSummary::kERec),
+      DepSumRdr.stop_weight);
+    AbsPos_plots1D[gi(sl)]->Fill(DepSumRdr.vtx[0], 
       DepSumRdr.stop_weight);
 
     if(sl != kSelected){
@@ -547,6 +556,8 @@ int main(int argc, char const *argv[]) {
       DepSumRdr.GetProjection(DepositsSummary::kETrue),
       DepSumRdr.GetProjection(DepositsSummary::kERec),
       DepSumRdr.stop_weight);
+    AbsPos_plots1D[gi(kSelectedMu)]->Fill(DepSumRdr.vtx[0],
+      DepSumRdr.stop_weight);
 
     Stop_ERecETrue[gi(kSelectedHadr)][DepSumRdr.stop]->Fill(
       DepSumRdr.GetProjection(DepositsSummary::kETrue),
@@ -562,7 +573,8 @@ int main(int argc, char const *argv[]) {
       DepSumRdr.GetProjection(DepositsSummary::kETrue),
       DepSumRdr.GetProjection(DepositsSummary::kERec),
       DepSumRdr.stop_weight);
-
+    AbsPos_plots1D[gi(kSelectedHadr)]->Fill(DepSumRdr.vtx[0],
+      DepSumRdr.stop_weight);
 
     Stop_ERecETrue[gi(kCorrected)][DepSumRdr.stop]->Fill(
       DepSumRdr.GetProjection(DepositsSummary::kETrue),
@@ -578,7 +590,8 @@ int main(int argc, char const *argv[]) {
       DepSumRdr.GetProjection(DepositsSummary::kETrue),
       DepSumRdr.GetProjection(DepositsSummary::kERec),
       DepSumRdr.stop_weight * effweight);
-
+    AbsPos_plots1D[gi(kCorrected)]->Fill(DepSumRdr.vtx[0],
+      DepSumRdr.stop_weight * effweight);
   }
 
   of->Write();
