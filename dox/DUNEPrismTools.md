@@ -10,7 +10,10 @@ production.
 
 The structure of the package favors using multiple, focussed tools that perform
 specific tasks and pass meta-data about inputs, processing, and outputs to
-subsequent processing via small `ROOT` `TTree`s.
+subsequent processing via small `ROOT` `TTree`s. Each tool should provide
+a detailed description of its usage if interrogated with `-?`. See the `app`
+directory documentation linked in each section below to see an example of
+the usage text for each app.
 
 Precise terminology used in the analysis is highlighted in the below
 description.
@@ -23,7 +26,7 @@ observable taken under some chosen neutrino flux. The most directly useful
 example uses linear combinations of measurements taken at different off-axis
 angles in the near detector of an LBL experiment to predict distributions of
 far detector observables under different neutrino oscillation hypotheses.
-For more information on PRISM-style analyses see: (arxiv:1412.3086)[https://arxiv.org/pdf/1412.3086.pdf].
+For more information on PRISM-style analyses see: [arxiv:1412.3086](https://arxiv.org/pdf/1412.3086.pdf).
 
 ### Neutrino flux tools
 
@@ -33,6 +36,8 @@ This portion of the tool chain provides tools for interpreting and reducing the
 output of the beam line simulation,
 [`g4lbnf`](https://cdcvs.fnal.gov/redmine/projects/lbne-beamsim/wiki), as well
 as performing the flux fits, which are central to the PRISM analysis technique.
+
+App usage text [here](flux_tools.md).
 
 #### Beam line simulation
 
@@ -46,6 +51,11 @@ two tools are provided.
   * `dp_CombineBuiltFluxes`: Combines the results of multiple `dp_BuildFluxes`
   runs. Useful for sharing the load of processing a large number of `dk2nu`
   files.
+
+To propagate the results of the flux uncertainties, a flux covariance matrix
+helper was developed. However, it is not build by default, it is now out of
+date and needs re-working, the implementation is defined in
+`app/flux_tools/BuildUncertaintyMatrix.cxx`.
 
 #### `dk2nu` tools
 
@@ -94,6 +104,8 @@ currently generates neutrino interactions on a very wide block of liquid argon
 (LAr) and a post-processing stage splits the output of this simulation up into
 more realistically sized detector observations taken at a range of off-axis
 angles.
+
+App usage text [here](sim_tools.md).
 
 #### Interaction simulation
 
@@ -213,3 +225,14 @@ The output of this stage contains the `DepositsSummaryTree` which is the input
 format for the entire analysis chain.
 
 ### PRISM analysis tools
+
+#### Overview
+
+The analysis tools are split into four stages: selection, efficiency correction,
+Systematic assessment, and 'analysis'.
+
+App usage text [here](ana_tools.md).
+
+#### Selection
+
+The `dp_RunSelection` tool
