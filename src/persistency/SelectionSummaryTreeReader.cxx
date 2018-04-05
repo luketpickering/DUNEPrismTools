@@ -4,21 +4,13 @@
 
 #include <algorithm>
 
-SelectionSummary::SelectionSummary() : tree(nullptr), NFiles(0), NEntries(0), CEnt(0) {}
-SelectionSummary::SelectionSummary(std::string const &treeName, std::string const &inputFile) : SelectionSummary() {
+SelectionSummary::SelectionSummary(std::string const &inputFile) {
 
-    tree = OpenTChainWithFileList(treeName, inputFile);
-    if(!tree){
-      std::cout << "[SelectionSummary]: Failed to read input tree from file."
-        << std::endl;
-        throw;
-    }
+    LoadTree(inputFile);
+  }
 
-    NEntries = tree->GetEntries();
-    SetBranchAddresses();
-    std::cout << "[SelectionSummary]: Loaded TChain with " << NEntries
-      << " entries." << std::endl;
-    GetEntry(0);
+  std::string SelectionSummary::TreeName(){
+    return "SelectionSummaryTree";
   }
 
   void SelectionSummary::Reset() {
@@ -32,12 +24,14 @@ SelectionSummary::SelectionSummary(std::string const &treeName, std::string cons
     NNueNC = 0;
     NNuebCC = 0;
     NNuebNC = 0;
+    NOOAcceptance = 0;
     NOOFV = 0;
     NSel = 0;
     SelectOnMuonExit = 0;
     MuonExitKECut_MeV = 0;
     HadronicShowerVetoCut_MeV = 0;
     std::fill_n(VertexSelectionFV,3,0);
+    TotalPOT = 0;
   }
 
   void SelectionSummary::Copy(SelectionSummary const &other) {
@@ -51,74 +45,68 @@ SelectionSummary::SelectionSummary(std::string const &treeName, std::string cons
     NNueNC  = other.NNueNC;
     NNuebCC  = other.NNuebCC;
     NNuebNC  = other.NNuebNC;
+    NOOAcceptance = other.NOOAcceptance;
     NOOFV = other.NOOFV;
     NSel  = other.NSel;
     SelectOnMuonExit  = other.SelectOnMuonExit;
     MuonExitKECut_MeV  = other.MuonExitKECut_MeV;
     HadronicShowerVetoCut_MeV  = other.HadronicShowerVetoCut_MeV;
     std::copy_n(other.VertexSelectionFV,3,VertexSelectionFV);
+    TotalPOT = other.TotalPOT;
   }
 
   void SelectionSummary::SetBranchAddresses() {
-    tree->Branch("NTotal", &NTotal);
-    tree->Branch("NInStops", &NInStops);
-    tree->Branch("NNumuCC", &NNumuCC);
-    tree->Branch("NNumuNC", &NNumuNC);
-    tree->Branch("NNumubCC", &NNumubCC);
-    tree->Branch("NNumubNC", &NNumubNC);
-    tree->Branch("NNueCC", &NNueCC);
-    tree->Branch("NNueNC", &NNueNC);
-    tree->Branch("NNuebCC", &NNuebCC);
-    tree->Branch("NNuebNC", &NNuebNC);
-    tree->Branch("NOOFV", &NOOFV);
-    tree->Branch("NSel", &NSel);
-    tree->Branch("SelectOnMuonExit", &SelectOnMuonExit);
-    tree->Branch("MuonExitKECut_MeV", &MuonExitKECut_MeV);
-    tree->Branch("HadronicShowerVetoCut_MeV",
+    tree->SetBranchAddress("NTotal", &NTotal);
+    tree->SetBranchAddress("NInStops", &NInStops);
+    tree->SetBranchAddress("NNumuCC", &NNumuCC);
+    tree->SetBranchAddress("NNumuNC", &NNumuNC);
+    tree->SetBranchAddress("NNumubCC", &NNumubCC);
+    tree->SetBranchAddress("NNumubNC", &NNumubNC);
+    tree->SetBranchAddress("NNueCC", &NNueCC);
+    tree->SetBranchAddress("NNueNC", &NNueNC);
+    tree->SetBranchAddress("NNuebCC", &NNuebCC);
+    tree->SetBranchAddress("NNuebNC", &NNuebNC);
+    tree->SetBranchAddress("NOOAcceptance", &NOOAcceptance);
+    tree->SetBranchAddress("NOOFV", &NOOFV);
+    tree->SetBranchAddress("NSel", &NSel);
+    tree->SetBranchAddress("SelectOnMuonExit", &SelectOnMuonExit);
+    tree->SetBranchAddress("MuonExitKECut_MeV", &MuonExitKECut_MeV);
+    tree->SetBranchAddress("HadronicShowerVetoCut_MeV",
     &HadronicShowerVetoCut_MeV);
-    tree->Branch("VertexSelectionFV", &VertexSelectionFV);
+    tree->SetBranchAddress("VertexSelectionFV", &VertexSelectionFV);
+    tree->SetBranchAddress("TotalPOT", &TotalPOT);
 
   }
 
-  void SelectionSummary::GetEntry(UInt_t e) {
-    CEnt = e;
-    tree->GetEntry(CEnt);
-  }
-
-  UInt_t SelectionSummary::GetEntry() { return CEnt; }
-  UInt_t SelectionSummary::GetEntries() { return NEntries; }
-
-  SelectionSummary *SelectionSummary::MakeTreeWriter(TTree *tree) {
+  SelectionSummary *SelectionSummary::MakeTreeWriter() {
     SelectionSummary *fdr = new SelectionSummary();
-    tree->Branch("NTotal", &fdr->NTotal, "NTotal/I");
-    tree->Branch("NInStops", &fdr->NInStops, "NInStops/I");
-    tree->Branch("NNumuCC", &fdr->NNumuCC, "NNumuCC/I");
-    tree->Branch("NNumuNC", &fdr->NNumuNC, "NNumuNC/I");
-    tree->Branch("NNumubCC", &fdr->NNumubCC, "NNumubCC/I");
-    tree->Branch("NNumubNC", &fdr->NNumubNC, "NNumubNC/I");
-    tree->Branch("NNueCC", &fdr->NNueCC, "NNueCC/I");
-    tree->Branch("NNueNC", &fdr->NNueNC, "NNueNC/I");
-    tree->Branch("NNuebCC", &fdr->NNuebCC, "NNuebCC/I");
-    tree->Branch("NNuebNC", &fdr->NNuebNC, "NNuebNC/I");
-    tree->Branch("NOOFV", &fdr->NOOFV, "NOOFV/I");
-    tree->Branch("NSel", &fdr->NSel, "NSel/I");
-    tree->Branch("SelectOnMuonExit", &fdr->SelectOnMuonExit,
+    fdr->tree = new TTree(fdr->TreeName().c_str(),"");
+    fdr->TreeOwned = false;
+
+    fdr->tree->Branch("NTotal", &fdr->NTotal, "NTotal/I");
+    fdr->tree->Branch("NInStops", &fdr->NInStops, "NInStops/I");
+    fdr->tree->Branch("NNumuCC", &fdr->NNumuCC, "NNumuCC/I");
+    fdr->tree->Branch("NNumuNC", &fdr->NNumuNC, "NNumuNC/I");
+    fdr->tree->Branch("NNumubCC", &fdr->NNumubCC, "NNumubCC/I");
+    fdr->tree->Branch("NNumubNC", &fdr->NNumubNC, "NNumubNC/I");
+    fdr->tree->Branch("NNueCC", &fdr->NNueCC, "NNueCC/I");
+    fdr->tree->Branch("NNueNC", &fdr->NNueNC, "NNueNC/I");
+    fdr->tree->Branch("NNuebCC", &fdr->NNuebCC, "NNuebCC/I");
+    fdr->tree->Branch("NNuebNC", &fdr->NNuebNC, "NNuebNC/I");
+    fdr->tree->Branch("NOOAcceptance", &fdr->NOOAcceptance, "NOOAcceptance/I");
+    fdr->tree->Branch("NOOFV", &fdr->NOOFV, "NOOFV/I");
+    fdr->tree->Branch("NSel", &fdr->NSel, "NSel/I");
+    fdr->tree->Branch("SelectOnMuonExit", &fdr->SelectOnMuonExit,
     "SelectOnMuonExit/O");
-    tree->Branch("MuonExitKECut_MeV", &fdr->MuonExitKECut_MeV,
+    fdr->tree->Branch("MuonExitKECut_MeV", &fdr->MuonExitKECut_MeV,
     "MuonExitKECut_MeV/D");
-    tree->Branch("HadronicShowerVetoCut_MeV",
+    fdr->tree->Branch("HadronicShowerVetoCut_MeV",
     &fdr->HadronicShowerVetoCut_MeV, "HadronicShowerVetoCut_MeV/D");
-    tree->Branch("VertexSelectionFV", &fdr->VertexSelectionFV,
+    fdr->tree->Branch("VertexSelectionFV", &fdr->VertexSelectionFV,
     "VertexSelectionFV[3]/D");
+    fdr->tree->Branch("TotalPOT", &fdr->TotalPOT, "TotalPOT/D");
     fdr->Reset();
     return fdr;
   }
 
-  void SelectionSummary::ReleaseInputFile(){
-    delete tree;
-    tree = nullptr;
-  }
-
-  SelectionSummary::~SelectionSummary() {
-    delete tree;
-  }
+  SelectionSummary::~SelectionSummary() {}

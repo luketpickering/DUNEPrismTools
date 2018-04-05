@@ -1,34 +1,26 @@
 #ifndef SLICECONFIGTREEREADER_HXX_SEEN
 #define SLICECONFIGTREEREADER_HXX_SEEN
 
-#include "TChain.h"
+#include "ITreeReader.hxx"
 #include "TH1D.h"
 
 #include <string>
 #include <vector>
 
-struct SliceConfig {
+struct SliceConfig : public ITreeReader  {
 
-SliceConfig();
-SliceConfig(std::string const &treeName, std::string const &inputFile);
+SliceConfig(){}
+SliceConfig(std::string const &inputFile);
 
   Double_t XRange[2];
   Double_t Coeff;
 
-  TChain *tree;
-  UInt_t NFiles;
-  UInt_t NEntries;
-  UInt_t CEnt;
+  std::string TreeName();
 
   void Reset();
   void Copy(SliceConfig const &);
 
   void SetBranchAddresses();
-
-  void GetEntry(UInt_t e);
-
-  UInt_t GetEntry();
-  UInt_t GetEntries();
 
   std::vector< std::pair<double,double> > XRanges;
   std::vector<double> Coeffs;
@@ -39,7 +31,7 @@ SliceConfig(std::string const &treeName, std::string const &inputFile);
   static std::pair< std::vector<double>,std::vector<double> >
     BuildXRangeBinsCoeffs(
       std::vector< std::pair<double, double> > const &XRanges,
-      double const *Coeffs);
+      double const *Coeffs, bool SignFlipX=false);
 
   void ReadTree();
 
@@ -51,9 +43,7 @@ SliceConfig(std::string const &treeName, std::string const &inputFile);
 
   TH1D *BuildSliceBinningHelper(std::string const &histName);
 
-  static SliceConfig *MakeTreeWriter(TTree *tree);
-
-  void ReleaseInputFile();
+  static SliceConfig *MakeTreeWriter();
 
   ~SliceConfig();
 };

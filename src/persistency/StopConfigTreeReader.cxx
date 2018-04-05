@@ -4,22 +4,13 @@
 
 #include <algorithm>
 
-StopConfig::StopConfig() : NStops(0), tree(nullptr), NFiles(0), NEntries(0), CEnt(0) {}
-StopConfig::StopConfig(std::string const &treeName, std::string const &inputFile) : StopConfig() {
+  StopConfig::StopConfig(std::string const &inputFile) {
 
-    tree = OpenTChainWithFileList(treeName, inputFile);
+    LoadTree(inputFile);
+  }
 
-    if(!tree){
-      std::cout << "[StopConfig]: Failed to read input tree from "
-        "file." << std::endl;
-        throw;
-    }
-
-    NEntries = tree->GetEntries();
-    SetBranchAddresses();
-    std::cout << "[StopConfig]: Loaded TChain with " << NEntries
-      << " entries." << std::endl;
-    GetEntry(0);
+  std::string StopConfig::TreeName(){
+    return "StopConfigTree";
   }
 
   void StopConfig::Reset() {
@@ -39,16 +30,25 @@ StopConfig::StopConfig(std::string const &treeName, std::string const &inputFile
   }
 
   void StopConfig::DetermineNStops(){
+    if(!TreeOwned){
+      return;
+    }
+    TChain * chain = dynamic_cast<TChain*>(tree);
+    if(!chain){
+      std::cout << "[ERROR]: Failed to cast input TTree to TChain in StopConfig"
+        " when reading inputs." << std::endl;
+      throw;
+    }
     UInt_t FFUUID = std::numeric_limits<UInt_t>::max();
     NStops = 0;
     for(Long64_t cs_it = 0; cs_it < GetEntries(); ++cs_it){
       GetEntry(cs_it);
       if(FFUUID == std::numeric_limits<UInt_t>::max()){
-        FFUUID = tree->GetFile()->GetUniqueID();
+        FFUUID = chain->GetFile()->GetUniqueID();
         NStops++;
       } else {
         // Only read the first file's worth.
-        if(FFUUID != tree->GetFile()->GetUniqueID()){
+        if(FFUUID != chain->GetFile()->GetUniqueID()){
           break;
         } else {
           NStops++;
@@ -64,14 +64,6 @@ StopConfig::StopConfig(std::string const &treeName, std::string const &inputFile
     tree->SetBranchAddress("CenterPosition", &CenterPosition);
     tree->SetBranchAddress("POTExposure", &POTExposure);
   }
-
-  void StopConfig::GetEntry(UInt_t e) {
-    CEnt = e;
-    tree->GetEntry(CEnt);
-  }
-
-  UInt_t StopConfig::GetEntry() { return CEnt; }
-  UInt_t StopConfig::GetEntries() { return NEntries; }
 
   std::vector<BoundingBox> StopConfig::GetStopBoundingBoxes(bool RemoveVeto,
     std::array<double,3> FVReduction){
@@ -99,22 +91,18 @@ StopConfig::StopConfig(std::string const &treeName, std::string const &inputFile
   }
 
 
-  StopConfig *StopConfig::MakeTreeWriter(TTree *tree) {
+  StopConfig *StopConfig::MakeTreeWriter() {
     StopConfig *fdr = new StopConfig();
-    tree->Branch("ActiveMin", &fdr->ActiveMin,"ActiveMin[3]/D");
-    tree->Branch("ActiveMax", &fdr->ActiveMax,"ActiveMax[3]/D");
-    tree->Branch("VetoGap", &fdr->VetoGap,"VetoGap[3]/D");
-    tree->Branch("CenterPosition", &fdr->CenterPosition,"CenterPosition[3]/D");
-    tree->Branch("POTExposure", &fdr->POTExposure,"POTExposure/D");
+    fdr->tree = new TTree(fdr->TreeName().c_str(),"");
+    fdr->TreeOwned = false;
+
+    fdr->tree->Branch("ActiveMin", &fdr->ActiveMin,"ActiveMin[3]/D");
+    fdr->tree->Branch("ActiveMax", &fdr->ActiveMax,"ActiveMax[3]/D");
+    fdr->tree->Branch("VetoGap", &fdr->VetoGap,"VetoGap[3]/D");
+    fdr->tree->Branch("CenterPosition", &fdr->CenterPosition,"CenterPosition[3]/D");
+    fdr->tree->Branch("POTExposure", &fdr->POTExposure,"POTExposure/D");
     fdr->Reset();
     return fdr;
   }
 
-  void StopConfig::ReleaseInputFile(){
-    delete tree;
-    tree = nullptr;
-  }
-
-  StopConfig::~StopConfig() {
-    delete tree;
-  }
+  StopConfig::~StopConfig() {}

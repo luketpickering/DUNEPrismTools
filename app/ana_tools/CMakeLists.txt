@@ -2,9 +2,10 @@ SET(ANA_APPS
   # FluxVarFriendTreeBuilder
   # XSecVarFriendTreeBuilder
   EfficiencyWeightFriendTreeBuilder
-  # PRISMAnalysis
+  PRISMAnalysis
   RunSelection
   ProduceEfficiencyCorrector
+  ProduceDiagnosticPlots
 )
 
 include_directories(${INCLUDE_DIRECTORIES})

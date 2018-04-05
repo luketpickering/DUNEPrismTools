@@ -1,14 +1,14 @@
 #ifndef FLUXFITRESULTSTREEREADER_HXX_SEEN
 #define FLUXFITRESULTSTREEREADER_HXX_SEEN
 
-#include "TChain.h"
+#include "ITreeReader.hxx"
 
 #include <string>
 
-struct FluxFitResultsTreeReader {
+struct FluxFitResultsTreeReader : public ITreeReader {
 
-FluxFitResultsTreeReader();
-FluxFitResultsTreeReader(std::string const &treeName, std::string const &inputFile);
+FluxFitResultsTreeReader(){}
+FluxFitResultsTreeReader(std::string const &inputFile);
 
   Int_t NFluxes;
   Int_t NIterations;
@@ -21,24 +21,14 @@ FluxFitResultsTreeReader(std::string const &treeName, std::string const &inputFi
   Double_t GaussCenter_GeV;
   Double_t GaussWidth_GeV;
 
-  TChain *tree;
-  UInt_t NFiles;
-  UInt_t NEntries;
-  UInt_t CEnt;
+  std::string TreeName();
 
   void Reset();
   void Copy(FluxFitResultsTreeReader const &);
 
   void SetBranchAddresses();
 
-  void GetEntry(UInt_t e);
-
-  UInt_t GetEntry();
-  UInt_t GetEntries();
-
-  static FluxFitResultsTreeReader *MakeTreeWriter(TTree *tree, bool IsGaussFit);
-
-  void ReleaseInputFile();
+  static FluxFitResultsTreeReader *MakeTreeWriter(bool IsGaussFit);
 
   ~FluxFitResultsTreeReader();
 };

@@ -4,22 +4,14 @@
 
 #include <algorithm>
 
-FluxFitResultsTreeReader::FluxFitResultsTreeReader() : tree(nullptr), NFiles(0), NEntries(0), CEnt(0) {}
-FluxFitResultsTreeReader::FluxFitResultsTreeReader(std::string const &treeName, std::string const &inputFile) : FluxFitResultsTreeReader() {
+  FluxFitResultsTreeReader::FluxFitResultsTreeReader(
+    std::string const &inputFile) {
 
-    tree = OpenTChainWithFileList(treeName, inputFile);
+    LoadTree(inputFile);
+  }
 
-    if(!tree){
-      std::cout << "[FluxFitResultsTreeReader]: Failed to read input tree from "
-        "file." << std::endl;
-        throw;
-    }
-
-    NEntries = tree->GetEntries();
-    SetBranchAddresses();
-    std::cout << "[FluxFitResultsTreeReader]: Loaded TChain with " << NEntries
-      << " entries." << std::endl;
-    GetEntry(0);
+  std::string FluxFitResultsTreeReader::TreeName(){
+    return "FluxFitResultsTree";
   }
 
   void FluxFitResultsTreeReader::Reset() {
@@ -66,31 +58,28 @@ FluxFitResultsTreeReader::FluxFitResultsTreeReader(std::string const &treeName, 
 
   }
 
-  void FluxFitResultsTreeReader::GetEntry(UInt_t e) {
-    CEnt = e;
-    tree->GetEntry(CEnt);
-  }
+  FluxFitResultsTreeReader *FluxFitResultsTreeReader::MakeTreeWriter(
+    bool IsGaussFit) {
 
-  UInt_t FluxFitResultsTreeReader::GetEntry() { return CEnt; }
-  UInt_t FluxFitResultsTreeReader::GetEntries() { return NEntries; }
-
-  FluxFitResultsTreeReader *FluxFitResultsTreeReader::MakeTreeWriter(TTree *tree, bool IsGaussFit) {
     FluxFitResultsTreeReader *fdr = new FluxFitResultsTreeReader();
-    tree->Branch("NFluxes", &fdr->NFluxes,"NFluxes/I");
-    tree->Branch("NIterations", &fdr->NIterations,"NIterations/I");
-    tree->Branch("Chi2", &fdr->Chi2,"Chi2/D");
-    tree->Branch("RegularisationPenalty", &fdr->RegularisationPenalty,
+    fdr->tree = new TTree(fdr->TreeName().c_str(),"");
+    fdr->TreeOwned = false;
+
+    fdr->tree->Branch("NFluxes", &fdr->NFluxes,"NFluxes/I");
+    fdr->tree->Branch("NIterations", &fdr->NIterations,"NIterations/I");
+    fdr->tree->Branch("Chi2", &fdr->Chi2,"Chi2/D");
+    fdr->tree->Branch("RegularisationPenalty", &fdr->RegularisationPenalty,
       "RegularisationPenalty/D");
-    tree->Branch("FitRange", &fdr->FitRange,"FitRange[2]/D");
+    fdr->tree->Branch("FitRange", &fdr->FitRange,"FitRange[2]/D");
 
     if(IsGaussFit){
-      tree->Branch("GaussCenter_GeV", &fdr->GaussCenter_GeV,
+      fdr->tree->Branch("GaussCenter_GeV", &fdr->GaussCenter_GeV,
         "GaussCenter_GeV/D");
-      tree->Branch("GaussWidth_GeV", &fdr->GaussWidth_GeV,"GaussWidth_GeV/D");
+      fdr->tree->Branch("GaussWidth_GeV", &fdr->GaussWidth_GeV,"GaussWidth_GeV/D");
     } else {
-      tree->Branch("OutOfRangePenalty", &fdr->OutOfRangePenalty,
+      fdr->tree->Branch("OutOfRangePenalty", &fdr->OutOfRangePenalty,
         "OutOfRangePenalty/D");
-      tree->Branch("NDOverFDFitScaleFactor", &fdr->NDOverFDFitScaleFactor,
+      fdr->tree->Branch("NDOverFDFitScaleFactor", &fdr->NDOverFDFitScaleFactor,
         "NDOverFDFitScaleFactor/D");
     }
 
@@ -98,11 +87,4 @@ FluxFitResultsTreeReader::FluxFitResultsTreeReader(std::string const &treeName, 
     return fdr;
   }
 
-  void FluxFitResultsTreeReader::ReleaseInputFile(){
-    delete tree;
-    tree = nullptr;
-  }
-
-  FluxFitResultsTreeReader::~FluxFitResultsTreeReader() {
-    delete tree;
-  }
+  FluxFitResultsTreeReader::~FluxFitResultsTreeReader() {}

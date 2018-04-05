@@ -9,34 +9,18 @@
       : NXBins(402),
         NMaxTrackSteps(1000),
         timesep_us(0xdeadbeef),
-        EventCode(nullptr),
-        tree(nullptr),
-        NFiles(0),
-        NEntries(0) {}
+        EventCode(nullptr) {}
 
-  CondensedDeposits::CondensedDeposits(std::string const &treeName, std::string const &inputFiles,
+  CondensedDeposits::CondensedDeposits(std::string const &inputFiles,
                     Int_t NXBins, Int_t NMaxTrackSteps,
                     Double_t timesep_us) : CondensedDeposits() {
-
-    tree = OpenTChainWithFileList(treeName, inputFiles, NFiles);
-
-    if(!tree){
-      std::cout << "[CondensedDeposits]: Failed to read input tree from file."
-        << std::endl;
-        throw;
-    }
-
-    NEntries = tree->GetEntries();
 
     this->NXBins = NXBins;
     this->NMaxTrackSteps = NMaxTrackSteps;
     this->timesep_us = timesep_us;
-
     EventCode = nullptr;
-    SetBranchAddresses();
-    std::cout << "[CondensedDeposits]: Loaded TChain with " << NEntries
-    << " entries." << std::endl;
-    GetEntry(0);
+
+    LoadTree(inputFiles);
   }
 
   size_t CondensedDeposits::GetNPassthroughParts() { return NFSParts; }
@@ -66,6 +50,10 @@
     NFSParts++;
     NFSPart4MomEntries += 4;
     return true;
+  }
+
+  std::string CondensedDeposits::TreeName(){
+    return "CondensedDepositsTree";
   }
 
   void CondensedDeposits::Reset() {
@@ -239,14 +227,6 @@
     tree->SetBranchAddress("MuonTrackPos", MuonTrackPos_1D);
     tree->SetBranchAddress("MuonTrackMom", MuonTrackMom_1D);
   }
-
-  void CondensedDeposits::GetEntry(UInt_t e) {
-    CEnt = e;
-    tree->GetEntry(CEnt);
-  }
-
-  UInt_t CondensedDeposits::GetEntry() { return CEnt; }
-  UInt_t CondensedDeposits::GetEntries() { return NEntries; }
 
   void CondensedDeposits::AllocateArrays() {
     LepDep_1D = new Double_t[NXBins * 3 * 3];
@@ -571,10 +551,13 @@
     delete[] MuonTrackMom;
   }
 
-  CondensedDeposits *CondensedDeposits::MakeTreeWriter(TTree *tree, Int_t NXBins,
+  CondensedDeposits *CondensedDeposits::MakeTreeWriter(Int_t NXBins,
                                            Int_t NMaxTrackSteps,
                                            Double_t timesep_us) {
     CondensedDeposits *fdr = new CondensedDeposits();
+    fdr->tree = new TTree(fdr->TreeName().c_str(),"");
+    fdr->TreeOwned = false;
+
     fdr->timesep_us = timesep_us;
 
     fdr->NXBins = NXBins;
@@ -582,181 +565,181 @@
 
     fdr->AllocateArrays();
 
-    tree->Branch("EventNum", &fdr->EventNum, "EventNum/I");
-    tree->Branch("nu_4mom", &fdr->nu_4mom, "nu_4mom[4]/D");
-    tree->Branch("nu_PDG", &fdr->nu_PDG, "nu_PDG/I");
-    tree->Branch("VertexPosition", &fdr->VertexPosition, "VertexPosition[3]/D");
-    tree->Branch("EventCode", &fdr->EventCode);
-    tree->Branch("PrimaryLepPDG", &fdr->PrimaryLepPDG, "PrimaryLepPDG/I");
-    tree->Branch("PrimaryLep_4mom", &fdr->PrimaryLep_4mom,
+    fdr->tree->Branch("EventNum", &fdr->EventNum, "EventNum/I");
+    fdr->tree->Branch("nu_4mom", &fdr->nu_4mom, "nu_4mom[4]/D");
+    fdr->tree->Branch("nu_PDG", &fdr->nu_PDG, "nu_PDG/I");
+    fdr->tree->Branch("VertexPosition", &fdr->VertexPosition, "VertexPosition[3]/D");
+    fdr->tree->Branch("EventCode", &fdr->EventCode);
+    fdr->tree->Branch("PrimaryLepPDG", &fdr->PrimaryLepPDG, "PrimaryLepPDG/I");
+    fdr->tree->Branch("PrimaryLep_4mom", &fdr->PrimaryLep_4mom,
                  "PrimaryLep_4mom[4]/D");
-    tree->Branch("Q2_True", &fdr->Q2_True, "Q2_True/D");
-    tree->Branch("FourMomTransfer_True", &fdr->FourMomTransfer_True,
+    fdr->tree->Branch("Q2_True", &fdr->Q2_True, "Q2_True/D");
+    fdr->tree->Branch("FourMomTransfer_True", &fdr->FourMomTransfer_True,
                  "FourMomTransfer_True[4]/D");
-    tree->Branch("y_True", &fdr->y_True, "y_True/D");
-    tree->Branch("W_Rest", &fdr->W_Rest, "W_Rest/D");
-    tree->Branch("NFSParts", &fdr->NFSParts, "NFSParts/I");
-    tree->Branch("FSPart_PDG", &fdr->FSPart_PDG, "FSPart_PDG[NFSParts]/I");
-    tree->Branch("NFSPart4MomEntries", &fdr->NFSPart4MomEntries,
+    fdr->tree->Branch("y_True", &fdr->y_True, "y_True/D");
+    fdr->tree->Branch("W_Rest", &fdr->W_Rest, "W_Rest/D");
+    fdr->tree->Branch("NFSParts", &fdr->NFSParts, "NFSParts/I");
+    fdr->tree->Branch("FSPart_PDG", &fdr->FSPart_PDG, "FSPart_PDG[NFSParts]/I");
+    fdr->tree->Branch("NFSPart4MomEntries", &fdr->NFSPart4MomEntries,
                  "NFSPart4MomEntries/I");
-    tree->Branch("FSPart_4Mom", &fdr->FSPart_4Mom,
+    fdr->tree->Branch("FSPart_4Mom", &fdr->FSPart_4Mom,
                  "FSPart_4Mom[NFSPart4MomEntries]/D");
-    tree->Branch("NLep", &fdr->NLep, "NLep/I");
-    tree->Branch("NPi0", &fdr->NPi0, "NPi0/I");
-    tree->Branch("NPiC", &fdr->NPiC, "NPiC/I");
-    tree->Branch("NProton", &fdr->NProton, "NProton/I");
-    tree->Branch("NNeutron", &fdr->NNeutron, "NNeutron/I");
-    tree->Branch("NGamma", &fdr->NGamma, "NGamma/I");
-    tree->Branch("NOther", &fdr->NOther, "NOther/I");
-    tree->Branch("NBaryonicRes", &fdr->NBaryonicRes, "NBaryonicRes/I");
-    tree->Branch("NAntiNucleons", &fdr->NAntiNucleons, "NAntiNucleons/I");
-    tree->Branch("EKinPi0_True", &fdr->EKinPi0_True, "EKinPi0_True/D");
-    tree->Branch("EMassPi0_True", &fdr->EMassPi0_True, "EMassPi0_True/D");
-    tree->Branch("EKinPiC_True", &fdr->EKinPiC_True, "EKinPiC_True/D");
-    tree->Branch("EMassPiC_True", &fdr->EMassPiC_True, "EMassPiC_True/D");
-    tree->Branch("EKinProton_True", &fdr->EKinProton_True, "EKinProton_True/D");
-    tree->Branch("EMassProton_True", &fdr->EMassProton_True,
+    fdr->tree->Branch("NLep", &fdr->NLep, "NLep/I");
+    fdr->tree->Branch("NPi0", &fdr->NPi0, "NPi0/I");
+    fdr->tree->Branch("NPiC", &fdr->NPiC, "NPiC/I");
+    fdr->tree->Branch("NProton", &fdr->NProton, "NProton/I");
+    fdr->tree->Branch("NNeutron", &fdr->NNeutron, "NNeutron/I");
+    fdr->tree->Branch("NGamma", &fdr->NGamma, "NGamma/I");
+    fdr->tree->Branch("NOther", &fdr->NOther, "NOther/I");
+    fdr->tree->Branch("NBaryonicRes", &fdr->NBaryonicRes, "NBaryonicRes/I");
+    fdr->tree->Branch("NAntiNucleons", &fdr->NAntiNucleons, "NAntiNucleons/I");
+    fdr->tree->Branch("EKinPi0_True", &fdr->EKinPi0_True, "EKinPi0_True/D");
+    fdr->tree->Branch("EMassPi0_True", &fdr->EMassPi0_True, "EMassPi0_True/D");
+    fdr->tree->Branch("EKinPiC_True", &fdr->EKinPiC_True, "EKinPiC_True/D");
+    fdr->tree->Branch("EMassPiC_True", &fdr->EMassPiC_True, "EMassPiC_True/D");
+    fdr->tree->Branch("EKinProton_True", &fdr->EKinProton_True, "EKinProton_True/D");
+    fdr->tree->Branch("EMassProton_True", &fdr->EMassProton_True,
                  "EMassProton_True/D");
-    tree->Branch("EKinNeutron_True", &fdr->EKinNeutron_True,
+    fdr->tree->Branch("EKinNeutron_True", &fdr->EKinNeutron_True,
                  "EKinNeutron_True/D");
-    tree->Branch("EMassNeutron_True", &fdr->EMassNeutron_True,
+    fdr->tree->Branch("EMassNeutron_True", &fdr->EMassNeutron_True,
                  "EMassNeutron_True/D");
-    tree->Branch("EGamma_True", &fdr->EGamma_True, "EGamma_True/D");
-    tree->Branch("EOther_True", &fdr->EOther_True, "EOther_True/D");
-    tree->Branch("ENonPrimaryLep_True", &fdr->ENonPrimaryLep_True,
+    fdr->tree->Branch("EGamma_True", &fdr->EGamma_True, "EGamma_True/D");
+    fdr->tree->Branch("EOther_True", &fdr->EOther_True, "EOther_True/D");
+    fdr->tree->Branch("ENonPrimaryLep_True", &fdr->ENonPrimaryLep_True,
                  "ENonPrimaryLep_True/D");
-    tree->Branch("KENuclearRemnant_True", &fdr->KENuclearRemnant_True,
+    fdr->tree->Branch("KENuclearRemnant_True", &fdr->KENuclearRemnant_True,
                  "KENuclearRemnant_True/D");
 
-    tree->Branch("TotalFS_3mom", &fdr->TotalFS_3mom, "TotalFS_3mom[3]/D");
-    tree->Branch(
+    fdr->tree->Branch("TotalFS_3mom", &fdr->TotalFS_3mom, "TotalFS_3mom[3]/D");
+    fdr->tree->Branch(
         "LepDep", fdr->LepDep_1D,
         (std::string("LepDep[") + to_str(NXBins) + "][3][3]/D").c_str());
-    tree->Branch(
+    fdr->tree->Branch(
         "HadDep", fdr->HadDep_1D,
         (std::string("HadDep[") + to_str(NXBins) + "][3][3]/D").c_str());
-    tree->Branch(
+    fdr->tree->Branch(
         "ProtonDep", fdr->ProtonDep_1D,
         (std::string("ProtonDep[") + to_str(NXBins) + "][3][3]/D").c_str());
-    tree->Branch(
+    fdr->tree->Branch(
         "NeutronDep", fdr->NeutronDep_1D,
         (std::string("NeutronDep[") + to_str(NXBins) + "][3][3]/D").c_str());
-    tree->Branch(
+    fdr->tree->Branch(
         "NeutronDep_ChrgWSumTime", fdr->NeutronDep_ChrgWSumTime_1D,
         (std::string("NeutronDep_ChrgWSumTime[") + to_str(NXBins) + "][3][3]/D")
             .c_str());
-    tree->Branch(
+    fdr->tree->Branch(
         "PiCDep", fdr->PiCDep_1D,
         (std::string("PiCDep[") + to_str(NXBins) + "][3][3]/D").c_str());
-    tree->Branch(
+    fdr->tree->Branch(
         "Pi0Dep", fdr->Pi0Dep_1D,
         (std::string("Pi0Dep[") + to_str(NXBins) + "][3][3]/D").c_str());
-    tree->Branch(
+    fdr->tree->Branch(
         "OtherDep", fdr->OtherDep_1D,
         (std::string("OtherDep[") + to_str(NXBins) + "][3][3]/D").c_str());
-    tree->Branch("LepDaughterDep", fdr->LepDaughterDep_1D,
+    fdr->tree->Branch("LepDaughterDep", fdr->LepDaughterDep_1D,
                  (std::string("LepDaughterDep[") + to_str(NXBins) + "][3][3]/D")
                      .c_str());
-    tree->Branch("HadDaughterDep", fdr->HadDaughterDep_1D,
+    fdr->tree->Branch("HadDaughterDep", fdr->HadDaughterDep_1D,
                  (std::string("HadDaughterDep[") + to_str(NXBins) + "][3][3]/D")
                      .c_str());
-    tree->Branch(
+    fdr->tree->Branch(
         "ProtonDaughterDep", fdr->ProtonDaughterDep_1D,
         (std::string("ProtonDaughterDep[") + to_str(NXBins) + "][3][3]/D")
             .c_str());
-    tree->Branch(
+    fdr->tree->Branch(
         "NeutronDaughterDep", fdr->NeutronDaughterDep_1D,
         (std::string("NeutronDaughterDep[") + to_str(NXBins) + "][3][3]/D")
             .c_str());
-    tree->Branch("NeutronDaughterDep_ChrgWSumTime",
+    fdr->tree->Branch("NeutronDaughterDep_ChrgWSumTime",
                  fdr->NeutronDaughterDep_ChrgWSumTime_1D,
                  (std::string("NeutronDaughterDep_ChrgWSumTime[") +
                   to_str(NXBins) + "][3][3]/D")
                      .c_str());
-    tree->Branch("PiCDaughterDep", fdr->PiCDaughterDep_1D,
+    fdr->tree->Branch("PiCDaughterDep", fdr->PiCDaughterDep_1D,
                  (std::string("PiCDaughterDep[") + to_str(NXBins) + "][3][3]/D")
                      .c_str());
-    tree->Branch("Pi0DaughterDep", fdr->Pi0DaughterDep_1D,
+    fdr->tree->Branch("Pi0DaughterDep", fdr->Pi0DaughterDep_1D,
                  (std::string("Pi0DaughterDep[") + to_str(NXBins) + "][3][3]/D")
                      .c_str());
-    tree->Branch(
+    fdr->tree->Branch(
         "OtherDaughterDep", fdr->OtherDaughterDep_1D,
         (std::string("OtherDaughterDep[") + to_str(NXBins) + "][3][3]/D")
             .c_str());
 
-    tree->Branch(
+    fdr->tree->Branch(
         "NuclRemDep", fdr->NuclRemDep_1D,
         (std::string("NuclRemDep[") + to_str(NXBins) + "][3][3]/D").c_str());
 
     if (fdr->timesep_us != 0xdeadbeef) {
-      tree->Branch(
+      fdr->tree->Branch(
           "LepDep_timesep", fdr->LepDep_timesep_1D,
           (std::string("LepDep_timesep[") + to_str(NXBins) + "][3][3]/D")
               .c_str());
-      tree->Branch(
+      fdr->tree->Branch(
           "HadDep_timesep", fdr->HadDep_timesep_1D,
           (std::string("HadDep_timesep[") + to_str(NXBins) + "][3][3]/D")
               .c_str());
-      tree->Branch(
+      fdr->tree->Branch(
           "ProtonDep_timesep", fdr->ProtonDep_timesep_1D,
           (std::string("ProtonDep_timesep[") + to_str(NXBins) + "][3][3]/D")
               .c_str());
-      tree->Branch(
+      fdr->tree->Branch(
           "NeutronDep_timesep", fdr->NeutronDep_timesep_1D,
           (std::string("NeutronDep_timesep[") + to_str(NXBins) + "][3][3]/D")
               .c_str());
-      tree->Branch(
+      fdr->tree->Branch(
           "PiCDep_timesep", fdr->PiCDep_timesep_1D,
           (std::string("PiCDep_timesep[") + to_str(NXBins) + "][3][3]/D")
               .c_str());
-      tree->Branch(
+      fdr->tree->Branch(
           "Pi0Dep_timesep", fdr->Pi0Dep_timesep_1D,
           (std::string("Pi0Dep_timesep[") + to_str(NXBins) + "][3][3]/D")
               .c_str());
-      tree->Branch(
+      fdr->tree->Branch(
           "OtherDep_timesep", fdr->OtherDep_timesep_1D,
           (std::string("OtherDep_timesep[") + to_str(NXBins) + "][3][3]/D")
               .c_str());
-      tree->Branch("LepDaughterDep_timesep", fdr->LepDaughterDep_timesep_1D,
+      fdr->tree->Branch("LepDaughterDep_timesep", fdr->LepDaughterDep_timesep_1D,
                    (std::string("LepDaughterDep_timesep[") + to_str(NXBins) +
                     "][3][3]/D")
                        .c_str());
-      tree->Branch("HadDaughterDep_timesep", fdr->HadDaughterDep_timesep_1D,
+      fdr->tree->Branch("HadDaughterDep_timesep", fdr->HadDaughterDep_timesep_1D,
                    (std::string("HadDaughterDep_timesep[") + to_str(NXBins) +
                     "][3][3]/D")
                        .c_str());
-      tree->Branch("ProtonDaughterDep_timesep",
+      fdr->tree->Branch("ProtonDaughterDep_timesep",
                    fdr->ProtonDaughterDep_timesep_1D,
                    (std::string("ProtonDaughterDep_timesep[") + to_str(NXBins) +
                     "][3][3]/D")
                        .c_str());
-      tree->Branch("NeutronDaughterDep_timesep",
+      fdr->tree->Branch("NeutronDaughterDep_timesep",
                    fdr->NeutronDaughterDep_timesep_1D,
                    (std::string("NeutronDaughterDep_timesep[") +
                     to_str(NXBins) + "][3][3]/D")
                        .c_str());
-      tree->Branch("PiCDaughterDep_timesep", fdr->PiCDaughterDep_timesep_1D,
+      fdr->tree->Branch("PiCDaughterDep_timesep", fdr->PiCDaughterDep_timesep_1D,
                    (std::string("PiCDaughterDep_timesep[") + to_str(NXBins) +
                     "][3][3]/D")
                        .c_str());
-      tree->Branch("Pi0DaughterDep_timesep", fdr->Pi0DaughterDep_timesep_1D,
+      fdr->tree->Branch("Pi0DaughterDep_timesep", fdr->Pi0DaughterDep_timesep_1D,
                    (std::string("Pi0DaughterDep_timesep[") + to_str(NXBins) +
                     "][3][3]/D")
                        .c_str());
-      tree->Branch("OtherDaughterDep_timesep", fdr->OtherDaughterDep_timesep_1D,
+      fdr->tree->Branch("OtherDaughterDep_timesep", fdr->OtherDaughterDep_timesep_1D,
                    (std::string("OtherDaughterDep_timesep[") + to_str(NXBins) +
                     "][3][3]/D")
                        .c_str());
     }
 
-    tree->Branch("NMuonTrackSteps", &fdr->NMuonTrackSteps, "NMuonTrackSteps/I");
+    fdr->tree->Branch("NMuonTrackSteps", &fdr->NMuonTrackSteps, "NMuonTrackSteps/I");
 
-    tree->Branch(
+    fdr->tree->Branch(
         "MuonTrackPos", fdr->MuonTrackPos_1D,
         (std::string("MuonTrackPos[") + to_str(NMaxTrackSteps) + "][3]/D")
             .c_str());
 
-    tree->Branch(
+    fdr->tree->Branch(
         "MuonTrackMom", fdr->MuonTrackMom_1D,
         (std::string("MuonTrackMom[") + to_str(NMaxTrackSteps) + "][3]/D")
             .c_str());
@@ -765,6 +748,7 @@
   }
 
   CondensedDeposits::~CondensedDeposits() {
-    delete tree;
-    DeAllocateArrays();
+    if(TreeOwned){
+      DeAllocateArrays();
+    }
   }

@@ -6,38 +6,82 @@
 #include <utility>
 #include <iostream>
 
-  DepositsSummary::DepositsSummary() : tree(nullptr), timesep_us(0xdeadbeef), EventCode(nullptr) {}
-  DepositsSummary::DepositsSummary(std::string const &treeName, std::string const &inputFiles,
+
+  double DepositsSummary::GetProjection(DepositsSummary::ProjectionVar pv) const
+    {
+    switch(pv){
+      case kETrue:{
+        return nu_4mom[3];
+      }
+      case kEAvail_True:{
+        return ERecProxy_True;
+      }
+      case kEHadr_True:{
+        return ERecProxy_True - PrimaryLep_4mom[3];
+      }
+      case kEFSLep_True:{
+        return PrimaryLep_4mom[3];
+      }
+      case kEHadr_vis:{
+        return TotalNonlep_Dep_FV + TotalNonlep_Dep_veto;
+      }
+      case kEHadrLate_vis:{
+        return TotalNonlep_Dep_timesep_FV + TotalNonlep_Dep_timesep_veto;
+      }
+      case kEHadrAll_vis:{
+        return TotalNonlep_Dep_FV + TotalNonlep_Dep_veto
+          + TotalNonlep_Dep_timesep_FV + TotalNonlep_Dep_timesep_veto;
+      }
+      case kEFSLep_vis:{
+        return LepDep_FV + LepDep_veto;
+      }
+      case kEFSLepLate_vis:{
+        return LepDep_timesep_FV + LepDep_timesep_veto;
+      }
+      case kEFSLepAll_vis:{
+        return LepDep_FV + LepDep_veto + LepDep_timesep_FV + LepDep_timesep_veto;
+      }
+      case kEFSLepAndDescendents_vis:{
+        return LepDep_FV + LepDep_veto + LepDepDescendent_FV + LepDepDescendent_veto;
+      }
+      case kEFSLepAndDescendentsLate_vis:{
+        return LepDep_timesep_FV + LepDep_timesep_veto +
+          LepDepDescendent_timesep_FV + LepDepDescendent_timesep_veto;
+      }
+      case kEFSLepAndDescendentsAll_vis:{
+        return LepDep_FV + LepDep_veto + LepDep_timesep_FV + LepDep_timesep_veto
+          + LepDepDescendent_FV + LepDepDescendent_veto
+          + LepDepDescendent_timesep_FV + LepDepDescendent_timesep_veto;
+      }
+      case kERec:{
+        return GetProjection(kEFSLep_True) + GetProjection(kEHadr_vis);
+      }
+      case kERecResidual:{
+        return GetProjection(kERec) - GetProjection(kETrue);
+      }
+      case kERecBias:{
+        return GetProjection(kERecResidual) / GetProjection(kETrue);
+      }
+      case kNProjectionVars:
+      default: {
+        return 0;
+      }
+    }
+  }
+
+  DepositsSummary::DepositsSummary() : timesep_us(0xdeadbeef),
+    EventCode(nullptr) {}
+  DepositsSummary::DepositsSummary(std::string const &inputFiles,
        double timesep_us, bool IsLite)
       : DepositsSummary() {
-
-    tree = OpenTChainWithFileList(treeName, inputFiles, NFiles);
-
-    if(!tree){
-      std::cout << "[DepositsSummary]: Failed to read input tree from file." 
-        << std::endl;
-        throw;
-    }
-
 
     this->timesep_us = timesep_us;
     this->IsLite = IsLite;
 
-    NEntries = tree->GetEntries();
-    SetBranchAddresses();
-    std::cout << "[DepositsSummary]: Loaded TChain with " << NEntries
-      << " entries." << std::endl;
-    GetEntry(0);
-  }
-  void DepositsSummary::GetEntry(UInt_t e) {
-    CEnt = e;
-    tree->GetEntry(CEnt);
+    LoadTree(inputFiles);
   }
 
-  UInt_t DepositsSummary::GetEntry() { return CEnt; }
-  UInt_t DepositsSummary::GetEntries() { return NEntries; }
-
-  DepositsSummary::~DepositsSummary() { delete tree; };
+  DepositsSummary::~DepositsSummary() {};
 
   size_t DepositsSummary::GetNPassthroughParts() { return NFSParts; }
 
@@ -66,6 +110,10 @@
     NFSParts++;
     NFSPart4MomEntries += 4;
     return true;
+  }
+
+  std::string DepositsSummary::TreeName(){
+    return "DepositsSummaryTree";
   }
 
   void DepositsSummary::Reset() {
@@ -275,190 +323,194 @@
     PrimaryLeptonContainedInFV = other.PrimaryLeptonContainedInFV;
   }
 
-  DepositsSummary *DepositsSummary::MakeTreeWriter(TTree *OutputTree, double timesep_us,
+  DepositsSummary *DepositsSummary::MakeTreeWriter(double timesep_us,
                               bool IsLite) {
+
     DepositsSummary *rtn = new DepositsSummary();
+    rtn->tree = new TTree(rtn->TreeName().c_str(),"");
+    rtn->TreeOwned = false;
+
     rtn->timesep_us = timesep_us;
     rtn->IsLite = IsLite;
 
-    OutputTree->Branch("stop", &rtn->stop, "stop/I");
-    OutputTree->Branch("stop_weight", &rtn->stop_weight, "stop_weight/D");
-    OutputTree->Branch("POT_weight", &rtn->POT_weight, "POT_weight/D");
+    rtn->tree->Branch("stop", &rtn->stop, "stop/I");
+    rtn->tree->Branch("stop_weight", &rtn->stop_weight, "stop_weight/D");
+    rtn->tree->Branch("POT_weight", &rtn->POT_weight, "POT_weight/D");
 
-    OutputTree->Branch("vtx", &rtn->vtx, "vtx[3]/D");
-    OutputTree->Branch("vtxInDetX", &rtn->vtxInDetX, "vtxInDetX/D");
-    OutputTree->Branch("XOffset", &rtn->XOffset, "XOffset/D");
-    OutputTree->Branch("EventCode", &rtn->EventCode);
-    OutputTree->Branch("GENIEInteractionTopology",
+    rtn->tree->Branch("vtx", &rtn->vtx, "vtx[3]/D");
+    rtn->tree->Branch("vtxInDetX", &rtn->vtxInDetX, "vtxInDetX/D");
+    rtn->tree->Branch("XOffset", &rtn->XOffset, "XOffset/D");
+    rtn->tree->Branch("EventCode", &rtn->EventCode);
+    rtn->tree->Branch("GENIEInteractionTopology",
                        &rtn->GENIEInteractionTopology);
 
-    OutputTree->Branch("nu_4mom", &rtn->nu_4mom, "nu_4mom[4]/D");
+    rtn->tree->Branch("nu_4mom", &rtn->nu_4mom, "nu_4mom[4]/D");
     if (!IsLite) {
-      OutputTree->Branch("y_True", &rtn->y_True, "y_True/D");
-      OutputTree->Branch("W_Rest", &rtn->W_Rest, "W_Rest/D");
-      OutputTree->Branch("Q2_True", &rtn->Q2_True, "Q2_True/D");
-      OutputTree->Branch("FourMomTransfer_True", &rtn->FourMomTransfer_True,
+      rtn->tree->Branch("y_True", &rtn->y_True, "y_True/D");
+      rtn->tree->Branch("W_Rest", &rtn->W_Rest, "W_Rest/D");
+      rtn->tree->Branch("Q2_True", &rtn->Q2_True, "Q2_True/D");
+      rtn->tree->Branch("FourMomTransfer_True", &rtn->FourMomTransfer_True,
                          "FourMomTransfer_True[4]/D");
     }
 
-    OutputTree->Branch("nu_PDG", &rtn->nu_PDG, "nu_PDG/I");
-    OutputTree->Branch("PrimaryLepPDG", &rtn->PrimaryLepPDG, "PrimaryLepPDG/I");
-    OutputTree->Branch("PrimaryLep_4mom", &rtn->PrimaryLep_4mom,
+    rtn->tree->Branch("nu_PDG", &rtn->nu_PDG, "nu_PDG/I");
+    rtn->tree->Branch("PrimaryLepPDG", &rtn->PrimaryLepPDG, "PrimaryLepPDG/I");
+    rtn->tree->Branch("PrimaryLep_4mom", &rtn->PrimaryLep_4mom,
                        "PrimaryLep_4mom[4]/D");
 
     if (!IsLite) {
-      OutputTree->Branch("NFSParts", &rtn->NFSParts, "NFSParts/I");
-      OutputTree->Branch("FSPart_PDG", &rtn->FSPart_PDG,
+      rtn->tree->Branch("NFSParts", &rtn->NFSParts, "NFSParts/I");
+      rtn->tree->Branch("FSPart_PDG", &rtn->FSPart_PDG,
                          "FSPart_PDG[NFSParts]/I");
-      OutputTree->Branch("NFSPart4MomEntries", &rtn->NFSPart4MomEntries,
+      rtn->tree->Branch("NFSPart4MomEntries", &rtn->NFSPart4MomEntries,
                          "NFSPart4MomEntries/I");
-      OutputTree->Branch("FSPart_4Mom", &rtn->FSPart_4Mom,
+      rtn->tree->Branch("FSPart_4Mom", &rtn->FSPart_4Mom,
                          "FSPart_4Mom[NFSPart4MomEntries]/D");
 
-      OutputTree->Branch("NLep", &rtn->NLep, "NLep/I");
-      OutputTree->Branch("NPi0", &rtn->NPi0, "NPi0/I");
-      OutputTree->Branch("NPiC", &rtn->NPiC, "NPiC/I");
-      OutputTree->Branch("NProton", &rtn->NProton, "NProton/I");
-      OutputTree->Branch("NNeutron", &rtn->NNeutron, "NNeutron/I");
-      OutputTree->Branch("NGamma", &rtn->NGamma, "NGamma/I");
-      OutputTree->Branch("NOther", &rtn->NOther, "NOther/I");
-      OutputTree->Branch("NBaryonicRes", &rtn->NBaryonicRes, "NBaryonicRes/I");
-      OutputTree->Branch("NAntiNucleons", &rtn->NAntiNucleons,
+      rtn->tree->Branch("NLep", &rtn->NLep, "NLep/I");
+      rtn->tree->Branch("NPi0", &rtn->NPi0, "NPi0/I");
+      rtn->tree->Branch("NPiC", &rtn->NPiC, "NPiC/I");
+      rtn->tree->Branch("NProton", &rtn->NProton, "NProton/I");
+      rtn->tree->Branch("NNeutron", &rtn->NNeutron, "NNeutron/I");
+      rtn->tree->Branch("NGamma", &rtn->NGamma, "NGamma/I");
+      rtn->tree->Branch("NOther", &rtn->NOther, "NOther/I");
+      rtn->tree->Branch("NBaryonicRes", &rtn->NBaryonicRes, "NBaryonicRes/I");
+      rtn->tree->Branch("NAntiNucleons", &rtn->NAntiNucleons,
                          "NAntiNucleons/I");
 
-      OutputTree->Branch("EKinPi0_True", &rtn->EKinPi0_True, "EKinPi0_True/D");
-      OutputTree->Branch("EMassPi0_True", &rtn->EMassPi0_True,
+      rtn->tree->Branch("EKinPi0_True", &rtn->EKinPi0_True, "EKinPi0_True/D");
+      rtn->tree->Branch("EMassPi0_True", &rtn->EMassPi0_True,
                          "EMassPi0_True/D");
-      OutputTree->Branch("EKinPiC_True", &rtn->EKinPiC_True, "EKinPiC_True/D");
-      OutputTree->Branch("EMassPiC_True", &rtn->EMassPiC_True,
+      rtn->tree->Branch("EKinPiC_True", &rtn->EKinPiC_True, "EKinPiC_True/D");
+      rtn->tree->Branch("EMassPiC_True", &rtn->EMassPiC_True,
                          "EMassPiC_True/D");
-      OutputTree->Branch("EKinProton_True", &rtn->EKinProton_True,
+      rtn->tree->Branch("EKinProton_True", &rtn->EKinProton_True,
                          "EKinProton_True/D");
-      OutputTree->Branch("EMassProton_True", &rtn->EMassProton_True,
+      rtn->tree->Branch("EMassProton_True", &rtn->EMassProton_True,
                          "EMassProton_True/D");
-      OutputTree->Branch("EKinNeutron_True", &rtn->EKinNeutron_True,
+      rtn->tree->Branch("EKinNeutron_True", &rtn->EKinNeutron_True,
                          "EKinNeutron_True/D");
-      OutputTree->Branch("EMassNeutron_True", &rtn->EMassNeutron_True,
+      rtn->tree->Branch("EMassNeutron_True", &rtn->EMassNeutron_True,
                          "EMassNeutron_True/D");
-      OutputTree->Branch("EGamma_True", &rtn->EGamma_True, "EGamma_True/D");
-      OutputTree->Branch("EOther_True", &rtn->EOther_True, "EOther_True/D");
+      rtn->tree->Branch("EGamma_True", &rtn->EGamma_True, "EGamma_True/D");
+      rtn->tree->Branch("EOther_True", &rtn->EOther_True, "EOther_True/D");
     }
 
-    OutputTree->Branch("Total_ENonPrimaryLep_True",
+    rtn->tree->Branch("Total_ENonPrimaryLep_True",
                        &rtn->Total_ENonPrimaryLep_True,
                        "Total_ENonPrimaryLep_True/D");
-    OutputTree->Branch("TotalFS_3mom", &rtn->TotalFS_3mom, "TotalFS_3mom[3]/D");
-    OutputTree->Branch("ENonPrimaryLep_KinNucleonTotalOther_True",
+    rtn->tree->Branch("TotalFS_3mom", &rtn->TotalFS_3mom, "TotalFS_3mom[3]/D");
+    rtn->tree->Branch("ENonPrimaryLep_KinNucleonTotalOther_True",
                        &rtn->ENonPrimaryLep_KinNucleonTotalOther_True,
                        "ENonPrimaryLep_KinNucleonTotalOther_True/D");
-    OutputTree->Branch("ERecProxy_True", &rtn->ERecProxy_True,
+    rtn->tree->Branch("ERecProxy_True", &rtn->ERecProxy_True,
                        "ERecProxy_True/D");
 
-    OutputTree->Branch("LepDep_FV", &rtn->LepDep_FV, "LepDep_FV/D");
-    OutputTree->Branch("LepDep_veto", &rtn->LepDep_veto, "LepDep_veto/D");
-    OutputTree->Branch("LepDepDescendent_FV", &rtn->LepDepDescendent_FV,
+    rtn->tree->Branch("LepDep_FV", &rtn->LepDep_FV, "LepDep_FV/D");
+    rtn->tree->Branch("LepDep_veto", &rtn->LepDep_veto, "LepDep_veto/D");
+    rtn->tree->Branch("LepDepDescendent_FV", &rtn->LepDepDescendent_FV,
                        "LepDepDescendent_FV/D");
-    OutputTree->Branch("LepDepDescendent_veto", &rtn->LepDepDescendent_veto,
+    rtn->tree->Branch("LepDepDescendent_veto", &rtn->LepDepDescendent_veto,
                        "LepDepDescendent_veto/D");
-    OutputTree->Branch("ProtonDep_FV", &rtn->ProtonDep_FV, "ProtonDep_FV/D");
-    OutputTree->Branch("ProtonDep_veto", &rtn->ProtonDep_veto,
+    rtn->tree->Branch("ProtonDep_FV", &rtn->ProtonDep_FV, "ProtonDep_FV/D");
+    rtn->tree->Branch("ProtonDep_veto", &rtn->ProtonDep_veto,
                        "ProtonDep_veto/D");
-    OutputTree->Branch("NeutronDep_FV", &rtn->NeutronDep_FV, "NeutronDep_FV/D");
-    OutputTree->Branch("NeutronDep_ChrgWAvgTime_FV",
+    rtn->tree->Branch("NeutronDep_FV", &rtn->NeutronDep_FV, "NeutronDep_FV/D");
+    rtn->tree->Branch("NeutronDep_ChrgWAvgTime_FV",
                        &rtn->NeutronDep_ChrgWAvgTime_FV,
                        "NeutronDep_ChrgWAvgTime_FV/D");
-    OutputTree->Branch("NeutronDep_veto", &rtn->NeutronDep_veto,
+    rtn->tree->Branch("NeutronDep_veto", &rtn->NeutronDep_veto,
                        "NeutronDep_veto/D");
-    OutputTree->Branch("NeutronDep_ChrgWAvgTime_veto",
+    rtn->tree->Branch("NeutronDep_ChrgWAvgTime_veto",
                        &rtn->NeutronDep_ChrgWAvgTime_veto,
                        "NeutronDep_ChrgWAvgTime_veto/D");
-    OutputTree->Branch("PiCDep_FV", &rtn->PiCDep_FV, "PiCDep_FV/D");
-    OutputTree->Branch("PiCDep_veto", &rtn->PiCDep_veto, "PiCDep_veto/D");
-    OutputTree->Branch("Pi0Dep_FV", &rtn->Pi0Dep_FV, "Pi0Dep_FV/D");
-    OutputTree->Branch("Pi0Dep_veto", &rtn->Pi0Dep_veto, "Pi0Dep_veto/D");
-    OutputTree->Branch("OtherDep_FV", &rtn->OtherDep_FV, "OtherDep_FV/D");
-    OutputTree->Branch("OtherDep_veto", &rtn->OtherDep_veto, "OtherDep_veto/D");
+    rtn->tree->Branch("PiCDep_FV", &rtn->PiCDep_FV, "PiCDep_FV/D");
+    rtn->tree->Branch("PiCDep_veto", &rtn->PiCDep_veto, "PiCDep_veto/D");
+    rtn->tree->Branch("Pi0Dep_FV", &rtn->Pi0Dep_FV, "Pi0Dep_FV/D");
+    rtn->tree->Branch("Pi0Dep_veto", &rtn->Pi0Dep_veto, "Pi0Dep_veto/D");
+    rtn->tree->Branch("OtherDep_FV", &rtn->OtherDep_FV, "OtherDep_FV/D");
+    rtn->tree->Branch("OtherDep_veto", &rtn->OtherDep_veto, "OtherDep_veto/D");
 
-    OutputTree->Branch("TotalNonlep_Dep_FV", &rtn->TotalNonlep_Dep_FV,
+    rtn->tree->Branch("TotalNonlep_Dep_FV", &rtn->TotalNonlep_Dep_FV,
                        "TotalNonlep_Dep_FV/D");
-    OutputTree->Branch("TotalNonlep_Dep_veto", &rtn->TotalNonlep_Dep_veto,
+    rtn->tree->Branch("TotalNonlep_Dep_veto", &rtn->TotalNonlep_Dep_veto,
                        "TotalNonlep_Dep_veto/D");
 
     if (rtn->timesep_us != 0xdeadbeef) {
-      OutputTree->Branch("LepDep_timesep_FV", &rtn->LepDep_timesep_FV,
+      rtn->tree->Branch("LepDep_timesep_FV", &rtn->LepDep_timesep_FV,
                          "LepDep_timesep_FV/D");
-      OutputTree->Branch("LepDep_timesep_veto", &rtn->LepDep_timesep_veto,
+      rtn->tree->Branch("LepDep_timesep_veto", &rtn->LepDep_timesep_veto,
                          "LepDep_timesep_veto/D");
-      OutputTree->Branch("LepDepDescendent_timesep_FV",
+      rtn->tree->Branch("LepDepDescendent_timesep_FV",
                          &rtn->LepDepDescendent_timesep_FV,
                          "LepDepDescendent_timesep_FV/D");
-      OutputTree->Branch("LepDepDescendent_timesep_veto",
+      rtn->tree->Branch("LepDepDescendent_timesep_veto",
                          &rtn->LepDepDescendent_timesep_veto,
                          "LepDepDescendent_timesep_veto/D");
-      OutputTree->Branch("ProtonDep_timesep_FV", &rtn->ProtonDep_timesep_FV,
+      rtn->tree->Branch("ProtonDep_timesep_FV", &rtn->ProtonDep_timesep_FV,
                          "ProtonDep_timesep_FV/D");
-      OutputTree->Branch("ProtonDep_timesep_veto", &rtn->ProtonDep_timesep_veto,
+      rtn->tree->Branch("ProtonDep_timesep_veto", &rtn->ProtonDep_timesep_veto,
                          "ProtonDep_timesep_veto/D");
-      OutputTree->Branch("NeutronDep_timesep_FV", &rtn->NeutronDep_timesep_FV,
+      rtn->tree->Branch("NeutronDep_timesep_FV", &rtn->NeutronDep_timesep_FV,
                          "NeutronDep_timesep_FV/D");
-      OutputTree->Branch("NeutronDep_timesep_veto",
+      rtn->tree->Branch("NeutronDep_timesep_veto",
                          &rtn->NeutronDep_timesep_veto,
                          "NeutronDep_timesep_veto/D");
-      OutputTree->Branch("PiCDep_timesep_FV", &rtn->PiCDep_timesep_FV,
+      rtn->tree->Branch("PiCDep_timesep_FV", &rtn->PiCDep_timesep_FV,
                          "PiCDep_timesep_FV/D");
-      OutputTree->Branch("PiCDep_timesep_veto", &rtn->PiCDep_timesep_veto,
+      rtn->tree->Branch("PiCDep_timesep_veto", &rtn->PiCDep_timesep_veto,
                          "PiCDep_timesep_veto/D");
-      OutputTree->Branch("Pi0Dep_timesep_FV", &rtn->Pi0Dep_timesep_FV,
+      rtn->tree->Branch("Pi0Dep_timesep_FV", &rtn->Pi0Dep_timesep_FV,
                          "Pi0Dep_timesep_FV/D");
-      OutputTree->Branch("Pi0Dep_timesep_veto", &rtn->Pi0Dep_timesep_veto,
+      rtn->tree->Branch("Pi0Dep_timesep_veto", &rtn->Pi0Dep_timesep_veto,
                          "Pi0Dep_timesep_veto/D");
-      OutputTree->Branch("OtherDep_timesep_FV", &rtn->OtherDep_timesep_FV,
+      rtn->tree->Branch("OtherDep_timesep_FV", &rtn->OtherDep_timesep_FV,
                          "OtherDep_timesep_FV/D");
-      OutputTree->Branch("OtherDep_timesep_veto", &rtn->OtherDep_timesep_veto,
+      rtn->tree->Branch("OtherDep_timesep_veto", &rtn->OtherDep_timesep_veto,
                          "OtherDep_timesep_veto/D");
 
-      OutputTree->Branch("TotalNonlep_Dep_timesep_FV",
+      rtn->tree->Branch("TotalNonlep_Dep_timesep_FV",
                          &rtn->TotalNonlep_Dep_timesep_FV,
                          "TotalNonlep_Dep_timesep_FV/D");
-      OutputTree->Branch("TotalNonlep_Dep_timesep_veto",
+      rtn->tree->Branch("TotalNonlep_Dep_timesep_veto",
                          &rtn->TotalNonlep_Dep_timesep_veto,
                          "TotalNonlep_Dep_timesep_veto/D");
     }
 
-    OutputTree->Branch("LepExit", &rtn->LepExit, "LepExit/O");
-    OutputTree->Branch("LepExit_AboveThresh", &rtn->LepExit_AboveThresh,
+    rtn->tree->Branch("LepExit", &rtn->LepExit, "LepExit/O");
+    rtn->tree->Branch("LepExit_AboveThresh", &rtn->LepExit_AboveThresh,
                        "LepExit_AboveThresh/O");
     if (!IsLite) {
-      OutputTree->Branch("LepExitBack", &rtn->LepExitBack, "LepExitBack/O");
-      OutputTree->Branch("LepExitFront", &rtn->LepExitFront, "LepExitFront/O");
-      OutputTree->Branch("LepExitYLow", &rtn->LepExitYLow, "LepExitYLow/O");
-      OutputTree->Branch("LepExitYHigh", &rtn->LepExitYHigh, "LepExitYHigh/O");
-      OutputTree->Branch("LepExitXLow", &rtn->LepExitXLow, "LepExitXLow/O");
-      OutputTree->Branch("LepExitXHigh", &rtn->LepExitXHigh, "LepExitXHigh/O");
+      rtn->tree->Branch("LepExitBack", &rtn->LepExitBack, "LepExitBack/O");
+      rtn->tree->Branch("LepExitFront", &rtn->LepExitFront, "LepExitFront/O");
+      rtn->tree->Branch("LepExitYLow", &rtn->LepExitYLow, "LepExitYLow/O");
+      rtn->tree->Branch("LepExitYHigh", &rtn->LepExitYHigh, "LepExitYHigh/O");
+      rtn->tree->Branch("LepExitXLow", &rtn->LepExitXLow, "LepExitXLow/O");
+      rtn->tree->Branch("LepExitXHigh", &rtn->LepExitXHigh, "LepExitXHigh/O");
     }
 
-    OutputTree->Branch("LepExitTopology", &rtn->LepExitTopology,
+    rtn->tree->Branch("LepExitTopology", &rtn->LepExitTopology,
                        "LepExitTopology/I");
 
-    OutputTree->Branch("LepExitKE", &rtn->LepExitKE, "LepExitKE/D");
-    OutputTree->Branch("LepExitingPos", &rtn->LepExitingPos,
+    rtn->tree->Branch("LepExitKE", &rtn->LepExitKE, "LepExitKE/D");
+    rtn->tree->Branch("LepExitingPos", &rtn->LepExitingPos,
                        "LepExitingPos[3]/D");
-    OutputTree->Branch("LepExitingMom", &rtn->LepExitingMom,
+    rtn->tree->Branch("LepExitingMom", &rtn->LepExitingMom,
                        "LepExitingMom[3]/D");
 
-    OutputTree->Branch("IsNumu", &rtn->IsNumu, "IsNumu/O");
-    OutputTree->Branch("IsAntinu", &rtn->IsAntinu, "IsAntinu/O");
-    OutputTree->Branch("IsCC", &rtn->IsCC, "IsCC/O");
-    OutputTree->Branch("Is0Pi", &rtn->Is0Pi, "Is0Pi/O");
-    OutputTree->Branch("Is1PiC", &rtn->Is1PiC, "Is1PiC/O");
-    OutputTree->Branch("Is1Pi0", &rtn->Is1Pi0, "Is1Pi0/O");
-    OutputTree->Branch("Is1Pi", &rtn->Is1Pi, "Is1Pi/O");
-    OutputTree->Branch("IsNPi", &rtn->IsNPi, "IsNPi/O");
-    OutputTree->Branch("IsOther", &rtn->IsOther, "IsOther/O");
-    OutputTree->Branch("Topology", &rtn->Topology, "Topology/I");
-    OutputTree->Branch("HadrShowerContainedInFV", &rtn->HadrShowerContainedInFV,
+    rtn->tree->Branch("IsNumu", &rtn->IsNumu, "IsNumu/O");
+    rtn->tree->Branch("IsAntinu", &rtn->IsAntinu, "IsAntinu/O");
+    rtn->tree->Branch("IsCC", &rtn->IsCC, "IsCC/O");
+    rtn->tree->Branch("Is0Pi", &rtn->Is0Pi, "Is0Pi/O");
+    rtn->tree->Branch("Is1PiC", &rtn->Is1PiC, "Is1PiC/O");
+    rtn->tree->Branch("Is1Pi0", &rtn->Is1Pi0, "Is1Pi0/O");
+    rtn->tree->Branch("Is1Pi", &rtn->Is1Pi, "Is1Pi/O");
+    rtn->tree->Branch("IsNPi", &rtn->IsNPi, "IsNPi/O");
+    rtn->tree->Branch("IsOther", &rtn->IsOther, "IsOther/O");
+    rtn->tree->Branch("Topology", &rtn->Topology, "Topology/I");
+    rtn->tree->Branch("HadrShowerContainedInFV", &rtn->HadrShowerContainedInFV,
                        "HadrShowerContainedInFV/O");
-    OutputTree->Branch("PrimaryLeptonContainedInFV",
+    rtn->tree->Branch("PrimaryLeptonContainedInFV",
                        &rtn->PrimaryLeptonContainedInFV,
                        "PrimaryLeptonContainedInFV/O");
     rtn->Reset();

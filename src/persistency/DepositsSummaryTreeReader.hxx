@@ -1,26 +1,39 @@
 #ifndef DEPOSITSUMMARYTREEREADER_HXX_SEEN
 #define DEPOSITSUMMARYTREEREADER_HXX_SEEN
 
-#include "TChain.h"
+#include "ITreeReader.hxx"
 #include "TObjString.h"
 
 #include <string>
 
 /// Energy deposit and GENIE passthrough output tree
-struct DepositsSummary {
+struct DepositsSummary : public ITreeReader {
+
+  enum ProjectionVar {
+    kETrue = 0,
+    kEAvail_True,
+    kEHadr_True,
+    kEFSLep_True,
+    kEHadr_vis,
+    kEHadrLate_vis,
+    kEHadrAll_vis,
+    kEFSLep_vis,
+    kEFSLepLate_vis,
+    kEFSLepAll_vis,
+    kEFSLepAndDescendents_vis,
+    kEFSLepAndDescendentsLate_vis,
+    kEFSLepAndDescendentsAll_vis,
+    kERec,
+    kERecResidual,
+    kERecBias,
+    kNProjectionVars
+  };
+
+  double GetProjection(ProjectionVar pv) const;
+
   DepositsSummary();
-  DepositsSummary(std::string const &treeName, std::string const &inputFiles,
+  DepositsSummary(std::string const &inputFiles,
        double timesep_us = 0xdeadbeef, bool IsLite = false);
-
-  TChain *tree;
-  UInt_t NFiles;
-  UInt_t NEntries;
-  UInt_t CEnt;
-
-  void GetEntry(UInt_t e);
-
-  UInt_t GetEntry();
-  UInt_t GetEntries();
 
   double timesep_us;
   bool IsLite;
@@ -28,9 +41,7 @@ struct DepositsSummary {
   ~DepositsSummary();
 
   size_t GetNPassthroughParts();
-
   std::pair<Int_t, Double_t *> GetPassthroughPart(size_t i);
-
   bool AddPassthroughPart(Int_t PDG, Double_t *fourmom);
 
   static const Int_t kNMaxPassthroughParts = 100;
@@ -681,13 +692,139 @@ struct DepositsSummary {
   /// LepDep_veto branch.
   bool PrimaryLeptonContainedInFV;
 
+  std::string TreeName();
   void Reset();
 
   void Copy(DepositsSummary const &other);
 
-  static DepositsSummary *MakeTreeWriter(TTree *OutputTree,
-    double timesep_us = 0xdeadbeef, bool IsLite = false);
+  static DepositsSummary *MakeTreeWriter(double timesep_us = 0xdeadbeef,
+    bool IsLite = false);
   void SetBranchAddresses();
 };
+
+inline
+std::string to_str(DepositsSummary::ProjectionVar pv){
+  switch(pv){
+    case DepositsSummary::kETrue:{
+      return "ETrue";
+    }
+    case DepositsSummary::kEAvail_True:{
+      return "EAvail_True";
+    }
+    case DepositsSummary::kEHadr_True:{
+      return "EHadr_True";
+    }
+    case DepositsSummary::kEFSLep_True:{
+      return "EFSLep_True";
+    }
+    case DepositsSummary::kEHadr_vis:{
+      return "EHadr_vis";
+    }
+    case DepositsSummary::kEHadrLate_vis:{
+      return "EHadrLate_vis";
+    }
+    case DepositsSummary::kEHadrAll_vis:{
+      return "EHadrAll_vis";
+    }
+    case DepositsSummary::kEFSLep_vis:{
+      return "EFSLep_vis";
+    }
+    case DepositsSummary::kEFSLepLate_vis:{
+      return "EFSLepLate_vis";
+    }
+    case DepositsSummary::kEFSLepAll_vis:{
+      return "EFSLepAll_vis";
+    }
+    case DepositsSummary::kEFSLepAndDescendents_vis:{
+      return "EFSLepAndDescendents_vis";
+    }
+    case DepositsSummary::kEFSLepAndDescendentsLate_vis:{
+      return "EFSLepAndDescendentsLate_vis";
+    }
+    case DepositsSummary::kEFSLepAndDescendentsAll_vis:{
+      return "EFSLepAndDescendentsAll_vis";
+    }
+    case DepositsSummary::kERec:{
+      return "ERec";
+    }
+    case DepositsSummary::kERecResidual:{
+      return "ERecResidual";
+    }
+    case DepositsSummary::kERecBias:{
+      return "ERecBias";
+    }
+    case DepositsSummary::kNProjectionVars:
+    default: {
+      return "NProjectionVars";
+    }
+  }
+}
+
+inline
+DepositsSummary::ProjectionVar next(DepositsSummary::ProjectionVar pv){
+
+  if(pv == DepositsSummary::kNProjectionVars){
+    return DepositsSummary::kNProjectionVars;
+  }
+  return static_cast<DepositsSummary::ProjectionVar>(static_cast<int>(pv) + 1);
+}
+
+inline
+std::string to_title(DepositsSummary::ProjectionVar pv){
+   switch(pv){
+     case DepositsSummary::kETrue:{
+       return "E_{#nu} (GeV)";
+     }
+     case DepositsSummary::kEAvail_True:{
+       return "E_{Avail.} (GeV)";
+     }
+     case DepositsSummary::kEHadr_True:{
+       return "E_{Hadr., True} (GeV)";
+     }
+     case DepositsSummary::kEFSLep_True:{
+       return "E_{lep} (GeV)";
+     }
+     case DepositsSummary::kEHadr_vis:{
+       return "E_{Hadr., Vis.} (GeV)";
+     }
+     case DepositsSummary::kEHadrLate_vis:{
+       return "E_{Hadr., Vis.}^{slow} (GeV)";
+     }
+     case DepositsSummary::kEHadrAll_vis:{
+       return "E_{Hadr., Vis.}^{fast + slow} (GeV)";
+     }
+     case DepositsSummary::kEFSLep_vis:{
+       return "E_{Lep, Vis.} (GeV)";
+     }
+     case DepositsSummary::kEFSLepLate_vis:{
+       return "E_{Lep, Vis.}^{slow} (GeV)";
+     }
+     case DepositsSummary::kEFSLepAll_vis:{
+       return "E_{Lep, Vis.}^{fast + slow} (GeV)";
+     }
+     case DepositsSummary::kEFSLepAndDescendents_vis:{
+       return "E_{Lep+Desc., Vis.} (GeV)";
+     }
+     case DepositsSummary::kEFSLepAndDescendentsLate_vis:{
+       return "E_{Lep+Desc., Vis.}^{slow} (GeV)";
+     }
+     case DepositsSummary::kEFSLepAndDescendentsAll_vis:{
+       return "E_{Lep+Desc., Vis.}^{fast + slow} (GeV)";
+     }
+     case DepositsSummary::kERec:{
+       return "E_{#nu, Rec.} = E_{Lep, True} + E_{Hadr., Vis.} (GeV)";
+     }
+     case DepositsSummary::kERecResidual:{
+       return "E_{Residual} = E_{#nu, Rec.} - E_{#nu} (GeV)";
+     }
+     case DepositsSummary::kERecBias:{
+       return "E_{Bias} = E_{Residual} / E_{#nu}";
+     }
+     case DepositsSummary::kNProjectionVars:
+     default: {
+       return "NProjectionVars";
+     }
+  }
+}
 
 #endif

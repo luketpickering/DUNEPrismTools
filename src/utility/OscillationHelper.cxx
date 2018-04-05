@@ -35,7 +35,7 @@ OscillationHelper::NuTypes OscillationHelper::GetNuType(int pdg) {
 void OscillationHelper::Setup(std::string const &FileWithConfTree) {
   SetOscillationChannel(14, 14);
 
-  OscillationParameters op("OscConfigTree", FileWithConfTree);
+  OscillationParameters op(FileWithConfTree);
   DipAngle_degrees = op.DipAngle_degrees;
   std::copy_n(op.OscParams,6,OscParams);
 
@@ -96,16 +96,13 @@ double OscillationHelper::GetWeight(double ENu_GeV) {
 
 void OscillationHelper::WriteConfigTree(TFile *f){
   f->cd();
-  TTree *t = new TTree("OscConfigTree","Oscillation parameters used");
-  t->SetDirectory(f);
-
-  OscillationParameters * tw = OscillationParameters::MakeTreeWriter(t);
+  OscillationParameters * tw = OscillationParameters::MakeTreeWriter();
 
   tw->DipAngle_degrees = DipAngle_degrees;
   std::copy_n(OscParams,6,tw->OscParams);
   tw->FromNuPDG = FromPDG;
   tw->ToNuPDG = ToPDG;
 
-  t->Fill();
+  tw->Fill();
 
 }

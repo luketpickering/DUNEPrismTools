@@ -3,14 +3,14 @@
 
 #include "BoundingBox.hxx"
 
-#include "TChain.h"
+#include "ITreeReader.hxx"
 
 #include <string>
 
-struct StopConfig {
+struct StopConfig : public ITreeReader   {
 
-StopConfig();
-StopConfig(std::string const &treeName, std::string const &inputFile);
+StopConfig(){}
+StopConfig(std::string const &inputFile);
 
   Double_t ActiveMin[3];
   Double_t ActiveMax[3];
@@ -19,10 +19,8 @@ StopConfig(std::string const &treeName, std::string const &inputFile);
   Double_t POTExposure;
 
   UInt_t NStops;
-  TChain *tree;
-  UInt_t NFiles;
-  UInt_t NEntries;
-  UInt_t CEnt;
+
+  std::string TreeName();
 
   void Reset();
   void Copy(StopConfig const &);
@@ -30,17 +28,10 @@ StopConfig(std::string const &treeName, std::string const &inputFile);
 
   void SetBranchAddresses();
 
-  void GetEntry(UInt_t e);
-
-  UInt_t GetEntry();
-  UInt_t GetEntries();
-
   std::vector<BoundingBox> GetStopBoundingBoxes(bool RemoveVeto=false,
     std::array<double,3> FVReduction={0,0,0});
 
-  static StopConfig *MakeTreeWriter(TTree *tree);
-
-  void ReleaseInputFile();
+  static StopConfig *MakeTreeWriter();
 
   ~StopConfig();
 };

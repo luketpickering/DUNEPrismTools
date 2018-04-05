@@ -1,5 +1,6 @@
 add_library(DUNE-PRISM_AnaTools
   BoundingBox.cxx
+  EffCorrector.cxx
 )
 
 include_directories(${INCLUDE_DIRECTORIES})

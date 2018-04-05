@@ -4,22 +4,12 @@
 
 #include <algorithm>
 
-OscillationParameters::OscillationParameters() : tree(nullptr), NFiles(0), NEntries(0), CEnt(0) {}
-OscillationParameters::OscillationParameters(std::string const &treeName, std::string const &inputFile) : OscillationParameters() {
+OscillationParameters::OscillationParameters(std::string const &inputFile) {
+    LoadTree(inputFile);
+  }
 
-    tree = OpenTChainWithFileList(treeName, inputFile);
-
-    if(!tree){
-      std::cout << "[OscillationParameters]: Failed to read input tree from "
-        "file." << std::endl;
-        throw;
-    }
-
-    NEntries = tree->GetEntries();
-    SetBranchAddresses();
-    std::cout << "[OscillationParameters]: Loaded TChain with " << NEntries
-      << " entries." << std::endl;
-    GetEntry(0);
+  std::string OscillationParameters::TreeName(){
+    return "OscConfigTree";
   }
 
   void OscillationParameters::Reset() {
@@ -43,29 +33,17 @@ OscillationParameters::OscillationParameters(std::string const &treeName, std::s
     tree->SetBranchAddress("ToNuPDG", &ToNuPDG);
   }
 
-  void OscillationParameters::GetEntry(UInt_t e) {
-    CEnt = e;
-    tree->GetEntry(CEnt);
-  }
-
-  UInt_t OscillationParameters::GetEntry() { return CEnt; }
-  UInt_t OscillationParameters::GetEntries() { return NEntries; }
-
-  OscillationParameters *OscillationParameters::MakeTreeWriter(TTree *tree) {
+  OscillationParameters *OscillationParameters::MakeTreeWriter() {
     OscillationParameters *fdr = new OscillationParameters();
-    tree->Branch("DipAngle_degrees", &fdr->DipAngle_degrees, "DipAngle_degrees/D");
-    tree->Branch("OscParams", &fdr->OscParams, "OscParams[6]/D");
-    tree->Branch("FromNuPDG", &fdr->FromNuPDG, "FromNuPDG/I");
-    tree->Branch("ToNuPDG", &fdr->ToNuPDG, "ToNuPDG/I");
+    fdr->tree = new TTree(fdr->TreeName().c_str(),"");
+    fdr->TreeOwned = false;
+
+    fdr->tree->Branch("DipAngle_degrees", &fdr->DipAngle_degrees, "DipAngle_degrees/D");
+    fdr->tree->Branch("OscParams", &fdr->OscParams, "OscParams[6]/D");
+    fdr->tree->Branch("FromNuPDG", &fdr->FromNuPDG, "FromNuPDG/I");
+    fdr->tree->Branch("ToNuPDG", &fdr->ToNuPDG, "ToNuPDG/I");
     fdr->Reset();
     return fdr;
   }
 
-  void OscillationParameters::ReleaseInputFile(){
-    delete tree;
-    tree = nullptr;
-  }
-
-  OscillationParameters::~OscillationParameters() {
-    delete tree;
-  }
+  OscillationParameters::~OscillationParameters() {}

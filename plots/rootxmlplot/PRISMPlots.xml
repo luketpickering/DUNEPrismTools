@@ -168,7 +168,6 @@
 
         <Legend Position="TopRight" Width="0.45" Height="0.3" Title="" TextScale="0.4" NColumns="1" />
 
-        <!-- <ExternalTH1 rf="Selected.root" sw="1" tn="TruthLinearCombinations/LinCombEProxy" do="CHIST" lc="Variety_1" lw="2" lt="All (E_{#nu})" /> -->
         <ExternalTH1 rf="PRISMPrediction.root" sw="1" tn="LinCombOneShotETrue" do="EHIST" lc="Variety_0" lt="Corrected (E_{#nu})" />
         <ExternalTH1 rf="PRISMPrediction.root" sw="1" tn="LinCombOneShotERec" do="P" lc="Variety_2" mc="Variety_2" mw="0.5" ms="20" lt="Corrected (E_{Rec})" />
 
@@ -186,6 +185,7 @@
         <Legend Position="TopRight" Width="0.45" Height="0.3" Title="" TextScale="0.4" NColumns="1" />
 
         <StackedHist1D>
+          <ExternalTH1 rf="PRISMPrediction.root" tn="Results/FDAcceptanceCorrection_True_HEURSCALE" do="HIST" lc="Variety_4" fc="Variety_4" fs="1000" lt="Acceptance correction" />
           <ExternalTH1 rf="PRISMPrediction.root" tn="Results/FDFluxCorrection_True_HEURSCALE" do="HIST" lc="Variety_2" fc="Variety_2" fs="1000" lt="Flux correction" />
           <ExternalTH1 rf="PRISMPrediction.root" tn="Results/LinCombOneShotETrue_POTScaled_HEURSCALE" do="HIST" lc="Variety_3" fc="Variety_3" fs="1000" lt="ND Data" />
         </StackedHist1D>
@@ -198,6 +198,7 @@
         <Legend Position="TopRight" Width="0.45" Height="0.3" Title="" TextScale="0.4" NColumns="1" />
 
         <StackedHist1D>
+          <ExternalTH1 rf="PRISMPrediction.root" tn="Results/FDAcceptanceCorrection_ERec_HEURSCALE" do="HIST" lc="Variety_4" fc="Variety_4" fs="1000" lt="Acceptance correction" />
           <ExternalTH1 rf="PRISMPrediction.root" tn="Results/FDFluxCorrection_ERec_HEURSCALE" do="HIST" lc="Variety_2" fc="Variety_2" fs="1000" lt="Flux correction" />
           <ExternalTH1 rf="PRISMPrediction.root" tn="Results/LinCombOneShotERec_POTScaled_HEURSCALE" do="HIST" lc="Variety_3" fc="Variety_3" fs="1000" lt="ND Data" />
         </StackedHist1D>

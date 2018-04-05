@@ -11,7 +11,7 @@
 StopDimensions::StopDimensions(std::string &fname) : NYSteps(3),
 NZSteps(3) {
 
-  SimConfig sc("SimConfigTree", fname);
+  SimConfig sc(fname);
 
   NXSteps = sc.NXSteps;
   std::copy_n(sc.DetMin, 3, DetMin);

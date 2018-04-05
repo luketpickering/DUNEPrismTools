@@ -1,14 +1,14 @@
 #ifndef SELECTIONSUMMARYTREEREADER_HXX_SEEN
 #define SELECTIONSUMMARYTREEREADER_HXX_SEEN
 
-#include "TChain.h"
+#include "ITreeReader.hxx"
 
 #include <string>
 
-struct SelectionSummary {
+struct SelectionSummary : public ITreeReader  {
 
-SelectionSummary();
-SelectionSummary(std::string const &treeName, std::string const &inputFile);
+SelectionSummary(){}
+SelectionSummary(std::string const &inputFile);
 
   Int_t NTotal;
   Int_t NInStops;
@@ -21,30 +21,21 @@ SelectionSummary(std::string const &treeName, std::string const &inputFile);
   Int_t NNuebCC;
   Int_t NNuebNC;
   Int_t NOOFV;
+  Int_t NOOAcceptance;
   Int_t NSel;
   Bool_t SelectOnMuonExit;
   Double_t MuonExitKECut_MeV;
   Double_t HadronicShowerVetoCut_MeV;
   Double_t VertexSelectionFV[3];
+  Double_t TotalPOT;
 
-  TChain *tree;
-  UInt_t NFiles;
-  UInt_t NEntries;
-  UInt_t CEnt;
-
+  std::string TreeName();
   void Reset();
   void Copy(SelectionSummary const &);
 
   void SetBranchAddresses();
 
-  void GetEntry(UInt_t e);
-
-  UInt_t GetEntry();
-  UInt_t GetEntries();
-
-  static SelectionSummary *MakeTreeWriter(TTree *tree);
-
-  void ReleaseInputFile();
+  static SelectionSummary *MakeTreeWriter();
 
   ~SelectionSummary();
 };

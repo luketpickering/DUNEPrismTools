@@ -144,9 +144,7 @@ int main(int argc, char* argv[]) {
   // WriteConfigTree
   TFile* outfile = CheckOpenFile(OutputFileName.c_str(), "RECREATE");
 
-  TTree* SimConfigTree = new TTree("SimConfigTree", "Run configuration tree");
-
-  SimConfig *sc = SimConfig::MakeTreeWriter(SimConfigTree);
+  SimConfig *sc = SimConfig::MakeTreeWriter();
   std::copy_n(detdims.DetMin,3,sc->DetMin);
   std::copy_n(detdims.DetMax,3,sc->DetMax);
   std::copy_n(detdims.VetoGap,3,sc->VetoGap);
@@ -154,7 +152,7 @@ int main(int argc, char* argv[]) {
   sc->NMaxTrackSteps = NMaxTrackSteps;
   sc->POTPerFile = POTPerFile;
   sc->timesep_us = timesep_us;
-  SimConfigTree->Fill();
+  sc->Fill();
 
   g4ar.SetNMaxTrackSteps(NMaxTrackSteps);
 
@@ -193,12 +191,8 @@ int main(int argc, char* argv[]) {
   NuclRemDep.LendDepositMaps(detdims.BuildDetectorMap(),
                              detdims.BuildDetectorMap());
 
-  TTree* fdTree =
-      new TTree("CondensedDepositsTree",
-      "G4 and GENIE passthrough information");
-
   CondensedDeposits* fdw = CondensedDeposits::MakeTreeWriter(
-      fdTree, NXSteps, NMaxTrackSteps, timesep_us);
+      NXSteps, NMaxTrackSteps, timesep_us);
 
   g4ar.ResetCurrentEntry();
   g4ar.TrackTimeForPDG(2112);
@@ -726,7 +720,7 @@ int main(int argc, char* argv[]) {
       }
     }
 
-    fdTree->Fill();
+    fdw->Fill();
     nfills++;
 
     if (loudevery && !(evnum % loudevery)) {

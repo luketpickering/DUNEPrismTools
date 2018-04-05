@@ -22,6 +22,7 @@ bool BuildMissingProtonEFakeData = false;
 double HadrVeto = 0;  // GeV
 bool SelMuExit = false;
 double SelMuExitKE = 0;  // GeV
+double HadrVisAcceptance = 0; //GeV
 std::vector<double> ExtraVertexSelectionPadding;
 
 void SayUsage(char const *argv[]) {
@@ -39,6 +40,10 @@ void SayUsage(char const *argv[]) {
          "\t                              non-veto active region "
          "{Default: 0,0,0}.\n"
          "\t-m <muon exit KE>           : Muon exit threshold KE in MeV.\n"
+         "\t-A <EHadrVisMax_GeV>        : Acceptance cut for hadronic shower"
+         " energy. Showers with\n"
+         "\t                              more than this energy are cut and "
+         "filled in by far detector MC.\n"
          "\t-FDproton                   : Build missing proton energy fake "
          "data. This is very hard coded, if you don't know what it is, don't "
          "use it.\n"
@@ -61,6 +66,8 @@ void handleOpts(int argc, char const *argv[]) {
     } else if (std::string(argv[opt]) == "-m") {
       SelMuExitKE = str2T<double>(argv[++opt]) * 1E-3;
       SelMuExit = true;
+    } else if (std::string(argv[opt]) == "-A") {
+      HadrVisAcceptance = str2T<double>(argv[++opt]);
     } else if (std::string(argv[opt]) == "-FDproton") {
       BuildMissingProtonEFakeData = true;
     }
@@ -86,25 +93,20 @@ int main(int argc, char const *argv[]) {
   TH1::SetDefaultSumw2();
   handleOpts(argc, argv);
 
-  bool UseVertexSelectionFV;
   if(!ExtraVertexSelectionPadding.size()){
-    ExtraVertexSelectionPadding.resize(3);
-    std::fill_n(ExtraVertexSelectionPadding.begin(),3,0);
-    UseVertexSelectionFV = false;
-  } else {
-    UseVertexSelectionFV = true;
+      int argc_dum = 3;
+      char const * argv_dum[] = { argv[0], "-FV", "0,0,0"};
+      handleOpts(argc_dum, argv_dum);
   }
 
-  SimConfig simCRdr("SimConfigTree", InputDepostisSummaryFile);
-  StopConfig csRdr("StopConfigTree", InputDepostisSummaryFile);
+  SimConfig simCRdr(InputDepostisSummaryFile);
+  StopConfig csRdr(InputDepostisSummaryFile);
 
-  std::vector<BoundingBox> FVs;
-  if(UseVertexSelectionFV){
-    FVs = csRdr.GetStopBoundingBoxes(true, {ExtraVertexSelectionPadding[0],
-      ExtraVertexSelectionPadding[1],ExtraVertexSelectionPadding[2]});
-  }
+  std::vector<BoundingBox> FVs = csRdr.GetStopBoundingBoxes(true,
+    {ExtraVertexSelectionPadding[0],
+      ExtraVertexSelectionPadding[1], ExtraVertexSelectionPadding[2]});
 
-  DepositsSummary DepSumRdr("DepositsSummaryTree", InputDepostisSummaryFile);
+  DepositsSummary DepSumRdr(InputDepostisSummaryFile);
 
   Double_t ProtonFakeDataWeight = 1;
   if (BuildMissingProtonEFakeData) {
@@ -117,25 +119,22 @@ int main(int argc, char const *argv[]) {
   TFile *of = CheckOpenFile(OutputFile, "RECREATE");
   of->cd();
 
-  TTree *simCTree_copy = new TTree("SimConfigTree", "");
-  TTree *csTree_copy = new TTree("StopConfigTree", "");
-  SimConfig *simCWtr = SimConfig::MakeTreeWriter(simCTree_copy);
-  StopConfig *csWtr = StopConfig::MakeTreeWriter(csTree_copy);
+  SimConfig *simCWtr = SimConfig::MakeTreeWriter();
+  StopConfig *csWtr = StopConfig::MakeTreeWriter();
 
   simCRdr.GetEntry(0);
   simCWtr->Copy(simCRdr);
-  simCTree_copy->Fill();
+  simCWtr->Fill();
 
   csRdr.DetermineNStops();
   for(Long64_t stop_it = 0; stop_it < csRdr.NStops; ++stop_it){
     csRdr.GetEntry(stop_it);
     csWtr->Copy(csRdr);
-    csTree_copy->Fill();
+    csWtr->Fill();
   }
 
   //Selection summary tree
-  TTree *ssTree = new TTree("SelectionSummaryTree", "");
-  SelectionSummary *ss = SelectionSummary::MakeTreeWriter(ssTree);
+  SelectionSummary *ss = SelectionSummary::MakeTreeWriter();
 
   ss->SelectOnMuonExit = SelMuExit;
   ss->MuonExitKECut_MeV = SelMuExitKE*1E3;
@@ -143,12 +142,18 @@ int main(int argc, char const *argv[]) {
   std::copy_n(ExtraVertexSelectionPadding.begin(),3,ss->VertexSelectionFV);
 
   //Selected output tree
-  TTree *OutputDepSumTree = new TTree("DepositsSummaryTree", "");
   DepositsSummary *OutputDepSum =
-    DepositsSummary::MakeTreeWriter(OutputDepSumTree, simCRdr.timesep_us, true);
+    DepositsSummary::MakeTreeWriter(simCRdr.timesep_us, true);
 
   size_t loud_every = DepSumRdr.GetEntries() / 10;
   Long64_t NEntries = DepSumRdr.GetEntries();
+
+  for(Long64_t f_it = 0; f_it < simCRdr.GetEntries(); ++f_it){
+    simCRdr.GetEntry(f_it);
+    ss->TotalPOT += simCRdr.POTPerFile;
+  }
+  std::cout << "[INFO]: Total POT = " << ss->TotalPOT << std::endl;
+
   for (Long64_t e_it = 0; e_it < NEntries; ++e_it) {
     DepSumRdr.GetEntry(e_it);
 
@@ -178,18 +183,29 @@ int main(int argc, char const *argv[]) {
     /// Muon momentum reconstruction.
 
 
-    //Veto and muon selection
-    if ((DepSumRdr.stop < 0) || (SelMuExitKE && (DepSumRdr.LepExitKE < SelMuExitKE)) ||
-        (DepSumRdr.TotalNonlep_Dep_veto > HadrVeto) || (DepSumRdr.PrimaryLepPDG != 13)) {
+    bool NumuInStop = ((DepSumRdr.stop >= 0) && (DepSumRdr.PrimaryLepPDG == 13));
+    if(!NumuInStop){
       continue;
     }
 
-    if(UseVertexSelectionFV){
-      if(!FVs[DepSumRdr.stop].Contains(
-        {DepSumRdr.vtx[0], DepSumRdr.vtx[1], DepSumRdr.vtx[2]} )){
-        ss->NOOFV++;
-        continue;
-      }
+    bool SelMu = ((SelMuExitKE == 0) || (DepSumRdr.LepExitKE > SelMuExitKE));
+    bool SelHadr = (DepSumRdr.TotalNonlep_Dep_veto < HadrVeto);
+    if(!(SelMu && SelHadr)){
+      continue;
+    }
+
+    bool InFV = FVs[DepSumRdr.stop].Contains(
+      {DepSumRdr.vtx[0], DepSumRdr.vtx[1], DepSumRdr.vtx[2]});
+    if(!InFV){
+      ss->NOOFV++;
+      continue;
+    }
+
+    bool HadrAccepted = ((HadrVisAcceptance == 0) ||
+      (DepSumRdr.GetProjection(DepositsSummary::kEHadr_vis) <= HadrVisAcceptance));
+    if(!HadrAccepted){
+      ss->NOOAcceptance++;
+      continue;
     }
 
     if (BuildMissingProtonEFakeData) {
@@ -202,12 +218,12 @@ int main(int argc, char const *argv[]) {
     ss->NSel++;
 
     OutputDepSum->Copy(DepSumRdr);
-    OutputDepSumTree->Fill();
+    OutputDepSum->Fill();
   }
-  ssTree->Fill();
+  ss->Fill();
 
   std::cout << "[INFO]: Selection summary: " << std::endl;
-  ssTree->Show(0);
+  ss->tree->Show(0);
 
   of->Write();
 }

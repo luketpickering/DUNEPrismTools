@@ -4,22 +4,13 @@
 
 #include <algorithm>
 
-SimConfig::SimConfig() : tree(nullptr), NFiles(0), NEntries(0), CEnt(0) {}
-SimConfig::SimConfig(std::string const &treeName, std::string const &inputFile) : SimConfig() {
+SimConfig::SimConfig(std::string const &inputFile) {
 
-    tree = OpenTChainWithFileList(treeName, inputFile);
+    LoadTree(inputFile);
+  }
 
-    if(!tree){
-      std::cout << "[SimConfig]: Failed to read input tree from "
-        "file." << std::endl;
-        throw;
-    }
-
-    NEntries = tree->GetEntries();
-    SetBranchAddresses();
-    std::cout << "[SimConfig]: Loaded TChain with " << NEntries
-      << " entries." << std::endl;
-    GetEntry(0);
+  std::string SimConfig::TreeName(){
+    return "SimConfigTree";
   }
 
   void SimConfig::Reset() {
@@ -52,32 +43,20 @@ SimConfig::SimConfig(std::string const &treeName, std::string const &inputFile) 
     tree->SetBranchAddress("timesep_us", &timesep_us);
   }
 
-  void SimConfig::GetEntry(UInt_t e) {
-    CEnt = e;
-    tree->GetEntry(CEnt);
-  }
-
-  UInt_t SimConfig::GetEntry() { return CEnt; }
-  UInt_t SimConfig::GetEntries() { return NEntries; }
-
-  SimConfig *SimConfig::MakeTreeWriter(TTree *tree) {
+  SimConfig *SimConfig::MakeTreeWriter() {
     SimConfig *fdr = new SimConfig();
-    tree->Branch("NXSteps", &fdr->NXSteps, "NXSteps/I");
-    tree->Branch("DetMin", &fdr->DetMin, "DetMin[3]/D");
-    tree->Branch("DetMax", &fdr->DetMax, "DetMax[3]/D");
-    tree->Branch("VetoGap", &fdr->VetoGap, "VetoGap[3]/D");
-    tree->Branch("NMaxTrackSteps", &fdr->NMaxTrackSteps, "NMaxTrackSteps/I");
-    tree->Branch("POTPerFile", &fdr->POTPerFile, "POTPerFile/D");
-    tree->Branch("timesep_us", &fdr->timesep_us, "timesep_us/D");
+    fdr->tree = new TTree(fdr->TreeName().c_str(),"");
+    fdr->TreeOwned = false;
+
+    fdr->tree->Branch("NXSteps", &fdr->NXSteps, "NXSteps/I");
+    fdr->tree->Branch("DetMin", &fdr->DetMin, "DetMin[3]/D");
+    fdr->tree->Branch("DetMax", &fdr->DetMax, "DetMax[3]/D");
+    fdr->tree->Branch("VetoGap", &fdr->VetoGap, "VetoGap[3]/D");
+    fdr->tree->Branch("NMaxTrackSteps", &fdr->NMaxTrackSteps, "NMaxTrackSteps/I");
+    fdr->tree->Branch("POTPerFile", &fdr->POTPerFile, "POTPerFile/D");
+    fdr->tree->Branch("timesep_us", &fdr->timesep_us, "timesep_us/D");
     fdr->Reset();
     return fdr;
   }
 
-  void SimConfig::ReleaseInputFile(){
-    delete tree;
-    tree = nullptr;
-  }
-
-  SimConfig::~SimConfig() {
-    delete tree;
-  }
+  SimConfig::~SimConfig() {}

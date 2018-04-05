@@ -1,15 +1,15 @@
 #ifndef CONDENSEDTREEREADER_HXX_SEEN
 #define CONDENSEDTREEREADER_HXX_SEEN
 
-#include "TChain.h"
+#include "ITreeReader.hxx"
 #include "TObjString.h"
 
-struct CondensedDeposits {
+struct CondensedDeposits : public ITreeReader {
 
   CondensedDeposits();
 
-  CondensedDeposits(std::string const &treeName, std::string const &inputFiles,
-                    Int_t NXBins = 402, Int_t NMaxTrackSteps = 1000,
+  CondensedDeposits(std::string const &inputFiles,
+    Int_t NXBins = 402, Int_t NMaxTrackSteps = 1000,
                     Double_t timesep_us = 0xdeadbeef);
 
   size_t GetNPassthroughParts();
@@ -183,22 +183,13 @@ struct CondensedDeposits {
   Double_t **MuonTrackPos;
   Double_t **MuonTrackMom;
 
-  TChain *tree;
-  UInt_t NFiles;
-  UInt_t NEntries;
-  UInt_t CEnt;
-
+  std::string TreeName();
   void Reset();
-
   void SetBranchAddresses();
-  void GetEntry(UInt_t e);
-
-  UInt_t GetEntry();
-  UInt_t GetEntries();
 
   void AllocateArrays();
   void DeAllocateArrays();
-  static CondensedDeposits *MakeTreeWriter(TTree *tree, Int_t NXBins,
+  static CondensedDeposits *MakeTreeWriter(Int_t NXBins,
                                            Int_t NMaxTrackSteps,
                                            Double_t timesep_us = 0xdeadbeef);
   ~CondensedDeposits();

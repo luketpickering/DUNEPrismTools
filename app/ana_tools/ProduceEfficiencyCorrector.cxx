@@ -81,7 +81,7 @@ int main(int argc, char const *argv[]) {
     handleOpts(argc_dum, argv_dum);
   }
 
-  StopConfig csRdr("StopConfigTree", InputDepostisSummaryFile);
+  StopConfig csRdr(InputDepostisSummaryFile);
 
   std::vector<BoundingBox> StopActiveRegions = csRdr.GetStopBoundingBoxes(false);
 
@@ -101,7 +101,7 @@ int main(int argc, char const *argv[]) {
   std::cout << "[INFO]: Max DetXRange = " << MaxStopWidth
             << ", Max ToWall = " << (MaxToWall * 1E-2) << std::endl;
 
-  DepositsSummary edr("DepositsSummaryTree", InputDepostisSummaryFile);
+  DepositsSummary edr(InputDepostisSummaryFile);
 
   Double_t ProtonFakeDataWeight = 1;
   if (BuildMissingProtonEFakeData) {
@@ -192,28 +192,28 @@ int main(int argc, char const *argv[]) {
     double ToWall = CalculateToWall(StopActiveRegions[edr.stop],
       TrStr, TrDir) * 1E-2;
 
-    MuonKinematics_all->Fill(edr.PrimaryLep_4mom[3], ToWall,
-                             ProtonFakeDataWeight);
+    MuonKinematics_all->Fill(edr.GetProjection(DepositsSummary::kEFSLep_True),
+      ToWall,ProtonFakeDataWeight);
     MuonKinematics_musel->Fill(
-        edr.PrimaryLep_4mom[3], ToWall,
+        edr.GetProjection(DepositsSummary::kEFSLep_True), ToWall,
         ProtonFakeDataWeight * double(edr.LepExitKE > SelMuExitKE));
 
-    Ehadr_FV_detpos_all->Fill(edr.ERecProxy_True - edr.PrimaryLep_4mom[3],
+    Ehadr_FV_detpos_all->Fill(edr.GetProjection(DepositsSummary::kEHadr_True),
                               edr.vtxInDetX, ProtonFakeDataWeight);
     Ehadr_FV_detpos_hadrsel->Fill(
-        edr.ERecProxy_True - edr.PrimaryLep_4mom[3], edr.vtxInDetX,
+        edr.GetProjection(DepositsSummary::kEHadr_True), edr.vtxInDetX,
         ProtonFakeDataWeight * double(edr.TotalNonlep_Dep_veto < HadrVeto));
 
     EVisHadr_FV_detpos_all->Fill(
-      edr.TotalNonlep_Dep_FV + edr.TotalNonlep_Dep_veto, edr.vtxInDetX,
+      edr.GetProjection(DepositsSummary::kEHadr_vis), edr.vtxInDetX,
       ProtonFakeDataWeight);
     EVisHadr_FV_detpos_hadrsel->Fill(
-      edr.TotalNonlep_Dep_FV + edr.TotalNonlep_Dep_veto, edr.vtxInDetX,
+      edr.GetProjection(DepositsSummary::kEHadr_vis), edr.vtxInDetX,
       ProtonFakeDataWeight * double(edr.TotalNonlep_Dep_veto < HadrVeto));
 
-    Ehadr_FV_abspos_all->Fill(edr.ERecProxy_True - edr.PrimaryLep_4mom[3],
+    Ehadr_FV_abspos_all->Fill(edr.GetProjection(DepositsSummary::kEHadr_True),
       edr.vtx[0], ProtonFakeDataWeight);
-    Ehadr_FV_abspos_hadrsel->Fill(edr.ERecProxy_True - edr.PrimaryLep_4mom[3],
+    Ehadr_FV_abspos_hadrsel->Fill(edr.GetProjection(DepositsSummary::kEHadr_True),
       edr.vtx[0],
       ProtonFakeDataWeight * double(edr.TotalNonlep_Dep_veto < HadrVeto));
   }

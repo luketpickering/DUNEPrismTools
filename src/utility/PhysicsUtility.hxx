@@ -7,7 +7,6 @@
 
 std::string GetSpeciesName(int pdg);
 
-
 struct GENIECodeStringParser {
   int nu_PDG;
   InteractionModel::TrueChannel channel;

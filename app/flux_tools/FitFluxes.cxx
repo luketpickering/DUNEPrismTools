@@ -772,7 +772,7 @@ int main(int argc, char const *argv[]) {
     std::string treeName = InpCoeffDir + "SliceConfigTree";
 
     std::cout << "[INFO]: Reading input previous fit results." << std::endl;
-    SliceConfig sc(treeName, InpCoeffFile);
+    SliceConfig sc(InpCoeffFile);
 
     std::vector< std::pair<double,double> > inpXRanges = sc.GetXRanges();
     std::vector<double> inpCoeffs = sc.GetCoeffs();
@@ -981,19 +981,17 @@ int main(int argc, char const *argv[]) {
   }
 
   // Write out configuration trees.
-  TTree *SliceConfigTree = new TTree("SliceConfigTree", "");
-  SliceConfig *sc = SliceConfig::MakeTreeWriter(SliceConfigTree);
+  SliceConfig *sc = SliceConfig::MakeTreeWriter();
   for(size_t i = 0; i < Fluxes.size(); ++i){
     sc->XRange[0] = XRanges[i].first * 100.0; // Assumes tree written in off-axis position
     sc->XRange[1] = XRanges[i].second * 100.0; // Assumes tree written in off-axis position
     sc->Coeff = coeffs[i];
 
-    SliceConfigTree->Fill();
+    sc->Fill();
   }
 
-  TTree *FluxFitResultsTree = new TTree("FluxFitResultsTree", "");
   FluxFitResultsTreeReader *fr =
-    FluxFitResultsTreeReader::MakeTreeWriter(FluxFitResultsTree, IsGauss);
+    FluxFitResultsTreeReader::MakeTreeWriter(IsGauss);
 
   fr->NFluxes = Fluxes.size();
   fr->NIterations = NCalls;
@@ -1010,10 +1008,10 @@ int main(int argc, char const *argv[]) {
     fr->GaussCenter_GeV = GaussC;
     fr->GaussWidth_GeV = GaussW;
   }
-  FluxFitResultsTree->Fill();
+  fr->Fill();
 
   if (!IsGauss) {
-    OscillationParameters opTree("OscConfigTree", InputTargetFluxFile);
+    OscillationParameters opTree(InputTargetFluxFile);
     TTree *opTree_copy = opTree.tree->CloneTree();
     opTree_copy->SetDirectory(oupF);
   }

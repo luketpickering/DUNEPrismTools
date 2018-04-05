@@ -2,6 +2,8 @@
 #include "StopConfigTreeReader.hxx"
 #include "SelectionSummaryTreeReader.hxx"
 
+#include "EffCorrector.hxx"
+
 #include "StringParserUtility.hxx"
 #include "ROOTUtility.hxx"
 
@@ -43,9 +45,8 @@ void SayUsage(char const *argv[]) {
       << std::endl;
 }
 
-enum EffCorrModeEnum { kEHadrAbsPos = 1, kEHadrDetPos, kEHadrVisDetPos };
 
-EffCorrModeEnum EffCorrMode = kEHadrVisDetPos;
+EffCorrector::ModeEnum EffCorrMode = EffCorrector::kEHadrVisDetPos;
 
 void handleOpts(int argc, char const *argv[]) {
   int opt = 1;
@@ -64,7 +65,7 @@ void handleOpts(int argc, char const *argv[]) {
       SelMuExitKE = str2T<double>(argv[++opt]) * 1E-3;
       SelMuExit = true;
     } else if (std::string(argv[opt]) == "-M") {
-      EffCorrMode = static_cast<EffCorrModeEnum>(str2T<int>(argv[++opt]));
+      EffCorrMode = static_cast<EffCorrector::ModeEnum>(str2T<int>(argv[++opt]));
     } else {
       std::cout << "[ERROR]: Unknown option: " << argv[opt] << std::endl;
       SayUsage(argv);
@@ -78,34 +79,11 @@ int main(int argc, char const *argv[]) {
   TH1::SetDefaultSumw2();
   handleOpts(argc, argv);
 
-  StopConfig csRdr("StopConfigTree", InputDepostisSummaryFile);
-  SelectionSummary ssRdr("SelectionSummaryTree", InputDepostisSummaryFile);
+  StopConfig csRdr(InputDepostisSummaryFile);
 
-  std::vector<BoundingBox> StopActiveRegions = csRdr.GetStopBoundingBoxes(false);
+  EffCorrector EffCorr(EffCorrMode, EffCorrectorFile, csRdr);
 
-  TH2 *MuonKinematics_seleff =
-    GetHistogram<TH2>(EffCorrectorFile, "MuonKinematics_eff");
-  TH2 *ShowerKinematics_seleff = nullptr;
-
-  switch (EffCorrMode) {
-    case kEHadrAbsPos:{
-      ShowerKinematics_seleff =
-        GetHistogram<TH2>(EffCorrectorFile, "Ehadr_FV_abspos_seleff");
-      break;
-    }
-    case kEHadrDetPos:{
-      ShowerKinematics_seleff =
-        GetHistogram<TH2>(EffCorrectorFile, "Ehadr_FV_detpos_seleff");
-      break;
-    }
-    case kEHadrVisDetPos:{
-      ShowerKinematics_seleff =
-        GetHistogram<TH2>(EffCorrectorFile, "EVisHadr_FV_detpos_seleff");
-      break;
-    }
-  }
-
-  DepositsSummary edr("DepositsSummaryTree", InputDepostisSummaryFile);
+  DepositsSummary edr(InputDepostisSummaryFile);
 
   TFile *of = CheckOpenFile(OutputFile, "RECREATE");
 
@@ -141,64 +119,10 @@ int main(int argc, char const *argv[]) {
     }
 
     if (SelMuExit) {
-
-      TVector3 TrStr(edr.vtx[0], edr.vtx[1], edr.vtx[2]);
-      TVector3 TrDir(edr.PrimaryLep_4mom[0], edr.PrimaryLep_4mom[1],
-                     edr.PrimaryLep_4mom[2]);
-      TrDir = TrDir.Unit();
-
-      double MuToWall = CalculateToWall(StopActiveRegions[edr.stop],
-        TrStr, TrDir) * 1E-2;
-
-      Int_t mu_eff_x_bin =
-          MuonKinematics_seleff->GetXaxis()->FindFixBin(edr.PrimaryLep_4mom[3]);
-      Int_t mu_eff_y_bin =
-          MuonKinematics_seleff->GetYaxis()->FindFixBin(MuToWall);
-
-      if (MuonKinematics_seleff->GetBinContent(mu_eff_x_bin, mu_eff_y_bin)) {
-        mueffweight =
-            1.0 /
-            MuonKinematics_seleff->GetBinContent(mu_eff_x_bin, mu_eff_y_bin);
-      } else {
-        mueffweight = 1;
-      }
+      mueffweight = EffCorr.GetMuonKinematicsEffWeight(edr);
     }
 
-
-    Int_t hadr_eff_x_bin = 0;
-    Int_t hadr_eff_y_bin = 0;
-    switch (EffCorrMode) {
-      case kEHadrAbsPos:{
-        hadr_eff_x_bin = ShowerKinematics_seleff->GetXaxis()->FindFixBin(
-            edr.ERecProxy_True - edr.PrimaryLep_4mom[3]);
-        hadr_eff_y_bin =
-            ShowerKinematics_seleff->GetYaxis()->FindFixBin(edr.vtx[0]);
-        break;
-      }
-    case kEHadrDetPos:{
-      hadr_eff_x_bin = ShowerKinematics_seleff->GetXaxis()->FindFixBin(
-          edr.ERecProxy_True - edr.PrimaryLep_4mom[3]);
-      hadr_eff_y_bin =
-          ShowerKinematics_seleff->GetYaxis()->FindFixBin(edr.vtxInDetX);
-      break;
-      }
-    case kEHadrVisDetPos:{
-      hadr_eff_x_bin = ShowerKinematics_seleff->GetXaxis()->FindFixBin(
-          edr.TotalNonlep_Dep_FV + edr.TotalNonlep_Dep_veto);
-      hadr_eff_y_bin =
-          ShowerKinematics_seleff->GetYaxis()->FindFixBin(edr.vtxInDetX);
-      break;
-      }
-    }
-
-    if (ShowerKinematics_seleff->GetBinContent(hadr_eff_x_bin,
-                                              hadr_eff_y_bin)) {
-      hadreffweight = 1.0 /
-                      ShowerKinematics_seleff->GetBinContent(hadr_eff_x_bin,
-                                                            hadr_eff_y_bin);
-    } else {
-      hadreffweight = 1;
-    }
+    hadreffweight = EffCorr.GetHadronKinematicsEffWeight(edr);
 
     effweight = (SelMuExit ? mueffweight : 1) * hadreffweight;
 

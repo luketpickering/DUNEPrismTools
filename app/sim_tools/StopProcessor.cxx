@@ -200,7 +200,7 @@ int main(int argc, char const *argv[]) {
   TH1::SetDefaultSumw2();
   handleOpts(argc, argv);
 
-  SimConfig sc("SimConfigTree",inpDir);
+  SimConfig sc(inpDir);
 
   // If input file does have POTPerFile and no override specified here, use it
   // as the POTPerFile.
@@ -212,7 +212,7 @@ int main(int argc, char const *argv[]) {
   TH3D *DetMap = detdims.BuildDetectorMap();
 
   CondensedDeposits *rdr = new CondensedDeposits(
-      "CondensedDepositsTree", inpDir, sc.NXSteps, sc.NMaxTrackSteps,
+      inpDir, sc.NXSteps, sc.NMaxTrackSteps,
       sc.timesep_us);
 
   if (!rdr->GetEntries()) {
@@ -241,8 +241,7 @@ int main(int argc, char const *argv[]) {
   size_t NDets = DetectorStops.size();
   Detectors.reserve(NDets);
 
-  TTree *StopConfigTree = new TTree("StopConfigTree","");
-  StopConfig *stc = StopConfig::MakeTreeWriter(StopConfigTree);
+  StopConfig *stc = StopConfig::MakeTreeWriter();
 
   for (size_t d_it = 0; d_it < NDets; ++d_it) {
     DetBox db;
@@ -296,7 +295,7 @@ int main(int argc, char const *argv[]) {
     }
     stc->POTExposure = DetectorStops[d_it].POTExposure;
 
-    StopConfigTree->Fill();
+    stc->Fill();
 
     Detectors.push_back(db);
   }
@@ -307,9 +306,8 @@ int main(int argc, char const *argv[]) {
   size_t loud_every = std::min(Long64_t(rdr->GetEntries()), NMax) / 10;
   TRandom3 *rnjesus = new TRandom3();
 
-  TTree *OutputTree = new TTree("DepositsSummaryTree", "");
   DepositsSummary *OutputEDep =
-    DepositsSummary::MakeTreeWriter(OutputTree, sc.timesep_us);
+    DepositsSummary::MakeTreeWriter(sc.timesep_us);
 
   std::vector<int> overlapping_stops;
   size_t NFills = 0;
@@ -454,7 +452,7 @@ int main(int argc, char const *argv[]) {
 
     if (stop == -1) {
       if (WriteOutNonStop) {
-        OutputTree->Fill();
+        OutputEDep->Fill();
         NFills++;
       }
       OutputEDep->Reset();
@@ -950,7 +948,7 @@ int main(int argc, char const *argv[]) {
         (OutputEDep->LepDep_veto < VetoThreshold);
 
     NFills++;
-    OutputTree->Fill();
+    OutputEDep->Fill();
     OutputEDep->Reset();
   }
 
