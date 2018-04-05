@@ -31,16 +31,16 @@ For more information on PRISM-style analyses see: (arxiv:1412.3086)[https://arxi
 
 This portion of the tool chain provides tools for interpreting and reducing the
 output of the beam line simulation,
-(`g4lbnf`)[https://cdcvs.fnal.gov/redmine/projects/lbne-beamsim/wiki], as well
+[`g4lbnf`](https://cdcvs.fnal.gov/redmine/projects/lbne-beamsim/wiki), as well
 as performing the flux fits, which are central to the PRISM analysis technique.
 
 #### Beam line simulation
 
-The flux prediction for (LBNF)[https://lbnf.fnal.gov/] is provided by the
+The flux prediction for [LBNF](https://lbnf.fnal.gov/) is provided by the
 `g4lbnf` package. To help interpreting the results of the beam line simulation,
 two tools are provided.
 
-  * `dp_BuildFluxes`: Reads (`dk2nu`)[https://cdcvs.fnal.gov/redmine/projects/dk2nu/wiki]
+  * `dp_BuildFluxes`: Reads [`dk2nu`](https://cdcvs.fnal.gov/redmine/projects/dk2nu/wiki)
   output from `g4lbnf` and produces two dimensional flux predictions for a given
   set of flux window positions.
   * `dp_CombineBuiltFluxes`: Combines the results of multiple `dp_BuildFluxes`
@@ -109,10 +109,10 @@ coordinates. It takes a detector geometry definition in the `GDML` file format
 
 **N.B.** This step is not currently runnable using tools in this package.
 This should be rectified, this step should be replaced by a similar step that
-uses the (`edep-sim`)[https://github.com/ClarkMcGrew/edep-sim] tool set.
+uses the [`edep-sim`](https://github.com/ClarkMcGrew/edep-sim) tool set.
 
 The output of GENIE is converted from the GHEP format to the `numi_rootracker`
-event format and passed to a python script, (`argon box`)[https://github.com/calcuttj/argon_box]
+event format and passed to a python script, [`argon box`](https://github.com/calcuttj/argon_box)
 which propagates all final state particles through a large cuboid of LAr using a
 GEANT4 simulation.
 
