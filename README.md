@@ -8,5 +8,5 @@ flux input generation, neutrino interaction simulation and final state
 propagation, and event selection, systematic propagation, and PRISM prediction
 production.
 
-See [dox/DUNEPrismTols.md](dox/DUNEPrismTols.md) for detailed description and
+See [dox/DUNEPrismTools.md](dox/DUNEPrismTools.md) for detailed description and
 documentation.
