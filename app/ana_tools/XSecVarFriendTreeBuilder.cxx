@@ -1,8 +1,11 @@
-#include "CovarianceHelper.h"
-#include "EDepTreeReader.h"
-#include "VALORModelClassifier.h"
+#include "DepositsSummaryTreeReader.hxx"
 
-#include "Utils.hxx"
+#include "CovarianceHelper.hxx"
+#include "VALORModelClassifier.hxx"
+
+#include "ROOTUtility.hxx"
+#include "StringParserUtility.hxx"
+#include "GetUsage.hxx"
 
 #include "omp.h"
 
@@ -17,23 +20,8 @@ Long64_t NThrows = 1;
 UInt_t Seed = 1;
 
 void SayUsage(char const *argv[]) {
-  std::cout << "[USAGE]: " << argv[0]
-            << "\n"
-            "\t-i <stopprocessor.root>     : TChain descriptor for"
-            " input tree. \n"
-            "\t                              Should be the output of RunSelection."
-            "\t-o <outputfile.root>        : Output file to write "
-            "efficiency friend tree to.\n"
-            "\t-C <covmatfile.root,hname>  : Input covariance matrix to "
-            "throw xsec weights from.\n"
-            "\t-N <NThrows>                : Number of throws to make. Special "
-            "cases are "
-            "\t                              1: will produce +1 sigma variation"
-            "\t                              2: will produce +1 and -1 sigma "
-            "variation.\n"
-            "\t-S <Seed>                   : Used to make reproducible "
-            "throws. {Default = 1}"
-            << std::endl;
+  std::cout << "[USAGE]: " << argv[0] << "\n"
+            << GetUsageText(argv[0], "ana_tools") << std::endl;
 }
 
 void handleOpts(int argc, char const *argv[]) {
@@ -92,7 +80,7 @@ int main(int argc, char const *argv[]) {
     }
   }
 
-  EDep edr("EDeps", InputDepostisSummaryFile);
+  DepositsSummary edr(InputDepostisSummaryFile);
 
   TFile *of = new TFile(OutputFile.c_str(), "RECREATE");
   TTree *friendtree = new TTree("XSecWeights", "");
@@ -209,7 +197,7 @@ int main(int argc, char const *argv[]) {
       }
     } else {  // Do throws;
 
-#pragma omp parallel for
+      #pragma omp parallel for
       for (int t_it = 0; t_it < NThrows; ++t_it) {
         xsecweights[t_it] = 1;
         for (VALORModel::TrueClass d : appdial) {

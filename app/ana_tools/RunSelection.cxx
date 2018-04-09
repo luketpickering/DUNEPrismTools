@@ -5,6 +5,7 @@
 
 #include "ROOTUtility.hxx"
 #include "StringParserUtility.hxx"
+#include "GetUsage.hxx"
 
 #include "BoundingBox.hxx"
 
@@ -25,29 +26,10 @@ double SelMuExitKE = 0;  // GeV
 double HadrVisAcceptance = 0; //GeV
 std::vector<double> ExtraVertexSelectionPadding;
 
+
 void SayUsage(char const *argv[]) {
-  std::cout
-      << "[USAGE]: " << argv[0]
-      << "\n"
-         "\t-i <stopprocessor.root>     : TChain descriptor for"
-         " input tree. \n"
-         "\t-o <outputfile.root>        : Output file to write "
-         "selected tree to.\n"
-         "\t-v <hadr veto threshold>    : Hadronic shower veto threshold in "
-         "MeV.\n"
-         "\t-FV <fvx,y,z>               : Vertex selection fiducial volume "
-         "padding inside of the \n"
-         "\t                              non-veto active region "
-         "{Default: 0,0,0}.\n"
-         "\t-m <muon exit KE>           : Muon exit threshold KE in MeV.\n"
-         "\t-A <EHadrVisMax_GeV>        : Acceptance cut for hadronic shower"
-         " energy. Showers with\n"
-         "\t                              more than this energy are cut and "
-         "filled in by far detector MC.\n"
-         "\t-FDproton                   : Build missing proton energy fake "
-         "data. This is very hard coded, if you don't know what it is, don't "
-         "use it.\n"
-      << std::endl;
+  std::cout << "[USAGE]: " << argv[0] << "\n"
+            << GetUsageText(argv[0], "ana_tools") << std::endl;
 }
 
 void handleOpts(int argc, char const *argv[]) {

@@ -19,6 +19,9 @@
       case kEHadr_True:{
         return ERecProxy_True - PrimaryLep_4mom[3];
       }
+      case kENonNeutronHadr_True:{
+        return ERecProxy_True - PrimaryLep_4mom[3] - EKinNeutron_True;
+      }
       case kEFSLep_True:{
         return PrimaryLep_4mom[3];
       }

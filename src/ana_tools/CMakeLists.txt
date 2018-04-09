@@ -1,6 +1,7 @@
 add_library(DUNE-PRISM_AnaTools
-  BoundingBox.cxx
   EffCorrector.cxx
+  VALORModelClassifier.cxx
+  CovarianceHelper.cxx
 )
 
 include_directories(${INCLUDE_DIRECTORIES})
@@ -9,6 +10,7 @@ include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 install(TARGETS DUNE-PRISM_AnaTools DESTINATION lib)
 
 target_link_libraries(DUNE-PRISM_AnaTools ${ROOT_LIBS})
+target_link_libraries(DUNE-PRISM_AnaTools gomp)
 
 if(NOT "${CMAKE_LINK_FLAGS}" STREQUAL "")
   set_target_properties(DUNE-PRISM_AnaTools PROPERTIES LINK_FLAGS ${CMAKE_LINK_FLAGS})

@@ -118,6 +118,8 @@ std::pair<Int_t, Int_t> GetProjectionBinRange(
 std::vector<TH1D *> MergeSplitTH2D(
     TH2D *t2, bool AlongY, std::vector<std::pair<double, double> > Vals);
 
+TH2D * SliceNormTH2D(TH2D *t2, bool AlongY);
+
 bool CheckTTreeHasBranch(TTree *tree, std::string const &BranchName);
 
 void SumHistograms(TH1D *summed, double *coeffs,

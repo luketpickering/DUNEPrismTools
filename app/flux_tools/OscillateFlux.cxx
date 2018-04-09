@@ -1,6 +1,7 @@
 #include "StringParserUtility.hxx"
 #include "ROOTUtility.hxx"
 #include "OscillationHelper.hxx"
+#include "GetUsage.hxx"
 
 #include "TFile.h"
 #include "TGraph.h"
@@ -22,14 +23,10 @@ std::string oupFile, oupHistName;
 int nuPDGFrom, nuPDGTo;
 
 void SayUsage(char const *argv[]) {
-  std::cout << "[USAGE]: " << argv[0]
-            << " -p "
-               "<sin2(theta12)=0.825>,<sin2(theta13)=0.10>,<sin2(theta23)=1.0>,"
-               "<dm12=7.9e-5>,<"
-               "dm23=2.5e-3>,<dcp=0.0> -d <dipangle=5.8> -i <input ROOT "
-               "file>,<input flux hist name> -o <output ROOT file>,<output "
-               "flux hist name> -n <nuPDGFrom>,<nuPDGTo> -L <Pathlength_km>"
-            << std::endl;
+  std::cout
+      << "[USAGE]: " << argv[0]
+      << GetUsageText(argv[0], "flux_tools")
+      << std::endl;
 }
 
 const static double REarth_cm = 6371.393 * 1.0E5;
@@ -99,7 +96,8 @@ void handleOpts(int argc, char const *argv[]) {
 
       DipAngle = asin(baseline_cm / (2.0 * REarth_cm))/deg2rad;
 
-    } else if (std::string(argv[opt]) == "-?") {
+    } else if (std::string(argv[opt]) == "-?"||
+               std::string(argv[opt]) == "--help") {
       SayUsage(argv);
       exit(0);
     } else {

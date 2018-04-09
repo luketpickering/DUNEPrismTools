@@ -4,6 +4,7 @@
 
 #include "StringParserUtility.hxx"
 #include "ROOTUtility.hxx"
+#include "GetUsage.hxx"
 
 #include "TMath.h"
 #include "TTree.h"
@@ -23,24 +24,8 @@ std::vector<double> ERecBinning;
 bool BuildMissingProtonEFakeData = false;
 
 void SayUsage(char const *argv[]) {
-  std::cout
-      << "[USAGE]: " << argv[0]
-      << "\n"
-         "\t-i <stopprocessor.root>     : TChain descriptor for"
-         " input tree. \n"
-         "\t-o <outputfile.root>        : Output file to write "
-         "selected tree to.\n"
-         "\t-v <hadr veto threshold>    : Hadronic shower veto threshold in "
-         "MeV {default: 10}.\n"
-         "\t-m <muon exit KE>           : Muon exit threshold KE in MeV "
-         "{default: 0}.\n"
-         "\t-b <binning descriptor>     : Energy binning descriptor that can "
-         "be used to produce a perfect efficiency correction in the relevant "
-         "off-axis bins.\n"
-         "\t-FDproton                   : Build missing proton energy fake "
-         "data. This is very hard coded, if you don't know what it is, don't "
-         "use it.\n"
-      << std::endl;
+  std::cout << "[USAGE]: " << argv[0] << "\n"
+            << GetUsageText(argv[0], "ana_tools") << std::endl;
 }
 
 void handleOpts(int argc, char const *argv[]) {
@@ -115,48 +100,77 @@ int main(int argc, char const *argv[]) {
 
   TH2D *MuonKinematics_all =
       new TH2D("MuonKinematics_all", ";#it{E}_{#mu};ToWall_{#mu} (m);Count",
-               100, 0, 20, 60, 0, MaxToWall * 1E-2);
+               (ERecBinning.size()-1),ERecBinning.data(), 60, 0,
+               MaxToWall * 1E-2);
   TH2D *MuonKinematics_musel =
       new TH2D("MuonKinematics_musel", ";#it{E}_{#mu};ToWall_{#mu} (m);Count",
-               100, 0, 20, 60, 0, MaxToWall * 1E-2);
+               (ERecBinning.size()-1),ERecBinning.data(), 60, 0,
+               MaxToWall * 1E-2);
   TH2D *MuonKinematics_seleff =
       new TH2D("MuonKinematics_eff", ";#it{E}_{#mu};ToWall_{#mu} (m);#epsilon",
-               100, 0, 20, 60, 0, MaxToWall * 1E-2);
+               (ERecBinning.size()-1),ERecBinning.data(), 60, 0,
+               MaxToWall * 1E-2);
 
   TH2D *Ehadr_FV_detpos_all = new TH2D(
       "Ehadr_FV_detpos_all", ";#it{E}_{Hadr};Detector X position (cm);Count",
-      100, 0, 20, 100, -(MaxStopWidth / 2.0), (MaxStopWidth / 2.0));
+      (ERecBinning.size()-1),ERecBinning.data(), 100, -(MaxStopWidth / 2.0),
+      (MaxStopWidth / 2.0));
   TH2D *Ehadr_FV_detpos_hadrsel =
       new TH2D("Ehadr_FV_detpos_hadrsel",
-               ";#it{E}_{Hadr};Detector X position (cm);Count", 100, 0, 20, 100,
+               ";#it{E}_{Hadr};Detector X position (cm);Count",
+               (ERecBinning.size()-1),ERecBinning.data(), 100,
                -(MaxStopWidth / 2.0), (MaxStopWidth / 2.0));
   TH2D *Ehadr_FV_detpos_seleff =
       new TH2D("Ehadr_FV_detpos_seleff",
-               ";#it{E}_{Hadr};Detector X position (cm);#epsilon", 100, 0, 20,
+               ";#it{E}_{Hadr};Detector X position (cm);#epsilon",
+               (ERecBinning.size()-1),ERecBinning.data(),
                100, -(MaxStopWidth / 2.0), (MaxStopWidth / 2.0));
 
    TH2D *EVisHadr_FV_detpos_all = new TH2D(
-       "EVisHadr_FV_detpos_all", ";#it{E}_{Vis,Hadr};Detector X position (cm);Count",
-       100, 0, 20, 100, -(MaxStopWidth / 2.0), (MaxStopWidth / 2.0));
+       "EVisHadr_FV_detpos_all",
+       ";#it{E}_{Vis,Hadr};Detector X position (cm);Count",
+       (ERecBinning.size()-1),ERecBinning.data(), 100, -(MaxStopWidth / 2.0),
+       (MaxStopWidth / 2.0));
    TH2D *EVisHadr_FV_detpos_hadrsel =
        new TH2D("EVisHadr_FV_detpos_hadrsel",
-                ";#it{E}_{Vis,Hadr};Detector X position (cm);Count", 100, 0, 20, 100,
+                ";#it{E}_{Vis,Hadr};Detector X position (cm);Count",
+                (ERecBinning.size()-1),ERecBinning.data(), 100,
                 -(MaxStopWidth / 2.0), (MaxStopWidth / 2.0));
    TH2D *EVisHadr_FV_detpos_seleff =
        new TH2D("EVisHadr_FV_detpos_seleff",
-                ";#it{E}_{Vis,Hadr};Detector X position (cm);#epsilon", 100, 0, 20,
+                ";#it{E}_{Vis,Hadr};Detector X position (cm);#epsilon",
+                (ERecBinning.size()-1),ERecBinning.data(),
                 100, -(MaxStopWidth / 2.0), (MaxStopWidth / 2.0));
+
+    TH2D *ETrueNonNeutron_FV_detpos_all = new TH2D(
+        "ETrueNonNeutron_FV_detpos_all",
+        ";#it{E}_{Vis,Hadr};Detector X position (cm);Count",
+        (ERecBinning.size()-1),ERecBinning.data(), 100, -(MaxStopWidth / 2.0),
+        (MaxStopWidth / 2.0));
+    TH2D *ETrueNonNeutron_FV_detpos_hadrsel =
+        new TH2D("ETrueNonNeutron_FV_detpos_hadrsel",
+                 ";#it{E}_{Vis,Hadr};Detector X position (cm);Count",
+                 (ERecBinning.size()-1),ERecBinning.data(), 100,
+                 -(MaxStopWidth / 2.0), (MaxStopWidth / 2.0));
+    TH2D *ETrueNonNeutron_FV_detpos_seleff =
+        new TH2D("ETrueNonNeutron_FV_detpos_seleff",
+                 ";#it{E}_{Vis,Hadr};Detector X position (cm);#epsilon",
+                 (ERecBinning.size()-1),ERecBinning.data(),
+                 100, -(MaxStopWidth / 2.0), (MaxStopWidth / 2.0));
+
 
    TH2D *Ehadr_FV_abspos_all = new TH2D(
        "Ehadr_FV_abspos_all", ";#it{E}_{Hadr};Detector X position (cm);Count",
-       100, 0, 20, 100, MinAbsX, MaxAbsX);
+       (ERecBinning.size()-1),ERecBinning.data(), 100, MinAbsX, MaxAbsX);
    TH2D *Ehadr_FV_abspos_hadrsel =
        new TH2D("Ehadr_FV_abspos_hadrsel",
-                ";#it{E}_{Hadr};Detector X position (cm);Count", 100, 0, 20, 100,
-                  MinAbsX, MaxAbsX);
+                ";#it{E}_{Hadr};Detector X position (cm);Count",
+                (ERecBinning.size()-1),ERecBinning.data(), 100,
+                MinAbsX, MaxAbsX);
    TH2D *Ehadr_FV_abspos_seleff =
        new TH2D("Ehadr_FV_abspos_seleff",
-                ";#it{E}_{Hadr};Detector X position (cm);#epsilon", 100, 0, 20,
+                ";#it{E}_{Hadr};Detector X position (cm);#epsilon",
+                (ERecBinning.size()-1),ERecBinning.data(),
                 100, MinAbsX, MaxAbsX);
 
   size_t loud_every = edr.GetEntries() / 10;
@@ -216,6 +230,13 @@ int main(int argc, char const *argv[]) {
     Ehadr_FV_abspos_hadrsel->Fill(edr.GetProjection(DepositsSummary::kEHadr_True),
       edr.vtx[0],
       ProtonFakeDataWeight * double(edr.TotalNonlep_Dep_veto < HadrVeto));
+
+
+    ETrueNonNeutron_FV_detpos_all->Fill(edr.GetProjection(DepositsSummary::kENonNeutronHadr_True),
+      edr.vtx[0], ProtonFakeDataWeight);
+    ETrueNonNeutron_FV_detpos_hadrsel->Fill(edr.GetProjection(DepositsSummary::kENonNeutronHadr_True),
+      edr.vtx[0],
+      ProtonFakeDataWeight * double(edr.TotalNonlep_Dep_veto < HadrVeto));
   }
 
   MuonKinematics_seleff->Divide(MuonKinematics_musel, MuonKinematics_all);
@@ -223,6 +244,7 @@ int main(int argc, char const *argv[]) {
   EVisHadr_FV_detpos_seleff->Divide(EVisHadr_FV_detpos_hadrsel,
     EVisHadr_FV_detpos_all);
   Ehadr_FV_abspos_seleff->Divide(Ehadr_FV_abspos_hadrsel, Ehadr_FV_abspos_all);
+  ETrueNonNeutron_FV_detpos_seleff->Divide(ETrueNonNeutron_FV_detpos_hadrsel, ETrueNonNeutron_FV_detpos_all);
 
   of->Write();
   of->Close();

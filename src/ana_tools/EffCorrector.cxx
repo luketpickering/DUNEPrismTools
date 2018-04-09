@@ -20,6 +20,10 @@ EffCorrector::EffCorrector(EffCorrector::ModeEnum mode,
       ShowerKinematics_seleff =
         GetHistogram<TH2>(EffCorrectorFile, "Ehadr_FV_detpos_seleff");
       break;
+    } case kENonNeutronHadrDetPos:{
+      ShowerKinematics_seleff =
+        GetHistogram<TH2>(EffCorrectorFile, "ETrueNonNeutron_FV_detpos_seleff");
+      break;
     }
     case kEHadrVisDetPos:{
       ShowerKinematics_seleff =
@@ -73,7 +77,14 @@ double EffCorrector::GetHadronKinematicsEffWeight(DepositsSummary const & edr){
       hadr_eff_y_bin =
           ShowerKinematics_seleff->GetYaxis()->FindFixBin(edr.vtxInDetX);
       break;
-      }
+    }
+    case kENonNeutronHadrDetPos:{
+      hadr_eff_x_bin = ShowerKinematics_seleff->GetXaxis()->FindFixBin(
+          edr.GetProjection(DepositsSummary::kENonNeutronHadr_True));
+      hadr_eff_y_bin =
+          ShowerKinematics_seleff->GetYaxis()->FindFixBin(edr.vtxInDetX);
+      break;
+    }
     case kEHadrVisDetPos:{
       hadr_eff_x_bin = ShowerKinematics_seleff->GetXaxis()->FindFixBin(
           edr.GetProjection(DepositsSummary::kEHadr_vis));

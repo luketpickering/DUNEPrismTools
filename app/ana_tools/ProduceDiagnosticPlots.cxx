@@ -8,6 +8,7 @@
 
 #include "ROOTUtility.hxx"
 #include "StringParserUtility.hxx"
+#include "GetUsage.hxx"
 
 #include "BoundingBox.hxx"
 
@@ -108,6 +109,10 @@ std::vector<double> GPVB(DepositsSummary::ProjectionVar pv){
       cache[pv] = BuildBinEdges(DefaultEnergyBinning);
       break;
     }
+    case DepositsSummary::kENonNeutronHadr_True:{
+      cache[pv] = BuildBinEdges(DefaultEnergyBinning);
+      break;
+    }
     case DepositsSummary::kEFSLep_True:{
       cache[pv] = BuildBinEdges(DefaultEnergyBinning);
       break;
@@ -169,43 +174,10 @@ std::vector<double> GPVB(DepositsSummary::ProjectionVar pv){
 }
 
 void SayUsage(char const *argv[]) {
-  std::cout
-      << "[USAGE]: " << argv[0]
-      << "\n"
-         "\t-i <stopprocessor.root>     : TChain descriptor for"
-         " input tree. \n"
-         "\t-o <outputfile.root>        : Output file to write "
-         "selected tree to.\n"
-         "\t-v <hadr veto threshold>    : Hadronic shower veto threshold in "
-         "MeV.\n"
-         "\t-FV <fvx,y,z>               : Vertex selection fiducial volume "
-         "padding inside of the \n"
-         "\t                              non-veto active region "
-         "{Default: 0,0,0}.\n"
-         "\t-m <muon exit KE>           : Muon exit threshold KE in MeV.\n"
-         "\t-A <EHadrVisMax_GeV>        : Acceptance cut for hadronic shower"
-         " energy. Showers with\n"
-         "\t                              more than this energy are cut and "
-         "filled in by far detector MC.\n"
-         "\t-E <effcorrector.root>      : File containing efficiency "
-                  "histograms.\n"
-         "\t-F <fluxfitresults.root>        : Result of "
-          "dp_FitFluxes to use to build observation.\n"
-          "\t-M <eff correction mode>    : Kinematics to use to determine the "
-          "hadronic shower selection\n"
-          "\t                              efficiency correction. {Default = 3}"
-          "\n"
-          "\t                              1: True hadronic energy, absolute "
-          "off axis position.\n"
-          "\t                              2: True hadronic energy, position "
-          "within the detector.\n"
-          "\t                              3: Visible hadronic energy, position "
-          "within the detector.\n"
-          "\t-b <binning descriptor>     : Energy binning descriptor that can "
-          "be used to produce a perfect efficiency correction in the relevant "
-          "off-axis bins.\n"
-      << std::endl;
+  std::cout << "[USAGE]: " << argv[0] << "\n"
+            << GetUsageText(argv[0], "ana_tools") << std::endl;
 }
+
 void handleOpts(int argc, char const *argv[]) {
   int opt = 1;
   while (opt < argc) {
@@ -300,6 +272,7 @@ int main(int argc, char const *argv[]) {
     std::map<
       DepositsSummary::ProjectionVar, TH1D * >, kNSelLevels> Integrated_plots;
   std::array<TH2D *, kNSelLevels> Integrated_ERecETrue;
+  std::array<TH2D *, kNSelLevels> Integrated_EHadrVisEHadrNonNeutron;
   //AbsPos
   std::array<
     std::map<
@@ -389,6 +362,15 @@ int main(int argc, char const *argv[]) {
       (std::string("Integrated_ERecETrue_") + to_str(gsl(sel_it))).c_str(),
     (std::string(";") + to_title(DepositsSummary::kETrue)
       + to_title(DepositsSummary::kERec) + ";Count").c_str(),
+      (GPVB(DepositsSummary::kETrue).size() - 1),
+        GPVB(DepositsSummary::kETrue).data(),
+      (GPVB(DepositsSummary::kERec).size() - 1),
+        GPVB(DepositsSummary::kERec).data() );
+    Integrated_EHadrVisEHadrNonNeutron[sel_it]  = new TH2D(
+      (std::string("Integrated_EHadrVisEHadrNonNeutron_")
+      + to_str(gsl(sel_it))).c_str(),
+    (std::string(";") + to_title(DepositsSummary::kENonNeutronHadr_True)
+      + to_title(DepositsSummary::kEHadr_vis) + ";Count").c_str(),
       (GPVB(DepositsSummary::kETrue).size() - 1),
         GPVB(DepositsSummary::kETrue).data(),
       (GPVB(DepositsSummary::kERec).size() - 1),
@@ -514,6 +496,10 @@ int main(int argc, char const *argv[]) {
       DepSumRdr.GetProjection(DepositsSummary::kETrue),
       DepSumRdr.GetProjection(DepositsSummary::kERec),
       DepSumRdr.stop_weight);
+    Integrated_EHadrVisEHadrNonNeutron[gi(kUnSelected)]->Fill(
+      DepSumRdr.GetProjection(DepositsSummary::kENonNeutronHadr_True),
+      DepSumRdr.GetProjection(DepositsSummary::kEHadr_vis),
+      DepSumRdr.stop_weight);
     AbsPos_plots1D[gi(kUnSelected)]->Fill(DepSumRdr.vtx[0],
       DepSumRdr.stop_weight);
 
@@ -535,7 +521,11 @@ int main(int argc, char const *argv[]) {
       DepSumRdr.GetProjection(DepositsSummary::kETrue),
       DepSumRdr.GetProjection(DepositsSummary::kERec),
       DepSumRdr.stop_weight);
-    AbsPos_plots1D[gi(sl)]->Fill(DepSumRdr.vtx[0], 
+    Integrated_EHadrVisEHadrNonNeutron[gi(sl)]->Fill(
+      DepSumRdr.GetProjection(DepositsSummary::kENonNeutronHadr_True),
+      DepSumRdr.GetProjection(DepositsSummary::kEHadr_vis),
+      DepSumRdr.stop_weight);
+    AbsPos_plots1D[gi(sl)]->Fill(DepSumRdr.vtx[0],
       DepSumRdr.stop_weight);
 
     if(sl != kSelected){
@@ -556,6 +546,10 @@ int main(int argc, char const *argv[]) {
       DepSumRdr.GetProjection(DepositsSummary::kETrue),
       DepSumRdr.GetProjection(DepositsSummary::kERec),
       DepSumRdr.stop_weight);
+    Integrated_EHadrVisEHadrNonNeutron[gi(kSelectedMu)]->Fill(
+      DepSumRdr.GetProjection(DepositsSummary::kENonNeutronHadr_True),
+      DepSumRdr.GetProjection(DepositsSummary::kEHadr_vis),
+      DepSumRdr.stop_weight);
     AbsPos_plots1D[gi(kSelectedMu)]->Fill(DepSumRdr.vtx[0],
       DepSumRdr.stop_weight);
 
@@ -572,6 +566,10 @@ int main(int argc, char const *argv[]) {
     Integrated_ERecETrue[gi(kSelectedHadr)]->Fill(
       DepSumRdr.GetProjection(DepositsSummary::kETrue),
       DepSumRdr.GetProjection(DepositsSummary::kERec),
+      DepSumRdr.stop_weight);
+    Integrated_EHadrVisEHadrNonNeutron[gi(kSelectedHadr)]->Fill(
+      DepSumRdr.GetProjection(DepositsSummary::kENonNeutronHadr_True),
+      DepSumRdr.GetProjection(DepositsSummary::kEHadr_vis),
       DepSumRdr.stop_weight);
     AbsPos_plots1D[gi(kSelectedHadr)]->Fill(DepSumRdr.vtx[0],
       DepSumRdr.stop_weight);
@@ -590,8 +588,28 @@ int main(int argc, char const *argv[]) {
       DepSumRdr.GetProjection(DepositsSummary::kETrue),
       DepSumRdr.GetProjection(DepositsSummary::kERec),
       DepSumRdr.stop_weight * effweight);
+    Integrated_EHadrVisEHadrNonNeutron[gi(kCorrected)]->Fill(
+      DepSumRdr.GetProjection(DepositsSummary::kENonNeutronHadr_True),
+      DepSumRdr.GetProjection(DepositsSummary::kEHadr_vis),
+      DepSumRdr.stop_weight * effweight);
     AbsPos_plots1D[gi(kCorrected)]->Fill(DepSumRdr.vtx[0],
       DepSumRdr.stop_weight * effweight);
+  }
+
+  // Normalize
+  for(size_t sel_it = gi(kUnSelected); sel_it < gi(kNSelLevels); ++sel_it) {
+    for(size_t stop_it = 0; FVs.size() && (stop_it < FVs.size()); ++stop_it){
+      SliceNormTH2D(Stop_ERecETrue[sel_it][stop_it],true)->SetDirectory(StopDir);
+    }
+    for(size_t slice_it = 0;
+      XRangeBins.size() && (slice_it < XRangeBins.size()); ++slice_it){
+      SliceNormTH2D(Slice_ERecETrue[sel_it][slice_it],
+        true)->SetDirectory(SliceDir);
+    }
+    SliceNormTH2D(Integrated_ERecETrue[sel_it],
+      true)->SetDirectory(IntegratedDir);
+    SliceNormTH2D(Integrated_EHadrVisEHadrNonNeutron[sel_it],
+      true)->SetDirectory(IntegratedDir);
   }
 
   of->Write();

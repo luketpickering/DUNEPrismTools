@@ -1,5 +1,6 @@
 add_library(DUNE-PRIMS_FluxTools
   dk2nu_TreeReader.cxx
+  OscillationHelper.cxx
 )
 
 include_directories(${INCLUDE_DIRECTORIES})

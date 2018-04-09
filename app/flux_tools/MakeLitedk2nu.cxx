@@ -1,6 +1,8 @@
 #include <iostream>
 #include <string>
 
+#include "GetUsage.hxx"
+
 #include "TFile.h"
 #include "TH1.h"
 #include "TTree.h"
@@ -10,7 +12,13 @@
 std::string inpDir = ".";
 std::string outputFile;
 
-void SayUsage(char const *argv[]) {}
+void SayUsage(char const *argv[]) {
+  std::cout
+      << "[USAGE]: " << argv[0]
+      << GetUsageText(argv[0], "flux_tools")
+      << std::endl;
+}
+
 void handleOpts(int argc, char const *argv[]) {
   int opt = 1;
   while (opt < argc) {

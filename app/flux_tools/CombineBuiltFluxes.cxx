@@ -37,7 +37,8 @@ void handleOpts(int argc, char const *argv[]) {
       input_patterns.push_back(argv[++opt]);
     } else if (std::string(argv[opt]) == "-o") {
       outputfile = argv[++opt];
-    } else if (std::string(argv[opt]) == "-?") {
+    } else if (std::string(argv[opt]) == "-?"||
+               std::string(argv[opt]) == "--help") {
       SayUsage(argv);
       exit(0);
     } else {
@@ -74,7 +75,7 @@ int main(int argc, char const *argv[]) {
   for (size_t ip_it = 0; ip_it < input_patterns.size(); ++ip_it) {
     std::string input_pattern = input_patterns[ip_it];
     size_t AsteriskPos = input_pattern.find_last_of('*');
-    
+
     DIR *dir;
     struct dirent *ent;
     size_t lastFSlash = input_pattern.find_last_of('/');

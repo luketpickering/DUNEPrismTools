@@ -13,6 +13,7 @@ struct DepositsSummary : public ITreeReader {
     kETrue = 0,
     kEAvail_True,
     kEHadr_True,
+    kENonNeutronHadr_True,
     kEFSLep_True,
     kEHadr_vis,
     kEHadrLate_vis,
@@ -226,9 +227,10 @@ struct DepositsSummary : public ITreeReader {
   /// from GENIE.
   double TotalFS_3mom[3];
 
-  ///\brief [GENIE P/T]: The KE of all protons and total energy of all other
-  /// particles (including primary proton), with 938 MeV removed for all
-  /// baryonic resonances found.
+  ///\brief [GENIE P/T]: The KE of all nucleons and total energy of all other
+  /// particles (including primary proton), with 938 MeV removed for eacho
+  /// baryonic resonance found and 2*938 MeV added for each anti-nucleon found
+  /// (to account for nucleon pair-production).
   double ERecProxy_True;
 
   ///\brief [GEANT4]: The total 'early' lepton energy deposited within the stops
@@ -714,6 +716,9 @@ std::string to_str(DepositsSummary::ProjectionVar pv){
     case DepositsSummary::kEHadr_True:{
       return "EHadr_True";
     }
+    case DepositsSummary::kENonNeutronHadr_True:{
+      return "ENonNeutronHadr_True";
+    }
     case DepositsSummary::kEFSLep_True:{
       return "EFSLep_True";
     }
@@ -780,6 +785,9 @@ std::string to_title(DepositsSummary::ProjectionVar pv){
      }
      case DepositsSummary::kEHadr_True:{
        return "E_{Hadr., True} (GeV)";
+     }
+     case DepositsSummary::kENonNeutronHadr_True:{
+       return "E_{Non-neutron Hadr., True} (GeV)";
      }
      case DepositsSummary::kEFSLep_True:{
        return "E_{lep} (GeV)";

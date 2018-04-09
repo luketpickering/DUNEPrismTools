@@ -2,6 +2,7 @@
 
 #include "ROOTUtility.hxx"
 #include "PhysicsUtility.hxx"
+#include "GetUsage.hxx"
 
 #include "TChain.h"
 #include "TFile.h"
@@ -169,58 +170,14 @@ int OnlySpecies = 0;
 
 void SayUsage(char const *argv[]) {
   std::cout << "[USAGE]: " << argv[0] << "\n"
-            << "\t-i /path/to/DUNE/dk2nu/files  : Can include wildcards "
-               "(remeber to quote \n"
-               "\t                                to avoid shell expansion.)   "
-               "           \n"
-               "\n"
-               "\t-o output.root                : File to write fluxes to.     "
-               "           \n"
-               "\n"
-               "\t-m 0_1:0.5[,2,3]              : Flux window binning to "
-               "calculate in mrads.\n"
-               "\n"
-               "\t-d 0_1:0.5[,2,3]              : Flux window binning to "
-               "calculate in degrees.\n"
-               "\n"
-               "\t-x 0_1:0.5[,2,3]              : Flux window binning to "
-               "calculate in lateral offset (m).\n"
-               "\n"
-               "\t-e                            : Build fluxes for specific "
-               "neutrino decay\n"
-               "\t                                parents.                     "
-               "           \n"
-               "\n"
-               "\t-b <NBins>,<Low>,<High>       : Use uniform binning for flux "
-               "histograms.\n"
-               "\n"
-               "\t-vb 0_1:0.5[,2,3]             : Use variable binning "
-               "specified by bin edges \n"
-               "\t                                and step ranges.             "
-               "           \n"
-               "\n"
-               "\t-h <Height=0>                 : Height of flux plane (cm)"
-               ".\n"
-               "\n"
-               "\t-n <NMaxNeutrinos>            : Only loop over -n nus.    \n"
-               "\n"
-               "\t-z <ZDist>                    : Z distance of flux plane from"
-               " target (cm).\n"
-               "\n"
-               "\t-P                            : Only use each decaying parent"
-               " once.       \n"
-               "\t-S <species PDG>              : Only fill information for "
-               "neutrinos of a given species.\n"
-               // "\t-D                            : Calculate flux divergences.\n"
-               "\t-L                            : Expect dk2nulite inputs.\n"
-               "\n"
-            << std::endl;
+            << GetUsageText(argv[0], "flux_tools") << std::endl;
 }
 
 void handleOpts(int argc, char const *argv[]) {
   int opt = 1;
   while (opt < argc) {
-    if (std::string(argv[opt]) == "-?") {
+    if (std::string(argv[opt]) == "-?"||
+               std::string(argv[opt]) == "--help") {
       SayUsage(argv);
       exit(0);
     } else if (std::string(argv[opt]) == "-i") {

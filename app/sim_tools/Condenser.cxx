@@ -5,6 +5,7 @@
 #include "StopDimensions.hxx"
 
 #include "ROOTUtility.hxx"
+#include "GetUsage.hxx"
 
 #include "TFile.h"
 #include "TLorentzVector.h"
@@ -30,56 +31,12 @@ double POTPerFile = 0xdeadbeef;
 
 // #define DEBUG
 
-void SayUsage(char* argv[]) {
-  std::cout << "[INFO]: Use like: " << argv[0]
-            << "\n\t-i <inputg4arbofile>     : Input G4Py root file."
-               "\n\t-ir <GENIERTFile>        : Input GENIE rootracker file "
-               "(index sync'd with -i argument)"
-               "\n\t-o <outputfile>          : File to write output to"
-               "\n\t-dmn <detxmin,ymin,zmin> : Active detector minimum (cm)"
-               "\n\t-dmx <detxmax,ymax,zmax> : Active detector maximum (cm)"
-               "\n\t-V <vetogap x,y,z>       : Active veto region to pad each "
-               "corresponding face of the "
-               "\n\t                           active volume with."
-               "\n\t                          -- N.B. If -dmn -1,-1,-1 "
-               "-dmx 1,1,1 -V 0.5,0.5,0.5 "
-               "\n\t                           then the non-veto volume will be"
-               " 1x1x1 cm^{3} centered on "
-               "\n\t                           the origin."
-               "\n\t-P <POTPerFile>          : Adds POTPerFile information to "
-               "the metadata, used for "
-               "\n\t                           POT-normalising predicted event "
-               "rates and Near/Far "
-               "\n\t                           comparisons downstream."
-               "\n\t-n <NMaxEvents>          : Run no more than -n events."
-               "\n\t-A                       : Output all events even if they "
-               "occured outside of the "
-               "\n\t                           non-veto active volume."
-               "\n\t-T                       : Will add timesep branches to the"
-               " output that "
-               "\n\t                           contain all deposits ocurring "
-               "more than -T <timesep>"
-               "\n\t                           microseconds after the neutrino "
-               "interaction."
-               "\n\t-nx <NXSteps>            : Number of x slices to break up "
-               "total non-veto active "
-               "\n\t                           region into. "
-               "\n\t                          -- N.B. two steps will be added "
-               "for the X veto gap "
-               "\n\t                             passed to -V. "
-               "\n\t                          -- N.B. The non-veto active "
-               "region X dimension, "
-               "\n\t                             i.e. -dmx less -dmn less times"
-               " the -V should be "
-               "\n\t                             easily divisible by this "
-               "number: e.g. 10 cm steps."
-               "\n\t-nt <NMaxTrackSteps>     : Track final state charged lepton"
-               " through up to -nt GEANT4"
-               "\n\t                           steps."
-            << std::endl;
+void SayUsage(char const *argv[]) {
+  std::cout << "[USAGE]: " << argv[0] << "\n"
+            << GetUsageText(argv[0], "sim_tools") << std::endl;
 }
 
-void handleOpts(int argc, char* argv[]) {
+void handleOpts(int argc, char const* argv[]) {
   int opt = 1;
   while (opt < argc) {
     if (std::string(argv[opt]) == "-nx") {
@@ -121,7 +78,7 @@ void handleOpts(int argc, char* argv[]) {
   }
 }
 
-int main(int argc, char* argv[]) {
+int main(int argc, char const* argv[]) {
   handleOpts(argc, argv);
 
   if(NXSteps == 0){

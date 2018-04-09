@@ -46,6 +46,7 @@ include(${CMAKE_SOURCE_DIR}/cmake/ROOTSetup.cmake)
 include(${CMAKE_SOURCE_DIR}/cmake/Prob3++Setup.cmake)
 
 ################################## COMPILER ####################################
+LIST(APPEND EXTRA_CXX_FLAGS -fopenmp)
 include(${CMAKE_SOURCE_DIR}/cmake/c++CompilerSetup.cmake)
 
 ################################## DOXYGEN ####################################
@@ -60,6 +61,8 @@ add_subdirectory(app)
 
 add_subdirectory(configs)
 add_subdirectory(scripts)
+
+add_subdirectory(dox)
 
 configure_file(cmake/setup.sh.in
   "${PROJECT_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/setup.sh" @ONLY)

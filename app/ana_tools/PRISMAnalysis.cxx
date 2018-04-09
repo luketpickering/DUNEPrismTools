@@ -7,6 +7,7 @@
 
 #include "StringParserUtility.hxx"
 #include "ROOTUtility.hxx"
+#include "GetUsage.hxx"
 
 #include "TMath.h"
 #include "TTree.h"
@@ -38,36 +39,10 @@ std::string OutputFile = "PRISMAnalysis.root";
 
 std::vector<double> ERecBinning;
 
+
 void SayUsage(char const *argv[]) {
-  std::cout
-      << "[USAGE]: " << argv[0]
-      << "\n"
-         "\t-F <fluxfitresults.root>        : Result of "
-         "dp_FitFluxes to use to build observation.\n"
-         "\t-NI <NDEvents.root>            : TChain descriptor for"
-         " input tree. \n"
-         "\t-NF <NDFluxFile.root>          : Friend tree for -NI "
-         "option containing flux throws.\n"
-         "\t-NX <NDXSecFile.root>          : Friend tree for -NI "
-         "option containing xsec throws.\n"
-         "\t-NE <NDEffFile.root>           : Friend tree for -NI "
-         "option containing efficiency correction weights.\n"
-         "\t-ND <NDDataFile.root>          : File containing ND data "
-         "distributions.\n"
-         "\t-NA <EHadrVis_GeV>             : Shower acceptance cut in GeV.\n"
-         "\t-FI <FDEvents.root>            : TChain descriptor for"
-         " FD input tree. \n"
-         "\t-FF <FDFluxFile.root>          : Friend tree for -FI "
-         "option containing flux throws.\n"
-         "\t-FX <FDXSecFile.root>          : Friend tree for -FI "
-         "option containing xsec throws.\n"
-         "\t-FE <FDEffFile.root>           : Friend tree for -FI "
-         "option containing efficiency correction weights.\n"
-         "\t-FD <FDDataFile.root>          : File containing FD data "
-         "distribution.\n"
-         "\t-b <low_up:width[,low_up:width...]>  : ENuBinning descriptor.\n"
-         "\t-o <OutputFile.root>                 : Output file name.\n"
-      << std::endl;
+  std::cout << "[USAGE]: " << argv[0] << "\n"
+            << GetUsageText(argv[0], "ana_tools") << std::endl;
 }
 
 void handleOpts(int argc, char const *argv[]) {

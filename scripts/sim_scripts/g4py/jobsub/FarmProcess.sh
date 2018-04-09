@@ -107,7 +107,6 @@ while [[ ${#} -gt 0 ]]; do
 
       FORCE="1"
       echo "[OPT]: Will force overwrite of output."
-      shift # past argument
       ;;
 
       -?|--help)
@@ -195,10 +194,10 @@ if [ ! -e ${PDIR} ]; then
   exit 1
 fi
 
-echo "qsub ${DUNEPRISMTOOLSROOT}/scripts/g4py/Process.sh -t 1-${NJOBSTORUN} -N DP_Proc \
+echo "qsub ${DUNEPRISMTOOLSROOT}/scripts/sim_scripts/g4py/Process.sh -t 1-${NJOBSTORUN} -N DP_Proc \
   -v INPUT_FILE_LIST=${IPFL},RUNPLAN_CONFIG=${CONFIG},PROCESSED_OUTPUT_DIR=${PDIR},ENVSETUPSCRIPT=${ENVSETUPSCRIPT} \
   -o process.sub.log"
 
-qsub ${DUNEPRISMTOOLSROOT}/scripts/g4py/Process.sh -t 1-${NJOBSTORUN} -N DP_Proc \
+qsub ${DUNEPRISMTOOLSROOT}/scripts/sim_scripts/g4py/Process.sh -t 1-${NJOBSTORUN} -N DP_Proc \
   -v INPUT_FILE_LIST=${IPFL},RUNPLAN_CONFIG=${CONFIG},PROCESSED_OUTPUT_DIR=${PDIR},ENVSETUPSCRIPT=${ENVSETUPSCRIPT},POTPERFILE=${POTPERFILE} \
   -o process.sub.log

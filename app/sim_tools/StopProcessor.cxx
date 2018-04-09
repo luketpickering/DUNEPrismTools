@@ -4,6 +4,7 @@
 
 #include "ROOTUtility.hxx"
 #include "PhysicsUtility.hxx"
+#include "GetUsage.hxx"
 
 #include "DepositsSummaryTreeReader.hxx"
 #include "CondensedDepositsTreeReader.hxx"
@@ -55,34 +56,15 @@ double POTPerFile = 0xdeadbeef;
 double TotalPOTPerFile = 0xdeadbeef;
 
 void SayUsage(char const *argv[]) {
-  std::cout
-      << "[USAGE]: " << argv[0]
-      << "\n"
-         "\t-i <input dir>                : Input directory containing "
-         "condensed arbox.py output.\n"
-         "\t-r <RunPlan.XML>              : An XML file specifying a run "
-         "plan  \n"
-         "\t                                to place stops for. \n"
-         "\t                              -- See ${DUNEPRISMTOOLSROOT}/configs"
-         "/run_plans for examples.\n"
-         "\t-o <output.root>              : Output file name.\n"
-         "\t-v <veto threshold MeV>       : Threshold energy deposit in "
-         "veto region to pass \n"
-         "\t                                selection {default = 10 MeV}.\n"
-         "\t-A                            : Write out all events regardless "
-         "of whether they\n"
-         "\t                                fall within a stop.\n"
-         "\t-n  <NEvents>                 : NMax events to write.\n"
-         "\t-ns <NEvents>                 : N events to skip.\n"
-         "\t-P <POTPerFile>               : POT Per input file. Overrides POT "
-         "info stored in Condesed config tree.\n"
-      << std::endl;
+  std::cout << "[USAGE]: " << argv[0] << "\n"
+            << GetUsageText(argv[0], "sim_tools") << std::endl;
 }
 
 void handleOpts(int argc, char const *argv[]) {
   int opt = 1;
   while (opt < argc) {
-    if (std::string(argv[opt]) == "-?") {
+    if (std::string(argv[opt]) == "-?"||
+               std::string(argv[opt]) == "--help") {
       SayUsage(argv);
       exit(0);
     } else if (std::string(argv[opt]) == "-i") {

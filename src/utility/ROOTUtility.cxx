@@ -149,6 +149,37 @@ std::vector<TH1D *> MergeSplitTH2D(
   return split;
 }
 
+TH2D * SliceNormTH2D(TH2D *t2, bool AlongY){
+  TH2D * cpy = static_cast<TH2D *>(t2->Clone((std::string(t2->GetName()) +
+    (AlongY ? "_normYSlice":"_normXSlice") ).c_str() ));
+
+  for(Int_t sl_bin_it = 1;
+    sl_bin_it < (AlongY ? t2->GetYaxis() : t2->GetXaxis())->GetNbins();
+    ++sl_bin_it){
+
+    double total = 0;
+
+    for(Int_t bin_it = 1;
+      bin_it < (AlongY ? t2->GetXaxis() : t2->GetYaxis())->GetNbins();
+      ++bin_it){
+        total +=
+          (AlongY ? t2->GetBinContent(bin_it, sl_bin_it) :
+                    t2->GetBinContent(sl_bin_it, bin_it));
+    }
+
+    for(Int_t bin_it = 1;
+      bin_it < (AlongY ? t2->GetXaxis() : t2->GetYaxis())->GetNbins();
+      ++bin_it){
+        (AlongY ?
+          cpy->SetBinContent(bin_it, sl_bin_it,
+            t2->GetBinContent(bin_it, sl_bin_it)/total) :
+          cpy->SetBinContent(sl_bin_it, bin_it,
+            t2->GetBinContent(sl_bin_it, bin_it)/total));
+    }
+  }
+  return cpy;
+}
+
 bool CheckTTreeHasBranch(TTree *tree, std::string const &BranchName) {
   TObjArray *branches = tree->GetListOfBranches();
 

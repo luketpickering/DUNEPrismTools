@@ -139,39 +139,5 @@
       </Pad>
     </Canvas>
 
-<!--     <Canvas nx="2" StyleName="Default" SeriesStyleHint="Variety_7" Name="EffCheck_2D" StyleName="Default" XWidth="600" YWidth="600" PrintName="EffCheck_2D.pdf" >
-      <Pad znd="505" xnd="505" ynd="505" yto="1.05" xto="1.15" ats="0.5" ml="0.175" mt="0.15" mb="0.15" mr="0.175" YTitle="Offset (cm)" XTitle="E_{Avail} (GeV)" ZTitle="Count" PaletteName="RedTint" >
-
-        <ExternalTH2 rf="Selected.root" tn="EvRateEProxy_True" />
-
-      </Pad>
-      <Pad znd="505" xnd="505" ynd="505" yto="1.05" xto="1.15" ats="0.5" ml="0.175" mt="0.15" mb="0.15" mr="0.175" YTitle="Offset (cm)" XTitle="E_{Avail} (GeV)" ZTitle="Count (Selected)" PaletteName="RedTint" >
-
-        <ExternalTH2 rf="EffFriend.root" tn="EvRateEProxy_Selected" />
-
-      </Pad>
-      <Pad znd="505" xnd="505" ynd="505" yto="1.05" xto="1.15" ats="0.5" ml="0.175" mt="0.15" mb="0.15" mr="0.175" YTitle="Offset (cm)" XTitle="E_{Avail} (GeV)" ZTitle="Count (Corrected)" PaletteName="RedTint" >
-
-        <ExternalTH2 rf="EffFriend.root" tn="EvRateEProxy_Corrected" />
-
-      </Pad>
-      <Pad znd="505" xnd="505" ynd="505" yto="1.05" xto="1.15" ats="0.5" ml="0.175" mt="0.15" mb="0.15" mr="0.175" YTitle="Offset (cm)" XTitle="E_{Avail} (GeV)" ZTitle="Corrected/True" dmx="2" dmn="0" PaletteName="BWR" >
-
-        <Hist2DRatio>
-          <ExternalTH2 rf="EffFriend.root" rf="EffFriend.root" tn="EvRateEProxy_Corrected" />
-          <ExternalTH2 rf="Selected.root" tn="EvRateEProxy_True" />
-        </Hist2DRatio>
-
-      </Pad>
-    </Canvas>
-
-    <Canvas nx="2" StyleName="Default" SeriesStyleHint="Variety_7" Name="EffCorr_HadrE" StyleName="Default" XWidth="600" YWidth="600" PrintName="EffCorr_HadrE.pdf" >
-      <Pad znd="505" xnd="505" ynd="505" yto="1.05" xto="1.15" ats="0.75" ml="0.175" mt="0.15" mb="0.15" mr="0.175" YTitle="X Position in detector (cm)" XTitle="E_{Hadr.} (GeV)" ZTitle="Selection efficiency" PaletteName="R6_Water_Melon" >
-
-        <ExternalTH2 rf="EffCorrector.root" tn="Ehadr_FV_detpos_seleff" xmx="10" />
-
-      </Pad>
-    </Canvas> -->
-
   </Plots>
 </config>

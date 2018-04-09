@@ -1,6 +1,6 @@
 SET(ANA_APPS
   # FluxVarFriendTreeBuilder
-  # XSecVarFriendTreeBuilder
+  XSecVarFriendTreeBuilder
   EfficiencyWeightFriendTreeBuilder
   PRISMAnalysis
   RunSelection

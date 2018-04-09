@@ -1,7 +1,7 @@
 add_library(DUNE-PRISM_Utility
+  BoundingBox.cxx
   DetectorStop.cxx
   GENIESplineReader.cxx
-  OscillationHelper.cxx
   ROOTUtility.cxx
   StringParserUtility.cxx
   PhysicsUtility.cxx

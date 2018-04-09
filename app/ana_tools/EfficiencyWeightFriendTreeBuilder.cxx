@@ -6,6 +6,7 @@
 
 #include "StringParserUtility.hxx"
 #include "ROOTUtility.hxx"
+#include "GetUsage.hxx"
 
 #include "TMath.h"
 #include "TTree.h"
@@ -21,32 +22,11 @@ bool SelMuExit = false;
 double SelMuExitKE = 0;  // GeV
 
 void SayUsage(char const *argv[]) {
-  std::cout
-      << "[USAGE]: " << argv[0]
-      << "\n"
-         "\t-i <stopprocessor.root>     : TChain descriptor for"
-         " input tree. \n"
-         "\t                              Should be the output of RunSelection."
-         "\t-o <outputfile.root>        : Output file to write "
-         "efficiency friend tree to.\n"
-         "\t-E <effcorrector.root>      : File containing efficiency "
-         "histograms.\n"
-         "\t-m <muon exit KE>           : Muon exit threshold KE in MeV.\n"
-         "\t-M <eff correction mode>    : Kinematics to use to determine the "
-         "hadronic shower selection\n"
-         "\t                              efficiency correction. {Default = 3}"
-         "\n"
-         "\t                              1: True hadronic energy, absolute "
-         "off axis position.\n"
-         "\t                              2: True hadronic energy, position "
-         "within the detector.\n"
-         "\t                              3: Visible hadronic energy, position "
-         "within the detector.\n"
-      << std::endl;
+  std::cout << "[USAGE]: " << argv[0] << "\n"
+            << GetUsageText(argv[0], "ana_tools") << std::endl;
 }
 
-
-EffCorrector::ModeEnum EffCorrMode = EffCorrector::kEHadrVisDetPos;
+EffCorrector::ModeEnum EffCorrMode = EffCorrector::kENonNeutronHadrDetPos;
 
 void handleOpts(int argc, char const *argv[]) {
   int opt = 1;
