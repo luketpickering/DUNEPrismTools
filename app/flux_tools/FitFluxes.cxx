@@ -558,6 +558,8 @@ int main(int argc, char const *argv[]) {
         "peaks, -p option has failed." << std::endl;
         throw;
       }
+      FitBetween_low = OscFlux->GetXaxis()->GetBinLowEdge(FitBinLow);
+      FitBetween_high = OscFlux->GetXaxis()->GetBinLowEdge(FitBinHigh);
     } else {
       if (FitBetween_low == 0xdeadbeef) {
         FitBinLow = 1;
@@ -656,8 +658,8 @@ int main(int argc, char const *argv[]) {
       std::cout << "\tFlux window[" << f_it << "] = {"
         << inpXRanges[f_it].first << " -- " << inpXRanges[f_it].second
         << "}, Coeff = " << inpCoeffs[f_it] << std::endl;
-      if( (fabs(inpXRanges[f_it].first-XRanges[f_it].first) > 1E-5 ) ||
-          (fabs(inpXRanges[f_it].second-XRanges[f_it].second) > 1E-5)   ){
+      if( (fabs(inpXRanges[f_it].first-(100.*XRanges[f_it].first)) > 1E-5 ) ||
+          (fabs(inpXRanges[f_it].second-(100.*XRanges[f_it].second)) > 1E-5)   ){
         std::cout << "[ERROR]: Here we found Flux window[" << f_it << "] = {"
           << XRanges[f_it].first << " -- " << XRanges[f_it].second
           << "}. Input results are incompatible." << std::endl;
