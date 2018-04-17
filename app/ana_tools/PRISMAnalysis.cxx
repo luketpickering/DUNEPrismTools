@@ -1,17 +1,20 @@
 #include "DepositsSummaryTreeReader.hxx"
-#include "StopConfigTreeReader.hxx"
-#include "SliceConfigTreeReader.hxx"
+#include "FluxFitResultsTreeReader.hxx"
 #include "OscillationHelper.hxx"
 #include "SelectionSummaryTreeReader.hxx"
-#include "FluxFitResultsTreeReader.hxx"
+#include "SliceConfigTreeReader.hxx"
+#include "StopConfigTreeReader.hxx"
 
-#include "StringParserUtility.hxx"
-#include "ROOTUtility.hxx"
+#include "CovarianceHelper.hxx"
+
 #include "GetUsage.hxx"
+#include "ROOTUtility.hxx"
+#include "StringParserUtility.hxx"
 
 #include "TMath.h"
 #include "TTree.h"
 
+#include <cmath>
 #include <string>
 #include <vector>
 
@@ -22,7 +25,6 @@ std::string NDEffFile;
 std::string FluxFitFile;
 double NDInputPOTPerFile = 5E16;
 double NDInputPOT;
-double NDHadrVisAcceptance = 0; //GeV
 
 std::string NDDataFile;
 
@@ -37,8 +39,9 @@ std::string FDDataFile;
 
 std::string OutputFile = "PRISMAnalysis.root";
 
-std::vector<double> ERecBinning;
+std::vector<double> ProjectionBinning;
 
+DepositsSummary::ProjectionVar projVar = DepositsSummary::kERec;
 
 void SayUsage(char const *argv[]) {
   std::cout << "[USAGE]: " << argv[0] << "\n"
@@ -64,8 +67,6 @@ void handleOpts(int argc, char const *argv[]) {
       NDEffFile = argv[++opt];
     } else if (std::string(argv[opt]) == "-ND") {
       NDDataFile = argv[++opt];
-    }else if (std::string(argv[opt]) == "-NA") {
-      NDHadrVisAcceptance = str2T<double>(argv[++opt]);
     } else if (std::string(argv[opt]) == "-FI") {
       FDEventFile = argv[++opt];
     } else if (std::string(argv[opt]) == "-FF") {
@@ -79,7 +80,28 @@ void handleOpts(int argc, char const *argv[]) {
     } else if (std::string(argv[opt]) == "-o") {
       OutputFile = argv[++opt];
     } else if (std::string(argv[opt]) == "-b") {
-      ERecBinning = BuildBinEdges(argv[++opt]);
+      ProjectionBinning = BuildBinEdges(argv[++opt]);
+    } else if (std::string(argv[opt]) == "-PV") {
+      switch(str2T<int>(argv[++opt])){
+        case 1: {
+          projVar = DepositsSummary::kETrue;
+          break;
+        }
+        case 2: {
+          projVar = DepositsSummary::kEAvail_True;
+          break;
+        }
+        case 3: {
+          projVar = DepositsSummary::kERec;
+          break;
+        }
+        default:{
+          std::cout << "[ERROR]: Unknown option for -PV: " << argv[opt]
+            << std::endl;
+          SayUsage(argv);
+          exit(1);
+        }
+      }
     } else {
       std::cout << "[ERROR]: Unknown option: " << argv[opt] << std::endl;
       SayUsage(argv);
@@ -87,6 +109,59 @@ void handleOpts(int argc, char const *argv[]) {
     }
     opt++;
   }
+}
+
+enum histlistenum { kFDObs = 0, kFluxcorr, kAcccorr, kLinCombND };
+void ScalePRISMPredictions(std::vector<TH1D *> const &inputs, bool PeakScale,
+                           TDirectory *dir) {
+
+  TH1D *FDObservation_scale = static_cast<TH1D *>(
+      inputs[kFDObs]->Clone((std::string(inputs[kFDObs]->GetName()) +
+                             (PeakScale ? "_peak_norm" : "_area_norm"))
+                                .c_str()));
+
+  TH1D *FluxCorr_scale = static_cast<TH1D *>(
+      inputs[kFluxcorr]->Clone((std::string(inputs[kFluxcorr]->GetName()) +
+                                (PeakScale ? "_peak_norm" : "_area_norm"))
+                                   .c_str()));
+  TH1D *AccCorr_scale = static_cast<TH1D *>(
+      inputs[kAcccorr]->Clone((std::string(inputs[kAcccorr]->GetName()) +
+                               (PeakScale ? "_peak_norm" : "_area_norm"))
+                                  .c_str()));
+
+  TH1D *LinCombND_scale = static_cast<TH1D *>(
+      inputs[kLinCombND]->Clone((std::string(inputs[kLinCombND]->GetName()) +
+                                 (PeakScale ? "_peak_norm" : "_area_norm"))
+                                    .c_str()));
+
+  TH1D *ScaleHelper = static_cast<TH1D *>(
+      inputs[kFDObs]->Clone((std::string(inputs[kFDObs]->GetName()) +
+                             (PeakScale ? "_peak_norm" : "_area_norm"))
+                                .c_str()));
+  ScaleHelper->SetDirectory(nullptr);
+  ScaleHelper->Add(FluxCorr_scale, -1);
+  ScaleHelper->Add(AccCorr_scale, -1);
+
+  double FDToNDScale =
+      PeakScale ? (LinCombND_scale->GetMaximum() / ScaleHelper->GetMaximum())
+                : (LinCombND_scale->Integral() / ScaleHelper->Integral());
+
+  FDObservation_scale->Scale(FDToNDScale);
+  FluxCorr_scale->Scale(FDToNDScale);
+  AccCorr_scale->Scale(FDToNDScale);
+
+  TH1D *LinCombND_WithCorr = static_cast<TH1D *>(inputs[kLinCombND]->Clone(
+      (std::string(inputs[kLinCombND]->GetName()) +
+       (PeakScale ? "_with_corr_peak_norm" : "_with_corr_area_norm"))
+          .c_str()));
+  LinCombND_WithCorr->Add(FluxCorr_scale);
+  LinCombND_WithCorr->Add(AccCorr_scale);
+
+  FDObservation_scale->SetDirectory(dir);
+  FluxCorr_scale->SetDirectory(dir);
+  AccCorr_scale->SetDirectory(dir);
+  LinCombND_scale->SetDirectory(dir);
+  LinCombND_WithCorr->SetDirectory(dir);
 }
 
 TH1D *GetFDFluxCorrectionHelper() {
@@ -119,22 +194,28 @@ TH1D *GetOverlapWeightHelper(Double_t const (&VertexSelectionFV)[3]) {
   StopConfig sc(NDEventFile);
   sc.DetermineNStops();
 
-  std::vector<BoundingBox> StopActiveRegions = sc.GetStopBoundingBoxes(true,
-    {VertexSelectionFV[0], VertexSelectionFV[1], VertexSelectionFV[2]});
+  std::vector<BoundingBox> StopActiveRegions = sc.GetStopBoundingBoxes(
+      true, {VertexSelectionFV[0], VertexSelectionFV[1], VertexSelectionFV[2]});
 
   Double_t MaxAbsX = -std::numeric_limits<double>::max();
   Double_t MinAbsX = std::numeric_limits<double>::max();
 
-  for(BoundingBox const & bb : StopActiveRegions){
+  for (BoundingBox const &bb : StopActiveRegions) {
     MaxAbsX = std::max(MaxAbsX, bb.Max[0]);
     MinAbsX = std::min(MinAbsX, bb.Min[0]);
   }
 
+  size_t NSteps = lrint(MaxAbsX - MinAbsX) / 2;
+
+  std::cout << "[INFO]: Checking coverage [ " << MinAbsX << " -- " << MaxAbsX
+            << " : " << ((MaxAbsX - MinAbsX) / double(NSteps))
+            << " ], NSteps = " << NSteps << std::endl;
+
   TH1D *XRangePOTExposureHelper =
-      new TH1D("XRangePOTExposureHelper", "", 2000, -3800, 200);
+      new TH1D("XRangePOTExposureHelper", "", NSteps, MinAbsX, MaxAbsX);
   XRangePOTExposureHelper->SetDirectory(nullptr);
 
-  for(BoundingBox const & bb : StopActiveRegions){
+  for (BoundingBox const &bb : StopActiveRegions) {
 
     for (Int_t bi_it = 0;
          bi_it < XRangePOTExposureHelper->GetXaxis()->GetNbins(); ++bi_it) {
@@ -148,9 +229,7 @@ TH1D *GetOverlapWeightHelper(Double_t const (&VertexSelectionFV)[3]) {
       if (BinCenterIn) {
         XRangePOTExposureHelper->AddBinContent(bi_it + 1, sc.POTExposure);
       }
-
     }
-
   }
 
   sc.GetEntry(0);
@@ -178,7 +257,7 @@ int main(int argc, char const *argv[]) {
         << std::endl;
   }
 
-  if (!ERecBinning.size()) {
+  if (!ProjectionBinning.size()) {
     int argc_dum = 3;
     char const *argv_dum[] = {"", "-b", "0_10:0.25"};
     handleOpts(argc_dum, argv_dum);
@@ -187,17 +266,16 @@ int main(int argc, char const *argv[]) {
   // Build Flux slice helper
   SliceConfig slCfg(FluxFitFile);
 
-  std::vector< std::pair<double, double> > XRange_comp = slCfg.GetXRanges();
+  std::vector<std::pair<double, double>> XRange_comp = slCfg.GetXRanges();
   std::vector<double> Coeffs_comp = slCfg.GetCoeffs();
 
-  std::pair< std::vector<double>, std::vector<double> >
-    xrb = SliceConfig::BuildXRangeBinsCoeffs(XRange_comp, Coeffs_comp.data(),
-      true);
+  std::pair<std::vector<double>, std::vector<double>> xrb =
+      SliceConfig::BuildXRangeBinsCoeffs(XRange_comp, Coeffs_comp.data(), true);
 
   std::vector<double> &XRangeBins = xrb.first;
   std::vector<double> &Coeffs = xrb.second;
 
-  if(!XRangeBins.size()){
+  if (!XRangeBins.size()) {
     std::cout << "[ERROR]: Got no XRangeBins." << std::endl;
     throw;
   }
@@ -214,14 +292,10 @@ int main(int argc, char const *argv[]) {
   SelectionSummary FDSelection(FDEventFile);
   Long64_t NEntries = FDEventReader.GetEntries();
 
-  std::vector<double> FDOscWeights;
   OscillationHelper FDOscHelper;
   FDOscHelper.Setup(FluxFitFile);
-  FDOscWeights.resize(NEntries);
 
   // Build FD flux correction helper
-  std::vector<double> FluxCorrectionWeights;
-  FluxCorrectionWeights.resize(NEntries);
   TH1D *FDFluxComponentHelper = GetFDFluxCorrectionHelper();
 
   // ******** Set Up FD Friend Trees
@@ -267,59 +341,39 @@ int main(int argc, char const *argv[]) {
 
   // Set up Thrown distributions
   FDNSystThrows = std::min(FDNXSecThrows, FDNFluxThrows);
-  std::vector<TH1D *> ThrownFDPredictions_ERec;
-  std::vector<TH1D *> ThrownFDFluxCorrection_ERec;
+  std::vector<TH1D *> ThrownFDObservations;
   for (Int_t t_it = 0; t_it < FDNSystThrows; ++t_it) {
-    ThrownFDPredictions_ERec.push_back(
-        new TH1D("FDPrediction_ERec_t", ";E_{Dep} (GeV);Count",
-                 (ERecBinning.size() - 1), ERecBinning.data()));
-    ThrownFDFluxCorrection_ERec.push_back(
-        new TH1D("FDFluxCorrection_ERec", ";E_{Dep} (GeV);Count",
-                 (ERecBinning.size() - 1), ERecBinning.data()));
+    ThrownFDObservations.push_back(
+        new TH1D((std::string("FDObservation_") + to_str(projVar) + "_t").c_str(),
+        (std::string(";") + to_title(projVar) + ";Count").c_str(),
+                 (ProjectionBinning.size() - 1), ProjectionBinning.data()));
 
-    ThrownFDPredictions_ERec.back()->SetDirectory(nullptr);
-    ThrownFDFluxCorrection_ERec.back()->SetDirectory(nullptr);
+    ThrownFDObservations.back()->SetDirectory(nullptr);
   }
 
+  // Get the acceptance cut used in the ND selection to build the corrector.
+  SelectionSummary NDSelection(NDEventFile);
+
   // Build nominal FD prediction
-  TH1D *FDPrediction_ERec =
-      new TH1D("FDPrediction_ERec", ";E_{Dep} (GeV);Count",
-               (ERecBinning.size() - 1), ERecBinning.data());
-  TH1D *FDPrediction_True =
-      new TH1D("FDPrediction_True", ";E_{#nu} (GeV);Count",
-               (ERecBinning.size() - 1), ERecBinning.data());
-  TH1D *FDPrediction_EProxy =
-      new TH1D("FDPrediction_EProxy", ";E_{#nu,Proxy} (GeV);Count",
-               (ERecBinning.size() - 1), ERecBinning.data());
-  FDPrediction_ERec->SetDirectory(nullptr);
-  FDPrediction_True->SetDirectory(nullptr);
-  FDPrediction_EProxy->SetDirectory(nullptr);
+  TH1D *FDObservation =
+      new TH1D((std::string("FDObservation_") + to_str(projVar)).c_str(),   (std::string(";") + to_title(projVar) + ";Count").c_str(),
+               (ProjectionBinning.size() - 1), ProjectionBinning.data());
+  FDObservation->SetDirectory(nullptr);
 
-  TH1D *FDFluxCorrection_ERec =
-      new TH1D("FDFluxCorrection_ERec", ";E_{Dep} (GeV);Count",
-               (ERecBinning.size() - 1), ERecBinning.data());
-  TH1D *FDFluxCorrection_True =
-      new TH1D("FDFluxCorrection_True", ";E_{#nu} (GeV);Count",
-               (ERecBinning.size() - 1), ERecBinning.data());
-  TH1D *FDFluxCorrection_EProxy =
-      new TH1D("FDFluxCorrection_EProxy", ";E_{#nu,Proxy} (GeV);Count",
-               (ERecBinning.size() - 1), ERecBinning.data());
-  FDFluxCorrection_ERec->SetDirectory(nullptr);
-  FDFluxCorrection_True->SetDirectory(nullptr);
-  FDFluxCorrection_EProxy->SetDirectory(nullptr);
+  TH1D *FDFluxCorrection =
+      new TH1D((std::string("FDFluxCorrection_") + to_str(projVar)).c_str(),   (std::string(";") + to_title(projVar) + ";Count").c_str(),
+               (ProjectionBinning.size() - 1), ProjectionBinning.data());
+  FDFluxCorrection->SetDirectory(nullptr);
 
-  TH1D *FDAcceptanceCorrection_ERec =
-      new TH1D("FDAcceptanceCorrection_ERec", ";E_{Dep} (GeV);Count",
-               (ERecBinning.size() - 1), ERecBinning.data());
-  TH1D *FDAcceptanceCorrection_True =
-      new TH1D("FDAcceptanceCorrection_True", ";E_{#nu} (GeV);Count",
-               (ERecBinning.size() - 1), ERecBinning.data());
-  TH1D *FDAcceptanceCorrection_EProxy =
-      new TH1D("FDAcceptanceCorrection_EProxy", ";E_{#nu,Proxy} (GeV);Count",
-               (ERecBinning.size() - 1), ERecBinning.data());
-  FDAcceptanceCorrection_ERec->SetDirectory(nullptr);
-  FDAcceptanceCorrection_True->SetDirectory(nullptr);
-  FDAcceptanceCorrection_EProxy->SetDirectory(nullptr);
+  TH1D *FDAcceptanceCorrection =
+      new TH1D((std::string("FDAcceptanceCorrection_") + to_str(projVar)).c_str(),   (std::string(";") + to_title(projVar) + ";Count").c_str(),
+               (ProjectionBinning.size() - 1), ProjectionBinning.data());
+  FDAcceptanceCorrection->SetDirectory(nullptr);
+
+  double EHadrVis_AcceptanceCut_GeV =
+      NDSelection.EHadrVis_AcceptanceCut_GeV > 1E-5
+          ? NDSelection.EHadrVis_AcceptanceCut_GeV
+          : std::numeric_limits<double>::max();
 
   Long64_t LoudEvery = NEntries / 10;
   LoudEvery = LoudEvery ? LoudEvery : 1;
@@ -333,44 +387,26 @@ int main(int argc, char const *argv[]) {
                 << " FD events." << std::endl;
     }
 
-    FDOscWeights[e_it] = FDOscHelper.GetWeight(
-      FDEventReader.GetProjection(DepositsSummary::kETrue));
-    Int_t FluxCorrectionBin =
-        FDFluxComponentHelper->GetXaxis()->FindFixBin(
-          FDEventReader.GetProjection(DepositsSummary::kETrue));
-    FluxCorrectionWeights[e_it] =
+    double FDOscWeight = FDOscHelper.GetWeight(
+        FDEventReader.GetProjection(DepositsSummary::kETrue));
+    Int_t FluxCorrectionBin = FDFluxComponentHelper->GetXaxis()->FindFixBin(
+        FDEventReader.GetProjection(DepositsSummary::kETrue));
+    double FluxCorrectionWeight =
         FDFluxComponentHelper->GetBinContent(FluxCorrectionBin);
 
-    FDPrediction_ERec->Fill(FDEventReader.GetProjection(DepositsSummary::kERec),
-                            FDOscWeights[e_it] * FDEffWeight);
-    FDPrediction_True->Fill(
-      FDEventReader.GetProjection(DepositsSummary::kETrue),
-                            FDOscWeights[e_it] * FDEffWeight);
-    FDPrediction_EProxy->Fill(
-      FDEventReader.GetProjection(DepositsSummary::kEAvail_True),
-                              FDOscWeights[e_it] * FDEffWeight);
+    FDObservation->Fill(
+        FDEventReader.GetProjection(projVar),
+        FDOscWeight * FDEffWeight);
 
-    FDFluxCorrection_ERec->Fill(
-        FDEventReader.GetProjection(DepositsSummary::kERec),
-        FDOscWeights[e_it] * FluxCorrectionWeights[e_it] * FDEffWeight);
-    FDFluxCorrection_True->Fill(
-        FDEventReader.GetProjection(DepositsSummary::kETrue),
-        FDOscWeights[e_it] * FluxCorrectionWeights[e_it] * FDEffWeight);
-    FDFluxCorrection_EProxy->Fill(
-        FDEventReader.GetProjection(DepositsSummary::kEAvail_True),
-        FDOscWeights[e_it] * FluxCorrectionWeights[e_it] * FDEffWeight);
+    FDFluxCorrection->Fill(
+        FDEventReader.GetProjection(projVar),
+        FDOscWeight * FluxCorrectionWeight * FDEffWeight);
 
-    if(FDEventReader.GetProjection(DepositsSummary::kEHadr_vis) >
-      NDHadrVisAcceptance){
-      FDAcceptanceCorrection_ERec->Fill(
-          FDEventReader.GetProjection(DepositsSummary::kERec),
-          FDOscWeights[e_it] * FDEffWeight);
-      FDAcceptanceCorrection_True->Fill(
-          FDEventReader.GetProjection(DepositsSummary::kETrue),
-          FDOscWeights[e_it] * FDEffWeight);
-      FDAcceptanceCorrection_EProxy->Fill(
-          FDEventReader.GetProjection(DepositsSummary::kEAvail_True),
-          FDOscWeights[e_it] * FDEffWeight);
+    if (FDEventReader.GetProjection(DepositsSummary::kEHadr_vis) >
+        EHadrVis_AcceptanceCut_GeV) {
+      FDAcceptanceCorrection->Fill(
+          FDEventReader.GetProjection(projVar),
+          FDOscWeight * FDEffWeight);
     }
 
     if (FDNSystThrows) {
@@ -389,12 +425,9 @@ int main(int argc, char const *argv[]) {
           W *= FDFluxWeights[t_it];
         }
 
-        ThrownFDPredictions_ERec[t_it]->Fill(
-            FDEventReader.GetProjection(DepositsSummary::kERec),
-            FDOscWeights[e_it] * FDEffWeight * W);
-        ThrownFDFluxCorrection_ERec[t_it]->Fill(
-            FDEventReader.GetProjection(DepositsSummary::kERec),
-            FDOscWeights[e_it] * FluxCorrectionWeights[e_it] * FDEffWeight * W);
+        ThrownFDObservations[t_it]->Fill(
+            FDEventReader.GetProjection(projVar),
+            FDOscWeight * FDEffWeight * W);
       }
     }
   }
@@ -410,7 +443,7 @@ int main(int argc, char const *argv[]) {
     }
   }
   // Set up systematics
-  Int_t NDNSystThrows = 0;
+  Int_t NSystThrows = 0;
   // Set up XSecThrows tree
   TChain *NDXSecThrowsTree = nullptr;
   Int_t NDNXSecThrows = 0;
@@ -441,89 +474,52 @@ int main(int argc, char const *argv[]) {
   double *NDFluxWeights = nullptr;
 
   // Set up Thrown distributions
-  NDNSystThrows = std::min(NDNXSecThrows, NDNFluxThrows);
-  if (NDNSystThrows != FDNSystThrows) {
-    std::cout << "[ERROR]: Inputs contain " << NDNSystThrows
-              << " ND syst throws and " << FDNSystThrows
-              << " FD syst throws. These must be the same." << std::endl;
-    exit(1);
+  NSystThrows = std::min(NDNXSecThrows, std::min(NDNFluxThrows, FDNSystThrows));
+
+  if (NSystThrows) {
+    std::cout << "[INFO]: Processing " << NSystThrows
+              << " systematic weight throws." << std::endl;
   }
 
-  std::vector<TH1D *> ThrownNDPredictions_ERec;
-  for (Int_t t_it = 0; t_it < NDNSystThrows; ++t_it) {
-    ThrownNDPredictions_ERec.push_back(
-        new TH1D("NDPrediction_ERec_t", ";E_{Dep} (GeV);Count",
-                 (ERecBinning.size() - 1), ERecBinning.data()));
+  std::vector<TH1D *> ThrownNDPredictions;
+  for (Int_t t_it = 0; t_it < NSystThrows; ++t_it) {
+    ThrownNDPredictions.push_back(
+        new TH1D((std::string("NDObservation_") + to_str(projVar) + "_t").c_str(),
+        (std::string(";") + to_title(projVar) + ";Count").c_str(),
+                 (ProjectionBinning.size() - 1), ProjectionBinning.data()));
 
-    ThrownNDPredictions_ERec.back()->SetDirectory(nullptr);
+    ThrownNDPredictions.back()->SetDirectory(nullptr);
   }
 
-  TH2D *OffSetVsERec =
-      new TH2D("OffSetVsERec",
-               ";E_{Rec} = E_{#mu} + E_{Hadr,Veto} (GeV);Offset (cm);Count",
-               (ERecBinning.size() - 1), ERecBinning.data(),
-               XRangeBins.size() - 1, XRangeBins.data());
-
-  TH2D *OffSetVsEProxy =
-      new TH2D("OffSetVsEProxy", ";E_{#nu,Proxy} (GeV);Offset (cm);Count",
-               (ERecBinning.size() - 1), ERecBinning.data(),
-               XRangeBins.size() - 1, XRangeBins.data());
-  OffSetVsERec->SetDirectory(nullptr);
-  OffSetVsEProxy->SetDirectory(nullptr);
-
-  TH1D *LinCombOneShotERec =
-      new TH1D("LinCombOneShotERec",
-               ";E_{Rec} = E_{#mu} + E_{Hadr,Veto} (GeV);Events / GeV",
-               (ERecBinning.size() - 1), ERecBinning.data());
-  TH1D *LinCombOneShotEProxy =
-      new TH1D("LinCombOneShotEProxy", ";E_{#nu,Proxy} (GeV);Events / GeV",
-               (ERecBinning.size() - 1), ERecBinning.data());
-  LinCombOneShotERec->SetDirectory(nullptr);
-  LinCombOneShotEProxy->SetDirectory(nullptr);
-  TH1D *LinCombOneShotETrue =
-      new TH1D("LinCombOneShotETrue", ";E_{#nu} (GeV);Events / GeV",
-               (ERecBinning.size() - 1), ERecBinning.data());
-  LinCombOneShotETrue->SetDirectory(nullptr);
+  TH1D *LinCombNDObservation =
+      new TH1D((std::string("LinCombNDObservation_") + to_str(projVar)).c_str(),
+      (std::string(";") + to_title(projVar) + ";Count").c_str(),
+               (ProjectionBinning.size() - 1), ProjectionBinning.data());
+  LinCombNDObservation->SetDirectory(nullptr);
 
   DepositsSummary NDEventReader(NDEventFile);
-  SelectionSummary NDSelection(NDEventFile);
 
   // ****************** START building ND prediction.
   // Build Overlap weighter
   TH1D *OverlapWeightHelper =
-    GetOverlapWeightHelper(NDSelection.VertexSelectionFV);
+      GetOverlapWeightHelper(NDSelection.VertexSelectionFV);
 
   LoudEvery = NDEventReader.GetEntries() / 10;
   NEntries = NDEventReader.GetEntries();
-  std::vector<double> NDOverlapWeights;
-  NDOverlapWeights.resize(NEntries);
 
-  std::vector<TH1D *> SliceEProxy;
-  std::vector<TH1D *> SliceEProxy_Weighted;
-  std::vector<TH1D *> SliceERec;
-  std::vector<TH1D *> SliceERec_Weighted;
+  std::vector<TH1D *> Slice;
+  std::vector<TH1D *> Slice_Weighted;
   for (size_t slice_it = 0; slice_it < (XRangeBins.size() - 1); ++slice_it) {
-    SliceEProxy.push_back(
-        new TH1D((std::string("EProxy_Slice") + to_str(slice_it)).c_str(),
-                 ";E_{#nu,Proxy} (GeV);Count", (ERecBinning.size() - 1),
-                 ERecBinning.data()));
-    SliceEProxy_Weighted.push_back(new TH1D(
-        (std::string("EProxy_WeightedSlice") + to_str(slice_it)).c_str(),
-        ";E_{Dep} (GeV);Count", (ERecBinning.size() - 1), ERecBinning.data()));
+    Slice.push_back(
+        new TH1D((std::string("Slice") + to_str(slice_it) + "_" + to_str(projVar)).c_str(),
+                 (std::string(";") + to_title(projVar) + ";Count").c_str(), (ProjectionBinning.size() - 1),
+                 ProjectionBinning.data()));
+    Slice_Weighted.push_back(new TH1D(
+        (std::string("Slice") + to_str(slice_it) + "_" + to_str(projVar) + "_LCWeighted").c_str(),
+        (std::string(";") + to_title(projVar) + ";Count").c_str(), (ProjectionBinning.size() - 1), ProjectionBinning.data()));
 
-    SliceEProxy.back()->SetDirectory(nullptr);
-    SliceEProxy_Weighted.back()->SetDirectory(nullptr);
-
-    SliceERec.push_back(
-        new TH1D((std::string("ERec_Slice") + to_str(slice_it)).c_str(),
-                 ";E_{#nu,Proxy} (GeV);Count", (ERecBinning.size() - 1),
-                 ERecBinning.data()));
-    SliceERec_Weighted.push_back(new TH1D(
-        (std::string("ERec_WeightedSlice") + to_str(slice_it)).c_str(),
-        ";E_{Dep} (GeV);Count", (ERecBinning.size() - 1), ERecBinning.data()));
-
-    SliceERec.back()->SetDirectory(nullptr);
-    SliceERec_Weighted.back()->SetDirectory(nullptr);
+    Slice.back()->SetDirectory(nullptr);
+    Slice_Weighted.back()->SetDirectory(nullptr);
   }
 
   NDInputPOT = NDSelection.TotalPOT;
@@ -556,54 +552,29 @@ int main(int argc, char const *argv[]) {
     Int_t xrb =
         OverlapWeightHelper->GetXaxis()->FindFixBin(NDEventReader.vtx[0]);
 
-    NDOverlapWeights[e_it] = OverlapWeightHelper->GetBinContent(xrb);
+    double NDOverlapWeight = OverlapWeightHelper->GetBinContent(xrb);
+    double NDNominalEventWeight =
+        NDEventReader.stop_weight * NDEffWeight * NDOverlapWeight * CoeffWeight;
 
-    OffSetVsERec->Fill(
-        NDEventReader.GetProjection(DepositsSummary::kERec),
-        NDEventReader.vtx[0],
-        NDEventReader.stop_weight * NDEffWeight * NDOverlapWeights[e_it]);
-    OffSetVsEProxy->Fill(
-        NDEventReader.GetProjection(DepositsSummary::kEAvail_True),
-          NDEventReader.vtx[0],
-            NDEventReader.stop_weight * NDEffWeight * NDOverlapWeights[e_it]);
+    Slice[xb - 1]->Fill(NDEventReader.GetProjection(projVar),
+                            NDEventReader.stop_weight * NDEffWeight *
+                                NDOverlapWeight);
+    Slice_Weighted[xb - 1]->Fill(
+        NDEventReader.GetProjection(projVar),
+        NDNominalEventWeight);
 
-    SliceEProxy[xb - 1]->Fill(
-        NDEventReader.GetProjection(DepositsSummary::kEAvail_True),
-        NDEventReader.stop_weight * NDEffWeight * NDOverlapWeights[e_it]);
-    SliceEProxy_Weighted[xb - 1]->Fill(
-        NDEventReader.GetProjection(DepositsSummary::kEAvail_True),
-          NDEventReader.stop_weight * NDEffWeight * NDOverlapWeights[e_it] * \
-            CoeffWeight);
+    LinCombNDObservation->Fill(
+        NDEventReader.GetProjection(projVar),
+        NDNominalEventWeight);
 
-    SliceERec[xb - 1]->Fill(
-      NDEventReader.GetProjection(DepositsSummary::kERec),
-        NDEventReader.stop_weight * NDEffWeight * NDOverlapWeights[e_it]);
-    SliceERec_Weighted[xb - 1]->Fill(
-      NDEventReader.GetProjection(DepositsSummary::kERec),
-         NDEventReader.stop_weight * NDEffWeight *
-             NDOverlapWeights[e_it] * CoeffWeight);
-
-    LinCombOneShotERec->Fill(
-      NDEventReader.GetProjection(DepositsSummary::kERec),
-       NDEventReader.stop_weight * NDEffWeight * NDOverlapWeights[e_it] * \
-       CoeffWeight);
-    LinCombOneShotEProxy->Fill(
-      NDEventReader.GetProjection(DepositsSummary::kEAvail_True),
-        NDEventReader.stop_weight * NDEffWeight *
-          NDOverlapWeights[e_it] * CoeffWeight);
-    LinCombOneShotETrue->Fill(
-      NDEventReader.GetProjection(DepositsSummary::kETrue),
-        NDEventReader.stop_weight * NDEffWeight *
-            NDOverlapWeights[e_it] * CoeffWeight);
-
-    if (NDNSystThrows) {
+    if (NSystThrows) {
       if (NDXSecThrowsTree) {
         NDXSecThrowsTree->GetEntry(e_it);
       }
       if (NDFluxThrowsTree) {
         NDFluxThrowsTree->GetEntry(e_it);
       }
-      for (Int_t t_it = 0; t_it < NDNSystThrows; ++t_it) {
+      for (Int_t t_it = 0; t_it < NSystThrows; ++t_it) {
         double W = 1;
         if (NDXSecThrowsTree) {
           W *= NDXSecWeights[t_it];
@@ -612,10 +583,9 @@ int main(int argc, char const *argv[]) {
           W *= NDFluxWeights[t_it];
         }
 
-        ThrownNDPredictions_ERec[t_it]->Fill(
-            NDEventReader.GetProjection(DepositsSummary::kERec),
-            NDEventReader.stop_weight * NDEffWeight * NDOverlapWeights[e_it] *
-                CoeffWeight * W);
+        ThrownNDPredictions[t_it]->Fill(
+            NDEventReader.GetProjection(projVar),
+            NDNominalEventWeight * W);
       }
     }
   }
@@ -623,67 +593,14 @@ int main(int argc, char const *argv[]) {
   std::cout << "[INFO]: Predictions built out of " << Fills << " fills."
             << std::endl;
 
-  // if (NDNSystThrows) {
-  //   std::vector<TH1D *> NDFDDifferences;
-  //   for (Int_t t_it = 0; t_it < NDNSystThrows; ++t_it) {
-  //   }
-  // }
-
-  TH1D *LinCombERec = new TH1D(
-      "LinCombERec", ";E_{Rec} = E_{#mu} + E_{Hadr,Veto} (GeV);Events / GeV",
-      (ERecBinning.size() - 1), ERecBinning.data());
-  TH1D *LinCombEProxy =
-      new TH1D("LinCombEProxy", ";E_{#nu,Proxy} (GeV);Events / GeV",
-               (ERecBinning.size() - 1), ERecBinning.data());
-
-  LinCombERec->SetDirectory(nullptr);
-  LinCombEProxy->SetDirectory(nullptr);
-
-  for (Int_t xbin = 1; xbin < OffSetVsERec->GetXaxis()->GetNbins() + 1;
-       ++xbin) {
-    double bc_erec = 0, be_erec = 0, bc_eprox = 0, be_eprox = 0;
-
-    for (Int_t ybin = 1; ybin < OffSetVsERec->GetYaxis()->GetNbins() + 1;
-         ++ybin) {
-      bc_erec += OffSetVsERec->GetBinContent(xbin, ybin) *
-                 CoeffWeightingHelper->GetBinContent(ybin);
-
-      be_erec += OffSetVsERec->GetBinError(xbin, ybin) *
-                 CoeffWeightingHelper->GetBinContent(ybin);
-
-      bc_eprox += OffSetVsEProxy->GetBinContent(xbin, ybin) *
-                  CoeffWeightingHelper->GetBinContent(ybin);
-      be_eprox += OffSetVsEProxy->GetBinError(xbin, ybin) *
-                  CoeffWeightingHelper->GetBinContent(ybin);
-    }
-
-    LinCombERec->SetBinContent(xbin, bc_erec);
-    LinCombERec->SetBinError(xbin, be_erec);
-
-    LinCombEProxy->SetBinContent(xbin, bc_eprox);
-    LinCombEProxy->SetBinError(xbin, be_eprox);
-  }
-
   TFile *outfile = CheckOpenFile(OutputFile, "RECREATE");
 
   CoeffWeightingHelper->SetDirectory(outfile);
-  FDPrediction_ERec->SetDirectory(outfile);
-  FDPrediction_True->SetDirectory(outfile);
-  FDPrediction_EProxy->SetDirectory(outfile);
-  FDFluxCorrection_ERec->SetDirectory(outfile);
-  FDFluxCorrection_True->SetDirectory(outfile);
-  FDFluxCorrection_EProxy->SetDirectory(outfile);
-  FDAcceptanceCorrection_ERec->SetDirectory(outfile);
-  FDAcceptanceCorrection_True->SetDirectory(outfile);
-  FDAcceptanceCorrection_EProxy->SetDirectory(outfile);
+  FDObservation->SetDirectory(outfile);
+  FDFluxCorrection->SetDirectory(outfile);
+  FDAcceptanceCorrection->SetDirectory(outfile);
   OverlapWeightHelper->SetDirectory(outfile);
-  OffSetVsERec->SetDirectory(outfile);
-  OffSetVsEProxy->SetDirectory(outfile);
-  LinCombERec->SetDirectory(outfile);
-  LinCombEProxy->SetDirectory(outfile);
-  LinCombOneShotERec->SetDirectory(outfile);
-  LinCombOneShotEProxy->SetDirectory(outfile);
-  LinCombOneShotETrue->SetDirectory(outfile);
+  LinCombNDObservation->SetDirectory(outfile);
 
   TDirectory *oupD = outfile;
 
@@ -691,10 +608,8 @@ int main(int argc, char const *argv[]) {
   sliceD->cd();
 
   for (size_t slice_it = 0; slice_it < (XRangeBins.size() - 1); ++slice_it) {
-    SliceEProxy[slice_it]->SetDirectory(sliceD);
-    SliceEProxy_Weighted[slice_it]->SetDirectory(sliceD);
-    SliceERec[slice_it]->SetDirectory(sliceD);
-    SliceERec_Weighted[slice_it]->SetDirectory(sliceD);
+    Slice[slice_it]->SetDirectory(sliceD);
+    Slice_Weighted[slice_it]->SetDirectory(sliceD);
   }
 
   oupD->cd();
@@ -702,197 +617,74 @@ int main(int argc, char const *argv[]) {
   TDirectory *resD = oupD->mkdir("Results");
   resD->cd();
 
-  StopConfig NDSC(NDEventFile);
-  StopConfig FDSC(FDEventFile);
+  if (NSystThrows) {
+    CovarianceBuilder NDFDFreedomCovMat(ProjectionBinning.size() - 1);
+    NDFDFreedomCovMat.SetZeroMean();
+    TH1D *NDFDDifferences =
+        static_cast<TH1D *>(ThrownNDPredictions.front()->Clone());
+    NDFDDifferences->SetDirectory(nullptr);
+    for (Int_t t_it = 0; t_it < NSystThrows; ++t_it) {
+      NDFDDifferences->Reset();
 
-  double FDFV_m3 = 1;
-  double NDFV_m3 = 1;
+      // Remove ND corrections built from FD MC from FD 'prediction'
+      NDFDDifferences->Add(ThrownFDObservations[t_it],
+                           FDFluxCorrection, -1, 1);
+      NDFDDifferences->Add(FDAcceptanceCorrection, 1);
+      // Get re-scale
+      double peak_scale = ThrownNDPredictions[t_it]->GetMaximum() /
+                          fabs(NDFDDifferences->GetMaximum());
 
-  for(size_t dim_it = 0; dim_it < 3; ++dim_it){
-    double NDDim = (NDSC.ActiveMax[dim_it] - NDSC.ActiveMin[dim_it]
-      - 2.0*NDSC.VetoGap[dim_it]
-      - 2.0*NDSelection.VertexSelectionFV[dim_it]);
-    double FDDim = (FDSC.ActiveMax[dim_it] - FDSC.ActiveMin[dim_it]
-      - 2.0*FDSC.VetoGap[dim_it]
-      - 2.0*FDSelection.VertexSelectionFV[dim_it]);
-    NDFV_m3 *= NDDim;
-    FDFV_m3 *= FDDim;
-    std::cout << "[INFO]: ND FV dim[" << dim_it << "] = " << NDDim << std::endl;
-    std::cout << "[INFO]: FD FV dim[" << dim_it << "] = " << FDDim << std::endl;
+      // Re-scale FD to ND and sum
+      NDFDDifferences->Add(ThrownNDPredictions[t_it], NDFDDifferences, 1,
+                           -1 * peak_scale);
+
+      // Convert to fractional
+      NDFDDifferences->Divide(ThrownNDPredictions[t_it]);
+      NDFDFreedomCovMat.AddThrow_CovMatCalc(NDFDDifferences);
+    }
+    delete NDFDDifferences;
+    NDFDFreedomCovMat.FinalizeCovMatCalc();
+    NDFDFreedomCovMat.Write();
   }
 
-  FluxFitResultsTreeReader op(FluxFitFile);
+  // StopConfig NDSC(NDEventFile);
+  // StopConfig FDSC(FDEventFile);
+  //
+  // double FDFV_m3 = 1;
+  // double NDFV_m3 = 1;
+  //
+  // for (size_t dim_it = 0; dim_it < 3; ++dim_it) {
+  //   double NDDim = (NDSC.ActiveMax[dim_it] - NDSC.ActiveMin[dim_it] -
+  //                   2.0 * NDSC.VetoGap[dim_it] -
+  //                   2.0 * NDSelection.VertexSelectionFV[dim_it]);
+  //   double FDDim = (FDSC.ActiveMax[dim_it] - FDSC.ActiveMin[dim_it] -
+  //                   2.0 * FDSC.VetoGap[dim_it] -
+  //                   2.0 * FDSelection.VertexSelectionFV[dim_it]);
+  //   NDFV_m3 *= NDDim;
+  //   FDFV_m3 *= FDDim;
+  //   std::cout << "[INFO]: ND FV dim[" << dim_it << "] = " << NDDim <<
+  //   std::endl; std::cout << "[INFO]: FD FV dim[" << dim_it << "] = " << FDDim
+  //   << std::endl;
+  // }
+  //
+  // FluxFitResultsTreeReader op(FluxFitFile);
+  //
+  // std::cout << "[INFO]: Using ND/FD flux ratio: " <<
+  // op.NDOverFDFitScaleFactor
+  //           << std::endl;
+  // std::cout << "[INFO]: Using ND/FD volume ratio: " << (NDFV_m3 / FDFV_m3)
+  //           << std::endl;
+  // double FDToNDScale = (NDFV_m3 / FDFV_m3) * op.NDOverFDFitScaleFactor /
+  // FDInputPOT;
 
-  std::cout << "[INFO]: Using ND/FD flux ratio: " << op.NDOverFDFitScaleFactor
-            << std::endl;
-  std::cout << "[INFO]: Using ND/FD volume ratio: " << (NDFV_m3 / FDFV_m3)
-            << std::endl;
-
-  TH1D *FDPrediction_ERec_POTScaled = static_cast<TH1D *>(
-      FDPrediction_ERec->Clone("FDPrediction_ERec_POTScaled"));
-  FDPrediction_ERec_POTScaled->Scale(
-      (NDFV_m3 / FDFV_m3) * op.NDOverFDFitScaleFactor / FDInputPOT, "width");
-  FDPrediction_ERec_POTScaled->GetYaxis()->SetTitle("Count per 1 GeV per POT");
-
-  TH1D *FDFluxCorrection_ERec_clone =
-      static_cast<TH1D *>(FDFluxCorrection_ERec->Clone());
-  FDFluxCorrection_ERec_clone->Scale(
-      (NDFV_m3 / FDFV_m3) * op.NDOverFDFitScaleFactor / FDInputPOT, "width");
-
-  TH1D *FDAcceptanceCorrection_ERec_clone =
-      static_cast<TH1D *>(FDAcceptanceCorrection_ERec->Clone());
-  FDAcceptanceCorrection_ERec_clone->Scale(
-      (NDFV_m3 / FDFV_m3) * op.NDOverFDFitScaleFactor / FDInputPOT, "width");
-
-  TH1D *LinCombOneShotERec_POTScaled =
-      static_cast<TH1D *>(LinCombOneShotERec->Clone("LinCombOneShotERec_POTScaled"));
-  LinCombOneShotERec_POTScaled->Scale(1.0 / NDInputPOT, "width");
-  LinCombOneShotERec_POTScaled->GetYaxis()->SetTitle("Count per 1 GeV per POT");
-
-  TH1D *FDPrediction_ERec_POTScaled_HEURSCALE = static_cast<TH1D *>(
-      FDPrediction_ERec->Clone("FDPrediction_ERec_POTScaled_HEURSCALE"));
-
-  TH1D *FDFluxCorrection_ERec_HEURSCALE = static_cast<TH1D *>(
-      FDFluxCorrection_ERec->Clone("FDFluxCorrection_ERec_HEURSCALE"));
-  TH1D *FDAcceptanceCorrection_ERec_HEURSCALE = static_cast<TH1D *>(
-      FDAcceptanceCorrection_ERec->Clone("FDAcceptanceCorrection_ERec_HEURSCALE"));
-  TH1D *LinCombOneShotERec_POTScaled_HEURSCALE = static_cast<TH1D *>(
-      LinCombOneShotERec->Clone("LinCombOneShotERec_POTScaled_HEURSCALE"));
-
-  double FDToNDScale = LinCombOneShotERec_POTScaled_HEURSCALE->GetMaximum() /
-                       FDPrediction_ERec_POTScaled_HEURSCALE->GetMaximum();
-
-  FDPrediction_ERec_POTScaled_HEURSCALE->Scale(FDToNDScale);
-  FDFluxCorrection_ERec_HEURSCALE->Scale(FDToNDScale);
-  FDAcceptanceCorrection_ERec_HEURSCALE->Scale(FDToNDScale);
-
-  TH1D *LinCombOneShotERec_POTScaled_WithCorr_HEURSCALE =
-      static_cast<TH1D *>(LinCombOneShotERec_POTScaled_HEURSCALE->Clone(
-          "LinCombOneShotERec_POTScaled_WithCorr_HEURSCALE"));
-
-  LinCombOneShotERec_POTScaled_WithCorr_HEURSCALE->Add(
-      FDFluxCorrection_ERec_HEURSCALE);
-  LinCombOneShotERec_POTScaled_WithCorr_HEURSCALE->Add(
-      FDAcceptanceCorrection_ERec_HEURSCALE);
-
-  FDPrediction_ERec_POTScaled->SetDirectory(resD);
-  FDFluxCorrection_ERec_clone->SetDirectory(resD);
-  FDAcceptanceCorrection_ERec_clone->SetDirectory(resD);
-  LinCombOneShotERec_POTScaled->SetDirectory(resD);
-
-
-
-
-
-
-  TH1D *FDPrediction_EProxy_POTScaled = static_cast<TH1D *>(
-      FDPrediction_EProxy->Clone("FDPrediction_EProxy_POTScaled"));
-  FDPrediction_EProxy_POTScaled->Scale(
-      (NDFV_m3 / FDFV_m3) * op.NDOverFDFitScaleFactor / FDInputPOT, "width");
-  FDPrediction_EProxy_POTScaled->GetYaxis()->SetTitle("Count per 1 GeV per POT");
-
-  TH1D *FDFluxCorrection_EProxy_clone =
-      static_cast<TH1D *>(FDFluxCorrection_EProxy->Clone());
-  FDFluxCorrection_EProxy_clone->Scale(
-      (NDFV_m3 / FDFV_m3) * op.NDOverFDFitScaleFactor / FDInputPOT, "width");
-
-  TH1D *FDAcceptanceCorrection_EProxy_clone =
-      static_cast<TH1D *>(FDAcceptanceCorrection_EProxy->Clone());
-  FDAcceptanceCorrection_EProxy_clone->Scale(
-      (NDFV_m3 / FDFV_m3) * op.NDOverFDFitScaleFactor / FDInputPOT, "width");
-
-  TH1D *LinCombOneShotEProxy_POTScaled =
-      static_cast<TH1D *>(LinCombOneShotEProxy->Clone("LinCombOneShotEProxy_POTScaled"));
-  LinCombOneShotEProxy_POTScaled->Scale(1.0 / NDInputPOT, "width");
-  LinCombOneShotEProxy_POTScaled->GetYaxis()->SetTitle("Count per 1 GeV per POT");
-
-  TH1D *FDPrediction_EProxy_POTScaled_HEURSCALE = static_cast<TH1D *>(
-      FDPrediction_EProxy->Clone("FDPrediction_EProxy_POTScaled_HEURSCALE"));
-
-  TH1D *FDFluxCorrection_EProxy_HEURSCALE = static_cast<TH1D *>(
-      FDFluxCorrection_EProxy->Clone("FDFluxCorrection_EProxy_HEURSCALE"));
-  TH1D *FDAcceptanceCorrection_EProxy_HEURSCALE = static_cast<TH1D *>(
-      FDAcceptanceCorrection_EProxy->Clone("FDAcceptanceCorrection_EProxy_HEURSCALE"));
-  TH1D *LinCombOneShotEProxy_POTScaled_HEURSCALE = static_cast<TH1D *>(
-      LinCombOneShotEProxy->Clone("LinCombOneShotEProxy_POTScaled_HEURSCALE"));
-
-  FDToNDScale = LinCombOneShotEProxy_POTScaled_HEURSCALE->GetMaximum() /
-                       FDPrediction_EProxy_POTScaled_HEURSCALE->GetMaximum();
-
-  FDPrediction_EProxy_POTScaled_HEURSCALE->Scale(FDToNDScale);
-  FDFluxCorrection_EProxy_HEURSCALE->Scale(FDToNDScale);
-  FDAcceptanceCorrection_EProxy_HEURSCALE->Scale(FDToNDScale);
-
-  TH1D *LinCombOneShotEProxy_POTScaled_WithCorr_HEURSCALE =
-      static_cast<TH1D *>(LinCombOneShotEProxy_POTScaled_HEURSCALE->Clone(
-          "LinCombOneShotEProxy_POTScaled_WithCorr_HEURSCALE"));
-
-  LinCombOneShotEProxy_POTScaled_WithCorr_HEURSCALE->Add(
-      FDFluxCorrection_EProxy_HEURSCALE);
-  LinCombOneShotEProxy_POTScaled_WithCorr_HEURSCALE->Add(
-      FDAcceptanceCorrection_EProxy_HEURSCALE);
-
-  FDPrediction_EProxy_POTScaled->SetDirectory(resD);
-  FDFluxCorrection_EProxy_clone->SetDirectory(resD);
-  FDAcceptanceCorrection_EProxy_clone->SetDirectory(resD);
-  LinCombOneShotEProxy_POTScaled->SetDirectory(resD);
-
-
-
-
-
-
-  TH1D *FDPrediction_True_POTScaled = static_cast<TH1D *>(
-      FDPrediction_True->Clone("FDPrediction_True_POTScaled"));
-  FDPrediction_True_POTScaled->Scale(
-      (NDFV_m3 / FDFV_m3) * op.NDOverFDFitScaleFactor / FDInputPOT, "width");
-  FDPrediction_True_POTScaled->GetYaxis()->SetTitle("Count per 1 GeV per POT");
-
-  TH1D *FDFluxCorrection_True_clone =
-      static_cast<TH1D *>(FDFluxCorrection_True->Clone());
-  FDFluxCorrection_True_clone->Scale(
-      (NDFV_m3 / FDFV_m3) * op.NDOverFDFitScaleFactor / FDInputPOT, "width");
-
-  TH1D *FDAcceptanceCorrection_True_clone =
-      static_cast<TH1D *>(FDAcceptanceCorrection_True->Clone());
-  FDAcceptanceCorrection_True_clone->Scale(
-      (NDFV_m3 / FDFV_m3) * op.NDOverFDFitScaleFactor / FDInputPOT, "width");
-
-  TH1D *LinCombOneShotETrue_POTScaled =
-      static_cast<TH1D *>(LinCombOneShotETrue->Clone("LinCombOneShotETrue_POTScaled"));
-  LinCombOneShotETrue_POTScaled->Scale(1.0 / NDInputPOT, "width");
-  LinCombOneShotETrue_POTScaled->GetYaxis()->SetTitle("Count per 1 GeV per POT");
-
-  TH1D *FDPrediction_True_POTScaled_HEURSCALE = static_cast<TH1D *>(
-      FDPrediction_True->Clone("FDPrediction_True_POTScaled_HEURSCALE"));
-
-  TH1D *FDFluxCorrection_True_HEURSCALE = static_cast<TH1D *>(
-      FDFluxCorrection_True->Clone("FDFluxCorrection_True_HEURSCALE"));
-  TH1D *FDAcceptanceCorrection_True_HEURSCALE = static_cast<TH1D *>(
-      FDAcceptanceCorrection_True->Clone("FDAcceptanceCorrection_True_HEURSCALE"));
-  TH1D *LinCombOneShotETrue_POTScaled_HEURSCALE = static_cast<TH1D *>(
-      LinCombOneShotETrue->Clone("LinCombOneShotETrue_POTScaled_HEURSCALE"));
-
-  FDToNDScale = LinCombOneShotETrue_POTScaled_HEURSCALE->GetMaximum() /
-                       FDPrediction_True_POTScaled_HEURSCALE->GetMaximum();
-
-  FDPrediction_True_POTScaled_HEURSCALE->Scale(FDToNDScale);
-  FDFluxCorrection_True_HEURSCALE->Scale(FDToNDScale);
-  FDAcceptanceCorrection_True_HEURSCALE->Scale(FDToNDScale);
-
-  TH1D *LinCombOneShotETrue_POTScaled_WithCorr_HEURSCALE =
-      static_cast<TH1D *>(LinCombOneShotETrue_POTScaled_HEURSCALE->Clone(
-          "LinCombOneShotETrue_POTScaled_WithCorr_HEURSCALE"));
-
-  LinCombOneShotETrue_POTScaled_WithCorr_HEURSCALE->Add(
-      FDFluxCorrection_True_HEURSCALE);
-  LinCombOneShotETrue_POTScaled_WithCorr_HEURSCALE->Add(
-      FDAcceptanceCorrection_True_HEURSCALE);
-
-  FDPrediction_True_POTScaled->SetDirectory(resD);
-  FDFluxCorrection_True_clone->SetDirectory(resD);
-  FDAcceptanceCorrection_True_clone->SetDirectory(resD);
-  LinCombOneShotETrue_POTScaled->SetDirectory(resD);
+  ScalePRISMPredictions({FDObservation, FDFluxCorrection,
+                         FDAcceptanceCorrection,
+                         LinCombNDObservation},
+                        true, resD);
+  ScalePRISMPredictions({FDObservation, FDFluxCorrection,
+                         FDAcceptanceCorrection,
+                         LinCombNDObservation},
+                        false, resD);
 
   outfile->Write();
 }

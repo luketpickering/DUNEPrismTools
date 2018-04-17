@@ -26,6 +26,7 @@ SelectionSummary(std::string const &inputFile);
   Bool_t SelectOnMuonExit;
   Double_t MuonExitKECut_MeV;
   Double_t HadronicShowerVetoCut_MeV;
+  Double_t EHadrVis_AcceptanceCut_GeV;
   Double_t VertexSelectionFV[3];
   Double_t TotalPOT;
 

@@ -14,7 +14,7 @@
 struct EffCorrector {
 
   enum ModeEnum { kEHadrAbsPos = 1, kEHadrDetPos, kENonNeutronHadrDetPos,
-    kEHadrVisDetPos };
+    kEHadrVisDetPos, kENonNeutronHadrAbsPos };
 
   std::vector<BoundingBox> StopActiveRegions;
 

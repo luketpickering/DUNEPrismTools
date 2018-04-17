@@ -14,7 +14,7 @@
         return nu_4mom[3];
       }
       case kEAvail_True:{
-        return ERecProxy_True;
+        return ERecProxy_True - EKinNeutron_True;
       }
       case kEHadr_True:{
         return ERecProxy_True - PrimaryLep_4mom[3];

@@ -166,7 +166,7 @@
     <Canvas StyleName="Default" SeriesStyleHint="Variety_7" Name="PRISMPlotsForTalk" StyleName="Default" XWidth="600" YWidth="600" PrintName="PRISMPlotsForTalk.pdf" >
       <Pad xnd="505" ynd="505" yto="1.35" xto="1.15" ats="0.4" ml="0.175" mt="0.08" mb="0.15" mr="0.15" YTitle="Count" XTitle="E (GeV)" ds="1.2">
 
-        <Legend Position="TopRight" Width="0.45" Height="0.3" Title="" TextScale="0.4" NColumns="1" />
+        <Legend Position="TopRight" Width="0.7" Height="0.3" Title="" TextScale="0.4" NColumns="1" />
 
         <ExternalTH1 rf="PRISMPrediction.root" sw="1" tn="LinCombOneShotETrue" do="EHIST" lc="Variety_0" lt="Corrected (E_{#nu})" />
         <ExternalTH1 rf="PRISMPrediction.root" sw="1" tn="LinCombOneShotERec" do="P" lc="Variety_2" mc="Variety_2" mw="0.5" ms="20" lt="Corrected (E_{Rec})" />
@@ -174,7 +174,7 @@
       </Pad>
       <Pad xnd="505" ynd="505" yto="1.35" xto="1.15" ats="0.4" ml="0.175" mt="0.08" mb="0.15" mr="0.15" YTitle="Count" XTitle="E_{#nu} (GeV)" ds="1.2">
 
-        <Legend Position="TopRight" Width="0.45" Height="0.3" Title="" TextScale="0.4" NColumns="1" />
+        <Legend Position="TopRight" Width="0.7" Height="0.3" Title="" TextScale="0.4" NColumns="1" />
 
         <ExternalTH1 rf="PRISMPrediction.root" tn="Results/FDPrediction_True_POTScaled_HEURSCALE" do="EHIST" lc="kBlack" lt="Far detector" />
         <ExternalTH1 rf="PRISMPrediction.root" tn="Results/LinCombOneShotETrue_POTScaled_HEURSCALE" do="P" lc="Variety_3" mc="Variety_3" mw="0.5" ms="20" lt="ND Data" />
@@ -182,7 +182,7 @@
       </Pad>
       <Pad xnd="505" ynd="505" yto="1.35" xto="1.15" ats="0.4" ml="0.175" mt="0.08" mb="0.15" mr="0.15" YTitle="Count" XTitle="E_{#nu} (GeV)" dmn="0" dmx="35E3" >
 
-        <Legend Position="TopRight" Width="0.45" Height="0.3" Title="" TextScale="0.4" NColumns="1" />
+        <Legend Position="TopRight" Width="0.7" Height="0.3" Title="" TextScale="0.4" NColumns="1" />
 
         <StackedHist1D>
           <ExternalTH1 rf="PRISMPrediction.root" tn="Results/FDAcceptanceCorrection_True_HEURSCALE" do="HIST" lc="Variety_4" fc="Variety_4" fs="1000" lt="Acceptance correction" />
@@ -195,7 +195,7 @@
       </Pad>
       <Pad xnd="505" ynd="505" yto="1.35" xto="1.15" ats="0.4" ml="0.175" mt="0.08" mb="0.15" mr="0.15" YTitle="Count" XTitle="E_{Rec} (GeV)" dmn="0" dmx="35E3" >
 
-        <Legend Position="TopRight" Width="0.45" Height="0.3" Title="" TextScale="0.4" NColumns="1" />
+        <Legend Position="TopRight" Width="0.7" Height="0.3" Title="" TextScale="0.4" NColumns="1" />
 
         <StackedHist1D>
           <ExternalTH1 rf="PRISMPrediction.root" tn="Results/FDAcceptanceCorrection_ERec_HEURSCALE" do="HIST" lc="Variety_4" fc="Variety_4" fs="1000" lt="Acceptance correction" />

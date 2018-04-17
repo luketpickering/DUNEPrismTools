@@ -204,12 +204,9 @@ int main(int argc, char const *argv[]) {
           xsecweights[t_it] *= GetVALORWeight(
               d, ParameterThrows[t_it][static_cast<int>(d)], edr);
         }
-        ThrowDistributions[t_it]->Fill(edr.PrimaryLep_4mom[3] +
-                                           edr.TotalNonlep_Dep_FV +
-                                           edr.TotalNonlep_Dep_veto,
+        ThrowDistributions[t_it]->Fill(edr.GetProjection(DepositsSummary::kERec),
                                        xsecweights[t_it]);
-        MeanThrow->Fill(edr.PrimaryLep_4mom[3] + edr.TotalNonlep_Dep_FV +
-                            edr.TotalNonlep_Dep_veto,
+        MeanThrow->Fill(edr.GetProjection(DepositsSummary::kERec),
                         xsecweights[t_it]);
       }
     }

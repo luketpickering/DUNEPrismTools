@@ -29,6 +29,11 @@ the usage text to not reflect the current state of each executables CLI.
     -o <outputfile.root>        : Output file to write selected tree to.
     -v <hadr veto threshold>    : Hadronic shower veto threshold in MeV
                                   {default: 10}.
+    -A <EHadrVisMax_GeV>        : Acceptance cut for hadronic shower energy.
+                                  Showers with more than this energy are cut
+                                  and filled in by far detector MC. Event
+                                  failing this are not included in the
+                                  efficiency calculation.
     -m <muon exit KE>           : Muon exit threshold KE in MeV
                                   {default: 0}.
     -b <binning descriptor>     : Energy binning descriptor that can be used
@@ -59,6 +64,8 @@ the usage text to not reflect the current state of each executables CLI.
                                      the detector.
                                   4: Visible hadronic energy, position within
                                      the detector.
+                                  5: True non-neutron energy, absolute off axis
+                                     position.
 ```
 
 ## `dp_PRISMAnalysis`
@@ -84,7 +91,16 @@ the usage text to not reflect the current state of each executables CLI.
     -FE <FDEffFile.root>                 : Friend tree for -FI option containing
                                            efficiency correction weights.
     -FD <FDDataFile.root>                : File containing FD data distribution.
-    -b <low_up:width[,low_up:width...]>  : ENuBinning descriptor.
+    -PV <projID>                         : Kinematic projection to use
+                                           {default = 3}.
+                                           1: True neutrino energy
+                                           2: Final state lepton energy +
+                                              proton kinetic energy +
+                                              non-neutron total energy
+                                           3: Final state lepton energy +
+                                              contained GEANT4 hadronic
+                                              energy deposits (ERec).
+    -b <low_up:width[,low_up:width...]>  : Projection binning descriptor (GeV).
     -o <OutputFile.root>                 : Output file name.
 ```
 
@@ -115,9 +131,13 @@ the usage text to not reflect the current state of each executables CLI.
                                      the detector.
                                   4: Visible hadronic energy, position within
                                      the detector.
+                                  5: True non-neutron energy, absolute off axis
+                                     position.
     -b <binning descriptor>     : Energy binning descriptor that can be used to
                                   produce a perfect efficiency correction in
                                   the relevant off-axis bins.
+    -S                          : Make each diagnostic plot for each detector
+                                  stop and each linear combination slice.
 ```
 
 ## `dp_XSecVarFriendTreeBuilder`

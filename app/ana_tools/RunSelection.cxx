@@ -121,6 +121,7 @@ int main(int argc, char const *argv[]) {
   ss->SelectOnMuonExit = SelMuExit;
   ss->MuonExitKECut_MeV = SelMuExitKE*1E3;
   ss->HadronicShowerVetoCut_MeV = HadrVeto*1E3;
+  ss->EHadrVis_AcceptanceCut_GeV = HadrVisAcceptance;
   std::copy_n(ExtraVertexSelectionPadding.begin(),3,ss->VertexSelectionFV);
 
   //Selected output tree

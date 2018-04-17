@@ -30,6 +30,7 @@ SelectionSummary::SelectionSummary(std::string const &inputFile) {
     SelectOnMuonExit = 0;
     MuonExitKECut_MeV = 0;
     HadronicShowerVetoCut_MeV = 0;
+    EHadrVis_AcceptanceCut_GeV = 0;
     std::fill_n(VertexSelectionFV,3,0);
     TotalPOT = 0;
   }
@@ -50,7 +51,8 @@ SelectionSummary::SelectionSummary(std::string const &inputFile) {
     NSel  = other.NSel;
     SelectOnMuonExit  = other.SelectOnMuonExit;
     MuonExitKECut_MeV  = other.MuonExitKECut_MeV;
-    HadronicShowerVetoCut_MeV  = other.HadronicShowerVetoCut_MeV;
+    HadronicShowerVetoCut_MeV = other.HadronicShowerVetoCut_MeV;
+    EHadrVis_AcceptanceCut_GeV = other. EHadrVis_AcceptanceCut_GeV;
     std::copy_n(other.VertexSelectionFV,3,VertexSelectionFV);
     TotalPOT = other.TotalPOT;
   }
@@ -73,6 +75,8 @@ SelectionSummary::SelectionSummary(std::string const &inputFile) {
     tree->SetBranchAddress("MuonExitKECut_MeV", &MuonExitKECut_MeV);
     tree->SetBranchAddress("HadronicShowerVetoCut_MeV",
     &HadronicShowerVetoCut_MeV);
+    tree->SetBranchAddress("EHadrVis_AcceptanceCut_GeV",
+    &EHadrVis_AcceptanceCut_GeV);
     tree->SetBranchAddress("VertexSelectionFV", &VertexSelectionFV);
     tree->SetBranchAddress("TotalPOT", &TotalPOT);
 
@@ -102,6 +106,8 @@ SelectionSummary::SelectionSummary(std::string const &inputFile) {
     "MuonExitKECut_MeV/D");
     fdr->tree->Branch("HadronicShowerVetoCut_MeV",
     &fdr->HadronicShowerVetoCut_MeV, "HadronicShowerVetoCut_MeV/D");
+    fdr->tree->Branch("EHadrVis_AcceptanceCut_GeV",
+    &fdr->EHadrVis_AcceptanceCut_GeV, "EHadrVis_AcceptanceCut_GeV/D");
     fdr->tree->Branch("VertexSelectionFV", &fdr->VertexSelectionFV,
     "VertexSelectionFV[3]/D");
     fdr->tree->Branch("TotalPOT", &fdr->TotalPOT, "TotalPOT/D");

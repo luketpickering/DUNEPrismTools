@@ -1,24 +1,24 @@
 void SanityPlots_EDeps_Tree(const char* inps) {
-  TChain* EDeps = new TChain("EDeps");
-  EDeps->Add(inps);
+  TChain* DepositsSummaryTree = new TChain("DepositsSummaryTree");
+  DepositsSummaryTree->Add(inps);
 
-  EDeps->SetAlias("nu_3mag",
+  DepositsSummaryTree->SetAlias("nu_3mag",
                   "sqrt(nu_4mom[0]*nu_4mom[0]+nu_4mom[1]*nu_4mom[1]+nu_4mom[2]*"
                   "nu_4mom[2])");
-  EDeps->SetAlias("totalfs_3mag",
+  DepositsSummaryTree->SetAlias("totalfs_3mag",
                   "sqrt(TotalFS_3mom[0]*TotalFS_3mom[0]+TotalFS_3mom[1]*"
                   "TotalFS_3mom[1]+TotalFS_3mom[2]*TotalFS_3mom[2])");
-  EDeps->SetAlias(
+  DepositsSummaryTree->SetAlias(
       "PrimaryLep_3mag",
       "sqrt(PrimaryLep_4mom[0]*PrimaryLep_4mom[0]+PrimaryLep_4mom[1]*"
       "PrimaryLep_4mom[1]+PrimaryLep_4mom[2]*PrimaryLep_4mom[2])");
-  EDeps->SetAlias("diff_nu_tfs_x", "(TotalFS_3mom[0]-nu_4mom[0])");
-  EDeps->SetAlias("diff_nu_tfs_y", "(TotalFS_3mom[1]-nu_4mom[1])");
-  EDeps->SetAlias("diff_nu_tfs_z", "(TotalFS_3mom[2]-nu_4mom[2])");
-  EDeps->SetAlias("diff_nu_tfs_3mag",
+  DepositsSummaryTree->SetAlias("diff_nu_tfs_x", "(TotalFS_3mom[0]-nu_4mom[0])");
+  DepositsSummaryTree->SetAlias("diff_nu_tfs_y", "(TotalFS_3mom[1]-nu_4mom[1])");
+  DepositsSummaryTree->SetAlias("diff_nu_tfs_z", "(TotalFS_3mom[2]-nu_4mom[2])");
+  DepositsSummaryTree->SetAlias("diff_nu_tfs_3mag",
                   "sqrt(diff_nu_tfs_x*diff_nu_tfs_x+diff_nu_tfs_y*diff_nu_tfs_"
                   "y+diff_nu_tfs_z*diff_nu_tfs_z)");
-  EDeps->SetAlias("ENuQERec",
+  DepositsSummaryTree->SetAlias("ENuQERec",
                   "( (2 * 0.938 * PrimaryLep_4mom[3] - 0.106*0.106 + "
                   "0.938*0.938 - 0.938*0.938)/ (2*(0.938 - "
                   "PrimaryLep_4mom[3] + PrimaryLep_3mag * "
@@ -29,7 +29,7 @@ void SanityPlots_EDeps_Tree(const char* inps) {
   std::cout << "Making enu" << std::endl;
   TH1D* enu = new TH1D("enu", ";E_{#nu} (GeV);Count", 250, 0, 25);
 
-  EDeps->Draw("nu_4mom[3] >> enu", "(stop >= 0)&&(PrimaryLepPDG==13)", "GOFF");
+  DepositsSummaryTree->Draw("nu_4mom[3] >> enu", "(stop >= 0)&&(PrimaryLepPDG==13)", "GOFF");
 
   enu->Draw();
 
@@ -39,13 +39,13 @@ void SanityPlots_EDeps_Tree(const char* inps) {
   std::cout << "Making nu_pdg" << std::endl;
   TH1D* nu_pdg = new TH1D("nu_pdg", "PDG_{#nu};PDG_{#nu};Count", 6, 11, 17);
 
-  EDeps->Draw("nu_PDG >> nu_pdg", "(stop >= 0)", "GOFF");
+  DepositsSummaryTree->Draw("nu_PDG >> nu_pdg", "(stop >= 0)", "GOFF");
 
   std::cout << "Making nu_pdg_neg" << std::endl;
   TH1D* nu_pdg_neg =
       new TH1D("nu_pdg_neg", "abs(PDG_{#bar{#nu}});PDG_{#nu};Count", 6, 11, 17);
 
-  EDeps->Draw("abs(nu_PDG) >> nu_pdg_neg", "nu_PDG<0", "GOFF");
+  DepositsSummaryTree->Draw("abs(nu_PDG) >> nu_pdg_neg", "nu_PDG<0", "GOFF");
 
   nu_pdg->Draw();
   nu_pdg_neg->SetLineColor(kRed);
@@ -60,7 +60,7 @@ void SanityPlots_EDeps_Tree(const char* inps) {
   TH2D* vtx_pos_xy = new TH2D("vtx_pos_xy", ";VtxPos_{x} (cm);VtxPos_{y} (cm)",
                               880, -4000, 400, 80, -200, 200);
 
-  EDeps->Draw("vtx[1]:vtx[0] >> vtx_pos_xy", "(stop >= 0)&&(PrimaryLepPDG==13)",
+  DepositsSummaryTree->Draw("vtx[1]:vtx[0] >> vtx_pos_xy", "(stop >= 0)&&(PrimaryLepPDG==13)",
               "GOFF");
 
   vtx_pos_xy->Draw("COLZ");
@@ -72,7 +72,7 @@ void SanityPlots_EDeps_Tree(const char* inps) {
   TH2D* vtx_pos_yz = new TH2D("vtx_pos_yz", ";VtxPos_{z} (cm);VtxPos_{y} (cm)",
                               120, -300, 300, 80, -200, 200);
 
-  EDeps->Draw("vtx[1]:vtx[2] >> vtx_pos_yz", "(stop >= 0)&&(PrimaryLepPDG==13)",
+  DepositsSummaryTree->Draw("vtx[1]:vtx[2] >> vtx_pos_yz", "(stop >= 0)&&(PrimaryLepPDG==13)",
               "GOFF");
 
   vtx_pos_yz->Draw("COLZ");
@@ -83,7 +83,7 @@ void SanityPlots_EDeps_Tree(const char* inps) {
   std::cout << "Making q2" << std::endl;
   TH1D* q2 = new TH1D("q2", ";Q^{2} (GeV^{2});Count", 100, 0, 10);
 
-  EDeps->Draw("Q2_True >> q2", "(stop >= 0)&&(PrimaryLepPDG==13)", "GOFF");
+  DepositsSummaryTree->Draw("Q2_True >> q2", "(stop >= 0)&&(PrimaryLepPDG==13)", "GOFF");
 
   q2->Draw();
 
@@ -93,14 +93,14 @@ void SanityPlots_EDeps_Tree(const char* inps) {
   std::cout << "Making y" << std::endl;
   TH1D* y = new TH1D("y", "All;Elasticity;Count", 100, 0, 1);
 
-  EDeps->Draw("(1-y_True) >> y", "(stop >= 0)&&(PrimaryLepPDG==13)", "GOFF");
+  DepositsSummaryTree->Draw("(1-y_True) >> y", "(stop >= 0)&&(PrimaryLepPDG==13)", "GOFF");
 
   y->Draw();
 
   TH1D* y_hadr_cont =
       new TH1D("y_hadr_cont", "HadrContained;Elasticity;Count", 100, 0, 1);
 
-  EDeps->Draw("(1-y_True) >> y_hadr_cont",
+  DepositsSummaryTree->Draw("(1-y_True) >> y_hadr_cont",
               "(stop >= 0)&&(HadrShowerContainedInFV==1)&&(PrimaryLepPDG==13)",
               "GOFF");
 
@@ -110,7 +110,7 @@ void SanityPlots_EDeps_Tree(const char* inps) {
   TH1D* y_mu_cont =
       new TH1D("y_mu_cont", "MuContained;Elasticity;Count", 100, 0, 1);
 
-  EDeps->Draw(
+  DepositsSummaryTree->Draw(
       "(1-y_True) >> y_mu_cont",
       "(stop >= 0)&&(PrimaryLeptonContainedInFV==1)&&(PrimaryLepPDG==13)",
       "GOFF");
@@ -126,7 +126,7 @@ void SanityPlots_EDeps_Tree(const char* inps) {
   std::cout << "Making wrest" << std::endl;
   TH1D* wrest = new TH1D("wrest", ";W_{rest} (GeV);Count", 100, 0.8, 3);
 
-  EDeps->Draw("W_Rest >> wrest", "(stop >= 0)&&(PrimaryLepPDG==13)", "GOFF");
+  DepositsSummaryTree->Draw("W_Rest >> wrest", "(stop >= 0)&&(PrimaryLepPDG==13)", "GOFF");
 
   wrest->Draw();
 
@@ -136,7 +136,7 @@ void SanityPlots_EDeps_Tree(const char* inps) {
   std::cout << "Making NLep" << std::endl;
   TH1D* NLep = new TH1D("NLep", ";N_{l};Count", 5, 0, 5);
 
-  EDeps->Draw("NLep >> NLep", "(stop >= 0)&&(PrimaryLepPDG==13)", "GOFF");
+  DepositsSummaryTree->Draw("NLep >> NLep", "(stop >= 0)&&(PrimaryLepPDG==13)", "GOFF");
 
   NLep->Draw();
 
@@ -146,7 +146,7 @@ void SanityPlots_EDeps_Tree(const char* inps) {
   std::cout << "Making NPi0" << std::endl;
   TH1D* NPi0 = new TH1D("NPi0", ";N_{#pi^{0}};Count", 10, 0, 10);
 
-  EDeps->Draw("NPi0 >> NPi0", "(stop >= 0)&&(PrimaryLepPDG==13)", "GOFF");
+  DepositsSummaryTree->Draw("NPi0 >> NPi0", "(stop >= 0)&&(PrimaryLepPDG==13)", "GOFF");
 
   NPi0->Draw();
 
@@ -156,7 +156,7 @@ void SanityPlots_EDeps_Tree(const char* inps) {
   std::cout << "Making NPiC" << std::endl;
   TH1D* NPiC = new TH1D("NPiC", ";N_{#pi^{#pm}};Count", 10, 0, 10);
 
-  EDeps->Draw("NPiC >> NPiC", "(stop >= 0)&&(PrimaryLepPDG==13)", "GOFF");
+  DepositsSummaryTree->Draw("NPiC >> NPiC", "(stop >= 0)&&(PrimaryLepPDG==13)", "GOFF");
 
   NPiC->Draw();
 
@@ -166,7 +166,7 @@ void SanityPlots_EDeps_Tree(const char* inps) {
   std::cout << "Making NProton" << std::endl;
   TH1D* NProton = new TH1D("NProton", ";N_{proton};Count", 20, 0, 20);
 
-  EDeps->Draw("NProton >> NProton", "(stop >= 0)&&(PrimaryLepPDG==13)", "GOFF");
+  DepositsSummaryTree->Draw("NProton >> NProton", "(stop >= 0)&&(PrimaryLepPDG==13)", "GOFF");
 
   NProton->Draw();
 
@@ -176,7 +176,7 @@ void SanityPlots_EDeps_Tree(const char* inps) {
   std::cout << "Making NNeutron" << std::endl;
   TH1D* NNeutron = new TH1D("NNeutron", ";N_{neutron};Count", 20, 0, 20);
 
-  EDeps->Draw("NNeutron >> NNeutron", "(stop >= 0)&&(PrimaryLepPDG==13)",
+  DepositsSummaryTree->Draw("NNeutron >> NNeutron", "(stop >= 0)&&(PrimaryLepPDG==13)",
               "GOFF");
 
   NNeutron->Draw();
@@ -187,7 +187,7 @@ void SanityPlots_EDeps_Tree(const char* inps) {
   std::cout << "Making NGamma" << std::endl;
   TH1D* NGamma = new TH1D("NGamma", ";N_{#gamma};Count", 5, 0, 5);
 
-  EDeps->Draw("NGamma >> NGamma", "(stop >= 0)&&(PrimaryLepPDG==13)", "GOFF");
+  DepositsSummaryTree->Draw("NGamma >> NGamma", "(stop >= 0)&&(PrimaryLepPDG==13)", "GOFF");
 
   NGamma->Draw();
 
@@ -198,7 +198,7 @@ void SanityPlots_EDeps_Tree(const char* inps) {
   TH1D* NBaryonicRes =
       new TH1D("NBaryonicRes", ";N_{baryonres};Count", 5, 0, 5);
 
-  EDeps->Draw("NBaryonicRes >> NBaryonicRes",
+  DepositsSummaryTree->Draw("NBaryonicRes >> NBaryonicRes",
               "(stop >= 0)&&(PrimaryLepPDG==13)", "GOFF");
 
   NBaryonicRes->Draw();
@@ -211,7 +211,7 @@ void SanityPlots_EDeps_Tree(const char* inps) {
       "primlep_e", ";T_{l} + N_{l}#timesM_{l} (GeV);EDep_{l,prim.} (GeV)", 100,
       0, 10, 100, 0, 10);
 
-  EDeps->Draw("LepDep_FV+LepDep_veto:PrimaryLep_4mom[3] >> primlep_e",
+  DepositsSummaryTree->Draw("LepDep_FV+LepDep_veto:PrimaryLep_4mom[3] >> primlep_e",
               "(PrimaryLepPDG==13)&&(NLep==1)", "GOFF");
 
   primlep_e->Draw("COLZ");
@@ -225,7 +225,7 @@ void SanityPlots_EDeps_Tree(const char* inps) {
                ";T_{l} + N_{l}#timesM_{l} (GeV);EDep_{l+desc.} (GeV)", 100, 0,
                10, 100, 0, 10);
 
-  EDeps->Draw(
+  DepositsSummaryTree->Draw(
       "LepDep_FV+LepDep_veto+LepDepDescendent_FV+LepDepDescendent_veto:"
       "PrimaryLep_4mom[3] >> primlep_e_and_desc",
       "(PrimaryLepPDG==13)&&(NLep==1)", "GOFF");
@@ -241,7 +241,7 @@ void SanityPlots_EDeps_Tree(const char* inps) {
       ";T_{#pi^{0}} + N_{#pi^{0}}#timesM_{#pi^{0}} (GeV);EDep_{#pi^{0}} (GeV)",
       100, 0, 10, 100, 0, 10);
 
-  EDeps->Draw("Pi0Dep_FV+Pi0Dep_veto:EKinPi0_True+EMassPi0_True >> pi0_e", "",
+  DepositsSummaryTree->Draw("Pi0Dep_FV+Pi0Dep_veto:EKinPi0_True+EMassPi0_True >> pi0_e", "",
               "GOFF");
 
   pi0_e->Draw("COLZ");
@@ -256,7 +256,7 @@ void SanityPlots_EDeps_Tree(const char* inps) {
                "N_{#pi^{#pm}}#timesM_{#pi^{#pm}} (GeV);EDep_{#pi^{#pm}} (GeV)",
                100, 0, 10, 100, 0, 10);
 
-  EDeps->Draw("PiCDep_FV+PiCDep_veto:EKinPiC_True+EMassPiC_True >> pic_e", "",
+  DepositsSummaryTree->Draw("PiCDep_FV+PiCDep_veto:EKinPiC_True+EMassPiC_True >> pic_e", "",
               "GOFF");
 
   pic_e->Draw("COLZ");
@@ -270,7 +270,7 @@ void SanityPlots_EDeps_Tree(const char* inps) {
       ";T_{neutron} + N_{neutron}#timesM_{neutron} (GeV);EDep_{neutron} (GeV)",
       100, 0, 10, 100, 0, 10);
 
-  EDeps->Draw(
+  DepositsSummaryTree->Draw(
       "NeutronDep_FV+NeutronDep_veto:EKinNeutron_True+EMassNeutron_True >> "
       "neutron_e",
       "(stop >= 0)&&(PrimaryLepPDG==13)", "GOFF");
@@ -286,7 +286,7 @@ void SanityPlots_EDeps_Tree(const char* inps) {
       ";T_{proton} + N_{proton}#timesM_{proton} (GeV);EDep_{proton} (GeV)", 100,
       0, 10, 100, 0, 10);
 
-  EDeps->Draw(
+  DepositsSummaryTree->Draw(
       "ProtonDep_FV+ProtonDep_veto:EKinProton_True+EMassProton_True >> "
       "proton_e",
       "(stop >= 0)&&(PrimaryLepPDG==13)", "GOFF");
@@ -302,7 +302,7 @@ void SanityPlots_EDeps_Tree(const char* inps) {
       ";T_{neutron} + N_{neutron}#timesM_{neutron} (GeV);EDep_{neutron} (GeV)",
       100, 0, 10, 100, 0, 10);
 
-  EDeps->Draw(
+  DepositsSummaryTree->Draw(
       "NeutronDep_FV+NeutronDep_veto:EKinNeutron_True >> "
       "neutron_e_nom",
       "(stop >= 0)&&(PrimaryLepPDG==13)", "GOFF");
@@ -318,7 +318,7 @@ void SanityPlots_EDeps_Tree(const char* inps) {
       ";T_{proton} + N_{proton}#timesM_{proton} (GeV);EDep_{proton} (GeV)", 100,
       0, 10, 100, 0, 10);
 
-  EDeps->Draw(
+  DepositsSummaryTree->Draw(
       "ProtonDep_FV+ProtonDep_veto:EKinProton_True >> "
       "proton_e_nom",
       "(stop >= 0)&&(PrimaryLepPDG==13)", "GOFF");
@@ -335,7 +335,7 @@ void SanityPlots_EDeps_Tree(const char* inps) {
       "(GeV);E_{#nu} (GeV)",
       100, 0, 10, 100, 0, 10);
 
-  EDeps->Draw(
+  DepositsSummaryTree->Draw(
       "nu_4mom[3]:ENonPrimaryLep_KinNucleonTotalOther_True+PrimaryLep_4mom[3]"
       " >> efs_vs_enu_2D",
       "(stop >= 0)&&(PrimaryLepPDG==13)", "GOFF");
@@ -353,7 +353,7 @@ void SanityPlots_EDeps_Tree(const char* inps) {
                "(GeV);E_{#nu} (GeV)",
                100, 0, 10, 100, 0, 10);
 
-  EDeps->Draw(
+  DepositsSummaryTree->Draw(
       "nu_4mom[3]:ERecProxy_True"
       " >> efs_vs_enu_2D_nobarres",
       "(stop >= 0)&&(PrimaryLepPDG==13)", "GOFF");
@@ -370,7 +370,7 @@ void SanityPlots_EDeps_Tree(const char* inps) {
                "#sumT_{nucl.} + E_{#mu} - E_{#nu} (GeV); Count",
                100, -0.1, 0.1);
 
-  EDeps->Draw(
+  DepositsSummaryTree->Draw(
       "nu_4mom[3]-(ENonPrimaryLep_KinNucleonTotalOther_True+PrimaryLep_4mom[3])"
       " >> efs_vs_enu_1D_0pi",
       "(stop >= 0)&&(Is0Pi)&&(PrimaryLepPDG==13)", "GOFF");
@@ -385,7 +385,7 @@ void SanityPlots_EDeps_Tree(const char* inps) {
                "#sumT_{nucl.} + E_{#mu} - E_{#nu} (GeV); Count",
                100, -0.1, 0.1);
 
-  EDeps->Draw(
+  DepositsSummaryTree->Draw(
       "nu_4mom[3]-(ENonPrimaryLep_KinNucleonTotalOther_True+PrimaryLep_4mom[3])"
       " >> efs_vs_enu_1D_1Pi",
       "(stop >= 0)&&(Is1Pi)&&(PrimaryLepPDG==13)", "GOFF");
@@ -400,7 +400,7 @@ void SanityPlots_EDeps_Tree(const char* inps) {
                "#sumT_{nucl.} + E_{#mu} - E_{#nu} (GeV); Count",
                100, -0.1, 0.1);
 
-  EDeps->Draw(
+  DepositsSummaryTree->Draw(
       "nu_4mom[3]-(ENonPrimaryLep_KinNucleonTotalOther_True+PrimaryLep_4mom[3])"
       " >> efs_vs_enu_1D_Other",
       "(stop >= 0)&&(IsNPi||IsOther)&&(PrimaryLepPDG==13)", "GOFF");
@@ -419,7 +419,7 @@ void SanityPlots_EDeps_Tree(const char* inps) {
                "#sumT_{nucl.} + E_{#mu} - E_{#nu} (GeV); Count",
                100, -0.1, 0.1);
 
-  EDeps->Draw(
+  DepositsSummaryTree->Draw(
       "nu_4mom[3]-(ENonPrimaryLep_KinNucleonTotalOther_True+PrimaryLep_4mom[3])"
       " >> efs_vs_enu_1D_QE",
       "(stop >= 0)&&(GENIEInteractionTopology==1)&&(PrimaryLepPDG==13)",
@@ -434,7 +434,7 @@ void SanityPlots_EDeps_Tree(const char* inps) {
                "#sumT_{nucl.} + E_{#mu} - E_{#nu} (GeV); Count",
                100, -0.1, 0.1);
 
-  EDeps->Draw(
+  DepositsSummaryTree->Draw(
       "nu_4mom[3]-(ENonPrimaryLep_KinNucleonTotalOther_True+PrimaryLep_4mom[3])"
       " >> efs_vs_enu_1D_RES",
       "(stop >= 0)&&(GENIEInteractionTopology==3)&&(PrimaryLepPDG==13)",
@@ -449,7 +449,7 @@ void SanityPlots_EDeps_Tree(const char* inps) {
                "#sumT_{nucl.} + E_{#mu} - E_{#nu} (GeV); Count",
                100, -0.1, 0.1);
 
-  EDeps->Draw(
+  DepositsSummaryTree->Draw(
       "nu_4mom[3]-(ENonPrimaryLep_KinNucleonTotalOther_True+PrimaryLep_4mom[3])"
       " >> efs_vs_enu_1D_DIS",
       "(stop >= 0)&&(GENIEInteractionTopology==4)&&(PrimaryLepPDG==13)",
@@ -469,7 +469,7 @@ void SanityPlots_EDeps_Tree(const char* inps) {
   TH1D* enuQERec_1D_QE = new TH1D(
       "enuQERec_1D_QE", "QE;ERec_{QE}/E_{#nu} - 1; Count", 100, -1.5, 1);
 
-  EDeps->Draw(
+  DepositsSummaryTree->Draw(
       "(ENuQERec/nu_4mom[3]) - 1"
       " >> enuQERec_1D_QE",
       "(stop >= 0)&&(GENIEInteractionTopology==1)&&(PrimaryLepPDG==13)",
@@ -481,7 +481,7 @@ void SanityPlots_EDeps_Tree(const char* inps) {
   TH1D* enuQERec_1D_RES = new TH1D(
       "enuQERec_1D_RES", "RES;ERec_{QE}/E_{#nu} - 1; Count", 100, -1.5, 1);
 
-  EDeps->Draw(
+  DepositsSummaryTree->Draw(
       "(ENuQERec/nu_4mom[3]) - 1"
       " >> enuQERec_1D_RES",
       "(stop >= 0)&&(GENIEInteractionTopology==3)&&(PrimaryLepPDG==13)",
@@ -493,7 +493,7 @@ void SanityPlots_EDeps_Tree(const char* inps) {
   TH1D* enuQERec_1D_DIS = new TH1D(
       "enuQERec_1D_DIS", "DIS;ERec_{QE}/E_{#nu} - 1; Count", 100, -1.5, 1);
 
-  EDeps->Draw(
+  DepositsSummaryTree->Draw(
       "(ENuQERec/nu_4mom[3]) - 1"
       " >> enuQERec_1D_DIS",
       "(stop >= 0)&&(GENIEInteractionTopology==4)&&(PrimaryLepPDG==13)",
@@ -515,7 +515,7 @@ void SanityPlots_EDeps_Tree(const char* inps) {
       ";p_{N,i} = |p_{#sumFS} - p_{#nu}| (GeV/#it{c});cos(#theta_{p_{N,i}})",
       50, 0, 1, 50, -1, 1);
 
-  EDeps->Draw(
+  DepositsSummaryTree->Draw(
       "(diff_nu_tfs_z/"
       "diff_nu_tfs_3mag):sqrt(diff_nu_tfs_x*diff_nu_tfs_x+diff_nu_tfs_z*diff_"
       "nu_tfs_z)"
@@ -533,7 +533,7 @@ void SanityPlots_EDeps_Tree(const char* inps) {
                               "#sumT_{nucl.} + E_{#mu} (GeV);EDep_{det} (GeV)",
                               100, 0, 10, 100, 0, 10);
 
-  EDeps->Draw(
+  DepositsSummaryTree->Draw(
       "TotalNonlep_Dep_FV+TotalNonlep_Dep_veto+LepDep_FV+LepDep_veto+"
       "LepDepDescendent_FV+LepDepDescendent_veto:ENonPrimaryLep_"
       "KinNucleonTotalOther_True+PrimaryLep_4mom[3]"
@@ -552,7 +552,7 @@ void SanityPlots_EDeps_Tree(const char* inps) {
       "(GeV);EDep_{FV} (GeV)",
       100, 0, 10, 100, 0, 10);
 
-  EDeps->Draw(
+  DepositsSummaryTree->Draw(
       "TotalNonlep_Dep_FV+LepDep_FV+LepDepDescendent_FV:ENonPrimaryLep_"
       "KinNucleonTotalOther_True+PrimaryLep_4mom[3] >> efs_vs_dep_FV",
       "(stop >= 0)&&(PrimaryLepPDG==13)", "GOFF");
@@ -566,7 +566,7 @@ void SanityPlots_EDeps_Tree(const char* inps) {
   TH2D* enu_vs_dep = new TH2D("enu_vs_dep", ";E_{#nu} (GeV);EDep_{det} (GeV)",
                               100, 0, 10, 100, 0, 10);
 
-  EDeps->Draw(
+  DepositsSummaryTree->Draw(
       "TotalNonlep_Dep_FV+TotalNonlep_Dep_veto+LepDep_FV+LepDep_veto+"
       "LepDepDescendent_FV+LepDepDescendent_veto:nu_4mom[3]"
       " >> enu_vs_dep",
@@ -582,7 +582,7 @@ void SanityPlots_EDeps_Tree(const char* inps) {
       new TH2D("enu_vs_dep_FV", ";E_{#nu} (GeV);EDep_{FV} (GeV)", 100, 0, 10,
                100, 0, 10);
 
-  EDeps->Draw(
+  DepositsSummaryTree->Draw(
       "TotalNonlep_Dep_FV+LepDep_FV+LepDepDescendent_FV:nu_4mom[3] >> "
       "enu_vs_dep_FV",
       "(stop >= 0)&&(PrimaryLepPDG==13)", "GOFF");
@@ -598,7 +598,7 @@ void SanityPlots_EDeps_Tree(const char* inps) {
                ";E_{#nu} (GeV);E_{rec} = EDep_{#mu} + EDep_{hadr} (GeV)", 100,
                0, 10, 100, 0, 10);
 
-  EDeps->Draw(
+  DepositsSummaryTree->Draw(
       "TotalNonlep_Dep_FV+TotalNonlep_Dep_veto+LepDep_FV+LepDep_veto+"
       "LepDepDescendent_FV+LepDepDescendent_veto:nu_4mom[3]"
       " >> enu_vs_erec_mu_cont",
@@ -615,7 +615,7 @@ void SanityPlots_EDeps_Tree(const char* inps) {
                "; EDep_{FV} (GeV);E_{rec} = E_{#mu} + EDep_{hadr} (GeV)", 100,
                0, 10, 100, 0, 10);
 
-  EDeps->Draw(
+  DepositsSummaryTree->Draw(
       "TotalNonlep_Dep_FV+TotalNonlep_Dep_veto+PrimaryLep_4mom[3]:nu_4mom[3] "
       ">> enu_vs_erec_mu_exit",
       "(stop >= 0)&&(LepExit_AboveThresh==1)&&(PrimaryLepPDG==13)", "GOFF");
@@ -631,7 +631,7 @@ void SanityPlots_EDeps_Tree(const char* inps) {
                ";E_{#nu} (GeV);E_{rec} = EDep_{#mu} + EDep_{hadr} (GeV)", 100,
                0, 10, 100, 0, 10);
 
-  EDeps->Draw(
+  DepositsSummaryTree->Draw(
       "TotalNonlep_Dep_FV+LepDep_FV+LepDep_veto+LepDepDescendent_FV+"
       "LepDepDescendent_veto:nu_4mom[3]"
       " >> enu_vs_erec_mu_cont_hadr_cont",
@@ -650,7 +650,7 @@ void SanityPlots_EDeps_Tree(const char* inps) {
                "; EDep_{FV} (GeV);E_{rec} = E_{#mu} + EDep_{hadr} (GeV)", 100,
                0, 10, 100, 0, 10);
 
-  EDeps->Draw(
+  DepositsSummaryTree->Draw(
       "TotalNonlep_Dep_FV+TotalNonlep_Dep_veto+PrimaryLep_4mom[3]:nu_4mom[3] "
       ">> enu_vs_erec_mu_exit_hadr_cont",
       "(stop >= "
@@ -668,7 +668,7 @@ void SanityPlots_EDeps_Tree(const char* inps) {
       new TH1D("erec_bias_mu_exit", "LepExit_AllHadr;E_{rec}/E_{#nu} - 1;Count",
                100, -1, 1);
 
-  EDeps->Draw(
+  DepositsSummaryTree->Draw(
       "((TotalNonlep_Dep_FV+TotalNonlep_Dep_veto+PrimaryLep_4mom[3])/"
       "nu_4mom[3]) - 1 >> erec_bias_mu_exit",
       "(stop >= "
@@ -681,7 +681,7 @@ void SanityPlots_EDeps_Tree(const char* inps) {
       new TH1D("erec_bias_mu_cont", "LepCont_AllHadr;E_{rec}/E_{#nu} - 1;Count",
                100, -1, 1);
 
-  EDeps->Draw(
+  DepositsSummaryTree->Draw(
       "((TotalNonlep_Dep_FV+TotalNonlep_Dep_veto+LepDep_FV+LepDep_veto+"
       "LepDepDescendent_FV+LepDepDescendent_veto)/"
       "nu_4mom[3]) - 1 >> erec_bias_mu_cont",
@@ -696,7 +696,7 @@ void SanityPlots_EDeps_Tree(const char* inps) {
       new TH1D("erec_bias_mu_exit_hadrcont",
                "LepExit_HadrCont;E_{rec}/E_{#nu} - 1;Count", 100, -1, 1);
 
-  EDeps->Draw(
+  DepositsSummaryTree->Draw(
       "((TotalNonlep_Dep_FV+TotalNonlep_Dep_veto+PrimaryLep_4mom[3])/nu_4mom[3]) - 1 >> "
       "erec_bias_mu_exit_hadrcont",
       "(stop >= "
@@ -711,7 +711,7 @@ void SanityPlots_EDeps_Tree(const char* inps) {
       new TH1D("erec_bias_mu_cont_hadrcont",
                "LepCont_HadrCont;E_{rec}/E_{#nu} - 1;Count", 100, -1, 1);
 
-  EDeps->Draw(
+  DepositsSummaryTree->Draw(
       "((TotalNonlep_Dep_FV+LepDep_FV+LepDep_veto+LepDepDescendent_FV+"
       "LepDepDescendent_veto)/nu_4mom[3]) - 1 >> "
       "erec_bias_mu_cont_hadrcont",
@@ -733,7 +733,7 @@ void SanityPlots_EDeps_Tree(const char* inps) {
       new TH1D("erec_bias_0pi_mu_exit",
                "LepExit_AllHadr;E_{rec}/E_{#nu} - 1;Count", 100, -1, 1);
 
-  EDeps->Draw(
+  DepositsSummaryTree->Draw(
       "((TotalNonlep_Dep_FV+TotalNonlep_Dep_veto+PrimaryLep_4mom[3])/"
       "nu_4mom[3]) - 1 >> erec_bias_0pi_mu_exit",
       "(stop >= "
@@ -746,7 +746,7 @@ void SanityPlots_EDeps_Tree(const char* inps) {
       new TH1D("erec_bias_0pi_mu_cont",
                "LepCont_AllHadr;E_{rec}/E_{#nu} - 1;Count", 100, -1, 1);
 
-  EDeps->Draw(
+  DepositsSummaryTree->Draw(
       "((TotalNonlep_Dep_FV+TotalNonlep_Dep_veto+LepDep_FV+LepDep_veto+"
       "LepDepDescendent_FV+LepDepDescendent_veto)/"
       "nu_4mom[3]) - 1 >> erec_bias_0pi_mu_cont",
@@ -761,7 +761,7 @@ void SanityPlots_EDeps_Tree(const char* inps) {
       new TH1D("erec_bias_0pi_mu_exit_hadrcont",
                "LepExit_HadrCont;E_{rec}/E_{#nu} - 1;Count", 100, -1, 1);
 
-  EDeps->Draw(
+  DepositsSummaryTree->Draw(
       "((TotalNonlep_Dep_FV+TotalNonlep_Dep_veto+PrimaryLep_4mom[3])/nu_4mom[3]) - 1 >> "
       "erec_bias_0pi_mu_exit_hadrcont",
       "(stop >= "
@@ -776,7 +776,7 @@ void SanityPlots_EDeps_Tree(const char* inps) {
       new TH1D("erec_bias_0pi_mu_cont_hadrcont",
                "LepCont_HadrCont;E_{rec}/E_{#nu} - 1;Count", 100, -1, 1);
 
-  EDeps->Draw(
+  DepositsSummaryTree->Draw(
       "((TotalNonlep_Dep_FV+LepDep_FV+LepDep_veto+LepDepDescendent_FV+"
       "LepDepDescendent_veto)/nu_4mom[3]) - 1 >> "
       "erec_bias_0pi_mu_cont_hadrcont",
@@ -796,7 +796,7 @@ void SanityPlots_EDeps_Tree(const char* inps) {
   std::cout << "Making lep_exit" << std::endl;
   TH1D* lep_exit = new TH1D("lep_exit", ";LepExitMode;Count", 8, 0, 8);
 
-  EDeps->Draw("LepExitTopology >> lep_exit", "(stop >= 0)&&(PrimaryLepPDG==13)",
+  DepositsSummaryTree->Draw("LepExitTopology >> lep_exit", "(stop >= 0)&&(PrimaryLepPDG==13)",
               "GOFF");
 
   lep_exit->Draw();
@@ -808,7 +808,7 @@ void SanityPlots_EDeps_Tree(const char* inps) {
   TH1D* lep_exit_x =
       new TH1D("lep_exit_x", ";LepExit_{x} (cm);Count", 4400, -4000, 400);
 
-  EDeps->Draw("LepExitingPos[0] >> lep_exit_x",
+  DepositsSummaryTree->Draw("LepExitingPos[0] >> lep_exit_x",
               "(stop >= 0)&&(LepExit_AboveThresh==1)", "GOFF");
 
   lep_exit_x->Draw();
@@ -820,7 +820,7 @@ void SanityPlots_EDeps_Tree(const char* inps) {
   TH1D* lep_exit_y =
       new TH1D("lep_exit_y", ";LepExit_{y} (cm);Count", 400, -200, 200);
 
-  EDeps->Draw("LepExitingPos[1] >> lep_exit_y",
+  DepositsSummaryTree->Draw("LepExitingPos[1] >> lep_exit_y",
               "(stop >= 0)&&(LepExit_AboveThresh==1)", "GOFF");
 
   lep_exit_y->Draw();
@@ -832,7 +832,7 @@ void SanityPlots_EDeps_Tree(const char* inps) {
   TH1D* lep_exit_z =
       new TH1D("lep_exit_z", ";LepExit_{z} (cm);Count", 600, -300, 300);
 
-  EDeps->Draw("LepExitingPos[2] >> lep_exit_z",
+  DepositsSummaryTree->Draw("LepExitingPos[2] >> lep_exit_z",
               "(stop >= 0)&&(LepExit_AboveThresh==1)", "GOFF");
 
   lep_exit_z->Draw();
@@ -843,7 +843,7 @@ void SanityPlots_EDeps_Tree(const char* inps) {
   std::cout << "Making true_topo" << std::endl;
   TH1D* true_topo = new TH1D("true_topo", ";True topology;Count", 16, -8, 8);
 
-  EDeps->Draw("Topology >> true_topo", "(stop >= 0)", "GOFF");
+  DepositsSummaryTree->Draw("Topology >> true_topo", "(stop >= 0)", "GOFF");
 
   true_topo->Draw();
 
@@ -853,28 +853,28 @@ void SanityPlots_EDeps_Tree(const char* inps) {
   std::cout << "Making lepdep_FV" << std::endl;
   TH1D* lepdep_FV = new TH1D("lepdep_FV", "FV;EDep_{#mu};Count", 100, 0, 5);
 
-  EDeps->Draw("LepDep_FV >> lepdep_FV", "(stop >= 0)&&(PrimaryLepPDG==13)",
+  DepositsSummaryTree->Draw("LepDep_FV >> lepdep_FV", "(stop >= 0)&&(PrimaryLepPDG==13)",
               "GOFF");
 
   std::cout << "Making lepdep_veto" << std::endl;
   TH1D* lepdep_veto =
       new TH1D("lepdep_veto", "Veto;EDep_{#mu};Count", 100, 0, 5);
 
-  EDeps->Draw("LepDep_veto >> lepdep_veto", "(stop >= 0)&&(PrimaryLepPDG==13)",
+  DepositsSummaryTree->Draw("LepDep_veto >> lepdep_veto", "(stop >= 0)&&(PrimaryLepPDG==13)",
               "GOFF");
 
   std::cout << "Making lepdep_timesep_FV" << std::endl;
   TH1D* lepdep_timesep_FV = new TH1D(
       "lepdep_timesep_FV", "FV T > 250 #mus;EDep_{#mu};Count", 100, 0, 5);
 
-  EDeps->Draw("LepDep_timesep_FV >> lepdep_timesep_FV",
+  DepositsSummaryTree->Draw("LepDep_timesep_FV >> lepdep_timesep_FV",
               "(stop >= 0)&&(PrimaryLepPDG==13)", "GOFF");
 
   std::cout << "Making lepdep_timesep_veto" << std::endl;
   TH1D* lepdep_timesep_veto = new TH1D(
       "lepdep_timesep_veto", "Veto T > 250 #mus;EDep_{#mu};Count", 100, 0, 5);
 
-  EDeps->Draw("LepDep_timesep_veto >> lepdep_timesep_veto",
+  DepositsSummaryTree->Draw("LepDep_timesep_veto >> lepdep_timesep_veto",
               "(stop >= 0)&&(PrimaryLepPDG==13)", "GOFF");
 
   lepdep_veto->SetLineColor(kRed);
@@ -894,21 +894,21 @@ void SanityPlots_EDeps_Tree(const char* inps) {
   TH1D* lepdepdesc_FV =
       new TH1D("lepdepdesc_FV", "FV;EDep_{#mu};Count", 100, 0, 5);
 
-  EDeps->Draw("LepDepDescendent_FV >> lepdepdesc_FV",
+  DepositsSummaryTree->Draw("LepDepDescendent_FV >> lepdepdesc_FV",
               "(stop >= 0)&&(PrimaryLepPDG==13)", "GOFF");
 
   std::cout << "Making lepdepdesc_veto" << std::endl;
   TH1D* lepdepdesc_veto =
       new TH1D("lepdepdesc_veto", "Veto;EDep_{#mu};Count", 100, 0, 5);
 
-  EDeps->Draw("LepDepDescendent_veto >> lepdepdesc_veto",
+  DepositsSummaryTree->Draw("LepDepDescendent_veto >> lepdepdesc_veto",
               "(stop >= 0)&&(PrimaryLepPDG==13)", "GOFF");
 
   std::cout << "Making lepdepdesc_timesep_FV" << std::endl;
   TH1D* lepdepdesc_timesep_FV = new TH1D(
       "lepdepdesc_timesep_FV", "FV T > 250 #mus;EDep_{#mu};Count", 100, 0, 5);
 
-  EDeps->Draw("LepDepDescendent_timesep_FV >> lepdepdesc_timesep_FV",
+  DepositsSummaryTree->Draw("LepDepDescendent_timesep_FV >> lepdepdesc_timesep_FV",
               "(stop >= 0)&&(PrimaryLepPDG==13)", "GOFF");
 
   std::cout << "Making lepdepdesc_timesep_veto" << std::endl;
@@ -916,7 +916,7 @@ void SanityPlots_EDeps_Tree(const char* inps) {
       new TH1D("lepdepdesc_timesep_veto", "Veto T > 250 #mus;EDep_{#mu};Count",
                100, 0, 5);
 
-  EDeps->Draw("LepDepDescendent_timesep_veto >> lepdepdesc_timesep_veto",
+  DepositsSummaryTree->Draw("LepDepDescendent_timesep_veto >> lepdepdesc_timesep_veto",
               "(stop >= 0)&&(PrimaryLepPDG==13)", "GOFF");
 
   lepdepdesc_veto->SetLineColor(kRed);
@@ -936,21 +936,21 @@ void SanityPlots_EDeps_Tree(const char* inps) {
   TH1D* nonlepdep_FV =
       new TH1D("nonlepdep_FV", "FV;EDep_{#mu};Count", 100, 0, 5);
 
-  EDeps->Draw("TotalNonlep_Dep_FV >> nonlepdep_FV",
+  DepositsSummaryTree->Draw("TotalNonlep_Dep_FV >> nonlepdep_FV",
               "(stop >= 0)&&(PrimaryLepPDG==13)", "GOFF");
 
   std::cout << "Making nonlepdep_veto" << std::endl;
   TH1D* nonlepdep_veto =
       new TH1D("nonlepdep_veto", "Veto;EDep_{#mu};Count", 100, 0, 5);
 
-  EDeps->Draw("TotalNonlep_Dep_veto >> nonlepdep_veto",
+  DepositsSummaryTree->Draw("TotalNonlep_Dep_veto >> nonlepdep_veto",
               "(stop >= 0)&&(PrimaryLepPDG==13)", "GOFF");
 
   std::cout << "Making nonlepdep_timesep_FV" << std::endl;
   TH1D* nonlepdep_timesep_FV = new TH1D(
       "nonlepdep_timesep_FV", "FV T > 250 #mus;EDep_{#mu};Count", 100, 0, 5);
 
-  EDeps->Draw("TotalNonlep_Dep_timesep_FV >> nonlepdep_timesep_FV",
+  DepositsSummaryTree->Draw("TotalNonlep_Dep_timesep_FV >> nonlepdep_timesep_FV",
               "(stop >= 0)&&(PrimaryLepPDG==13)", "GOFF");
 
   std::cout << "Making nonlepdep_timesep_veto" << std::endl;
@@ -958,7 +958,7 @@ void SanityPlots_EDeps_Tree(const char* inps) {
       new TH1D("nonlepdep_timesep_veto", "Veto T > 250 #mus;EDep_{#mu};Count",
                100, 0, 5);
 
-  EDeps->Draw("TotalNonlep_Dep_timesep_veto >> nonlepdep_timesep_veto",
+  DepositsSummaryTree->Draw("TotalNonlep_Dep_timesep_veto >> nonlepdep_timesep_veto",
               "(stop >= 0)&&(PrimaryLepPDG==13)", "GOFF");
 
   nonlepdep_veto->SetLineColor(kRed);

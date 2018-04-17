@@ -45,7 +45,7 @@ the usage text to not reflect the current state of each executables CLI.
 ```
     -i <input dir>                : Input directory containing condensed
                                     argon_box.py output.
-    -r <RunPlan.XML>              : An XML file specifying a run plan to place
+    -r <RunPlan.XML,[PlanName]>   : An XML file specifying a run plan to place
                                     stops for.
                                     -- See ${DUNEPRISMTOOLSROOT}/configs/run_plans
                                        for examples.
@@ -58,4 +58,22 @@ the usage text to not reflect the current state of each executables CLI.
     -ns <NEvents>                 : N events to skip.
     -P <POTPerFile>               : POT Per input file. Overrides POT info
                                     stored in Condensed config tree.
+```
+
+## `dp_DumpStopRegions`
+
+```
+    -r <RunPlan.XML,[PlanName]>   : An XML file specifying a run plan to place
+                                    stops for.
+                                    -- See ${DUNEPRISMTOOLSROOT}/configs/run_plans
+                                       for examples.
+    -V <vetogap x,y,z>            : Active veto region to pad each corresponding face
+                                    of the active volume with.
+                                    -- N.B. If -dmn -1,-1,-1 -dmx 1,1,1
+                                            -V 0.5,0.5,0.5 then the non-veto
+                                            volume will be 1x1x1 cm^{3} centered
+                                            on the origin.
+    -FV <fvx,y,z>                 : Vertex selection fiducial volume padding
+                                    inside of the non-veto active region
+                                    {Default: 0,0,0}.
 ```

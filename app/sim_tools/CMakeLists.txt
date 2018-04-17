@@ -1,6 +1,7 @@
 SET(SIM_APPS
   Condenser
-  StopProcessor)
+  StopProcessor
+  CheckRunPlanCoverage)
 
 include_directories(${INCLUDE_DIRECTORIES})
 

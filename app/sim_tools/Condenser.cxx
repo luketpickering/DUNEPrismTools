@@ -4,8 +4,8 @@
 #include "G4ArReader.hxx"
 #include "StopDimensions.hxx"
 
-#include "ROOTUtility.hxx"
 #include "GetUsage.hxx"
+#include "ROOTUtility.hxx"
 
 #include "TFile.h"
 #include "TLorentzVector.h"
@@ -18,7 +18,7 @@
 
 std::vector<double> detmin;
 std::vector<double> detmax;
-std::vector<double> stopVetoGap;
+std::vector<double> StopVetoGap;
 int NXSteps = 0;
 int NMaxTrackSteps = 1000;
 std::string InputG4ArFileName;
@@ -36,7 +36,7 @@ void SayUsage(char const *argv[]) {
             << GetUsageText(argv[0], "sim_tools") << std::endl;
 }
 
-void handleOpts(int argc, char const* argv[]) {
+void handleOpts(int argc, char const *argv[]) {
   int opt = 1;
   while (opt < argc) {
     if (std::string(argv[opt]) == "-nx") {
@@ -50,7 +50,13 @@ void handleOpts(int argc, char const* argv[]) {
     } else if (std::string(argv[opt]) == "-dmx") {
       detmax = ParseToVect<double>(argv[++opt], ",");
     } else if (std::string(argv[opt]) == "-V") {
-      stopVetoGap = ParseToVect<double>(argv[++opt], ",");
+      StopVetoGap = ParseToVect<double>(argv[++opt], ",");
+      if (StopVetoGap.size() != 3) {
+        std::cout << "[ERROR]: -V option contained " << StopVetoGap.size()
+                  << " entries, expected 3." << std::endl;
+        SayUsage(argv);
+        exit(1);
+      }
     } else if (std::string(argv[opt]) == "-i") {
       InputG4ArFileName = argv[++opt];
     } else if (std::string(argv[opt]) == "-ir") {
@@ -78,33 +84,35 @@ void handleOpts(int argc, char const* argv[]) {
   }
 }
 
-int main(int argc, char const* argv[]) {
+int main(int argc, char const *argv[]) {
   handleOpts(argc, argv);
 
-  if(NXSteps == 0){
-    std::cout << "[ERROR]: Must specify -nx option. For the standard "
-    "configuration of: -dmn -3800,-150,-250 -dmx 200,150,250 -V 50,50,50, using"
-    " -nx 390 is recommended, which corresponds to 10cm deposit slices."
-    << std::endl;
+  if (NXSteps == 0) {
+    std::cout
+        << "[ERROR]: Must specify -nx option. For the standard "
+           "configuration of: -dmn -3800,-150,-250 -dmx 200,150,250 -V "
+           "50,50,50, using"
+           " -nx 390 is recommended, which corresponds to 10cm deposit slices."
+        << std::endl;
     throw;
   }
 
   StopDimensions detdims;
   detdims.NXSteps = NXSteps;
-  std::copy_n(detmin.data(),3,detdims.DetMin);
-  std::copy_n(detmax.data(),3,detdims.DetMax);
-  std::copy_n(stopVetoGap.data(),3,detdims.VetoGap);
+  std::copy_n(detmin.data(), 3, detdims.DetMin);
+  std::copy_n(detmax.data(), 3, detdims.DetMax);
+  std::copy_n(StopVetoGap.data(), 3, detdims.VetoGap);
 
   G4ArReader g4ar(InputG4ArFileName, detdims, InputRooTrackerFileName,
                   timesep_us);
 
   // WriteConfigTree
-  TFile* outfile = CheckOpenFile(OutputFileName.c_str(), "RECREATE");
+  TFile *outfile = CheckOpenFile(OutputFileName.c_str(), "RECREATE");
 
   SimConfig *sc = SimConfig::MakeTreeWriter();
-  std::copy_n(detdims.DetMin,3,sc->DetMin);
-  std::copy_n(detdims.DetMax,3,sc->DetMax);
-  std::copy_n(detdims.VetoGap,3,sc->VetoGap);
+  std::copy_n(detdims.DetMin, 3, sc->DetMin);
+  std::copy_n(detdims.DetMax, 3, sc->DetMax);
+  std::copy_n(detdims.VetoGap, 3, sc->VetoGap);
   sc->NXSteps = detdims.NXSteps;
   sc->NMaxTrackSteps = NMaxTrackSteps;
   sc->POTPerFile = POTPerFile;
@@ -148,14 +156,14 @@ int main(int argc, char const* argv[]) {
   NuclRemDep.LendDepositMaps(detdims.BuildDetectorMap(),
                              detdims.BuildDetectorMap());
 
-  CondensedDeposits* fdw = CondensedDeposits::MakeTreeWriter(
-      NXSteps, NMaxTrackSteps, timesep_us);
+  CondensedDeposits *fdw =
+      CondensedDeposits::MakeTreeWriter(NXSteps, NMaxTrackSteps, timesep_us);
 
   g4ar.ResetCurrentEntry();
   g4ar.TrackTimeForPDG(2112);
   int evnum = 0;
   int NEvs = std::min(NMaxEvents, g4ar.NInputEntries);
-  int loudevery =  NEvs / 10;
+  int loudevery = NEvs / 10;
   int nfills = 0;
   do {
     DepoEvent ev = g4ar.BuildEvent();
@@ -234,7 +242,7 @@ int main(int argc, char const* argv[]) {
     double TEnergy = 0;
     std::vector<std::string> ss;
 #endif
-    for (PrimaryParticle& p : ev.PrimaryParticles) {
+    for (PrimaryParticle &p : ev.PrimaryParticles) {
       if (!p.IsFinalState) {
         continue;
       }
@@ -264,65 +272,65 @@ int main(int argc, char const* argv[]) {
         fdw->KENuclearRemnant_True += p.EKin;
       } else {
         switch (abs(p.PDG)) {
-          case 11:
-          case 12:
-          case 13:
-          case 14: {
-            fdw->NLep++;
-            break;
+        case 11:
+        case 12:
+        case 13:
+        case 14: {
+          fdw->NLep++;
+          break;
+        }
+        case 111: {
+          fdw->NPi0++;
+          fdw->EKinPi0_True += p.EKin;
+          fdw->EMassPi0_True += p.EMass;
+          fdw->ENonPrimaryLep_True += (p.EKin + p.EMass);
+          break;
+        }
+        case 211: {
+          fdw->NPiC++;
+          fdw->EKinPiC_True += p.EKin;
+          fdw->EMassPiC_True += p.EMass;
+          fdw->ENonPrimaryLep_True += (p.EKin + p.EMass);
+          break;
+        }
+        case 2212: {
+          if (p.PDG < 0) {
+            fdw->NAntiNucleons++;
           }
-          case 111: {
-            fdw->NPi0++;
-            fdw->EKinPi0_True += p.EKin;
-            fdw->EMassPi0_True += p.EMass;
-            fdw->ENonPrimaryLep_True += (p.EKin + p.EMass);
-            break;
+          fdw->NProton++;
+          fdw->EKinProton_True += p.EKin;
+          fdw->EMassProton_True += p.EMass;
+          fdw->ENonPrimaryLep_True += (p.EKin + p.EMass);
+          break;
+        }
+        case 2112: {
+          if (p.PDG < 0) {
+            fdw->NAntiNucleons++;
           }
-          case 211: {
-            fdw->NPiC++;
-            fdw->EKinPiC_True += p.EKin;
-            fdw->EMassPiC_True += p.EMass;
-            fdw->ENonPrimaryLep_True += (p.EKin + p.EMass);
-            break;
+          fdw->NNeutron++;
+          fdw->EKinNeutron_True += p.EKin;
+          fdw->EMassNeutron_True += p.EMass;
+          fdw->ENonPrimaryLep_True += (p.EKin + p.EMass);
+          break;
+        }
+        case 22: {
+          fdw->NGamma++;
+          fdw->EGamma_True += p.EKin;
+          fdw->ENonPrimaryLep_True += (p.EKin + p.EMass);
+          break;
+        }
+        default: {
+          if ((abs(p.PDG) > 1000) && (abs(p.PDG) < 9999)) {
+            fdw->NBaryonicRes++;
+          } else {
+            fdw->NOther++;
           }
-          case 2212: {
-            if (p.PDG < 0) {
-              fdw->NAntiNucleons++;
-            }
-            fdw->NProton++;
-            fdw->EKinProton_True += p.EKin;
-            fdw->EMassProton_True += p.EMass;
-            fdw->ENonPrimaryLep_True += (p.EKin + p.EMass);
-            break;
-          }
-          case 2112: {
-            if (p.PDG < 0) {
-              fdw->NAntiNucleons++;
-            }
-            fdw->NNeutron++;
-            fdw->EKinNeutron_True += p.EKin;
-            fdw->EMassNeutron_True += p.EMass;
-            fdw->ENonPrimaryLep_True += (p.EKin + p.EMass);
-            break;
-          }
-          case 22: {
-            fdw->NGamma++;
-            fdw->EGamma_True += p.EKin;
-            fdw->ENonPrimaryLep_True += (p.EKin + p.EMass);
-            break;
-          }
-          default: {
-            if ((abs(p.PDG) > 1000) && (abs(p.PDG) < 9999)) {
-              fdw->NBaryonicRes++;
-            } else {
-              fdw->NOther++;
-            }
-            fdw->EOther_True += (p.EKin + p.EMass);
-            fdw->ENonPrimaryLep_True += (p.EKin + p.EMass);
+          fdw->EOther_True += (p.EKin + p.EMass);
+          fdw->ENonPrimaryLep_True += (p.EKin + p.EMass);
 #ifdef DEBUG
-            std::cout << "[INFO]: NOther PDG = " << p.PDG << std::endl;
+          std::cout << "[INFO]: NOther PDG = " << p.PDG << std::endl;
 #endif
-          }
+        }
         }
       }
     }
@@ -333,7 +341,7 @@ int main(int argc, char const* argv[]) {
       std::cout << fdw->EventCode->GetString() << std::endl;
       std::cout << "[INFO]: Neutrino E = " << fdw->nu_4mom[3]
                 << ", total FS = " << TEnergy << std::endl;
-      for (auto& s : ss) {
+      for (auto &s : ss) {
         std::cout << s << std::endl;
       }
     }
@@ -345,7 +353,7 @@ int main(int argc, char const* argv[]) {
 
     // ===================== START GEANT4 Pass through ======================
 
-    for (DepoTracked& td : ev.TrackedDeposits) {
+    for (DepoTracked &td : ev.TrackedDeposits) {
       if (abs(td.PDG) == 13) {
         LepDep.AddDeposit(td);
 
@@ -370,45 +378,45 @@ int main(int argc, char const* argv[]) {
       }
     }
 
-    for (DepoParticle& td : ev.TotalDeposits) {
+    for (DepoParticle &td : ev.TotalDeposits) {
       if (G4ArReader::IsNuclearPDG(abs(td.PDG))) {
         NuclRemDep.AddDeposit(td);
       } else {
         switch (abs(td.PDG)) {
-          case 13:
-          case 11: {
-            LepDep.AddDeposit(td);
-            break;
-          }
-          case 2212: {
-            ProtonDep.AddDeposit(td);
-            HadDep.AddDeposit(td);
-            break;
-          }
-          case 2112: {
-            NeutronDep.AddDeposit(td);
-            HadDep.AddDeposit(td);
-            break;
-          }
-          case 211: {
-            PiCDep.AddDeposit(td);
-            HadDep.AddDeposit(td);
-            break;
-          }
-          case 111: {
-            Pi0Dep.AddDeposit(td);
-            HadDep.AddDeposit(td);
-            break;
-          }
-          case 22: {
-            OtherDep.AddDeposit(td);
-            break;
-          }
-          default: {
-            OtherDep.AddDeposit(td);
-            HadDep.AddDeposit(td);
-            break;
-          }
+        case 13:
+        case 11: {
+          LepDep.AddDeposit(td);
+          break;
+        }
+        case 2212: {
+          ProtonDep.AddDeposit(td);
+          HadDep.AddDeposit(td);
+          break;
+        }
+        case 2112: {
+          NeutronDep.AddDeposit(td);
+          HadDep.AddDeposit(td);
+          break;
+        }
+        case 211: {
+          PiCDep.AddDeposit(td);
+          HadDep.AddDeposit(td);
+          break;
+        }
+        case 111: {
+          Pi0Dep.AddDeposit(td);
+          HadDep.AddDeposit(td);
+          break;
+        }
+        case 22: {
+          OtherDep.AddDeposit(td);
+          break;
+        }
+        default: {
+          OtherDep.AddDeposit(td);
+          HadDep.AddDeposit(td);
+          break;
+        }
         }
       }
     }
@@ -681,8 +689,8 @@ int main(int argc, char const* argv[]) {
     nfills++;
 
     if (loudevery && !(evnum % loudevery)) {
-      std::cout << "[INFO]: Processed " << evnum << "/" << NEvs
-        << " entries." << std::endl;
+      std::cout << "[INFO]: Processed " << evnum << "/" << NEvs << " entries."
+                << std::endl;
     }
 
     evnum++;

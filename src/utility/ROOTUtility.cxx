@@ -163,18 +163,18 @@ TH2D * SliceNormTH2D(TH2D *t2, bool AlongY){
       bin_it < (AlongY ? t2->GetXaxis() : t2->GetYaxis())->GetNbins();
       ++bin_it){
         total +=
-          (AlongY ? t2->GetBinContent(bin_it, sl_bin_it) :
-                    t2->GetBinContent(sl_bin_it, bin_it));
+          (AlongY ? t2->GetBinContent(bin_it+1, sl_bin_it+1) :
+                    t2->GetBinContent(sl_bin_it+1, bin_it+1));
     }
 
     for(Int_t bin_it = 1;
       bin_it < (AlongY ? t2->GetXaxis() : t2->GetYaxis())->GetNbins();
       ++bin_it){
         (AlongY ?
-          cpy->SetBinContent(bin_it, sl_bin_it,
-            t2->GetBinContent(bin_it, sl_bin_it)/total) :
-          cpy->SetBinContent(sl_bin_it, bin_it,
-            t2->GetBinContent(sl_bin_it, bin_it)/total));
+          cpy->SetBinContent(bin_it+1, sl_bin_it+1,
+            t2->GetBinContent(bin_it+1, sl_bin_it+1)/total) :
+          cpy->SetBinContent(sl_bin_it+1, bin_it+1,
+            t2->GetBinContent(sl_bin_it+1, bin_it+1)/total));
     }
   }
   return cpy;
