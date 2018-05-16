@@ -1,0 +1,140 @@
+<config>
+
+  <PlotStyles>
+
+    <Style Name="Default">
+
+      <FrameBorderMode>0</FrameBorderMode>
+      <CanvasBorderMode>0</CanvasBorderMode>
+      <CanvasColor>0</CanvasColor>
+      <CanvasFillStyle>4000</CanvasFillStyle>
+      <CanvasLineStyle>0</CanvasLineStyle>
+      <CanvasLineWidth>0</CanvasLineWidth>
+      <CanvasLineColor>0</CanvasLineColor>
+
+      <PadBorderMode>0</PadBorderMode>
+      <PadColor>0</PadColor>
+      <PadFillStyle>4000</PadFillStyle>
+      <PadLineStyle>0</PadLineStyle>
+      <PadLineWidth>0</PadLineWidth>
+      <PadLineColor>kBlack</PadLineColor>
+      <PadTickScale>0.5</PadTickScale>
+
+      <PadTopMargin>0.1</PadTopMargin>
+      <PadBottomMargin>0.175</PadBottomMargin>
+      <PadLeftMargin>0.15</PadLeftMargin>
+      <PadRightMargin>0.03</PadRightMargin>
+      <PadGridX>0</PadGridX>
+      <PadGridY>0</PadGridY>
+      <PadTickX>1</PadTickX>
+      <PadTickY>1</PadTickY>
+      <StatColor>kWhite</StatColor>
+      <FillColor>kWhite</FillColor>
+      <LegendBorderSize>0</LegendBorderSize>
+      <LegendFillColor>0</LegendFillColor>
+      <LegendFillStyle>4000</LegendFillStyle>
+      <LegendTextSize>0.06</LegendTextSize>
+      <LegendTextColor>kBlack</LegendTextColor>
+      <LegendFont>132</LegendFont>
+
+      <PaperSize>20</PaperSize>
+      <PaperMargin>26</PaperMargin>
+
+      <TextFont>132</TextFont>
+      <TextSize>1.0</TextSize>
+      <TitleFillColor>kWhite</TitleFillColor>
+      <TitleX>0.4</TitleX>
+      <TitleFontSize>2</TitleFontSize>
+      <TitleFont>132</TitleFont>
+
+      <MarkerStyle>20</MarkerStyle>
+      <HistLineWidth>1.85</HistLineWidth>
+      <ErrorX>0.5</ErrorX>
+      <OptTitle>0</OptTitle>
+      <OptStat>0</OptStat>
+      <OptFit>0</OptFit>
+      <HatchesLineWidth>1.5</HatchesLineWidth>
+
+      <MaxAxisDigits>3</MaxAxisDigits>
+
+      <LabelFontX>132</LabelFontX>
+      <LabelFontY>132</LabelFontY>
+      <LabelFontZ>132</LabelFontZ>
+
+      <TitleFontX>132</TitleFontX>
+      <TitleFontY>132</TitleFontY>
+      <TitleFontZ>132</TitleFontZ>
+
+      <LabelOffsetX>0.0075</LabelOffsetX>
+      <LabelOffsetY>0.0075</LabelOffsetY>
+      <LabelOffsetZ>0.0075</LabelOffsetZ>
+
+      <TitleOffsetX>1.0</TitleOffsetX>
+      <TitleOffsetY>1.0</TitleOffsetY>
+      <TitleOffsetZ>1.0</TitleOffsetZ>
+
+      <LabelSizeX>0.06</LabelSizeX>
+      <LabelSizeY>0.06</LabelSizeY>
+      <LabelSizeZ>0.06</LabelSizeZ>
+
+      <TitleSizeX>0.06</TitleSizeX>
+      <TitleSizeY>0.06</TitleSizeY>
+      <TitleSizeZ>0.06</TitleSizeZ>
+
+      <LabelColorX>kBlack</LabelColorX>
+      <LabelColorY>kBlack</LabelColorY>
+      <LabelColorZ>kBlack</LabelColorZ>
+
+      <TitleColorX>kBlack</TitleColorX>
+      <TitleColorY>kBlack</TitleColorY>
+      <TitleColorZ>kBlack</TitleColorZ>
+
+      <AxisColorX>kBlack</AxisColorX>
+      <AxisColorY>kBlack</AxisColorY>
+      <AxisColorZ>kBlack</AxisColorZ>
+
+    </Style>
+
+  </PlotStyles>
+
+  <Plots>
+
+    KEY: TH2D     MuonKinematics_all;1
+    KEY: TH2D     MuonKinematics_musel;1
+    KEY: TH2D     MuonKinematics_eff;1
+    KEY: TH2D     Ehadr_FV_detpos_all;1
+    KEY: TH2D     Ehadr_FV_detpos_hadrsel;1
+    KEY: TH2D     Ehadr_FV_detpos_seleff;1
+    KEY: TH2D     EVisHadr_FV_detpos_all;1
+    KEY: TH2D     EVisHadr_FV_detpos_hadrsel;1
+    KEY: TH2D     EVisHadr_FV_detpos_seleff;1
+    KEY: TH2D     Ehadr_FV_abspos_all;1
+    KEY: TH2D     Ehadr_FV_abspos_hadrsel;1
+    KEY: TH2D     Ehadr_FV_abspos_seleff;1
+
+    <Canvas nx="2" StyleName="Default" SeriesStyleHint="Variety_7" Name="AbsPosEHadrVisSelectedEffCheck" StyleName="Default" XWidth="600" YWidth="600" PrintName="AbsPosEHadrVisSelectedEffCheck.pdf" >
+      <Pad znd="505" xnd="505" ynd="505" yto="1.05" xto="1.15" ats="0.5" ml="0.175" mt="0.15" mb="0.15" mr="0.175" YTitle="Offset (cm)" XTitle="E_{Hadr, Vis} (GeV)" ZTitle="Count" PaletteName="RedTint" >
+
+        <ExternalTH2 xmx="2" rf="DiagnosticPlots.EHadrVis.root" tn="IntegratedPlots/AbsPos_EHadr_vis_Selected" />
+
+      </Pad>
+      <Pad znd="505" xnd="505" ynd="505" yto="1.05" xto="1.15" ats="0.5" ml="0.175" mt="0.15" mb="0.15" mr="0.175" YTitle="Offset (cm)" XTitle="E_{Hadr, Vis} (GeV)" ZTitle="Count" PaletteName="RedTint" >
+
+        <ExternalTH2 xmx="2" rf="DiagnosticPlots.EHadrTrueAbsPos.root" tn="IntegratedPlots/AbsPos_EHadr_vis_Selected" />
+
+      </Pad>
+      <Pad znd="505" xnd="505" ynd="505" yto="1.05" xto="1.15" ats="0.5" ml="0.175" mt="0.15" mb="0.15" mr="0.175" YTitle="Offset (cm)" XTitle="E_{Hadr, Vis} (GeV)" ZTitle="Count" PaletteName="RedTint" >
+
+        <ExternalTH2 xmx="2" rf="DiagnosticPlots.EHadrVis.root" tn="IntegratedPlots/AbsPos_EHadr_vis_Corrected" />
+
+      </Pad>
+      <Pad znd="505" xnd="505" ynd="505" yto="1.05" xto="1.15" ats="0.5" ml="0.175" mt="0.15" mb="0.15" mr="0.175" YTitle="Offset (cm)" XTitle="E_{Hadr, Vis} (GeV)" ZTitle="Count" PaletteName="RedTint" >
+
+        <ExternalTH2 xmx="2" rf="DiagnosticPlots.EHadrTrueAbsPos.root" tn="IntegratedPlots/AbsPos_EHadr_vis_Corrected" />
+
+      </Pad>
+
+    </Canvas>
+
+  </Plots>
+</config>
