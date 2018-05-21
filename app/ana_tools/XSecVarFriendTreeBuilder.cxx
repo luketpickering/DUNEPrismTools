@@ -3,11 +3,9 @@
 #include "CovarianceHelper.hxx"
 #include "VALORModelClassifier.hxx"
 
+#include "GetUsage.hxx"
 #include "ROOTUtility.hxx"
 #include "StringParserUtility.hxx"
-#include "GetUsage.hxx"
-
-#include "omp.h"
 
 #include <string>
 #include <vector>
@@ -16,8 +14,11 @@ std::string InputDepostisSummaryFile;
 std::string OutputFile;
 
 std::string CovmatFile, CovmatHist;
-Long64_t NThrows = 1;
+UInt_t NThrows = 1;
+UInt_t NEvents = std::numeric_limits<UInt_t>::max();
 UInt_t Seed = 1;
+double DiagonalErrorInflataion = 0.0001;
+double InversionTolerance = 1E-31;
 
 void SayUsage(char const *argv[]) {
   std::cout << "[USAGE]: " << argv[0] << "\n"
@@ -46,7 +47,13 @@ void handleOpts(int argc, char const *argv[]) {
       CovmatFile = params[0];
       CovmatHist = params[1];
     } else if (std::string(argv[opt]) == "-N") {
-      NThrows = str2T<Long64_t>(argv[++opt]);
+      NThrows = str2T<UInt_t>(argv[++opt]);
+    } else if (std::string(argv[opt]) == "-D") {
+      DiagonalErrorInflataion = str2T<double>(argv[++opt]);
+    } else if (std::string(argv[opt]) == "-T") {
+      InversionTolerance = str2T<double>(argv[++opt]);
+    } else if (std::string(argv[opt]) == "-n") {
+      NEvents = str2T<UInt_t>(argv[++opt]);
     } else if (std::string(argv[opt]) == "-S") {
       Seed = str2T<UInt_t>(argv[++opt]);
     } else {
@@ -64,6 +71,27 @@ int main(int argc, char const *argv[]) {
 
   TMatrixDSym *UncertMatrix;
   if (CovmatFile.size() && CovmatHist.size()) {
+    std::unique_ptr<TH2> covhist(GetHistogram<TH2>(CovmatFile, CovmatHist));
+    UncertMatrix =
+        new TMatrixDSym(static_cast<int>(VALORModel::TrueClass::kNVALORDials));
+    for (int x_it = 0;
+         x_it < static_cast<int>(VALORModel::TrueClass::kNVALORDials); ++x_it) {
+      for (int y_it = x_it;
+           y_it < static_cast<int>(VALORModel::TrueClass::kNVALORDials);
+           ++y_it) {
+
+        (*UncertMatrix)[x_it][y_it] =
+            covhist->GetBinContent(x_it + 1, y_it + 1);
+
+        if (y_it == x_it) {
+
+          std::cout << "[INFO]: Reading covariance " << x_it << ", " << y_it
+                    << " = " << covhist->GetBinContent(x_it + 1, y_it + 1)
+                    << std::endl;
+          (*UncertMatrix)[x_it][y_it] += DiagonalErrorInflataion;
+        }
+      }
+    }
   } else {
     UncertMatrix =
         new TMatrixDSym(static_cast<int>(VALORModel::TrueClass::kNVALORDials));
@@ -97,21 +125,41 @@ int main(int argc, char const *argv[]) {
       "ParamValues", ParamValues,
       (std::string("ParamValues[") + to_str(NParams) + "]/D").c_str());
 
-  std::vector<std::vector<double> > ParameterThrows;
+  std::vector<std::vector<double>> ParameterThrows;
   ParameterThrows.resize(NThrows);
-  for (int t_it = 0; t_it < NThrows; ++t_it) {
+  for (UInt_t t_it = 0; t_it < NThrows; ++t_it) {
     ParameterThrows[t_it].resize(
         static_cast<int>(VALORModel::TrueClass::kNVALORDials));
   }
-  CovarianceThrower ct(*UncertMatrix, Seed);
+  CovarianceThrower ct(*UncertMatrix, Seed, InversionTolerance);
+  CovarianceBuilder paramThrowsCB(
+      static_cast<int>(VALORModel::TrueClass::kNVALORDials));
+  paramThrowsCB.SetZeroMean();
 
-  for (int t_it = 0; t_it < NThrows; ++t_it) {
+  TRandom3 *RNJesus = new TRandom3(Seed);
+  for (Int_t t_it = 0; t_it < Int_t(NThrows); ++t_it) {
     TMatrixD const *CovVector = ct.Throw();
     for (int p_it = 0;
          p_it < static_cast<int>(VALORModel::TrueClass::kNVALORDials); ++p_it) {
-      ParameterThrows[t_it][p_it] = (*CovVector)[p_it][0];
-      ParamValues[p_it] = ParameterThrows[t_it][p_it];
+
+      // input matrix has no MEC uncertainty, throw flat weight 0--2
+      if ((static_cast<VALORModel::TrueClass>(p_it) ==
+           VALORModel::TrueClass::kNu_MEC) ||
+          (static_cast<VALORModel::TrueClass>(p_it) ==
+           VALORModel::TrueClass::kNuBar_MEC)) {
+        ParameterThrows[t_it][p_it] = RNJesus->Uniform(-1, 1);
+        ParamValues[p_it] = ParameterThrows[t_it][p_it];
+      } else {
+        ParameterThrows[t_it][p_it] = (*CovVector)[p_it][0];
+        ParamValues[p_it] = ParameterThrows[t_it][p_it];
+      }
+      //Lets not allow any negative values
+      if (ParameterThrows[t_it][p_it] < -1) {
+        t_it = t_it - 1;
+        continue;
+      }
     }
+    paramThrowsCB.AddThrow_CovMatCalc(CovVector);
     throwConfigtree->Fill();
   }
 
@@ -121,7 +169,7 @@ int main(int argc, char const *argv[]) {
               << ", Uncert "
               << GetDefaultDialTweak(static_cast<VALORModel::TrueClass>(p_it))
               << ", Throws: " << std::flush;
-    for (int t_it = 0; t_it < std::min(NThrows, Long64_t(5)); ++t_it) {
+    for (UInt_t t_it = 0; t_it < std::min(NThrows, UInt_t(5)); ++t_it) {
       std::cout << ParameterThrows[t_it][p_it] << " " << std::flush;
     }
     std::cout << std::endl;
@@ -134,16 +182,16 @@ int main(int argc, char const *argv[]) {
 
   size_t loud_every = edr.GetEntries() / 10;
   size_t NFills = 0;
-  Long64_t NEntries = edr.GetEntries();
+  UInt_t NEntries = std::min(edr.GetEntries(), NEvents);
 
-  TH1D *MeanThrow = new TH1D("CentralERecDist", ";ERec;Count", 100, 0, 10);
+  TH1D *MeanThrow = new TH1D("NominalERecDist", ";ERec;Count", 100, 0, 10);
   std::vector<TH1D *> ThrowDistributions;
-  for (int t_it = 0; t_it < NThrows; ++t_it) {
+  for (UInt_t t_it = 0; t_it < NThrows; ++t_it) {
     ThrowDistributions.push_back(new TH1D("throw_dist", "", 100, 0, 10));
     ThrowDistributions.back()->SetDirectory(nullptr);
   }
 
-  for (Long64_t e_it = 0; e_it < NEntries; ++e_it) {
+  for (UInt_t e_it = 0; e_it < NEntries; ++e_it) {
     edr.GetEntry(e_it);
 
     if (edr.stop == -1) {
@@ -195,17 +243,29 @@ int main(int argc, char const *argv[]) {
           xsecweights[1] *= GetVALORWeight(d, -1, edr);
         }
       }
-    } else {  // Do throws;
+    } else { // Do throws;
 
-      #pragma omp parallel for
-      for (int t_it = 0; t_it < NThrows; ++t_it) {
+      for (UInt_t t_it = 0; t_it < NThrows; ++t_it) {
         xsecweights[t_it] = 1;
         for (VALORModel::TrueClass d : appdial) {
-          xsecweights[t_it] *= GetVALORWeight(
+          double w = GetVALORWeight(
               d, ParameterThrows[t_it][static_cast<int>(d)], edr);
+          if (w < 0) {
+            std::cout << "[INFO]: Saw negative weight for dial: " << d
+                      << ", set at "
+                      << ParameterThrows[t_it][static_cast<int>(d)]
+                      << " gave a weight = " << w << std::endl;
+          }
+          xsecweights[t_it] *= w;
+          if (w != w || (w && !std::isnormal(w))) {
+            std::cout << "[ERROR]: Found bad weight " << w << ", throw " << t_it
+                      << ", dial " << d << ", value "
+                      << ParameterThrows[t_it][static_cast<int>(d)]
+                      << std::endl;
+          }
         }
-        ThrowDistributions[t_it]->Fill(edr.GetProjection(DepositsSummary::kERec),
-                                       xsecweights[t_it]);
+        ThrowDistributions[t_it]->Fill(
+            edr.GetProjection(DepositsSummary::kERec), xsecweights[t_it]);
         MeanThrow->Fill(edr.GetProjection(DepositsSummary::kERec),
                         xsecweights[t_it]);
       }
@@ -218,10 +278,9 @@ int main(int argc, char const *argv[]) {
   CovarianceBuilder cb(MeanThrow->GetXaxis()->GetNbins());
 
   MeanThrow->Scale(1.0 / double(NThrows));
-
   cb.SetMean(MeanThrow);
 
-  for (int t_it = 0; t_it < NThrows; ++t_it) {
+  for (UInt_t t_it = 0; t_it < NThrows; ++t_it) {
     cb.AddThrow_CovMatCalc(ThrowDistributions[t_it]);
   }
   cb.FinalizeCovMatCalc();
@@ -230,7 +289,27 @@ int main(int argc, char const *argv[]) {
   cb.GetCorrMatrix()->Clone()->Write("ERec_CorrMat");
 
   for (Int_t i = 0; i < MeanThrow->GetXaxis()->GetNbins(); ++i) {
-    MeanThrow->SetBinError(i + 1, sqrt((*cb.GetCovMatrix())[i][i]));
+    double binval = MeanThrow->GetBinContent(i + 1);
+    if (binval != binval || (binval && !std::isnormal(binval))) {
+      std::cout << "[ERROR]: Attempted to add mean vector with bad value: "
+                << binval << " at index " << i << std::endl;
+    }
+    double cval = (*cb.GetCovMatrix())[i][i];
+    if (cval < 0) {
+      std::cout
+          << "[ERROR]: Found negative diagonal value in covariance matrix."
+          << std::endl;
+      throw;
+    }
+    if (cval && std::isnormal(cval)) {
+      MeanThrow->SetBinError(i + 1, sqrt(cval));
+    } else {
+      if (cval) {
+        std::cout << "[WARN]: Found odd covmat value for bin " << i << " = "
+                  << cval << std::endl;
+      }
+      MeanThrow->SetBinError(i + 1, 0);
+    }
   }
 
   double MaxThrow = -std::numeric_limits<double>::max();
@@ -238,7 +317,7 @@ int main(int argc, char const *argv[]) {
   double MinThrow = -std::numeric_limits<double>::max();
   int MinIndex = 0;
 
-  for (int t_it = 0; t_it < NThrows; ++t_it) {
+  for (UInt_t t_it = 0; t_it < NThrows; ++t_it) {
     if (ThrowDistributions[t_it]->GetMaximum() > MaxThrow) {
       MaxIndex = t_it;
       MaxThrow = ThrowDistributions[t_it]->GetMaximum();
@@ -250,11 +329,17 @@ int main(int argc, char const *argv[]) {
   }
 
   ThrowDistributions[MaxIndex]->SetName(
-      (std::string("MaxERecDist_throw") + to_str(MaxIndex)).c_str());
+      (std::string("MaxERecDist_throw_") + to_str(MaxIndex)).c_str());
   ThrowDistributions[MinIndex]->SetName(
-      (std::string("MinERecDist_throw") + to_str(MinIndex)).c_str());
+      (std::string("MinERecDist_throw_") + to_str(MinIndex)).c_str());
   ThrowDistributions[MaxIndex]->SetDirectory(of);
   ThrowDistributions[MinIndex]->SetDirectory(of);
+
+  UncertMatrix->Write("PriorUncerts");
+
+  paramThrowsCB.FinalizeCovMatCalc();
+  paramThrowsCB.GetCovMatrix()->Clone()->Write("ParamThrows_CovMat");
+  paramThrowsCB.GetCorrMatrix()->Clone()->Write("ParamThrows_CorrMat");
 
   of->Write();
   of->Close();

@@ -4,13 +4,11 @@
 
 #include <iostream>
 
+#define COVHELPER_DEBUG
+
 CovarianceBuilder::CovarianceBuilder(int NRows)
-    : NThrows_MeanCalc(0),
-      NThrows_CovMatCalc(0),
-      NRows(NRows),
-      MeanCalcFinalize(false),
-      ZeroMean(false),
-      MeanIsSet(false) {
+    : NThrows_MeanCalc(0), NThrows_CovMatCalc(0), NRows(NRows),
+      MeanCalcFinalize(false), ZeroMean(false), MeanIsSet(false) {
   CovMatrix = new TMatrixD(NRows, NRows);
   CorrMatrix = nullptr;
   MeanVector = new TMatrixD(NRows, 1);
@@ -21,6 +19,22 @@ CovarianceBuilder::CovarianceBuilder(int NRows)
       (*CovMatrix)[i][j] = 0;
     }
   }
+
+#ifdef COVHELPER_DEBUG
+  for (int i = 0; i < NRows; ++i) {
+    for (int j = 0; j < NRows; ++j) {
+
+      if ((*CovMatrix)[i][j] != (*CovMatrix)[i][j] ||
+          ((*CovMatrix)[i][j] && !std::isnormal((*CovMatrix)[i][j]))) {
+        std::cout << "[ERROR]: Found bad value in covariance matrix during "
+                     "construction: "
+                  << (*CovMatrix)[i][j] << " at index " << i << ", " << j
+                  << std::endl;
+        throw;
+      }
+    }
+  }
+#endif
 }
 
 void CovarianceBuilder::SetZeroMean() {
@@ -53,16 +67,44 @@ void CovarianceBuilder::AddThrow_MeanCalc(TMatrixD const *Vector) {
 
   NThrows_MeanCalc++;
   for (int i = 0; i < NRows; ++i) {
+#ifdef COVHELPER_DEBUG
+    if ((*Vector)[i][0] != (*Vector)[i][0] ||
+        ((*Vector)[i][0] && !std::isnormal((*Vector)[i][0]))) {
+      std::cout << "[ERROR]: Attempted to add mean vector with bad value: "
+                << (*Vector)[i][0] << " at index " << i << std::endl;
+      throw;
+    }
+#endif
     (*MeanVector)[i][0] += (*Vector)[i][0];
   }
 }
 
 void CovarianceBuilder::FinalizeMeanCalc() {
-  if (MeanCalcFinalize) {
+  if (MeanCalcFinalize || MeanIsSet) {
     return;
   }
 
+#ifdef COVHELPER_DEBUG
+  for (int i = 0; i < NRows; ++i) {
+
+    if ((*MeanVector)[i][0] != (*MeanVector)[i][0] ||
+        ((*MeanVector)[i][0] && !std::isnormal((*MeanVector)[i][0]))) {
+      std::cout << "[ERROR]: During mean finalizing, found bad value: "
+                << (*MeanVector)[i][0] << " at index " << i << std::endl;
+      throw;
+    }
+  }
+#endif
+
   double NThrowsWeight = 1.0 / double(NThrows_MeanCalc);
+
+#ifdef COVHELPER_DEBUG
+  if (!NThrowsWeight || !std::isnormal(NThrowsWeight)) {
+    std::cout << "[ERROR]: Bad mean normalization weight: " << NThrowsWeight
+              << std::endl;
+    throw;
+  }
+#endif
 
   for (int i = 0; i < NRows; ++i) {
     (*MeanVector)[i][0] *= NThrowsWeight;
@@ -91,6 +133,14 @@ void CovarianceBuilder::SetMean(TH1 *t) {
 
 void CovarianceBuilder::SetMean(TMatrixD const *Vector) {
   for (int i = 0; i < NRows; ++i) {
+#ifdef COVHELPER_DEBUG
+    if ((*Vector)[i][0] != (*Vector)[i][0] ||
+        ((*Vector)[i][0] && !std::isnormal((*Vector)[i][0]))) {
+      std::cout << "[ERROR]: Attempted to set mean vector with bad value: "
+                << (*Vector)[i][0] << " at index " << i << std::endl;
+      throw;
+    }
+#endif
     (*MeanVector)[i][0] = (*Vector)[i][0];
   }
 
@@ -119,6 +169,42 @@ void CovarianceBuilder::AddThrow_CovMatCalc(TMatrixD const *Vector) {
   FinalizeMeanCalc();
   NThrows_CovMatCalc++;
 
+#ifdef COVHELPER_DEBUG
+  for (int i = 0; i < NRows; ++i) {
+
+    if ((*Vector)[i][0] != (*Vector)[i][0] ||
+        ((*Vector)[i][0] && !std::isnormal((*Vector)[i][0]))) {
+      std::cout << "[ERROR]: Attempted to add throw vector with bad value: "
+                << (*Vector)[i][0] << " at index " << i << std::endl;
+      throw;
+    }
+    if (!ZeroMean) {
+      if ((*MeanVector)[i][0] != (*MeanVector)[i][0] ||
+          ((*MeanVector)[i][0] && !std::isnormal((*MeanVector)[i][0]))) {
+        std::cout << "[ERROR]: Using non-zero mean and found bad mean value: "
+                  << (*MeanVector)[i][0] << " at index " << i << std::endl;
+        throw;
+      }
+    }
+  }
+#endif
+
+#ifdef COVHELPER_DEBUG
+  for (int i = 0; i < NRows; ++i) {
+    for (int j = 0; j < NRows; ++j) {
+
+      if ((*CovMatrix)[i][j] != (*CovMatrix)[i][j] ||
+          ((*CovMatrix)[i][j] && !std::isnormal((*CovMatrix)[i][j]))) {
+        std::cout << "[ERROR]: Found bad value in covariance matrix before "
+                     "adding new throw ("
+                  << NThrows_CovMatCalc << "): " << (*CovMatrix)[i][j]
+                  << " at index " << i << ", " << j << std::endl;
+        throw;
+      }
+    }
+  }
+#endif
+
   if (ZeroMean) {
     for (int i = 0; i < NRows; ++i) {
       for (int j = 0; j < NRows; ++j) {
@@ -133,18 +219,56 @@ void CovarianceBuilder::AddThrow_CovMatCalc(TMatrixD const *Vector) {
       }
     }
   }
+
+#ifdef COVHELPER_DEBUG
+  for (int i = 0; i < NRows; ++i) {
+    for (int j = 0; j < NRows; ++j) {
+
+      if ((*CovMatrix)[i][j] != (*CovMatrix)[i][j] ||
+          ((*CovMatrix)[i][j] && !std::isnormal((*CovMatrix)[i][j]))) {
+        std::cout << "[ERROR]: Found bad value in covariance matrix "
+                     "after new throw ("
+                  << NThrows_CovMatCalc << "): " << (*CovMatrix)[i][j]
+                  << " at index " << i << ", " << j << std::endl;
+        throw;
+      }
+    }
+  }
+#endif
 }
 
 void CovarianceBuilder::FinalizeCovMatCalc() {
-  if ((!ZeroMean) && (!MeanIsSet) &&
-      (NThrows_MeanCalc != NThrows_CovMatCalc)) {
+  if ((!ZeroMean) && (!MeanIsSet) && (NThrows_MeanCalc != NThrows_CovMatCalc)) {
     std::cout << "[ERROR]: Added " << NThrows_MeanCalc
               << " throws to the mean calculator and " << NThrows_CovMatCalc
               << " to the covariance matrix builder." << std::endl;
     throw;
   }
 
+#ifdef COVHELPER_DEBUG
+  for (int i = 0; i < NRows; ++i) {
+    for (int j = 0; j < NRows; ++j) {
+
+      if ((*CovMatrix)[i][j] != (*CovMatrix)[i][j] ||
+          ((*CovMatrix)[i][j] && !std::isnormal((*CovMatrix)[i][j]))) {
+        std::cout << "[ERROR]: Found bad value in covariance matrix: "
+                  << (*CovMatrix)[i][j] << " at index " << i << ", " << j
+                  << std::endl;
+        throw;
+      }
+    }
+  }
+#endif
+
   double NThrowsWeight = 1.0 / double(NThrows_CovMatCalc);
+
+#ifdef COVHELPER_DEBUG
+  if (!NThrowsWeight || !std::isnormal(NThrowsWeight)) {
+    std::cout << "[ERROR]: Bad covariance throw normalization weight: "
+              << NThrowsWeight << std::endl;
+    throw;
+  }
+#endif
 
   for (int i = 0; i < NRows; ++i) {
     for (int j = 0; j < NRows; ++j) {
@@ -179,11 +303,19 @@ TMatrixD *CovarianceBuilder::GetCorrMatrix() {
 void CovarianceBuilder::Write() {
   CovMatrix->Write("CovMatVariations");
   if (!ZeroMean) {
-    MeanVector->Write("MeanVariations");
+    TH1D *dummy = new TH1D("MeanVariations", "", NRows, 0, NRows);
+    for (Int_t ix = 0; ix < NRows; ++ix) {
+      dummy->SetBinContent(ix + 1, (*MeanVector)[ix][0]);
+    }
+    dummy->Write("MeanVariations");
+    for (Int_t ix = 0; ix < NRows; ++ix) {
+      dummy->SetBinError(ix + 1, sqrt((*CovMatrix)[ix][ix]));
+    }
+    dummy->Write("MeanVariationsWithUncerts");
+    dummy->SetDirectory(nullptr);
+    delete dummy;
   }
 }
-
-
 
 CovarianceThrower::CovarianceThrower(int NRows, UInt_t Seed) : NRows(NRows) {
   UncertMatrix = new TMatrixD(NRows, NRows);
@@ -196,8 +328,12 @@ CovarianceThrower::CovarianceThrower(int NRows, UInt_t Seed) : NRows(NRows) {
   CVector = new TMatrixD(NRows, 1);
 }
 
-void CovarianceThrower::SetupDecomp() {
+void CovarianceThrower::SetupDecomp(double decompTol) {
   TDecompChol decomp(*UncertMatrix);
+  if (decompTol != 0xdeadbeef) {
+    decomp.SetTol(decompTol);
+    std::cout << "Setting tolerance: " << decompTol << std::endl;
+  }
   if (!decomp.Decompose()) {
     std::cout << "[ERROR]: Failed to decompose uncertainty matrix."
               << std::endl;
@@ -207,7 +343,8 @@ void CovarianceThrower::SetupDecomp() {
   (*LMatrix) = LMatrix->Transpose(*LMatrix);
 }
 
-CovarianceThrower::CovarianceThrower(TMatrixDSym &covmat, UInt_t Seed)
+CovarianceThrower::CovarianceThrower(TMatrixDSym &covmat, UInt_t Seed,
+                                     double decompTol)
     : CovarianceThrower(covmat.GetNrows(), Seed) {
   for (int i = 0; i < NRows; ++i) {
     for (int j = 0; j < NRows; ++j) {
@@ -215,10 +352,11 @@ CovarianceThrower::CovarianceThrower(TMatrixDSym &covmat, UInt_t Seed)
     }
   }
 
-  SetupDecomp();
+  SetupDecomp(decompTol);
 }
 
-CovarianceThrower::CovarianceThrower(TMatrixD &covmat, UInt_t Seed)
+CovarianceThrower::CovarianceThrower(TMatrixD &covmat, UInt_t Seed,
+                                     double decompTol)
     : CovarianceThrower(covmat.GetNrows(), Seed) {
   for (int i = 0; i < NRows; ++i) {
     for (int j = 0; j < NRows; ++j) {
@@ -226,7 +364,7 @@ CovarianceThrower::CovarianceThrower(TMatrixD &covmat, UInt_t Seed)
     }
   }
 
-  SetupDecomp();
+  SetupDecomp(decompTol);
 }
 
 TMatrixD const *CovarianceThrower::Throw() {
@@ -264,7 +402,8 @@ EVCovMatWeightEngine::EVCovMatWeightEngine(int NRows) : NRows(NRows) {
   UncertMatrix = new TMatrixD(NRows, NRows);
 }
 
-EVCovMatWeightEngine::EVCovMatWeightEngine(TMatrixDSym const *UncertMatrix, TAxis const *Axis)
+EVCovMatWeightEngine::EVCovMatWeightEngine(TMatrixDSym const *UncertMatrix,
+                                           TAxis const *Axis)
     : EVCovMatWeightEngine(UncertMatrix->GetNrows()) {
   for (int i = 0; i < NRows; ++i) {
     for (int j = 0; j < NRows; ++j) {
@@ -276,7 +415,8 @@ EVCovMatWeightEngine::EVCovMatWeightEngine(TMatrixDSym const *UncertMatrix, TAxi
   SetupDecomp();
 }
 
-EVCovMatWeightEngine::EVCovMatWeightEngine(TMatrixD const *UncertMatrix, TAxis const *Axis)
+EVCovMatWeightEngine::EVCovMatWeightEngine(TMatrixD const *UncertMatrix,
+                                           TAxis const *Axis)
     : EVCovMatWeightEngine(UncertMatrix->GetNrows()) {
   for (int i = 0; i < NRows; ++i) {
     for (int j = 0; j < NRows; ++j) {
@@ -288,11 +428,13 @@ EVCovMatWeightEngine::EVCovMatWeightEngine(TMatrixD const *UncertMatrix, TAxis c
   SetupDecomp();
 }
 
-double EVCovMatWeightEngine::GetWeight(int Bin_Id, int Param_id, double Param_Val) {
+double EVCovMatWeightEngine::GetWeight(int Bin_Id, int Param_id,
+                                       double Param_Val) {
   return Param_Val * (*EigenValues)[Param_id] *
          (*EigenMatrix)[Bin_Id][Param_id];
 }
-double EVCovMatWeightEngine::GetWeight(double BinnedVariable, int Param_id, double Param_Val) {
+double EVCovMatWeightEngine::GetWeight(double BinnedVariable, int Param_id,
+                                       double Param_Val) {
   return GetWeight(Axis->FindFixBin(BinnedVariable - 1), Param_id, Param_Val);
 }
 

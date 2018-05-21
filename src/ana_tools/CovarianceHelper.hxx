@@ -19,7 +19,7 @@ class CovarianceBuilder {
 
   bool ZeroMean, MeanIsSet;
 
- public:
+public:
   CovarianceBuilder(int NRows);
 
   void SetZeroMean();
@@ -61,11 +61,13 @@ class CovarianceThrower {
 
   CovarianceThrower(int NRows, UInt_t Seed = 0);
 
- public:
-  void SetupDecomp();
+public:
+  void SetupDecomp(double decompTol = 0xdeadbeef);
 
-  CovarianceThrower(TMatrixDSym &covmat, UInt_t Seed = 0);
-  CovarianceThrower(TMatrixD &covmat, UInt_t Seed = 0);
+  CovarianceThrower(TMatrixDSym &covmat, UInt_t Seed = 0,
+                    double decompTol = 0xdeadbeef);
+  CovarianceThrower(TMatrixD &covmat, UInt_t Seed = 0,
+                    double decompTol = 0xdeadbeef);
 
   TMatrixD const *Throw();
 
@@ -85,7 +87,7 @@ class EVCovMatWeightEngine {
 
   EVCovMatWeightEngine(int NRows);
 
- public:
+public:
   EVCovMatWeightEngine(TMatrixDSym const *UncertMatrix, TAxis const *Axis);
 
   EVCovMatWeightEngine(TMatrixD const *UncertMatrix, TAxis const *Axis);

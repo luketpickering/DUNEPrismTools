@@ -82,25 +82,29 @@ void handleOpts(int argc, char const *argv[]) {
     } else if (std::string(argv[opt]) == "-b") {
       ProjectionBinning = BuildBinEdges(argv[++opt]);
     } else if (std::string(argv[opt]) == "-PV") {
-      switch(str2T<int>(argv[++opt])){
-        case 1: {
-          projVar = DepositsSummary::kETrue;
-          break;
-        }
-        case 2: {
-          projVar = DepositsSummary::kEAvail_True;
-          break;
-        }
-        case 3: {
-          projVar = DepositsSummary::kERec;
-          break;
-        }
-        default:{
-          std::cout << "[ERROR]: Unknown option for -PV: " << argv[opt]
-            << std::endl;
-          SayUsage(argv);
-          exit(1);
-        }
+      switch (str2T<int>(argv[++opt])) {
+      case 1: {
+        projVar = DepositsSummary::kETrue;
+        break;
+      }
+      case 2: {
+        projVar = DepositsSummary::kEAvail_True;
+        break;
+      }
+      case 3: {
+        projVar = DepositsSummary::kERec;
+        break;
+      }
+      case 4: {
+        projVar = DepositsSummary::kEFSLep_True;
+        break;
+      }
+      default: {
+        std::cout << "[ERROR]: Unknown option for -PV: " << argv[opt]
+                  << std::endl;
+        SayUsage(argv);
+        exit(1);
+      }
       }
     } else {
       std::cout << "[ERROR]: Unknown option: " << argv[opt] << std::endl;
@@ -263,6 +267,10 @@ int main(int argc, char const *argv[]) {
     handleOpts(argc_dum, argv_dum);
   }
 
+  size_t MaxThrow_ND, MinThrow_ND;
+  double MaxThrow_ND_val = -std::numeric_limits<double>::max(),
+         MinThrow_ND_val = std::numeric_limits<double>::max();
+
   // Build Flux slice helper
   SliceConfig slCfg(FluxFitFile);
 
@@ -302,8 +310,8 @@ int main(int argc, char const *argv[]) {
   // Set up Eff tree
   TChain *FDEffFriendTree = nullptr;
   double FDEffWeight = 1;
-  if (FDXSecThrowFile.size()) {
-    FDEffFriendTree = OpenTChainWithFileList("EffWeights", FDXSecThrowFile);
+  if (FDEffFile.size()) {
+    FDEffFriendTree = OpenTChainWithFileList("EffWeights", FDEffFile);
     if (FDEffFriendTree) {
       FDEffFriendTree->SetBranchAddress("EffWeight", &FDEffWeight);
     }
@@ -330,7 +338,7 @@ int main(int argc, char const *argv[]) {
       }
 
       FDXSecWeights = new double[FDNXSecThrows];
-      FDXSecThrowsTree->Branch("XSecWeights", FDXSecWeights);
+      FDXSecThrowsTree->SetBranchAddress("XSecWeights", FDXSecWeights);
     }
   }
 
@@ -342,13 +350,21 @@ int main(int argc, char const *argv[]) {
   // Set up Thrown distributions
   FDNSystThrows = std::min(FDNXSecThrows, FDNFluxThrows);
   std::vector<TH1D *> ThrownFDObservations;
+  std::vector<TH1D *> ThrownFluxCorrections;
   for (Int_t t_it = 0; t_it < FDNSystThrows; ++t_it) {
-    ThrownFDObservations.push_back(
-        new TH1D((std::string("FDObservation_") + to_str(projVar) + "_t").c_str(),
+    ThrownFDObservations.push_back(new TH1D(
+        (std::string("FDObservation_") + to_str(projVar) + "_t").c_str(),
         (std::string(";") + to_title(projVar) + ";Count").c_str(),
-                 (ProjectionBinning.size() - 1), ProjectionBinning.data()));
+        (ProjectionBinning.size() - 1), ProjectionBinning.data()));
 
     ThrownFDObservations.back()->SetDirectory(nullptr);
+
+    ThrownFluxCorrections.push_back(new TH1D(
+        (std::string("FDFluxCorrection_") + to_str(projVar) + "_t").c_str(),
+        (std::string(";") + to_title(projVar) + ";Count").c_str(),
+        (ProjectionBinning.size() - 1), ProjectionBinning.data()));
+
+    ThrownFluxCorrections.back()->SetDirectory(nullptr);
   }
 
   // Get the acceptance cut used in the ND selection to build the corrector.
@@ -356,18 +372,21 @@ int main(int argc, char const *argv[]) {
 
   // Build nominal FD prediction
   TH1D *FDObservation =
-      new TH1D((std::string("FDObservation_") + to_str(projVar)).c_str(),   (std::string(";") + to_title(projVar) + ";Count").c_str(),
+      new TH1D((std::string("FDObservation_") + to_str(projVar)).c_str(),
+               (std::string(";") + to_title(projVar) + ";Count").c_str(),
                (ProjectionBinning.size() - 1), ProjectionBinning.data());
   FDObservation->SetDirectory(nullptr);
 
   TH1D *FDFluxCorrection =
-      new TH1D((std::string("FDFluxCorrection_") + to_str(projVar)).c_str(),   (std::string(";") + to_title(projVar) + ";Count").c_str(),
+      new TH1D((std::string("FDFluxCorrection_") + to_str(projVar)).c_str(),
+               (std::string(";") + to_title(projVar) + ";Count").c_str(),
                (ProjectionBinning.size() - 1), ProjectionBinning.data());
   FDFluxCorrection->SetDirectory(nullptr);
 
-  TH1D *FDAcceptanceCorrection =
-      new TH1D((std::string("FDAcceptanceCorrection_") + to_str(projVar)).c_str(),   (std::string(";") + to_title(projVar) + ";Count").c_str(),
-               (ProjectionBinning.size() - 1), ProjectionBinning.data());
+  TH1D *FDAcceptanceCorrection = new TH1D(
+      (std::string("FDAcceptanceCorrection_") + to_str(projVar)).c_str(),
+      (std::string(";") + to_title(projVar) + ";Count").c_str(),
+      (ProjectionBinning.size() - 1), ProjectionBinning.data());
   FDAcceptanceCorrection->SetDirectory(nullptr);
 
   double EHadrVis_AcceptanceCut_GeV =
@@ -394,19 +413,16 @@ int main(int argc, char const *argv[]) {
     double FluxCorrectionWeight =
         FDFluxComponentHelper->GetBinContent(FluxCorrectionBin);
 
-    FDObservation->Fill(
-        FDEventReader.GetProjection(projVar),
-        FDOscWeight * FDEffWeight);
+    FDObservation->Fill(FDEventReader.GetProjection(projVar),
+                        FDOscWeight * FDEffWeight);
 
-    FDFluxCorrection->Fill(
-        FDEventReader.GetProjection(projVar),
-        FDOscWeight * FluxCorrectionWeight * FDEffWeight);
+    FDFluxCorrection->Fill(FDEventReader.GetProjection(projVar),
+                           FDOscWeight * FluxCorrectionWeight * FDEffWeight);
 
     if (FDEventReader.GetProjection(DepositsSummary::kEHadr_vis) >
         EHadrVis_AcceptanceCut_GeV) {
-      FDAcceptanceCorrection->Fill(
-          FDEventReader.GetProjection(projVar),
-          FDOscWeight * FDEffWeight);
+      FDAcceptanceCorrection->Fill(FDEventReader.GetProjection(projVar),
+                                   FDOscWeight * FDEffWeight);
     }
 
     if (FDNSystThrows) {
@@ -420,14 +436,29 @@ int main(int argc, char const *argv[]) {
         double W = 1;
         if (FDXSecThrowsTree) {
           W *= FDXSecWeights[t_it];
+
+          ThrownFluxCorrections[t_it]->Fill(
+              FDEventReader.GetProjection(projVar),
+              FDOscWeight * FluxCorrectionWeight * FDEffWeight *
+                  FDXSecWeights[t_it]);
         }
         if (FDFluxThrowsTree) {
           W *= FDFluxWeights[t_it];
         }
 
-        ThrownFDObservations[t_it]->Fill(
-            FDEventReader.GetProjection(projVar),
-            FDOscWeight * FDEffWeight * W);
+        if (W < 0 || W > 5) {
+          std::cout << "[INFO]: FD Throw " << t_it << " event " << e_it
+                    << " saw thrown weight " << W << std::endl;
+          if (FDXSecThrowsTree) {
+            std::cout << "\t\t XSec: " << FDXSecWeights[t_it] << std::endl;
+          }
+          if (FDFluxThrowsTree) {
+            std::cout << "\t\t Flux: " << FDFluxWeights[t_it] << std::endl;
+          }
+        }
+
+        ThrownFDObservations[t_it]->Fill(FDEventReader.GetProjection(projVar),
+                                         FDOscWeight * FDEffWeight * W);
       }
     }
   }
@@ -464,7 +495,7 @@ int main(int argc, char const *argv[]) {
       }
 
       NDXSecWeights = new double[NDNXSecThrows];
-      NDXSecThrowsTree->Branch("XSecWeights", NDXSecWeights);
+      NDXSecThrowsTree->SetBranchAddress("XSecWeights", NDXSecWeights);
     }
   }
 
@@ -483,17 +514,17 @@ int main(int argc, char const *argv[]) {
 
   std::vector<TH1D *> ThrownNDPredictions;
   for (Int_t t_it = 0; t_it < NSystThrows; ++t_it) {
-    ThrownNDPredictions.push_back(
-        new TH1D((std::string("NDObservation_") + to_str(projVar) + "_t").c_str(),
+    ThrownNDPredictions.push_back(new TH1D(
+        (std::string("NDObservation_") + to_str(projVar) + "_t").c_str(),
         (std::string(";") + to_title(projVar) + ";Count").c_str(),
-                 (ProjectionBinning.size() - 1), ProjectionBinning.data()));
+        (ProjectionBinning.size() - 1), ProjectionBinning.data()));
 
     ThrownNDPredictions.back()->SetDirectory(nullptr);
   }
 
   TH1D *LinCombNDObservation =
       new TH1D((std::string("LinCombNDObservation_") + to_str(projVar)).c_str(),
-      (std::string(";") + to_title(projVar) + ";Count").c_str(),
+               (std::string(";") + to_title(projVar) + ";Count").c_str(),
                (ProjectionBinning.size() - 1), ProjectionBinning.data());
   LinCombNDObservation->SetDirectory(nullptr);
 
@@ -510,13 +541,17 @@ int main(int argc, char const *argv[]) {
   std::vector<TH1D *> Slice;
   std::vector<TH1D *> Slice_Weighted;
   for (size_t slice_it = 0; slice_it < (XRangeBins.size() - 1); ++slice_it) {
-    Slice.push_back(
-        new TH1D((std::string("Slice") + to_str(slice_it) + "_" + to_str(projVar)).c_str(),
-                 (std::string(";") + to_title(projVar) + ";Count").c_str(), (ProjectionBinning.size() - 1),
-                 ProjectionBinning.data()));
-    Slice_Weighted.push_back(new TH1D(
-        (std::string("Slice") + to_str(slice_it) + "_" + to_str(projVar) + "_LCWeighted").c_str(),
-        (std::string(";") + to_title(projVar) + ";Count").c_str(), (ProjectionBinning.size() - 1), ProjectionBinning.data()));
+    Slice.push_back(new TH1D(
+        (std::string("Slice") + to_str(slice_it) + "_" + to_str(projVar))
+            .c_str(),
+        (std::string(";") + to_title(projVar) + ";Count").c_str(),
+        (ProjectionBinning.size() - 1), ProjectionBinning.data()));
+    Slice_Weighted.push_back(
+        new TH1D((std::string("Slice") + to_str(slice_it) + "_" +
+                  to_str(projVar) + "_LCWeighted")
+                     .c_str(),
+                 (std::string(";") + to_title(projVar) + ";Count").c_str(),
+                 (ProjectionBinning.size() - 1), ProjectionBinning.data()));
 
     Slice.back()->SetDirectory(nullptr);
     Slice_Weighted.back()->SetDirectory(nullptr);
@@ -557,15 +592,13 @@ int main(int argc, char const *argv[]) {
         NDEventReader.stop_weight * NDEffWeight * NDOverlapWeight * CoeffWeight;
 
     Slice[xb - 1]->Fill(NDEventReader.GetProjection(projVar),
-                            NDEventReader.stop_weight * NDEffWeight *
-                                NDOverlapWeight);
-    Slice_Weighted[xb - 1]->Fill(
-        NDEventReader.GetProjection(projVar),
-        NDNominalEventWeight);
+                        NDEventReader.stop_weight * NDEffWeight *
+                            NDOverlapWeight);
+    Slice_Weighted[xb - 1]->Fill(NDEventReader.GetProjection(projVar),
+                                 NDNominalEventWeight);
 
-    LinCombNDObservation->Fill(
-        NDEventReader.GetProjection(projVar),
-        NDNominalEventWeight);
+    LinCombNDObservation->Fill(NDEventReader.GetProjection(projVar),
+                               NDNominalEventWeight);
 
     if (NSystThrows) {
       if (NDXSecThrowsTree) {
@@ -583,9 +616,32 @@ int main(int argc, char const *argv[]) {
           W *= NDFluxWeights[t_it];
         }
 
-        ThrownNDPredictions[t_it]->Fill(
-            NDEventReader.GetProjection(projVar),
-            NDNominalEventWeight * W);
+        if (W < 0 || W > 5) {
+          std::cout << "[INFO]: ND Throw " << t_it << " event " << e_it
+                    << " saw thrown weight " << W << std::endl;
+          if (NDXSecThrowsTree) {
+            std::cout << "\t\t XSec: " << NDXSecWeights[t_it] << std::endl;
+          }
+          if (NDFluxThrowsTree) {
+            std::cout << "\t\t Flux: " << NDFluxWeights[t_it] << std::endl;
+          }
+        }
+
+        ThrownNDPredictions[t_it]->Fill(NDEventReader.GetProjection(projVar),
+                                        NDNominalEventWeight * W);
+      }
+    }
+  }
+
+  if (NSystThrows) {
+    for (Int_t t_it = 0; t_it < NSystThrows; ++t_it) {
+      if (ThrownNDPredictions[t_it]->GetMaximum() > MaxThrow_ND_val) {
+        MaxThrow_ND = t_it;
+        MaxThrow_ND_val = ThrownNDPredictions[t_it]->GetMaximum();
+      }
+      if (ThrownNDPredictions[t_it]->GetMaximum() < MinThrow_ND_val) {
+        MinThrow_ND = t_it;
+        MinThrow_ND_val = ThrownNDPredictions[t_it]->GetMaximum();
       }
     }
   }
@@ -619,30 +675,42 @@ int main(int argc, char const *argv[]) {
 
   if (NSystThrows) {
     CovarianceBuilder NDFDFreedomCovMat(ProjectionBinning.size() - 1);
-    NDFDFreedomCovMat.SetZeroMean();
-    TH1D *NDFDDifferences =
-        static_cast<TH1D *>(ThrownNDPredictions.front()->Clone());
-    NDFDDifferences->SetDirectory(nullptr);
+
+    std::vector<std::unique_ptr<TH1D>> NDFDDifferences;
     for (Int_t t_it = 0; t_it < NSystThrows; ++t_it) {
-      NDFDDifferences->Reset();
+      TH1D *NDFDDifference =
+          static_cast<TH1D *>(ThrownNDPredictions.front()->Clone());
+      NDFDDifference->Reset();
+      NDFDDifference->SetDirectory(nullptr);
 
       // Remove ND corrections built from FD MC from FD 'prediction'
-      NDFDDifferences->Add(ThrownFDObservations[t_it],
-                           FDFluxCorrection, -1, 1);
-      NDFDDifferences->Add(FDAcceptanceCorrection, 1);
+      NDFDDifference->Add(ThrownFDObservations[t_it],
+                          ThrownFluxCorrections[t_it], 1, -1);
+      NDFDDifference->Add(FDAcceptanceCorrection, -1);
+
+      std::cout << "[INFO]: Throw scale: FDThrowCorr: "
+                << NDFDDifference->GetMaximum()
+                << ", NDThrow: " << ThrownNDPredictions[t_it]->GetMaximum()
+                << std::endl;
+
       // Get re-scale
       double peak_scale = ThrownNDPredictions[t_it]->GetMaximum() /
-                          fabs(NDFDDifferences->GetMaximum());
+                          NDFDDifference->GetMaximum();
 
       // Re-scale FD to ND and sum
-      NDFDDifferences->Add(ThrownNDPredictions[t_it], NDFDDifferences, 1,
-                           -1 * peak_scale);
+      NDFDDifference->Add(ThrownNDPredictions[t_it], NDFDDifference, 1,
+                          -1 * peak_scale);
 
-      // Convert to fractional
-      NDFDDifferences->Divide(ThrownNDPredictions[t_it]);
-      NDFDFreedomCovMat.AddThrow_CovMatCalc(NDFDDifferences);
+      NDFDFreedomCovMat.AddThrow_MeanCalc(NDFDDifference);
+      NDFDDifferences.emplace_back(NDFDDifference);
     }
-    delete NDFDDifferences;
+
+    NDFDFreedomCovMat.FinalizeMeanCalc();
+
+    for (Int_t t_it = 0; t_it < NSystThrows; ++t_it) {
+      NDFDFreedomCovMat.AddThrow_CovMatCalc(NDFDDifferences[t_it].get());
+    }
+
     NDFDFreedomCovMat.FinalizeCovMatCalc();
     NDFDFreedomCovMat.Write();
   }
@@ -678,13 +746,27 @@ int main(int argc, char const *argv[]) {
   // FDInputPOT;
 
   ScalePRISMPredictions({FDObservation, FDFluxCorrection,
-                         FDAcceptanceCorrection,
-                         LinCombNDObservation},
+                         FDAcceptanceCorrection, LinCombNDObservation},
                         true, resD);
   ScalePRISMPredictions({FDObservation, FDFluxCorrection,
-                         FDAcceptanceCorrection,
-                         LinCombNDObservation},
+                         FDAcceptanceCorrection, LinCombNDObservation},
                         false, resD);
+
+  if (NSystThrows) {
+    TDirectory *MaxNDThrow = oupD->mkdir("MaxNDThrow");
+    MaxNDThrow->cd();
+    TDirectory *MinNDThrow = oupD->mkdir("MinNDThrow");
+    MinNDThrow->cd();
+
+    ScalePRISMPredictions(
+        {ThrownFDObservations[MaxThrow_ND], ThrownFluxCorrections[MaxThrow_ND],
+         FDAcceptanceCorrection, ThrownNDPredictions[MaxThrow_ND]},
+        true, MaxNDThrow);
+    ScalePRISMPredictions(
+        {ThrownFDObservations[MinThrow_ND], ThrownFluxCorrections[MinThrow_ND],
+         FDAcceptanceCorrection, ThrownNDPredictions[MinThrow_ND]},
+        true, MinNDThrow);
+  }
 
   outfile->Write();
 }

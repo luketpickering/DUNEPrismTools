@@ -100,6 +100,7 @@ the usage text to not reflect the current state of each executables CLI.
                                            3: Final state lepton energy +
                                               contained GEANT4 hadronic
                                               energy deposits (ERec).
+                                           4: Final state lepton energy.
     -b <low_up:width[,low_up:width...]>  : Projection binning descriptor (GeV).
     -o <OutputFile.root>                 : Output file name.
 ```
@@ -153,8 +154,13 @@ the usage text to not reflect the current state of each executables CLI.
                                   Special cases are:
                                     1: Will produce +1 sigma variation
                                     2: will produce +1 and -1 sigma variation.
+    -n <MaxEvents>              : Maximum number of events to process.
     -S <Seed>                   : Used to make reproducible throws.
                                   {Default = 1}
+    -D <diagonal addition>      : Covariance matrix extra diagonal error, can
+                                  be used to help non-invertible matrices.
+    -T <Cholesky decomp. tol.>  : Numerical tolerance on the Cholesky
+                                  decomposition of the input matrix. 
 ```
 ## `dp_FluxVarFriendTreeBuilder`
 
