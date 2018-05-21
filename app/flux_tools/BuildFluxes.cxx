@@ -1,8 +1,8 @@
 #include "dk2nu_TreeReader.hxx"
 
-#include "ROOTUtility.hxx"
-#include "PhysicsUtility.hxx"
 #include "GetUsage.hxx"
+#include "PhysicsUtility.hxx"
+#include "ROOTUtility.hxx"
 
 #include "TChain.h"
 #include "TFile.h"
@@ -25,7 +25,7 @@ inline double CosTheta(TVector3 const &v1, TVector3 const &v2) {
 
 std::tuple<double, double, double> GetNuWeight(DK2NuReader &dk2nuRdr,
                                                TVector3 const &DetPoint) {
-  static const double detRadius = 100.0;  // in cm
+  static const double detRadius = 100.0; // in cm
   static double const mumass = 0.105658389;
 
   double parent_mass = dk2nuRdr.GetParentMass();
@@ -176,8 +176,7 @@ void SayUsage(char const *argv[]) {
 void handleOpts(int argc, char const *argv[]) {
   int opt = 1;
   while (opt < argc) {
-    if (std::string(argv[opt]) == "-?"||
-               std::string(argv[opt]) == "--help") {
+    if (std::string(argv[opt]) == "-?" || std::string(argv[opt]) == "--help") {
       SayUsage(argv);
       exit(0);
     } else if (std::string(argv[opt]) == "-i") {
@@ -186,23 +185,24 @@ void handleOpts(int argc, char const *argv[]) {
       outputFile = argv[++opt];
     } else if (std::string(argv[opt]) == "-m") {
       std::cout << "\t--Handling off-axis position specifier: " << argv[opt]
-        << " " << argv[opt+1] << std::endl;
+                << " " << argv[opt + 1] << std::endl;
       OffAxisSteps = BuildBinEdges(argv[++opt]);
       stepType = kmrad;
     } else if (std::string(argv[opt]) == "-d") {
       std::cout << "\t--Handling off-axis position specifier: " << argv[opt]
-        << " " << argv[opt+1] << std::endl;
+                << " " << argv[opt + 1] << std::endl;
       OffAxisSteps = BuildBinEdges(argv[++opt]);
       stepType = kdegrees;
-    }  else if (std::string(argv[opt]) == "-x") {
+    } else if (std::string(argv[opt]) == "-x") {
       std::cout << "\t--Handling off-axis position specifier: " << argv[opt]
-        << " " << argv[opt+1] << std::endl;
+                << " " << argv[opt + 1] << std::endl;
       OffAxisSteps = BuildBinEdges(argv[++opt]);
       stepType = kPostion_m;
     } else if (std::string(argv[opt]) == "-e") {
       DoExtra = true;
     } else if (std::string(argv[opt]) == "-b") {
-      std::vector<double> binningDescriptor = ParseToVect<double>(argv[++opt], ",");
+      std::vector<double> binningDescriptor =
+          ParseToVect<double>(argv[++opt], ",");
       if (binningDescriptor.size() != 3) {
         std::cout << "[ERROR]: Recieved " << binningDescriptor.size()
                   << " entrys for -b, expected 3." << std::endl;
@@ -211,15 +211,15 @@ void handleOpts(int argc, char const *argv[]) {
       int NBins = int(binningDescriptor[0]);
       double BLow = binningDescriptor[1];
       double BUp = binningDescriptor[2];
-      double bwidth = (BUp - BLow)/double(NBins);
+      double bwidth = (BUp - BLow) / double(NBins);
       EnergyBinning.push_back(BLow);
-      for(Int_t i = 0; i < NBins; ++i){
+      for (Int_t i = 0; i < NBins; ++i) {
         EnergyBinning.push_back(EnergyBinning.back() + bwidth);
       }
     } else if (std::string(argv[opt]) == "-vb") {
       EnergyBinning = BuildBinEdges(argv[++opt]);
     } else if (std::string(argv[opt]) == "-h") {
-      detector_half_height = str2T<double>(argv[++opt])/2.0;
+      detector_half_height = str2T<double>(argv[++opt]) / 2.0;
     } else if (std::string(argv[opt]) == "-n") {
       NMaxNeutrinos = str2T<int>(argv[++opt]);
     } else if (std::string(argv[opt]) == "-z") {
@@ -228,8 +228,8 @@ void handleOpts(int argc, char const *argv[]) {
       ReUseParents = false;
     } else if (std::string(argv[opt]) == "-S") {
       OnlySpecies = str2T<int>(argv[++opt]);
-    // } else if (std::string(argv[opt]) == "-D") {
-    //   DoDivergence = true;
+      // } else if (std::string(argv[opt]) == "-D") {
+      //   DoDivergence = true;
     } else if (std::string(argv[opt]) == "-L") {
       DK2NULite = true;
     } else {
@@ -244,54 +244,61 @@ void handleOpts(int argc, char const *argv[]) {
 constexpr double rad2deg = 90.0 / asin(1);
 
 std::pair<double, TVector3> GetRandomFluxWindowPosition(TRandom3 &rnjesus,
-  Int_t FluxWindow=-1){
-  double OffAxisCenter = ((FluxWindow == -1) ?
-    (OffAxisSteps.back()+OffAxisSteps.front()) :
-    (OffAxisSteps[FluxWindow+1] + OffAxisSteps[FluxWindow])) / 2.0;
-  double OffAxisHalfRange = ((FluxWindow == -1) ?
-    (OffAxisSteps.back()-OffAxisSteps.front()) :
-    (OffAxisSteps[FluxWindow+1] - OffAxisSteps[FluxWindow])) / 2.0;
+                                                        Int_t FluxWindow = -1) {
+  double OffAxisCenter =
+      ((FluxWindow == -1)
+           ? (OffAxisSteps.back() + OffAxisSteps.front())
+           : (OffAxisSteps[FluxWindow + 1] + OffAxisSteps[FluxWindow])) /
+      2.0;
+  double OffAxisHalfRange =
+      ((FluxWindow == -1)
+           ? (OffAxisSteps.back() - OffAxisSteps.front())
+           : (OffAxisSteps[FluxWindow + 1] - OffAxisSteps[FluxWindow])) /
+      2.0;
 
-    // std::cout << "[INFO]: Flux window[" << FluxWindow << "/" << OffAxisSteps.size() << "] = {"
-    // << OffAxisCenter << " \\pm " << OffAxisHalfRange << "}" << std::endl;
+  // std::cout << "[INFO]: Flux window[" << FluxWindow << "/" <<
+  // OffAxisSteps.size() << "] = {"
+  // << OffAxisCenter << " \\pm " << OffAxisHalfRange << "}" << std::endl;
 
-    TVector3 rndDetPos(0, (2.0 * rnjesus.Uniform() - 1.0) * detector_half_height, ZDist);
+  TVector3 rndDetPos(0, (2.0 * rnjesus.Uniform() - 1.0) * detector_half_height,
+                     ZDist);
 
-    double RandomOffAxisPos = OffAxisCenter + (2.0 * rnjesus.Uniform() - 1.0) * OffAxisHalfRange;
-    switch(stepType){
-      case kPostion_m:{
-        rndDetPos[0] = RandomOffAxisPos*100.0; // to cm
-        break;
-      }
-      case kmrad:{
-        rndDetPos[0] = tan(RandomOffAxisPos*1E-3) * ZDist;
-        break;
-      }
-      case kdegrees:{
-        static const double deg2rad = asin(1) / 90.0;
-        rndDetPos[0] = tan(RandomOffAxisPos*deg2rad) * ZDist;
-        break;
-      }
-    }
+  double RandomOffAxisPos =
+      OffAxisCenter + (2.0 * rnjesus.Uniform() - 1.0) * OffAxisHalfRange;
+  switch (stepType) {
+  case kPostion_m: {
+    rndDetPos[0] = RandomOffAxisPos * 100.0; // to cm
+    break;
+  }
+  case kmrad: {
+    rndDetPos[0] = tan(RandomOffAxisPos * 1E-3) * ZDist;
+    break;
+  }
+  case kdegrees: {
+    static const double deg2rad = asin(1) / 90.0;
+    rndDetPos[0] = tan(RandomOffAxisPos * deg2rad) * ZDist;
+    break;
+  }
+  }
 
-    // std::cout << "\t Threw = { " << rndDetPos[0] << ", "
-    //   << rndDetPos[1] << ", " << rndDetPos[2] << "}." << std::endl;
+  // std::cout << "\t Threw = { " << rndDetPos[0] << ", "
+  //   << rndDetPos[1] << ", " << rndDetPos[2] << "}." << std::endl;
 
-    return std::make_pair(RandomOffAxisPos, rndDetPos);
+  return std::make_pair(RandomOffAxisPos, rndDetPos);
 }
 
 void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
   TRandom3 rnjesus;
 
   Int_t NOffAxisBins = Int_t(OffAxisSteps.size()) - 1;
-  if(NOffAxisBins == -1){
+  if (NOffAxisBins == -1) {
     std::cout << "[ERROR]: No off-axis positions specified (Try `-x 0`)."
-      << std::endl;
+              << std::endl;
     throw;
   }
   size_t NNeutrinos = (NMaxNeutrinos == -1)
-                    ? dk2nuRdr.GetEntries()
-                    : std::min(NMaxNeutrinos, int(dk2nuRdr.GetEntries()));
+                          ? dk2nuRdr.GetEntries()
+                          : std::min(NMaxNeutrinos, int(dk2nuRdr.GetEntries()));
 
   TotalPOT = TotalPOT * (double(NNeutrinos) / double(dk2nuRdr.GetEntries()));
   std::cout << "Only using the first " << NNeutrinos << " events out of "
@@ -306,8 +313,8 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
     NuPDGTargets = std::vector<int>{OnlySpecies};
   }
 
-  std::vector< std::vector<TH1 *> > Hists;
-  std::vector< std::vector<TH2D *> > Hists_2D;
+  std::vector<std::vector<TH1 *>> Hists;
+  std::vector<std::vector<TH2D *>> Hists_2D;
   Hists.resize(NuPDGTargets.size());
   Hists_2D.resize(NuPDGTargets.size());
 
@@ -316,88 +323,87 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
     hist_name << "LBNF_" << GetSpeciesName(NuPDGTargets[nuPDG_it]) << "_flux";
 
     std::string hist_title = ";#it{E}_{#nu} (GeV);#Phi_{#nu} "
-    "(cm^{-2} per POT per 1 GeV)";
-    if(NOffAxisBins > 1){
-      switch(stepType){
-        case kPostion_m:{
-          hist_title = ";#it{E}_{#nu} (GeV);Off-axis postion (m);#Phi_{#nu} "
-          "(cm^{-2} per POT per 1 GeV)";
-          break;
-        }
-        case kmrad:{
-          hist_title = ";#it{E}_{#nu} (GeV);Off-axis angle (mrad);#Phi_{#nu} "
-          "(cm^{-2} per POT per 1 GeV)";
-          break;
-        }
-        case kdegrees:{
-          hist_title = ";#it{E}_{#nu} (GeV);Off-axis angle (degrees);#Phi_{#nu} "
-          "(cm^{-2} per POT per 1 GeV)";
-          break;
-        }
+                             "(cm^{-2} per POT per 1 GeV)";
+    if (NOffAxisBins > 1) {
+      switch (stepType) {
+      case kPostion_m: {
+        hist_title = ";#it{E}_{#nu} (GeV);Off-axis postion (m);#Phi_{#nu} "
+                     "(cm^{-2} per POT per 1 GeV)";
+        break;
+      }
+      case kmrad: {
+        hist_title = ";#it{E}_{#nu} (GeV);Off-axis angle (mrad);#Phi_{#nu} "
+                     "(cm^{-2} per POT per 1 GeV)";
+        break;
+      }
+      case kdegrees: {
+        hist_title = ";#it{E}_{#nu} (GeV);Off-axis angle (degrees);#Phi_{#nu} "
+                     "(cm^{-2} per POT per 1 GeV)";
+        break;
+      }
       }
     }
 
     Hists[nuPDG_it].push_back(
-        (NOffAxisBins < 2) ? new TH1D(hist_name.str().c_str(),
-                  hist_title.c_str(),
-                  (EnergyBinning.size() - 1), EnergyBinning.data())
-                  : static_cast<TH1 *>(new TH2D(hist_name.str().c_str(),
-                  hist_title.c_str(),
-                  (EnergyBinning.size() - 1), EnergyBinning.data(),
-                  (OffAxisSteps.size() - 1), OffAxisSteps.data()))
-                );
-    if(NOffAxisBins > 1){
+        (NOffAxisBins < 2)
+            ? new TH1D(hist_name.str().c_str(), hist_title.c_str(),
+                       (EnergyBinning.size() - 1), EnergyBinning.data())
+            : static_cast<TH1 *>(
+                  new TH2D(hist_name.str().c_str(), hist_title.c_str(),
+                           (EnergyBinning.size() - 1), EnergyBinning.data(),
+                           (OffAxisSteps.size() - 1), OffAxisSteps.data())));
+    if (NOffAxisBins > 1) {
       Hists_2D[nuPDG_it].push_back(static_cast<TH2D *>(Hists[nuPDG_it].back()));
     }
 
     if (DoExtra) {
       Hists[nuPDG_it].push_back(
-          (NOffAxisBins < 2) ? new TH1D((hist_name.str() + "_pi").c_str(),
-                    hist_title.c_str(),
-                    (EnergyBinning.size() - 1), EnergyBinning.data())
-                    : static_cast<TH1 *>(new TH2D((hist_name.str() + "_pi").c_str(),
-                    hist_title.c_str(),
+          (NOffAxisBins < 2)
+              ? new TH1D((hist_name.str() + "_pi").c_str(), hist_title.c_str(),
+                         (EnergyBinning.size() - 1), EnergyBinning.data())
+              : static_cast<TH1 *>(new TH2D(
+                    (hist_name.str() + "_pi").c_str(), hist_title.c_str(),
                     (EnergyBinning.size() - 1), EnergyBinning.data(),
-                    (OffAxisSteps.size() - 1), OffAxisSteps.data()))
-                  );
-      if(NOffAxisBins > 1){
-        Hists_2D[nuPDG_it].push_back(static_cast<TH2D *>(Hists[nuPDG_it].back()));
+                    (OffAxisSteps.size() - 1), OffAxisSteps.data())));
+      if (NOffAxisBins > 1) {
+        Hists_2D[nuPDG_it].push_back(
+            static_cast<TH2D *>(Hists[nuPDG_it].back()));
       }
       Hists[nuPDG_it].push_back(
-          (NOffAxisBins < 2) ? new TH1D((hist_name.str() + "_k").c_str(),
-                    hist_title.c_str(),
-                    (EnergyBinning.size() - 1), EnergyBinning.data())
-                    : static_cast<TH1 *>(new TH2D((hist_name.str() + "_k").c_str(),
-                    hist_title.c_str(),
+          (NOffAxisBins < 2)
+              ? new TH1D((hist_name.str() + "_k").c_str(), hist_title.c_str(),
+                         (EnergyBinning.size() - 1), EnergyBinning.data())
+              : static_cast<TH1 *>(new TH2D(
+                    (hist_name.str() + "_k").c_str(), hist_title.c_str(),
                     (EnergyBinning.size() - 1), EnergyBinning.data(),
-                    (OffAxisSteps.size() - 1), OffAxisSteps.data()))
-                  );
-      if(NOffAxisBins > 1){
-        Hists_2D[nuPDG_it].push_back(static_cast<TH2D *>(Hists[nuPDG_it].back()));
+                    (OffAxisSteps.size() - 1), OffAxisSteps.data())));
+      if (NOffAxisBins > 1) {
+        Hists_2D[nuPDG_it].push_back(
+            static_cast<TH2D *>(Hists[nuPDG_it].back()));
       }
       Hists[nuPDG_it].push_back(
-          (NOffAxisBins < 2) ? new TH1D((hist_name.str() + "_k0").c_str(),
-                    hist_title.c_str(),
-                    (EnergyBinning.size() - 1), EnergyBinning.data())
-                    : static_cast<TH1 *>(new TH2D((hist_name.str() + "_k0").c_str(),
-                    hist_title.c_str(),
+          (NOffAxisBins < 2)
+              ? new TH1D((hist_name.str() + "_k0").c_str(), hist_title.c_str(),
+                         (EnergyBinning.size() - 1), EnergyBinning.data())
+              : static_cast<TH1 *>(new TH2D(
+                    (hist_name.str() + "_k0").c_str(), hist_title.c_str(),
                     (EnergyBinning.size() - 1), EnergyBinning.data(),
-                    (OffAxisSteps.size() - 1), OffAxisSteps.data()))
-                  );
-      if(NOffAxisBins > 1){
-        Hists_2D[nuPDG_it].push_back(static_cast<TH2D *>(Hists[nuPDG_it].back()));
+                    (OffAxisSteps.size() - 1), OffAxisSteps.data())));
+      if (NOffAxisBins > 1) {
+        Hists_2D[nuPDG_it].push_back(
+            static_cast<TH2D *>(Hists[nuPDG_it].back()));
       }
       Hists[nuPDG_it].push_back(
-          (NOffAxisBins < 2) ? new TH1D((hist_name.str() + "_mu").c_str(),
-                    hist_title.c_str(),
-                    (EnergyBinning.size() - 1), EnergyBinning.data())
-                    : static_cast<TH1 *>(new TH2D((hist_name.str() + "_mu").c_str(),
-                    hist_title.c_str(),
+          (NOffAxisBins < 2)
+              ? new TH1D((hist_name.str() + "_mu").c_str(), hist_title.c_str(),
+                         (EnergyBinning.size() - 1), EnergyBinning.data())
+              : static_cast<TH1 *>(new TH2D(
+                    (hist_name.str() + "_mu").c_str(), hist_title.c_str(),
                     (EnergyBinning.size() - 1), EnergyBinning.data(),
-                    (OffAxisSteps.size() - 1), OffAxisSteps.data()))
-                  );
-      if(NOffAxisBins > 1){
-        Hists_2D[nuPDG_it].push_back(static_cast<TH2D *>(Hists[nuPDG_it].back()));
+                    (OffAxisSteps.size() - 1), OffAxisSteps.data())));
+      if (NOffAxisBins > 1) {
+        Hists_2D[nuPDG_it].push_back(
+            static_cast<TH2D *>(Hists[nuPDG_it].back()));
       }
     }
   }
@@ -417,12 +423,12 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
     double wF = (dk2nuRdr.decay_nimpwt / TMath::Pi()) * (1.0 / TotalPOT);
 
     for (Int_t ang_it = 0; (!NOffAxisBins) || (ang_it < NOffAxisBins);
-      ++ang_it) {
+         ++ang_it) {
 
-      //If we are not re-using the decay parents, then this is placed randomly
-      //over the whole off-axis range.
-      std::pair<double,TVector3> det_point =
-        GetRandomFluxWindowPosition(rnjesus,ReUseParents?ang_it:-1);
+      // If we are not re-using the decay parents, then this is placed randomly
+      // over the whole off-axis range.
+      std::pair<double, TVector3> det_point =
+          GetRandomFluxWindowPosition(rnjesus, ReUseParents ? ang_it : -1);
 
       std::tuple<double, double, double> nuStats =
           GetNuWeight(dk2nuRdr, det_point.second);
@@ -439,7 +445,7 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
         exit(1);
       }
 
-      if(NOffAxisBins > 1){
+      if (NOffAxisBins > 1) {
         Hists_2D[nuPDG_it][0]->Fill(std::get<0>(nuStats), det_point.first, w);
       } else {
         Hists[nuPDG_it][0]->Fill(std::get<0>(nuStats), w);
@@ -455,44 +461,48 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
 
       if (DoExtra) {
         if ((dk2nuRdr.decay_ptype == 211) || (dk2nuRdr.decay_ptype == -211)) {
-          if(NOffAxisBins > 1){
-            Hists_2D[nuPDG_it][1]->Fill(std::get<0>(nuStats), det_point.first, w);
+          if (NOffAxisBins > 1) {
+            Hists_2D[nuPDG_it][1]->Fill(std::get<0>(nuStats), det_point.first,
+                                        w);
           } else {
             Hists[nuPDG_it][1]->Fill(std::get<0>(nuStats), w);
           }
         } else if ((dk2nuRdr.decay_ptype == 321) ||
                    (dk2nuRdr.decay_ptype == -321)) {
-         if(NOffAxisBins > 1){
-           Hists_2D[nuPDG_it][2]->Fill(std::get<0>(nuStats), det_point.first, w);
-         } else {
-           Hists[nuPDG_it][2]->Fill(std::get<0>(nuStats), w);
-         }
+          if (NOffAxisBins > 1) {
+            Hists_2D[nuPDG_it][2]->Fill(std::get<0>(nuStats), det_point.first,
+                                        w);
+          } else {
+            Hists[nuPDG_it][2]->Fill(std::get<0>(nuStats), w);
+          }
         } else if ((dk2nuRdr.decay_ptype == 311) ||
                    (dk2nuRdr.decay_ptype == 310) ||
                    (dk2nuRdr.decay_ptype == 130)) {
-         if(NOffAxisBins > 1){
-           Hists_2D[nuPDG_it][3]->Fill(std::get<0>(nuStats), det_point.first, w);
-         } else {
-           Hists[nuPDG_it][3]->Fill(std::get<0>(nuStats), w);
-         }
+          if (NOffAxisBins > 1) {
+            Hists_2D[nuPDG_it][3]->Fill(std::get<0>(nuStats), det_point.first,
+                                        w);
+          } else {
+            Hists[nuPDG_it][3]->Fill(std::get<0>(nuStats), w);
+          }
         } else if ((dk2nuRdr.decay_ptype == 13) ||
                    (dk2nuRdr.decay_ptype == -13)) {
-         if(NOffAxisBins > 1){
-           Hists_2D[nuPDG_it][4]->Fill(std::get<0>(nuStats), det_point.first, w);
-         } else {
-           Hists[nuPDG_it][4]->Fill(std::get<0>(nuStats), w);
-         }
+          if (NOffAxisBins > 1) {
+            Hists_2D[nuPDG_it][4]->Fill(std::get<0>(nuStats), det_point.first,
+                                        w);
+          } else {
+            Hists[nuPDG_it][4]->Fill(std::get<0>(nuStats), w);
+          }
         }
       }
-      //If we aren't re-using the parents then we have placed this neutrino
-      //randomly in the 2D range and should now move to the next one.
-      if(!ReUseParents){
+      // If we aren't re-using the parents then we have placed this neutrino
+      // randomly in the 2D range and should now move to the next one.
+      if (!ReUseParents) {
         break;
       }
 
-      //If we only have a single position, then we must use this to break out of
-      //the loop.
-      if(!NOffAxisBins){
+      // If we only have a single position, then we must use this to break out
+      // of the loop.
+      if (!NOffAxisBins) {
         break;
       }
     }
@@ -507,37 +517,68 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
     }
 
     // Scale to /cm^2 and per GeV (xbin width)
-    if(NOffAxisBins > 1){
-      for(Int_t xbin_it = 0; xbin_it < Hists_2D[nuPDG_it][0]->GetXaxis()->GetNbins();
-        ++ xbin_it){
-        for(Int_t ybin_it = 0;
-          ybin_it < Hists_2D[nuPDG_it][0]->GetYaxis()->GetNbins(); ++ ybin_it){
-          Hists_2D[nuPDG_it][0]->SetBinContent(xbin_it +1 ,ybin_it + 1,
-            Hists_2D[nuPDG_it][0]->GetBinContent(xbin_it +1 ,ybin_it + 1) *
-            1E-4 * Hists_2D[nuPDG_it][0]->GetXaxis()->GetBinWidth(xbin_it+1));
+    if (NOffAxisBins > 1) {
+      for (Int_t xbin_it = 0;
+           xbin_it < Hists_2D[nuPDG_it][0]->GetXaxis()->GetNbins(); ++xbin_it) {
+        for (Int_t ybin_it = 0;
+             ybin_it < Hists_2D[nuPDG_it][0]->GetYaxis()->GetNbins();
+             ++ybin_it) {
+          double scale = 1E-4 * Hists_2D[nuPDG_it][0]->GetXaxis()->GetBinWidth(
+                                    xbin_it + 1);
+          double bc =
+              Hists_2D[nuPDG_it][0]->GetBinContent(xbin_it + 1, ybin_it + 1);
+          double be =
+              Hists_2D[nuPDG_it][0]->GetBinError(xbin_it + 1, ybin_it + 1);
+          Hists_2D[nuPDG_it][0]->SetBinContent(xbin_it + 1, ybin_it + 1,
+                                               bc * scale);
+          Hists_2D[nuPDG_it][0]->SetBinError(xbin_it + 1, ybin_it + 1,
+                                             be * scale);
           if (DoExtra) {
-            Hists_2D[nuPDG_it][1]->SetBinContent(xbin_it +1 ,ybin_it + 1,
-              Hists_2D[nuPDG_it][1]->GetBinContent(xbin_it +1 ,ybin_it + 1) *
-              1E-4 * Hists_2D[nuPDG_it][1]->GetXaxis()->GetBinWidth(xbin_it+1));
-            Hists_2D[nuPDG_it][2]->SetBinContent(xbin_it +1 ,ybin_it + 1,
-              Hists_2D[nuPDG_it][2]->GetBinContent(xbin_it +1 ,ybin_it + 1) *
-              1E-4 * Hists_2D[nuPDG_it][2]->GetXaxis()->GetBinWidth(xbin_it+1));
-            Hists_2D[nuPDG_it][3]->SetBinContent(xbin_it +1 ,ybin_it + 1,
-              Hists_2D[nuPDG_it][3]->GetBinContent(xbin_it +1 ,ybin_it + 1) *
-              1E-4 * Hists_2D[nuPDG_it][3]->GetXaxis()->GetBinWidth(xbin_it+1));
-            Hists_2D[nuPDG_it][4]->SetBinContent(xbin_it +1 ,ybin_it + 1,
-              Hists_2D[nuPDG_it][4]->GetBinContent(xbin_it +1 ,ybin_it + 1) *
-              1E-4 * Hists_2D[nuPDG_it][4]->GetXaxis()->GetBinWidth(xbin_it+1));
+            scale = 1E-4 *
+                    Hists_2D[nuPDG_it][1]->GetXaxis()->GetBinWidth(xbin_it + 1);
+            bc = Hists_2D[nuPDG_it][1]->GetBinContent(xbin_it + 1, ybin_it + 1);
+            be = Hists_2D[nuPDG_it][1]->GetBinError(xbin_it + 1, ybin_it + 1);
+            Hists_2D[nuPDG_it][1]->SetBinContent(xbin_it + 1, ybin_it + 1,
+                                                 bc * scale);
+            Hists_2D[nuPDG_it][1]->SetBinError(xbin_it + 1, ybin_it + 1,
+                                               be * scale);
+
+            scale = 1E-4 *
+                    Hists_2D[nuPDG_it][2]->GetXaxis()->GetBinWidth(xbin_it + 1);
+            bc = Hists_2D[nuPDG_it][2]->GetBinContent(xbin_it + 1, ybin_it + 1);
+            be = Hists_2D[nuPDG_it][2]->GetBinError(xbin_it + 1, ybin_it + 1);
+            Hists_2D[nuPDG_it][2]->SetBinContent(xbin_it + 1, ybin_it + 1,
+                                                 bc * scale);
+            Hists_2D[nuPDG_it][2]->SetBinError(xbin_it + 1, ybin_it + 1,
+                                               be * scale);
+
+            scale = 1E-4 *
+                    Hists_2D[nuPDG_it][3]->GetXaxis()->GetBinWidth(xbin_it + 1);
+            bc = Hists_2D[nuPDG_it][3]->GetBinContent(xbin_it + 1, ybin_it + 1);
+            be = Hists_2D[nuPDG_it][3]->GetBinError(xbin_it + 1, ybin_it + 1);
+            Hists_2D[nuPDG_it][3]->SetBinContent(xbin_it + 1, ybin_it + 1,
+                                                 bc * scale);
+            Hists_2D[nuPDG_it][3]->SetBinError(xbin_it + 1, ybin_it + 1,
+                                               be * scale);
+
+            scale = 1E-4 *
+                    Hists_2D[nuPDG_it][4]->GetXaxis()->GetBinWidth(xbin_it + 1);
+            bc = Hists_2D[nuPDG_it][4]->GetBinContent(xbin_it + 1, ybin_it + 1);
+            be = Hists_2D[nuPDG_it][4]->GetBinError(xbin_it + 1, ybin_it + 1);
+            Hists_2D[nuPDG_it][4]->SetBinContent(xbin_it + 1, ybin_it + 1,
+                                                 bc * scale);
+            Hists_2D[nuPDG_it][4]->SetBinError(xbin_it + 1, ybin_it + 1,
+                                               be * scale);
           }
         }
       }
     } else {
-      Hists[nuPDG_it][0]->Scale(1E-4,"width");
+      Hists[nuPDG_it][0]->Scale(1E-4, "width");
       if (DoExtra) {
-        Hists[nuPDG_it][1]->Scale(1E-4,"width");
-        Hists[nuPDG_it][2]->Scale(1E-4,"width");
-        Hists[nuPDG_it][3]->Scale(1E-4,"width");
-        Hists[nuPDG_it][4]->Scale(1E-4,"width");
+        Hists[nuPDG_it][1]->Scale(1E-4, "width");
+        Hists[nuPDG_it][2]->Scale(1E-4, "width");
+        Hists[nuPDG_it][3]->Scale(1E-4, "width");
+        Hists[nuPDG_it][4]->Scale(1E-4, "width");
       }
     }
   }
@@ -550,13 +591,13 @@ int main(int argc, char const *argv[]) {
   TH1::SetDefaultSumw2();
   handleOpts(argc, argv);
 
-  if(!EnergyBinning.size()){
+  if (!EnergyBinning.size()) {
     int argc_dum = 3;
     char const *argv_dum[] = {"", "-b", "40,0,10"};
     handleOpts(argc_dum, argv_dum);
   }
 
-  if(!OffAxisSteps.size()){
+  if (!OffAxisSteps.size()) {
     int argc_dum = 3;
     char const *argv_dum[] = {"", "-x", "0"};
     handleOpts(argc_dum, argv_dum);
