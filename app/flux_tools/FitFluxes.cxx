@@ -405,13 +405,14 @@ void TargetSumGauss(int &nDim, double *gout, double &result, double coeffs[],
       reg += pow((coeffs[i] - coeffs[i + 1]) / RegFactor, 2);
     }
   }
-  sumdiff += reg;
+  
+  result = sumdiff + reg;
 
   Chi2_last = result;
   OOR_last = 0;
   reg_last = reg;
 
-  result = sumdiff;
+  // result = sumdiff;
 
   if(!(NCalls%5000)){
     std::cout << "[INFO]: (Call " << NCalls << ") Gauss chi2: "
