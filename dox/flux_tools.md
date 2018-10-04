@@ -1,4 +1,4 @@
-# Flux tools usage prompts
+#Flux tools usage prompts
 
 The usage text in each executable is generated from this file, so while this
 file cannot be 'out of date' relative to the usage text, it is possible for
@@ -95,13 +95,14 @@ the usage text to not reflect the current state of each executables CLI.
                                          instead of a target flux shape.    
 
   Fitter options:                                                       
-    -n <MaxCalls=50000>                : The maximum number of MINUIT       
+    -n <MaxCalls=50000>                : The maximum number of Likelihood       
                                          evaluations before giving up the   
                                          fit.
 
     -c <CoeffLimit=30>                 : Parameter limits of flux component
                                          coefficients.                      
 
+    -T <Tolerance=1E-5>                : Minuit2 EDM tolerance.
   Figure of merit options:                                                
     -C                                 : Use NuPrism tools Chi2.
 
@@ -157,7 +158,6 @@ the usage text to not reflect the current state of each executables CLI.
     -i <file.root,histname>             : Input neutrino flux histogram to apply
                                           oscillation weights. X-axis assumed
                                           to be E_{nu} in GeV.
-    -o <file.root,histname>             : Output file and histogram name.
     -n <osc from, osc to>               : PDG MC particle codes describing
                                           neutrino oscillation channel (e.g.
                                           14,14 for muon neutrino
@@ -169,4 +169,34 @@ the usage text to not reflect the current state of each executables CLI.
                                           approximately correct through Prob3++
                                           use of earth-like matter
                                           distribution.)
+  Output options:                                                         
+    -[o|a] <ROOT file>                  : The output root file. Using -o will
+                                          overwrite a file of the same name,
+                                          -a will append the fit result to   
+                                          the file.                          
+
+    -D <directory name>                 : If passed, fit result will be put  
+                                          into a subdirectory of the root    
+                                          file.      
+```
+## `dp_FluxSmusher`
+```
+  Input options:   
+    -i <ROOT file,FluxHist1DName>  : Input histogram, multiple instances can be
+                                     supplied
+    -f <ROOT file,FluxHist2DName>  : Input 2D flux histogram, Y bins
+                                     correspond to different fluxes.
+    -M  <OA1>:<OA_W>,<OA2>_<OAN>:<OA_W>,<OAN+1>:<OA_W>,...
+                                   : Merge bins in off axis flux positions.
+                                     Each position or position range
+                                     specifies a slice width. The
+                                     corresponding absolute slice ranges
+                                     must match up to merge-able Y bin
+                                     edges from histogram passed to -f.
+                                     You will be notified if they don't.
+  Output options:                                                         
+    -[o|a] <ROOT file>             : The output root file. Using -o will
+                                     overwrite a file of the same name,
+                                     -a will append the fit result to   
+                                     the file.                          
 ```

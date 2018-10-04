@@ -94,8 +94,8 @@ double OscillationHelper::GetWeight(double ENu_GeV) {
   return bp.GetProb(FromType, ToType);
 }
 
-void OscillationHelper::WriteConfigTree(TFile *f){
-  f->cd();
+void OscillationHelper::WriteConfigTree(TDirectory *dir){
+  dir->cd();
   OscillationParameters * tw = OscillationParameters::MakeTreeWriter();
 
   tw->DipAngle_degrees = DipAngle_degrees;

@@ -13,14 +13,14 @@ TFile *CheckOpenFile(std::string const &fname, char const *opts) {
 }
 
 TChain *OpenTChainWithFileList(std::string const &tname,
-                                      std::string const &flist) {
+                               std::string const &flist) {
   Int_t dummy = 0;
   return OpenTChainWithFileList(tname, flist, dummy);
 }
 
-std::vector<std::pair<std::pair<double,double>, TH1D *> > SplitTH2D(
-    TH2D *t2, bool AlongY, double min, double max) {
-  std::vector<std::pair<std::pair<double,double>, TH1D *> > split;
+std::vector<std::pair<std::pair<double, double>, TH1D *>>
+SplitTH2D(TH2D const *t2, bool AlongY, double min, double max) {
+  std::vector<std::pair<std::pair<double, double>, TH1D *>> split;
 
   for (Int_t bi_it = 1;
        bi_it < (AlongY ? t2->GetYaxis() : t2->GetXaxis())->GetNbins() + 1;
@@ -33,9 +33,8 @@ std::vector<std::pair<std::pair<double,double>, TH1D *> > SplitTH2D(
 
     split.push_back(std::make_pair(
         std::make_pair(
-          (AlongY ? t2->GetYaxis() : t2->GetXaxis())->GetBinLowEdge(bi_it),
-          (AlongY ? t2->GetYaxis() : t2->GetXaxis())->GetBinUpEdge(bi_it)
-          ),
+            (AlongY ? t2->GetYaxis() : t2->GetXaxis())->GetBinLowEdge(bi_it),
+            (AlongY ? t2->GetYaxis() : t2->GetXaxis())->GetBinUpEdge(bi_it)),
         (AlongY ? t2->ProjectionX(to_str(bi_it).c_str(), bi_it, bi_it)
                 : t2->ProjectionY(to_str(bi_it).c_str(), bi_it, bi_it))));
     split.back().second->SetDirectory(NULL);
@@ -44,9 +43,9 @@ std::vector<std::pair<std::pair<double,double>, TH1D *> > SplitTH2D(
   return split;
 }
 
-std::vector<std::pair<double, TH1D *> > InterpolateSplitTH2D(
-    TH2D *t2, bool AlongY, std::vector<double> Vals) {
-  std::vector<std::pair<double, TH1D *> > split;
+std::vector<std::pair<double, TH1D *>>
+InterpolateSplitTH2D(TH2D *t2, bool AlongY, std::vector<double> Vals) {
+  std::vector<std::pair<double, TH1D *>> split;
 
   for (double v : Vals) {
     TH1D *dummyProj = (AlongY ? t2->ProjectionX(to_str(v).c_str(), 1, 1)
@@ -77,22 +76,22 @@ std::vector<std::pair<double, TH1D *> > InterpolateSplitTH2D(
   return split;
 }
 
-std::pair<Int_t, Int_t> GetProjectionBinRange(
-    std::pair<double, double> ValRange, TAxis *axis) {
+std::pair<Int_t, Int_t>
+GetProjectionBinRange(std::pair<double, double> ValRange, TAxis *axis) {
   Int_t low_bin = axis->FindFixBin(ValRange.first);
   if (fabs(axis->GetBinUpEdge(low_bin) - ValRange.first) < 1E-5) {
-    std::cout << "[INFO]: Axis-selected bin = " << low_bin
-              << ", with high edge = " << axis->GetBinUpEdge(low_bin)
-              << ", starting range was requested as " << ValRange.first
-              << ". Up-shifting low bin." << std::endl;
+    // std::cout << "[INFO]: Axis-selected bin = " << low_bin
+    //           << ", with high edge = " << axis->GetBinUpEdge(low_bin)
+    //           << ", starting range was requested as " << ValRange.first
+    //           << ". Up-shifting low bin." << std::endl;
     low_bin += 1;
   }
   Int_t high_bin = axis->FindFixBin(ValRange.second);
   if (fabs(axis->GetBinLowEdge(high_bin) - ValRange.second) < 1E-5) {
-    std::cout << "[INFO]: Axis-selected bin = " << high_bin
-              << ", with low edge = " << axis->GetBinLowEdge(high_bin)
-              << ", ending range was requested as " << ValRange.second
-              << ". Down-shifting high bin." << std::endl;
+    // std::cout << "[INFO]: Axis-selected bin = " << high_bin
+    //           << ", with low edge = " << axis->GetBinLowEdge(high_bin)
+    //           << ", ending range was requested as " << ValRange.second
+    //           << ". Down-shifting high bin." << std::endl;
     high_bin -= 1;
   }
 
@@ -126,8 +125,9 @@ std::pair<Int_t, Int_t> GetProjectionBinRange(
   return std::make_pair(low_bin, high_bin);
 }
 
-std::vector<TH1D *> MergeSplitTH2D(
-    TH2D *t2, bool AlongY, std::vector<std::pair<double, double> > Vals) {
+std::vector<TH1D *>
+MergeSplitTH2D(TH2D *t2, bool AlongY,
+               std::vector<std::pair<double, double>> Vals) {
   std::vector<TH1D *> split;
 
   for (std::pair<double, double> v : Vals) {
@@ -135,13 +135,12 @@ std::vector<TH1D *> MergeSplitTH2D(
         GetProjectionBinRange(v, (AlongY ? t2->GetYaxis() : t2->GetXaxis()));
 
     split.push_back(
-        (AlongY
-             ? t2->ProjectionX(
-                   (to_str(v.first) + "_to_" + to_str(v.second)).c_str(),
-                   binr.first, binr.second)
-             : t2->ProjectionY(
-                   (to_str(v.first) + "_to_" + to_str(v.second)).c_str(),
-                   binr.first, binr.second)));
+        (AlongY ? t2->ProjectionX(
+                      (to_str(v.first) + "_to_" + to_str(v.second)).c_str(),
+                      binr.first, binr.second)
+                : t2->ProjectionY(
+                      (to_str(v.first) + "_to_" + to_str(v.second)).c_str(),
+                      binr.first, binr.second)));
     split.back()->Scale(1.0 / double(binr.second - binr.first + 1));
     split.back()->SetDirectory(NULL);
   }
@@ -149,32 +148,47 @@ std::vector<TH1D *> MergeSplitTH2D(
   return split;
 }
 
-TH2D * SliceNormTH2D(TH2D *t2, bool AlongY){
-  TH2D * cpy = static_cast<TH2D *>(t2->Clone((std::string(t2->GetName()) +
-    (AlongY ? "_normYSlice":"_normXSlice") ).c_str() ));
+std::vector<std::unique_ptr<TH1D>>
+MergeSplitTH2D(std::unique_ptr<TH2D> &t2, bool AlongY,
+               std::vector<std::pair<double, double>> Vals) {
+  std::vector<TH1D *> split = MergeSplitTH2D(t2.get(), AlongY, Vals);
 
-  for(Int_t sl_bin_it = 1;
-    sl_bin_it < (AlongY ? t2->GetYaxis() : t2->GetXaxis())->GetNbins();
-    ++sl_bin_it){
+  std::vector<std::unique_ptr<TH1D>> split_uptr;
+
+  for (TH1D *h : split) {
+    split_uptr.emplace_back(h);
+  }
+
+  return split_uptr;
+}
+
+TH2D *SliceNormTH2D(TH2D *t2, bool AlongY) {
+  TH2D *cpy = static_cast<TH2D *>(t2->Clone(
+      (std::string(t2->GetName()) + (AlongY ? "_normYSlice" : "_normXSlice"))
+          .c_str()));
+
+  for (Int_t sl_bin_it = 1;
+       sl_bin_it < (AlongY ? t2->GetYaxis() : t2->GetXaxis())->GetNbins();
+       ++sl_bin_it) {
 
     double total = 0;
 
-    for(Int_t bin_it = 1;
-      bin_it < (AlongY ? t2->GetXaxis() : t2->GetYaxis())->GetNbins();
-      ++bin_it){
-        total +=
-          (AlongY ? t2->GetBinContent(bin_it+1, sl_bin_it+1) :
-                    t2->GetBinContent(sl_bin_it+1, bin_it+1));
+    for (Int_t bin_it = 1;
+         bin_it < (AlongY ? t2->GetXaxis() : t2->GetYaxis())->GetNbins();
+         ++bin_it) {
+      total += (AlongY ? t2->GetBinContent(bin_it + 1, sl_bin_it + 1)
+                       : t2->GetBinContent(sl_bin_it + 1, bin_it + 1));
     }
 
-    for(Int_t bin_it = 1;
-      bin_it < (AlongY ? t2->GetXaxis() : t2->GetYaxis())->GetNbins();
-      ++bin_it){
-        (AlongY ?
-          cpy->SetBinContent(bin_it+1, sl_bin_it+1,
-            t2->GetBinContent(bin_it+1, sl_bin_it+1)/total) :
-          cpy->SetBinContent(sl_bin_it+1, bin_it+1,
-            t2->GetBinContent(sl_bin_it+1, bin_it+1)/total));
+    for (Int_t bin_it = 1;
+         bin_it < (AlongY ? t2->GetXaxis() : t2->GetYaxis())->GetNbins();
+         ++bin_it) {
+      (AlongY ? cpy->SetBinContent(
+                    bin_it + 1, sl_bin_it + 1,
+                    t2->GetBinContent(bin_it + 1, sl_bin_it + 1) / total)
+              : cpy->SetBinContent(
+                    sl_bin_it + 1, bin_it + 1,
+                    t2->GetBinContent(sl_bin_it + 1, bin_it + 1) / total));
     }
   }
   return cpy;
@@ -191,29 +205,8 @@ bool CheckTTreeHasBranch(TTree *tree, std::string const &BranchName) {
   return false;
 }
 
-void SumHistograms(TH1D *summed, double *coeffs,
-                          std::vector<TH1D *> const &histos) {
-  size_t nf = histos.size();
-  summed->Reset();
-  for (size_t f_it = 0; f_it < nf; ++f_it) {
-    summed->Add(histos[f_it], coeffs[f_it]);
-
-    for (Int_t bi_it = 0; bi_it < summed->GetXaxis()->GetNbins() + 1; ++bi_it) {
-      double bc = summed->GetBinContent(bi_it);
-      double be = summed->GetBinError(bi_it);
-
-      if ((bc != bc) || (be != be)) {
-        std::cout << "Produced bad histo: bin " << bi_it
-                  << " after adding coeff " << f_it << " = " << coeffs[f_it]
-                  << std::endl;
-        throw;
-      }
-    }
-  }
-}
-
 double FindHistogramPeak(TH1D *hist, double resolution,
-                                std::string const &WriteName) {
+                         std::string const &WriteName) {
   double min = hist->GetXaxis()->GetBinLowEdge(1);
   double max = hist->GetXaxis()->GetBinUpEdge(hist->GetXaxis()->GetNbins());
 
@@ -243,4 +236,39 @@ double FindHistogramPeak(TH1D *hist, double resolution,
   }
 
   return peak_E;
+}
+
+void FindTH1Peaks(TH1D const *flux, int &left, int &right, int n) {
+  // std::cout << "[INFO] Looking for peaks..." << std::endl;
+
+  std::unique_ptr<TH1D> temp = std::unique_ptr<TH1D>(
+      static_cast<TH1D *>(flux->Clone("peakfindingtemp")));
+  temp->SetDirectory(nullptr);
+  temp->Smooth(10);
+
+  double threshold = (temp->Integral()) / (5 * (temp->GetNbinsX()));
+
+  // std::cout << "[INFO] Peak threshold " << threshold << std::endl;
+
+  int nfound = 0;
+  double content[3] = {0};
+
+  for (int bin_ind = temp->GetNbinsX(); bin_ind > 0 && nfound < n; bin_ind--) {
+    content[2] = temp->GetBinContent(bin_ind - 1);
+    if ((content[0] < content[1]) && (content[1] > content[2]) &&
+        (content[1] > threshold)) {
+      if (nfound == 0) {
+        right = bin_ind;
+      }
+      if (nfound == (n - 1)) {
+        left = bin_ind;
+      }
+      nfound++;
+      // std::cout << "[INFO] found a peak of height " << content[1] << " at bin
+      // "
+      // << bin_ind << std::endl;
+    }
+    content[0] = content[1];
+    content[1] = content[2];
+  }
 }

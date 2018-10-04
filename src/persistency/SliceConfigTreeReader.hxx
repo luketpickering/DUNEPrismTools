@@ -10,10 +10,12 @@
 struct SliceConfig : public ITreeReader  {
 
 SliceConfig(){}
-SliceConfig(std::string const &inputFile);
+SliceConfig(std::string const &inputFile, std::string const &inputDir="");
 
   Double_t XRange[2];
   Double_t Coeff;
+
+  std::string dir;
 
   std::string TreeName();
 

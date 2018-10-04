@@ -6,6 +6,7 @@ SET(FLUX_APPS
   CombineBuiltFluxes
   # BuildUncertaintyMatrix
   MakeLitedk2nu
+  FluxSmusher
 )
 
 include_directories(${INCLUDE_DIRECTORIES})

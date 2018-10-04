@@ -3,7 +3,7 @@
 
 #include "BargerPropagator.h"
 
-#include "TFile.h"
+#include "TDirectory.h"
 
 struct OscillationHelper {
   enum NuTypes {
@@ -35,7 +35,7 @@ struct OscillationHelper {
   void SetOscillationChannel(int PDGFrom, int PDGTo);
   double GetWeight(double ENu_GeV);
 
-  void WriteConfigTree(TFile *f);
+  void WriteConfigTree(TDirectory *f);
 };
 
 #endif

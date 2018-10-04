@@ -30,6 +30,12 @@ elseif(NOT DEFINED CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE DEBUG)
 endif()
 
+if(USE_FHICL STREQUAL "")
+  set(USE_FHICL FALSE)
+elseif(NOT DEFINED USE_FHICL)
+  set(USE_FHICL FALSE)
+endif()
+
 ################################################################################
 #                            Check Dependencies
 ################################################################################

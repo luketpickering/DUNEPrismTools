@@ -1,6 +1,8 @@
 add_library(DUNE-PRIMS_FluxTools
   dk2nu_TreeReader.cxx
   OscillationHelper.cxx
+  FluxLikelihood.cxx
+  FluxFitter.cxx
 )
 
 include_directories(${INCLUDE_DIRECTORIES})
