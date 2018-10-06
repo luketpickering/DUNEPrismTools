@@ -1,0 +1,120 @@
+#This should contain your local input 2D near and far detector fluxes
+#See DUNEPRISMTOOLSROOT/fcl/template.flux_files.fcl for the keys that need to be
+# defined for input_fluxes.fcl and target_flues.fcl to be properly configured
+#include "./flux_files.fcl"
+
+#include "input_fluxes.fcl"
+#include "target_fluxes.fcl"
+#include "oscillations.fcl"
+
+BEGIN_PROLOG
+
+Fit_Base: {
+  #FitBetweenFoundPeaks: false
+  #FitRange: [0.5, 3]
+  OutOfRangeMode: 3
+  OutOfRangeSide: 1
+  OutOfRangeLikelihoodFactor: 0.01
+  #ExpDecayRate:
+  #TargetFractionalFreedom: 0.01
+  #UseNuPrismChi2: false
+  RegularizationFactor: 1
+
+  # IsGauss: false
+  # InpCoeffFile: ""
+  # InpCoeffDir: ""
+  # InputTargetFluxFile: ""
+  # InputTargetFluxName: ""
+  # CoeffLimit: 10
+  # MaxLikelihoodCalls: 50000
+  # MINUITTolerance: 5E-5
+}
+
+
+END_PROLOG
+
+Fit_FD_FHC_numu_disp: {
+  @table::Fit_Base
+  FitBetweenFoundPeaks: true
+
+  FluxInputs: @local::FluxInputs_FHC_numu
+
+  BuildTargetFlux: true
+  FluxDescription: {
+    @table::FHC_FD_numu
+    Oscillation: @local::Oscillation_T2K2017_DUNE
+  }
+
+  OutputDirectory: "FHC_numu_disp"
+}
+
+Fit_FD_FHC_nue_app: {
+  @table::Fit_Base
+  FitRange: [0.5, 4]
+
+  FluxInputs: @local::FluxInputs_FHC_numu
+
+  BuildTargetFlux: true
+  FluxDescription: {
+    @table::FHC_FD_nue
+    Oscillation: @local::Oscillation_T2K2017_DUNE
+  }
+
+  OutputDirectory: "FHC_nue_app"
+}
+
+Fit_FD_RHC_numubar_disp: {
+  @table::Fit_Base
+  FitBetweenFoundPeaks: true
+
+  FluxInputs: @local::FluxInputs_RHC_numubar
+
+  BuildTargetFlux: true
+  FluxDescription: {
+    @table::RHC_FD_numubar
+    Oscillation: @local::Oscillation_T2K2017_DUNE
+  }
+
+  OutputDirectory: "RHC_numubar_disp"
+}
+
+Fit_FD_RHC_nuebar_app: {
+  @table::Fit_Base
+  FitRange: [0.5, 4]
+
+  FluxInputs: @local::FluxInputs_RHC_numubar
+
+  BuildTargetFlux: true
+  FluxDescription: {
+    @table::RHC_FD_nuebar
+    Oscillation: @local::Oscillation_T2K2017_DUNE
+  }
+
+  OutputDirectory: "RHC_nuebar_app"
+}
+
+Fit_FD_RHC_numu_disp: {
+  @table::Fit_Base
+  FitBetweenFoundPeaks: true
+
+  FluxInputs: @local::FluxInputs_FHC_numu
+
+  BuildTargetFlux: true
+  FluxDescription: {
+    @table::RHC_FD_numu
+    Oscillation: @local::Oscillation_T2K2017_DUNE
+  }
+
+  OutputDirectory: "RHC_numu_disp"
+}
+
+OutputFile: test.fit.root
+RecreateOutputFile: true
+
+Fits: [
+  @local::Fit_FD_FHC_numu_disp,
+  @local::Fit_FD_FHC_nue_app,
+  @local::Fit_FD_RHC_numubar_disp,
+  @local::Fit_FD_RHC_nuebar_app,
+  @local::Fit_FD_RHC_numu_disp
+]

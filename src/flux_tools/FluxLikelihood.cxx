@@ -1,9 +1,12 @@
 #include "FluxLikelihood.hxx"
 
+#include "FluxFitResultsTreeReader.hxx"
+#include "SliceConfigTreeReader.hxx"
+
 #include "ROOTUtility.hxx"
 #include "StringParserUtility.hxx"
 
-// #define DEBUG_LHOOD
+#include "TGraph.h"
 
 void FluxLinearCombiner::Initialize(FluxSliceOptions const &fso) {
   fFSO = fso;
@@ -23,8 +26,7 @@ void FluxLinearCombiner::Initialize(FluxSliceOptions const &fso) {
 }
 
 void FluxLinearCombiner::LoadFluxes() {
-  std::unique_ptr<TH2D> Flux2D =
-      GetHistogram_uptr<TH2D>(fFSO.InputFluxFile, fFSO.InputFluxName);
+  Flux2D = GetHistogram_uptr<TH2D>(fFSO.InputFluxFile, fFSO.InputFluxName);
 
   if (!Flux2D) {
     std::cout << "[ERROR]: Found no input flux with name: \""
@@ -52,6 +54,8 @@ void FluxLinearCombiner::LoadFluxes() {
     for (size_t i = 0; i < SplitFlux2D.size(); ++i) {
       fFSO.XRanges.push_back(SplitFlux2D[i].first);
       FluxSlices.emplace_back(SplitFlux2D[i].second);
+      std::cout << "[INFO]: Adding flux between {" << fFSO.XRanges.back().first
+                << ", " << fFSO.XRanges.back().second << " }" << std::endl;
     }
   }
 
@@ -105,6 +109,39 @@ double FluxLinearCombiner::GetRegularizationPenalty(
   return reg;
 }
 
+void FluxLinearCombiner::Write(
+    TDirectory *td,
+    double const *FluxCoefficients) const { // Write out configuration trees.
+  SliceConfig *sc = SliceConfig::MakeTreeWriter();
+  sc->SetDirectory(td);
+  for (size_t i = 0; i < FluxSlices.size(); ++i) {
+    sc->XRange[0] = fFSO.XRanges[i].first *
+                    100.0; // Assumes tree written in off-axis position
+    sc->XRange[1] = fFSO.XRanges[i].second *
+                    100.0; // Assumes tree written in off-axis position
+    sc->Coeff = FluxCoefficients[i];
+
+    sc->Fill();
+  }
+
+  static_cast<TH2D *>(
+      Flux2D->Clone((std::string(Flux2D->GetName()) + "_input_fluxes").c_str()))
+      ->SetDirectory(td);
+
+  TH1D *sf = static_cast<TH1D *>(SummedFlux->Clone("BestFit"));
+  sf->SetDirectory(td);
+
+  TGraph coeff(FluxSlices.size());
+  for (size_t i = 0; i < FluxSlices.size(); ++i) {
+    coeff.SetPoint(i, (fFSO.XRanges[i].first + fFSO.XRanges[i].second) / 2.0,
+                   FluxCoefficients[i]);
+  }
+  coeff.GetXaxis()->SetTitle("Off-axis position (m)");
+  coeff.GetYaxis()->SetTitle("Flux slice weight");
+
+  td->WriteTObject(&coeff, "Coefficients");
+}
+
 void FluxTargetLikelihood::Initialize(
     FluxTargetLikelihood::FluxTargetOptions const &fto) {
   fLHoodOpts = fto;
@@ -124,7 +161,7 @@ size_t FluxTargetLikelihood::GetNearestPeakingFluxIndex() const {
 
 void FluxTargetLikelihood::SetTargetFlux(TH1D const *tgt) {
   InputFlux =
-      std::unique_ptr<TH1D>(static_cast<TH1D *>(tgt->Clone("InputFlux")));
+      std::unique_ptr<TH1D>(static_cast<TH1D *>(tgt->Clone("InputTargetFlux")));
   InputFlux->SetDirectory(nullptr);
 
   TargetFlux->Reset();
@@ -164,7 +201,6 @@ void FluxTargetLikelihood::SetTargetFlux(TH1D const *tgt) {
   }
 
 #ifdef DEBUG_LHOOD
-
   std::cout << "fFitBinLow: " << fFitBinLow << std::endl;
   std::cout << "fFitBinHigh: " << fFitBinHigh << std::endl;
   std::cout << "FitBetween.first: " << fLHoodOpts.FitBetween.first << std::endl;
@@ -272,6 +308,7 @@ void FluxTargetLikelihood::SetTargetFlux(TH1D const *tgt) {
               << std::endl;
   }
 #endif
+  NLHCalls = 0;
 }
 
 double FluxTargetLikelihood::BinDiff(Int_t bin_it) const {
@@ -319,6 +356,9 @@ double FluxTargetLikelihood::BinDiff(Int_t bin_it) const {
 
 FluxTargetLikelihood::LHood FluxTargetLikelihood::GetLikelihoodComponents(
     double const *coefficients) const {
+
+  NLHCalls++;
+
   SumFluxes(coefficients);
 
   LHood lh;
@@ -368,27 +408,47 @@ FluxTargetLikelihood::LHood FluxTargetLikelihood::GetLikelihoodComponents(
   return lh;
 }
 
-void FluxTargetLikelihood::Write(TDirectory *oupD) {
-  TH1D *sf = static_cast<TH1D *>(SummedFlux->Clone("BestFit"));
-  sf->SetDirectory(oupD);
+void FluxTargetLikelihood::Write(TDirectory *td,
+                                 double const *FluxCoefficients) const {
+
+  LHood lh = GetLikelihoodComponents(FluxCoefficients);
+
+  FluxFitResultsTreeReader *fr =
+      FluxFitResultsTreeReader::MakeTreeWriter(false);
+  fr->SetDirectory(td);
+
+  fr->NFluxes = FluxSlices.size();
+  fr->NIterations = NLHCalls;
+  fr->Chi2 = lh.InFitRegionChi2 + lh.OutOfFitRegionLH + lh.RegLH;
+  fr->RegularisationPenalty = lh.RegLH;
+  fr->FitRange[0] = fLHoodOpts.FitBetween.first;
+  fr->FitRange[1] = fLHoodOpts.FitBetween.second;
+
+  fr->OutOfRangePenalty = lh.OutOfFitRegionLH;
+  fr->NDOverFDFitScaleFactor = fNDOverFDFitScaleFactor;
+
+  fr->Fill();
+
+  FluxLinearCombiner::Write(td, FluxCoefficients);
 
   TH1D *tf = static_cast<TH1D *>(TargetFlux->Clone("Target"));
-  tf->SetDirectory(oupD);
+  tf->SetDirectory(td);
 
-  TH1D *inpf = static_cast<TH1D *>(InputFlux->Clone("InputFlux"));
-  inpf->SetDirectory(oupD);
+  TH1D *inpf = static_cast<TH1D *>(InputFlux->Clone("InputTargetFlux"));
+  inpf->SetDirectory(td);
 
   TH1D *sf_on = static_cast<TH1D *>(SummedFlux->Clone("BestFit_OriginalNorm"));
   sf_on->Scale(1.0 / fNDOverFDFitScaleFactor);
-  sf_on->SetDirectory(oupD);
+  sf_on->SetDirectory(td);
 
   TH1D *tf_on = static_cast<TH1D *>(TargetFlux->Clone("Target_OriginalNorm"));
   tf_on->Scale(1.0 / fNDOverFDFitScaleFactor);
-  tf_on->SetDirectory(oupD);
+  tf_on->SetDirectory(td);
 
-  TH1D *if_tn = static_cast<TH1D *>(InputFlux->Clone("InputFlux_TargetNorm"));
+  TH1D *if_tn =
+      static_cast<TH1D *>(InputFlux->Clone("InputTargetFlux_TargetNorm"));
   if_tn->Scale(fNDOverFDFitScaleFactor);
-  if_tn->SetDirectory(oupD);
+  if_tn->SetDirectory(td);
 }
 
 void GausTargetLikelihood::Initialize(
@@ -469,13 +529,63 @@ double GausTargetLikelihood::GetLikelihood(double const *coefficients) const {
   return sumdiff + GetRegularizationPenalty(coefficients);
 }
 
-#ifdef USE_FHICL_CPP
+#ifdef USE_FHICL
 FluxLinearCombiner::FluxSliceOptions
-MakeFluxSliceOptions(fhicl::ParameterSet const &);
+MakeFluxSliceOptions(fhicl::ParameterSet const &ps) {
+  FluxLinearCombiner::FluxSliceOptions fso;
+
+  fso.InputFluxFile = ps.get<std::string>("InputFluxFile");
+  fso.InputFluxName = ps.get<std::string>("InputFluxName");
+  fso.MergeOAPBins = ps.get<int>("MergeOffAxisBins", 0);
+  fso.MergeENuBins = ps.get<int>("MergeNeutrinoEnergyBins", 0);
+  if (ps.has_key("FluxSliceDescriptor")) {
+    fso.XRanges = BuildRangesList(ps.get<std::string>("FluxSliceDescriptor"));
+  }
+
+  return fso;
+}
+
 FluxTargetLikelihood::FluxTargetOptions
-MakeFluxTargetOptions(fhicl::ParameterSet const &);
+MakeFluxTargetOptions(fhicl::ParameterSet const &ps,
+                      fhicl::ParameterSet const &fso_ps) {
+
+  FluxTargetLikelihood::FluxTargetOptions fto;
+
+  fto.input_flux_opts = MakeFluxSliceOptions(fso_ps);
+
+  fto.FitBetweenFoundPeaks = ps.get<bool>("FitBetweenFoundPeaks", false);
+  fto.FitBetween =
+      ps.get<std::pair<double, double>>("FitRange", {0xdeadbeef, 0xdeadbeef});
+  fto.OutOfRangeMode = ps.get<int>(
+      "OutOfRangeMode", FluxTargetLikelihood::FluxTargetOptions::kZero);
+  fto.OutOfRangeSide = ps.get<int>(
+      "OutOfRangeSide", FluxTargetLikelihood::FluxTargetOptions::kBoth);
+  fto.OORFactor = ps.get<double>("OutOfRangeLikelihoodFactor", 1);
+  fto.ExpDecayRate = ps.get<double>("ExpDecayRate", 3);
+  fto.TargetFractionalFreedom = ps.get<double>("TargetFractionalFreedom", 0.01);
+  fto.UseNuPrismChi2 = ps.get<bool>("UseNuPrismChi2", false);
+  fto.input_flux_opts.RegFactor =
+      ps.get<double>("RegularizationFactor", 0xdeadbeef);
+
+  return fto;
+}
 GausTargetLikelihood::GausTargetOptions
-MakeGausTargetOptions(fhicl::ParameterSet const &);
+MakeGausTargetOptions(fhicl::ParameterSet const &ps,
+                      fhicl::ParameterSet const &fso_ps) {
+  GausTargetLikelihood::GausTargetOptions gto;
+
+  gto.input_flux_opts = MakeFluxSliceOptions(fso_ps);
+
+  gto.GaussC = ps.get<int>("GaussMean", -1);
+  gto.GaussW = ps.get<int>("GaussWidth", -1);
+  gto.FitBetween =
+      ps.get<std::pair<double, double>>("FitRange", {0xdeadbeef, 0xdeadbeef});
+  gto.UseNuPrismChi2 = ps.get<bool>("UseNuPrismChi2", false);
+  gto.input_flux_opts.RegFactor =
+      ps.get<double>("RegularizationFactor", 0xdeadbeef);
+
+  return gto;
+}
 #endif
 
 FluxLinearCombiner::FluxSliceOptions MakeFluxSliceOptions(int argc,
@@ -561,12 +671,12 @@ GausTargetLikelihood::GausTargetOptions
 MakeGausTargetOptions(int argc, char const *argv[]) {
   GausTargetLikelihood::GausTargetOptions gto;
 
+  gto.input_flux_opts = MakeFluxSliceOptions(argc, argv);
+
   gto.GaussC = -1;
   gto.GaussW = -1;
   gto.FitBetween = {0xdeadbeef, 0xdeadbeef};
   gto.UseNuPrismChi2 = false;
-
-  gto.input_flux_opts = MakeFluxSliceOptions(argc, argv);
 
   int opt = 1;
   while (opt < argc) {
@@ -594,4 +704,49 @@ MakeGausTargetOptions(int argc, char const *argv[]) {
   }
 
   return gto;
+}
+
+std::string
+DumpFluxSliceOptions(FluxLinearCombiner::FluxSliceOptions const &fso) {
+  std::stringstream ss("");
+  ss << "{" << std::endl;
+  ss << "\tInputFluxFile: " << fso.InputFluxFile << std::endl;
+  ss << "\tInputFluxName: " << fso.InputFluxName << std::endl;
+  ss << "\tMergeOAPBins: " << fso.MergeOAPBins << std::endl;
+  ss << "\tMergeENuBins: " << fso.MergeENuBins << std::endl;
+  ss << "}" << std::endl;
+  return ss.str();
+}
+std::string
+DumpFluxTargetOptions(FluxTargetLikelihood::FluxTargetOptions const &fto) {
+  std::stringstream ss("");
+  ss << "{" << std::endl;
+  ss << "\tinput_flux_opts: " << DumpFluxSliceOptions(fto.input_flux_opts)
+     << std::endl;
+  ss << "\tFitBetweenFoundPeaks: " << fto.FitBetweenFoundPeaks << std::endl;
+  ss << "\tFitBetween: {" << fto.FitBetween.first << ", "
+     << fto.FitBetween.second << "}" << std::endl;
+  ss << "\tOutOfRangeMode: " << fto.OutOfRangeMode << std::endl;
+  ss << "\tOutOfRangeSide: " << fto.OutOfRangeSide << std::endl;
+  ss << "\tOORFactor: " << fto.OORFactor << std::endl;
+  ss << "\tExpDecayRate: " << fto.ExpDecayRate << std::endl;
+  ss << "\tTargetFractionalFreedom: " << fto.TargetFractionalFreedom
+     << std::endl;
+  ss << "\tUseNuPrismChi2: " << fto.UseNuPrismChi2 << std::endl;
+  ss << "}" << std::endl;
+  return ss.str();
+}
+std::string
+DumpGausTargetOptions(GausTargetLikelihood::GausTargetOptions const &gto) {
+  std::stringstream ss("");
+  ss << "{" << std::endl;
+  ss << "\tinput_flux_opts: " << DumpFluxSliceOptions(gto.input_flux_opts)
+     << std::endl;
+  ss << "\tGaussC: " << gto.GaussC << std::endl;
+  ss << "\tGaussW: " << gto.GaussW << std::endl;
+  ss << "\tFitBetween: {" << gto.FitBetween.first << ", "
+     << gto.FitBetween.second << "}" << std::endl;
+  ss << "\tUseNuPrismChi2: " << gto.UseNuPrismChi2 << std::endl;
+  ss << "}" << std::endl;
+  return ss.str();
 }

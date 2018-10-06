@@ -1,25 +1,30 @@
 #ifndef FLUXLIKELIHOOD_SEEN
 #define FLUXLIKELIHOOD_SEEN
 
+#include "TDirectory.h"
 #include "TF1.h"
 #include "TH1D.h"
-#include "TDirectory.h"
+#include "TH2D.h"
 
-#ifdef USE_FHICL_CPP
+#ifdef USE_FHICL
 #include "fhiclcpp/ParameterSet.h"
 #endif
 
 #include <memory>
+#include <sstream>
 #include <string>
 #include <vector>
-#include <sstream>
+
+// #define DEBUG_LHOOD
 
 class FluxLinearCombiner {
   std::vector<bool> ApplyRegularization;
+  std::unique_ptr<TH2D> Flux2D;
 
 protected:
   std::vector<std::unique_ptr<TH1D>> FluxSlices;
   mutable std::unique_ptr<TH1D> SummedFlux;
+  mutable size_t NLHCalls;
 
 public:
   struct FluxSliceOptions {
@@ -37,6 +42,8 @@ public:
   void Initialize(FluxSliceOptions const &);
   void LoadFluxes();
 
+  size_t &GetNLHCalls() const { return NLHCalls; }
+
   size_t GetNearestPeakingFluxIndex(double enu) const;
   virtual size_t GetNearestPeakingFluxIndex() const = 0;
 
@@ -50,7 +57,7 @@ public:
 
   virtual std::string State() const { return ""; };
 
-  virtual void Write(TDirectory *) {};
+  virtual void Write(TDirectory *, double const *FluxCoefficients) const;
 };
 
 class FluxTargetLikelihood : public FluxLinearCombiner {
@@ -113,6 +120,9 @@ public:
   mutable LHood last_lh;
   double GetLikelihood(double const *coefficients) const {
     last_lh = GetLikelihoodComponents(coefficients);
+#ifdef DEBUG_LHOOD
+    std::cout << "[INFO]: Likelihood state: " << State() << std::endl;
+#endif
     return last_lh.InFitRegionChi2 + last_lh.OutOfFitRegionLH + last_lh.RegLH;
   }
 
@@ -121,13 +131,15 @@ public:
     ss << "LHood: { "
        << " InFitRegionChi2: " << last_lh.InFitRegionChi2
        << ", OutOfFitRegionLH: " << last_lh.OutOfFitRegionLH
-       << ", RegLH: " << last_lh.RegLH;
+       << ", RegLH: " << last_lh.RegLH << " }, Total = "
+       << (last_lh.InFitRegionChi2 + last_lh.OutOfFitRegionLH + last_lh.RegLH);
     return ss.str();
   };
 
   double GetPeakNorm() const { return fTargetPeakNorm; }
 
-  void Write(TDirectory *);
+  void Write(TDirectory *, double const *FluxCoefficients) const;
+
 private:
   FluxTargetOptions fLHoodOpts;
 };
@@ -164,13 +176,13 @@ private:
   GausTargetOptions fLHoodOpts;
 };
 
-#ifdef USE_FHICL_CPP
+#ifdef USE_FHICL
 FluxLinearCombiner::FluxSliceOptions
 MakeFluxSliceOptions(fhicl::ParameterSet const &);
 FluxTargetLikelihood::FluxTargetOptions
-MakeFluxTargetOptions(fhicl::ParameterSet const &);
+MakeFluxTargetOptions(fhicl::ParameterSet const &, fhicl::ParameterSet const &);
 GausTargetLikelihood::GausTargetOptions
-MakeGausTargetOptions(fhicl::ParameterSet const &);
+MakeGausTargetOptions(fhicl::ParameterSet const &, fhicl::ParameterSet const &);
 #endif
 FluxLinearCombiner::FluxSliceOptions MakeFluxSliceOptions(int argc,
                                                           char const *argv[]);
@@ -178,5 +190,11 @@ FluxTargetLikelihood::FluxTargetOptions
 MakeFluxTargetOptions(int argc, char const *argv[]);
 GausTargetLikelihood::GausTargetOptions
 MakeGausTargetOptions(int argc, char const *argv[]);
+
+std::string DumpFluxSliceOptions(FluxLinearCombiner::FluxSliceOptions const &);
+std::string
+DumpFluxTargetOptions(FluxTargetLikelihood::FluxTargetOptions const &);
+std::string
+DumpGausTargetOptions(GausTargetLikelihood::GausTargetOptions const &);
 
 #endif

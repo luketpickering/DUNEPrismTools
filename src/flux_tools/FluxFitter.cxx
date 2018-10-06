@@ -13,14 +13,21 @@
 #include <chrono>
 #include <functional>
 
-//#define DEBUG_LHOOD
+// #define DEBUG_LHOOD
 
-void FluxFitter::Initialize(FluxFitterOptions const &ffo) { fFitterOpts = ffo; }
+void FluxFitter::Initialize(FluxFitterOptions const &ffo) {
+  fFitterOpts = ffo;
+  std::cout << "[INFO]: Initializing fit with: " << DumpFluxFitterOptions(ffo)
+            << std::endl;
+}
 
 void FluxFitter::InitializeFlux(
     FluxFitter::FluxFitterOptions const &ffo,
-    FluxTargetLikelihood::FluxTargetOptions const &fto) {
+    FluxTargetLikelihood::FluxTargetOptions const &fto,
+    bool ExpectTargetLater) {
   Initialize(ffo);
+  std::cout << "[INFO]: Initializing Flux fit with: "
+            << DumpFluxTargetOptions(fto) << std::endl;
   fFitterOpts.IsGauss = false;
   std::unique_ptr<FluxTargetLikelihood> fluxLHood =
       std::make_unique<FluxTargetLikelihood>();
@@ -28,21 +35,28 @@ void FluxFitter::InitializeFlux(
   fluxLHood->Initialize(fto);
   LHoodEval = std::move(fluxLHood);
 
-  if (!fFitterOpts.InputTargetFluxFile.size() ||
-      !fFitterOpts.InputTargetFluxName.size()) {
-    std::cout << "[ERROR]: No target flux file specified." << std::endl;
-    throw;
+  if (!ExpectTargetLater) {
+    if (!fFitterOpts.InputTargetFluxFile.size() ||
+        !fFitterOpts.InputTargetFluxName.size()) {
+      std::cout << "[ERROR]: No target flux file specified." << std::endl;
+      throw;
+    }
+
+    tgtFlux = GetHistogram_uptr<TH1D>(fFitterOpts.InputTargetFluxFile,
+                                      fFitterOpts.InputTargetFluxName);
+
+    SetTargetFlux(tgtFlux.get(), true);
   }
-
-  tgtFlux = GetHistogram_uptr<TH1D>(fFitterOpts.InputTargetFluxFile,
-                                    fFitterOpts.InputTargetFluxName);
-
-  SetTargetFlux(tgtFlux.get(), true);
 }
 void FluxFitter::InitializeGauss(
     FluxFitter::FluxFitterOptions const &ffo,
     GausTargetLikelihood::GausTargetOptions const &gto) {
+
   Initialize(ffo);
+
+  std::cout << "[INFO]: Initializing Gaus fit with: "
+            << DumpGausTargetOptions(gto) << std::endl;
+
   fFitterOpts.IsGauss = true;
   std::unique_ptr<GausTargetLikelihood> gausLHood =
       std::make_unique<GausTargetLikelihood>();
@@ -135,15 +149,15 @@ bool FluxFitter::Fit() {
                                   fFitterOpts.CoeffLimit);
   }
 
-  size_t fcn_call = 0;
   auto lap = std::chrono::high_resolution_clock::now();
   ROOT::Math::Functor fcn(
       [&](double const *coeffs) {
-        if (fcn_call && !(fcn_call % 5000)) {
+        if (LHoodEval->GetNLHCalls() && !(LHoodEval->GetNLHCalls() % 5000)) {
           auto diff = std::chrono::duration_cast<std::chrono::milliseconds>(
               std::chrono::high_resolution_clock::now() - lap);
           lap = std::chrono::high_resolution_clock::now();
-          std::cout << "[INFO]: Call: " << fcn_call << ", Last 5k calls took "
+          std::cout << "[INFO]: Call: " << LHoodEval->GetNLHCalls()
+                    << ", Last 5k calls took "
                     << (double(diff.count()) / 1000.0) << "s" << std::endl;
           std::cout << "[INFO]: Likelihood state: " << LHoodEval->State()
                     << std::endl;
@@ -159,19 +173,18 @@ bool FluxFitter::Fit() {
         std::cout << "LH = " << lh << std::endl;
 #endif
 
-        fcn_call++;
         return lh;
       },
       NFluxes);
 
   fMinimizer->SetFunction(fcn);
 
-  int fitstatus = fMinimizer->Minimize();
+  fMinimizer->Minimize();
+  int fitstatus = fMinimizer->Status();
   if (fitstatus) {
     std::cout << "[WARN]: Failed to find minimum (STATUS: " << fitstatus << ")."
               << std::endl;
   }
-  fMinimizer->PrintResults();
 
   for (size_t flux_it = 0; flux_it < NFluxes; flux_it++) {
     Coefficients[flux_it] = fMinimizer->X()[flux_it];
@@ -213,9 +226,24 @@ void FluxFitter::SetGaussParameters(double GaussC, double GaussW,
   }
 }
 
-#ifdef USE_FHICL_CPP
+void FluxFitter::Write(TDirectory *td) { LHoodEval->Write(td, Coefficients.data()); }
+
+#ifdef USE_FHICL
 FluxFitter::FluxFitterOptions
-MakeFluxFitterOptions(fhicl::ParameterSet const &);
+MakeFluxFitterOptions(fhicl::ParameterSet const &ps) {
+
+  FluxFitter::FluxFitterOptions ffo;
+
+  ffo.InpCoeffFile = ps.get<std::string>("InputCoefficientsFile", "");
+  ffo.InpCoeffDir = ps.get<std::string>("InputCoefficientsDirectory", "");
+  ffo.InputTargetFluxFile = ps.get<std::string>("InputTargetFluxFile", "");
+  ffo.InputTargetFluxName = ps.get<std::string>("InputTargetFluxName", "");
+  ffo.CoeffLimit = ps.get<double>("CoeffLimit", 10);
+  ffo.MaxLikelihoodCalls = ps.get<size_t>("MaxLikelihoodCalls", 5E5);
+  ffo.MINUITTolerance = ps.get<double>("MINUITTolerance", 1E-5);
+
+  return ffo;
+}
 #endif
 FluxFitter::FluxFitterOptions MakeFluxFitterOptions(int argc,
                                                     char const *argv[]) {
@@ -262,4 +290,19 @@ FluxFitter::FluxFitterOptions MakeFluxFitterOptions(int argc,
     opt++;
   }
   return ffo;
+}
+
+std::string DumpFluxFitterOptions(FluxFitter::FluxFitterOptions const &ffo) {
+  std::stringstream ss("");
+  std::cout << "{" << std::endl;
+  ss << "\tIsGauss: " << ffo.IsGauss << std::endl;
+  ss << "\tInpCoeffFile: " << ffo.InpCoeffFile << std::endl;
+  ss << "\tInpCoeffDir: " << ffo.InpCoeffDir << std::endl;
+  ss << "\tInputTargetFluxFile: " << ffo.InputTargetFluxFile << std::endl;
+  ss << "\tInputTargetFluxName: " << ffo.InputTargetFluxName << std::endl;
+  ss << "\tCoeffLimit: " << ffo.CoeffLimit << std::endl;
+  ss << "\tMaxLikelihoodCalls: " << ffo.MaxLikelihoodCalls << std::endl;
+  ss << "\tMINUITTolerance: " << ffo.MINUITTolerance << std::endl;
+  ss << "}" << std::endl;
+  return ss.str();
 }

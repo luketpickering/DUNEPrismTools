@@ -5,7 +5,7 @@ add_library(DUNE-PRISM_SimTools
   StopDimensions.cxx
 )
 
-include_directories(${INCLUDE_DIRECTORIES})
+include_directories(${INCDIRS})
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 install(TARGETS DUNE-PRISM_SimTools DESTINATION lib)

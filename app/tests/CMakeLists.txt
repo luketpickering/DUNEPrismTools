@@ -1,7 +1,7 @@
 SET(TEST_APPS
   MatrixToolsTester)
 
-include_directories(${INCLUDE_DIRECTORIES})
+include_directories(${INCDIRS})
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
 foreach(appname ${TEST_APPS})

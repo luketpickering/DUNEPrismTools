@@ -9,7 +9,9 @@ SET(FLUX_APPS
   FluxSmusher
 )
 
-include_directories(${INCLUDE_DIRECTORIES})
+include_directories(${INCDIRS})
+# Requried for fhiclcpp
+include_directories(${CMAKE_INSTALL_PREFIX}/include)
 
 foreach(appname ${FLUX_APPS})
 

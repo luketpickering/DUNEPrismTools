@@ -7,6 +7,10 @@
 
 #include "Math/Minimizer.h"
 
+#ifdef USE_FHICL
+#include "fhiclcpp/ParameterSet.h"
+#endif
+
 #include <memory>
 #include <string>
 #include <vector>
@@ -33,20 +37,20 @@ public:
   };
 
   void InitializeFlux(FluxFitterOptions const &,
-                      FluxTargetLikelihood::FluxTargetOptions const &);
+                      FluxTargetLikelihood::FluxTargetOptions const &,
+                      bool ExpectTargetLater = false);
   void InitializeGauss(FluxFitterOptions const &,
                        GausTargetLikelihood::GausTargetOptions const &);
 
   bool Fit();
 
   void SetCoefficients(std::vector<double>);
+  std::vector<double> const &GetCoefficients() { return Coefficients; }
   void SetTargetFlux(TH1D const *, bool GuessCoefficients = false);
   void SetGaussParameters(double GaussC, double GaussW,
                           bool GuessCoefficients = false);
 
-  void Write(TDirectory *td){
-    LHoodEval->Write(td);
-  }
+  void Write(TDirectory *td);
 
 private:
   void Initialize(FluxFitterOptions const &);
@@ -55,11 +59,13 @@ private:
   FluxFitterOptions fFitterOpts;
 };
 
-#ifdef USE_FHICL_CPP
+#ifdef USE_FHICL
 FluxFitter::FluxFitterOptions
 MakeFluxFitterOptions(fhicl::ParameterSet const &);
 #endif
 FluxFitter::FluxFitterOptions MakeFluxFitterOptions(int argc,
                                                     char const *argv[]);
+
+std::string DumpFluxFitterOptions(FluxFitter::FluxFitterOptions const &);
 
 #endif
