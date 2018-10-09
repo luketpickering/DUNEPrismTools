@@ -17,12 +17,6 @@ if [ ! -e inputs.list ]; then
   exit 3
 fi
 
-if [ ! -e runplan.xml ]; then
-  echo "[ERROR]: Couldn't find runplan.xml"
-  ls
-  exit 4
-fi
-
 if [ -z $1 ]; then
   echo "[ERROR]: Expected to recieve a detector distance in cm as a script argument."
   exit 5
@@ -84,6 +78,15 @@ if [ ! -z ${7} ]; then
   NFILES_TO_READ=${7}
 fi
 
+if [ -z ${8} ]; then
+  echo "[ERROR]: Expected to recieve a flux window descriptor."
+  exit 1
+fi
+FLUX_WINDOW_DESCRIPTOR_ENC=${8}
+FLUX_WINDOW_DESCRIPTOR=$(python -c "import urllib; print urllib.unquote('''${FLUX_WINDOW_DESCRIPTOR_ENC}''')")
+
+echo "Unencoded flux window descriptor: ${FLUX_WINDOW_DESCRIPTOR}"
+
 echo "[INFO]: Reading ${NFILES_TO_READ} files."
 
 echo "[INFO]: JobID ${CLUSTER}, ArrayID ${PROCESS}"
@@ -138,7 +141,6 @@ if [ -z ${GRID_USER} ]; then
 fi
 
 cp dp_BuildFluxes $_CONDOR_SCRATCH_DIR/
-cp runplan.xml $_CONDOR_SCRATCH_DIR/
 
 cd $_CONDOR_SCRATCH_DIR
 
@@ -217,9 +219,8 @@ echo "[INFO]: Writing output to: ${OUT_FILENAME} "
 
 echo "Building fluxes @ $(date)"
 
-echo "./dp_BuildFluxes -i \"inputs/*.dk2nu.root\" -o ${OUT_FILENAME} -r runplan.xml -z ${DET_DIST_CM} -vb ${BINNING_DESCRIPTOR} ${RUPARG} ${DK2NU_LITE_ARG} &> dp_BuildFluxes.${CLUSTER}.${PROCESS}.log"
-./dp_BuildFluxes -i "inputs/*.dk2nu.root" -o ${OUT_FILENAME} -r runplan.xml -z ${DET_DIST_CM} -vb ${BINNING_DESCRIPTOR} ${RUPARG} ${DK2NU_LITE_ARG} &> dp_BuildFluxes.${CLUSTER}.${PROCESS}.log
-
+echo "./dp_BuildFluxes -i \"inputs/*.dk2nu.root\" -o ${OUT_FILENAME} -z ${DET_DIST_CM} -vb ${BINNING_DESCRIPTOR} ${RUPARG} ${FLUX_WINDOW_DESCRIPTOR} ${DK2NU_LITE_ARG} &> dp_BuildFluxes.${CLUSTER}.${PROCESS}.log"
+./dp_BuildFluxes -i "inputs/*.dk2nu.root" -o ${OUT_FILENAME} -z ${DET_DIST_CM} -vb ${BINNING_DESCRIPTOR} ${RUPARG} ${FLUX_WINDOW_DESCRIPTOR} ${DK2NU_LITE_ARG} &> dp_BuildFluxes.${CLUSTER}.${PROCESS}.log
 
 echo "Finished."
 

@@ -242,7 +242,7 @@ if [ ! -e ${PDIR} ]; then
   exit 1
 fi
 
-ENCCC=$(echo ${CONDENSERCONFIG} | tr " " "_" | tr "," "|")
+ENCCC=$(python -c "import urllib; print urllib.quote('''${CONDENSERCONFIG}''')")
 
 echo "[INFO]: Encoded condenser config = \"${ENCCC}\""
 
