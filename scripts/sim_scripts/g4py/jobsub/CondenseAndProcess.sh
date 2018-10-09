@@ -45,7 +45,7 @@ if [ ! -z ${POTPERFILE} ]; then
   PPFARG=" -P ${POTPERFILE} "
 fi
 
-UENCCC=$(echo ${CONDENSERCONFIG} | tr "_" " " | tr "|" ",")
+UENCCC=$(python -c "import urllib; print urllib.unquote('''${CONDENSERCONFIG}''')")
 
 echo "[INFO]: Unencoded CONDENSERCONFIG = \"${UENCCC}\""
 
