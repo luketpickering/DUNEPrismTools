@@ -9,6 +9,7 @@
 
 #include <string>
 #include <vector>
+#include <memory>
 
 std::string InputDepostisSummaryFile;
 std::string OutputFile;

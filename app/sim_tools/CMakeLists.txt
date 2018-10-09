@@ -3,7 +3,7 @@ SET(SIM_APPS
   StopProcessor
   CheckRunPlanCoverage)
 
-include_directories(${INCLUDE_DIRECTORIES})
+include_directories(${INCDIRS})
 
 foreach(appname ${SIM_APPS})
 

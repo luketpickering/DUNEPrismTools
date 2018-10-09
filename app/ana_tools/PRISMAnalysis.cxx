@@ -17,6 +17,7 @@
 #include <cmath>
 #include <string>
 #include <vector>
+#include <memory>
 
 std::string NDEventFile;
 std::string NDFluxThrowFile;

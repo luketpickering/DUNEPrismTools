@@ -3,7 +3,14 @@
 
 #include "BargerPropagator.h"
 
-#include "TFile.h"
+#include "TDirectory.h"
+#include "TH1D.h"
+
+#ifdef USE_FHICL
+#include "fhiclcpp/ParameterSet.h"
+#endif
+
+#include <memory>
 
 struct OscillationHelper {
   enum NuTypes {
@@ -15,9 +22,9 @@ struct OscillationHelper {
     kNutauType = 3,
   };
 
-  double DipAngle_degrees;      // = 5.8;
-  double OscParams[6];  // = {0.825, 0.10, 1.0, 7.9e-5, 2.5e-3, 0.0};
-  double LengthParam;   // = 0xdeadbeef;
+  double DipAngle_degrees; // = 5.8;
+  double OscParams[6];     // = {0.825, 0.10, 1.0, 7.9e-5, 2.5e-3, 0.0};
+  double LengthParam;      // = 0xdeadbeef;
 
   bool IsSetUp;
 
@@ -28,14 +35,18 @@ struct OscillationHelper {
   NuTypes GetNuType(int pdg);
 
   void Setup(std::string const &FileWithConfTree);
-  void Setup(double OscParams[6], double DipAngle_degrees=5.8);
+  void Setup(double OscParams[6], double DipAngle_degrees = 5.8);
+#ifdef USE_FHICL
+  void Setup(fhicl::ParameterSet const &);
+#endif
 
-  OscillationHelper() : IsSetUp(false) {};
+  OscillationHelper() : IsSetUp(false){};
 
   void SetOscillationChannel(int PDGFrom, int PDGTo);
   double GetWeight(double ENu_GeV);
+  void OscillateHistogram(std::unique_ptr<TH1D> &h);
 
-  void WriteConfigTree(TFile *f);
+  void WriteConfigTree(TDirectory *f);
 };
 
 #endif

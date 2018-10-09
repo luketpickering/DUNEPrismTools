@@ -1,0 +1,111 @@
+BEGIN_PROLOG
+
+FHC_FD_numu: {
+  InputFluxFile: @local::FHC_FarDet_FluxFile
+
+  Name: "FHC_FD_numu"
+  Fluxes: [
+    { # Intrinsic numu survival
+      InputHistogram: LBNF_numu_flux
+      Oscillate: [14,14]
+    }
+  ]
+}
+
+FHC_FD_nue: {
+  InputFluxFile: @local::FHC_FarDet_FluxFile
+
+  Name: "FHC_FD_nue"
+  Fluxes: [
+    { # Intrinsic nue survival
+      InputHistogram: LBNF_nue_flux
+      Oscillate: [12,12]
+    },
+    { # Intrinsic numu -> nue
+      InputHistogram: LBNF_numu_flux
+      Oscillate: [14,12]
+    }
+  ]
+}
+
+RHC_FD_numubar: {
+  InputFluxFile: @local::RHC_FarDet_FluxFile
+
+  Name: "RHC_FD_numubar"
+  Fluxes: [
+    { # Intrinsic numu survival
+      InputHistogram: "stop_0_m/numu_flux_0_m"
+      Oscillate: [-14,-14]
+    }
+  ]
+}
+
+RHC_FD_nuebar: {
+  InputFluxFile: @local::RHC_FarDet_FluxFile
+
+  Name: "RHC_FD_nuebar"
+  Fluxes: [
+    { # Intrinsic nuebar survival
+      InputHistogram: "stop_0_m/nuebar_flux_0_m"
+      Oscillate: [-12,-12]
+    },
+    { # Intrinsic numubar -> nuebar
+      InputHistogram: "stop_0_m/numubar_flux_0_m"
+      Oscillate: [-14,-12]
+    }
+  ]
+}
+
+RHC_FD_numu: {
+  InputFluxFile: @local::RHC_FarDet_FluxFile
+
+  Name: "RHC_FD_numu"
+  Fluxes: [
+    { # Intrinsic numu survival WSB
+      InputHistogram: "stop_0_m/numu_flux_0_m"
+      Oscillate: [14,14]
+    }
+  ]
+}
+
+RHC_FD_nue: {
+  InputFluxFile: @local::RHC_FarDet_FluxFile
+
+  Name: "RHC_FD_nue"
+  Fluxes: [
+    { # Intrinsic numu -> nue WSB
+      InputHistogram: "stop_0_m/numu_flux_0_m"
+      Oscillate: [14,12]
+    },
+    { # Intrinsic nue survival WSB
+      InputHistogram: "stop_0_m/nue_flux_0_m"
+      Oscillate: [12,12]
+    }
+  ]
+}
+
+FHC_ND_nue: {
+  InputFluxFile: @local::FHC_NearDet_FluxFile
+
+  Name: "FHC_ND_nue"
+  Fluxes: [
+    { # Intrinsic nue
+      InputHistogram: LBNF_nue_flux
+      CombineFluxSlicesDescriptor: "16.5_33:0.5"
+    }
+  ]
+}
+
+RHC_ND_nuebar: {
+  InputFluxFile: @local::RHC_NearDet_FluxFile
+
+  Name: "RHC_ND_nuebar"
+  Fluxes: [
+    { # Intrinsic nuebar
+      InputHistogram: LBNF_nuebar_flux
+      CombineFluxSlicesDescriptor: "16.5_33:0.5"
+    }
+  ]
+}
+
+END_PROLOG

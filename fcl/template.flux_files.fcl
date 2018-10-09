@@ -1,0 +1,7 @@
+BEGIN_PROLOG
+FHC_FarDet_FluxFile: "nominal.FHC.FarDet.uniform.root"
+RHC_FarDet_FluxFile: "nominal.RHC.FarDet.uniform.root"
+
+FHC_NearDet_FluxFile: "nominal_wider.50cm.FHC.uniform.root"
+RHC_NearDet_FluxFile: "nominal_wider.50cm.RHC.uniform.root"
+END_PROLOG

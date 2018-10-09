@@ -30,12 +30,18 @@ elseif(NOT DEFINED CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE DEBUG)
 endif()
 
+if(USE_FHICL STREQUAL "")
+  set(USE_FHICL FALSE)
+elseif(NOT DEFINED USE_FHICL)
+  set(USE_FHICL FALSE)
+endif()
+
 ################################################################################
 #                            Check Dependencies
 ################################################################################
 
 SET(EXTRA_CXX_FLAGS)
-SET(INCLUDE_DIRECTORIES)
+SET(INCDIRS)
 SET(EXTRA_LINK_DIRS)
 SET(EXTRA_LIBS)
 
@@ -44,6 +50,9 @@ include(${CMAKE_SOURCE_DIR}/cmake/ROOTSetup.cmake)
 
 ################################  Prob3++  #####################################
 include(${CMAKE_SOURCE_DIR}/cmake/Prob3++Setup.cmake)
+
+###############################  fhiclcpp  #####################################
+include(${CMAKE_SOURCE_DIR}/cmake/fhiclcppSetup.cmake)
 
 ################################## COMPILER ####################################
 LIST(APPEND EXTRA_CXX_FLAGS -fopenmp)
@@ -54,7 +63,7 @@ include(${CMAKE_SOURCE_DIR}/cmake/doxSetup.cmake)
 
 add_subdirectory(src)
 
-cmessage(DEBUG "SRC INCLUDE_DIRECTORIES: ${INCLUDE_DIRECTORIES}")
+cmessage(DEBUG "SRC INCDIRS: ${INCDIRS}")
 cmessage(DEBUG "Module Targets: ${MODULETargets}")
 
 add_subdirectory(app)

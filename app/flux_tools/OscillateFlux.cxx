@@ -1,7 +1,7 @@
-#include "StringParserUtility.hxx"
-#include "ROOTUtility.hxx"
-#include "OscillationHelper.hxx"
 #include "GetUsage.hxx"
+#include "OscillationHelper.hxx"
+#include "ROOTUtility.hxx"
+#include "StringParserUtility.hxx"
 
 #include "TFile.h"
 #include "TGraph.h"
@@ -19,14 +19,14 @@ double DipAngle = 5.8;
 double OscParams[6] = {0.825, 0.10, 1.0, 7.9e-5, 2.5e-3, 0.0};
 std::string inpFile, inpHistName;
 std::string oupFile, oupHistName;
+std::string outputDir;
+bool UPDATEOutputFile = false;
 
 int nuPDGFrom, nuPDGTo;
 
 void SayUsage(char const *argv[]) {
-  std::cout
-      << "[USAGE]: " << argv[0]
-      << GetUsageText(argv[0], "flux_tools")
-      << std::endl;
+  std::cout << "[USAGE]: " << argv[0] << GetUsageText(argv[0], "flux_tools")
+            << std::endl;
 }
 
 const static double REarth_cm = 6371.393 * 1.0E5;
@@ -82,6 +82,20 @@ void handleOpts(int argc, char const *argv[]) {
       }
       oupFile = params[0];
       oupHistName = params[1];
+      UPDATEOutputFile = false;
+    } else if (std::string(argv[opt]) == "-a") {
+      std::vector<std::string> params =
+          ParseToVect<std::string>(argv[++opt], ",");
+      if (params.size() != 2) {
+        std::cout << "[ERROR]: Recieved " << params.size()
+                  << " entrys for -o, expected 2." << std::endl;
+        exit(1);
+      }
+      oupFile = params[0];
+      oupHistName = params[1];
+      UPDATEOutputFile = true;
+    } else if (std::string(argv[opt]) == "-D") {
+      outputDir = argv[++opt];
     } else if (std::string(argv[opt]) == "-n") {
       std::vector<int> params = ParseToVect<int>(argv[++opt], ",");
       if (params.size() != 2) {
@@ -94,9 +108,9 @@ void handleOpts(int argc, char const *argv[]) {
     } else if (std::string(argv[opt]) == "-L") {
       double baseline_cm = str2T<double>(argv[++opt]) * 1E5;
 
-      DipAngle = asin(baseline_cm / (2.0 * REarth_cm))/deg2rad;
+      DipAngle = asin(baseline_cm / (2.0 * REarth_cm)) / deg2rad;
 
-    } else if (std::string(argv[opt]) == "-?"||
+    } else if (std::string(argv[opt]) == "-?" ||
                std::string(argv[opt]) == "--help") {
       SayUsage(argv);
       exit(0);
@@ -120,23 +134,23 @@ enum nuTypes {
 
 nuTypes GetNuType(int pdg) {
   switch (pdg) {
-    case 16:
-      return kNutauType;
-    case 14:
-      return kNumuType;
-    case 12:
-      return kNueType;
-    case -16:
-      return kNutaubarType;
-    case -14:
-      return kNumubarType;
-    case -12:
-      return kNuebarType;
-    default: {
-      std::cout << "[ERROR]: Attempting to convert \"neutrino pdg\": " << pdg
-                << std::endl;
-      exit(1);
-    }
+  case 16:
+    return kNutauType;
+  case 14:
+    return kNumuType;
+  case 12:
+    return kNueType;
+  case -16:
+    return kNutaubarType;
+  case -14:
+    return kNumubarType;
+  case -12:
+    return kNuebarType;
+  default: {
+    std::cout << "[ERROR]: Attempting to convert \"neutrino pdg\": " << pdg
+              << std::endl;
+    exit(1);
+  }
   }
 }
 
@@ -189,26 +203,32 @@ int main(int argc, char const *argv[]) {
 
   TFile *inpF = CheckOpenFile(inpFile, "READ");
 
-  TH1 *inpH = GetHistogram<TH1D>(inpF,inpHistName);
+  TH1 *inpH = GetHistogram<TH1D>(inpF, inpHistName);
 
   inpH = static_cast<TH1 *>(inpH->Clone());
 
-  TFile *oupF = CheckOpenFile(oupFile.c_str(), "RECREATE");
-  oupF->cd();
+  TFile *oupF =
+      CheckOpenFile(oupFile.c_str(), UPDATEOutputFile ? "UPDATE" : "RECREATE");
+  TDirectory *oupD = oupF;
+
+  if (outputDir.length()) {
+    oupD = oupF->mkdir(outputDir.c_str());
+  }
+  oupD->cd();
 
   inpH->Write();
   inpH->SetDirectory(NULL);
 
   OscillationHelper oh;
-  oh.Setup(OscParams,DipAngle);
-  oh.SetOscillationChannel(nuPDGFrom,nuPDGTo);
+  oh.Setup(OscParams, DipAngle);
+  oh.SetOscillationChannel(nuPDGFrom, nuPDGTo);
 
   for (Int_t bi_it = 1; bi_it < inpH->GetXaxis()->GetNbins() + 1; ++bi_it) {
     double ow = oh.GetWeight(inpH->GetXaxis()->GetBinCenter(bi_it));
     inpH->SetBinContent(bi_it, inpH->GetBinContent(bi_it) * ow);
   }
   inpH->SetName(oupHistName.c_str());
-  inpH->SetDirectory(oupF);
+  inpH->SetDirectory(oupD);
 
   TGraph *POsc = new TGraph();
 
@@ -227,9 +247,10 @@ int main(int argc, char const *argv[]) {
     POsc->SetPoint(i - 1, enu, ow);
   }
 
-  POsc->Write("POsc");
-
-  oh.WriteConfigTree(oupF);
+  if (!UPDATEOutputFile || outputDir.size()) {
+    POsc->Write("POsc");
+    oh.WriteConfigTree(oupD);
+  }
 
   oupF->Write();
   oupF->Close();

@@ -49,6 +49,11 @@ fi
 
 export DUNEPRISMTOOLSROOT="@CMAKE_INSTALL_PREFIX@"
 
+if [ "@USE_FHICL@" == "TRUE" ]; then
+  echo "[INFO]: Sourcing fhiclcpp environment"
+  source ${DUNEPRISMTOOLSROOT}/fhiclcpp.setup.sh
+fi
+
 add_to_PATH "${DUNEPRISMTOOLSROOT}/bin"
 
 if [ ! "${ROOTSYS}" ]; then

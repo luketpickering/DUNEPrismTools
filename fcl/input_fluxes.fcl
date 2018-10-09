@@ -1,0 +1,29 @@
+BEGIN_PROLOG
+
+FluxInputs_FHC: {
+  InputFluxFile: @local::FHC_NearDet_FluxFile
+  # InputFluxName: ""
+  # MergeOffAxisBins: 0
+  # MergeNeutrinoEnergyBins: 0
+  FluxSliceDescriptor: "0_33:0.5"
+}
+
+FluxInputs_FHC_numu: {
+  @table::FluxInputs_FHC
+  InputFluxName: LBNF_numu_flux
+}
+
+FluxInputs_RHC: {
+  InputFluxFile: @local::RHC_NearDet_FluxFile
+  # InputFluxName: ""
+  # MergeOffAxisBins: 0
+  # MergeNeutrinoEnergyBins: 0
+  FluxSliceDescriptor: "0_33:0.5"
+}
+
+FluxInputs_RHC_numubar: {
+  @table::FluxInputs_RHC
+  InputFluxName: LBNF_numubar_flux
+}
+
+END_PROLOG
