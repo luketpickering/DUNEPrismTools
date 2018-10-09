@@ -2,6 +2,7 @@
 #include <string>
 
 #include "GetUsage.hxx"
+#include "StringParserUtility.hxx"
 
 #include "TFile.h"
 #include "TH1.h"
@@ -9,14 +10,14 @@
 
 #include "dk2nu_TreeReader.hxx"
 
-std::string inpDir = ".";
+std::string inpDescriptor = "";
+std::string ppfx_inpDescriptor = "";
+UInt_t ppfx_NUniverses = 100;
 std::string outputFile;
 
 void SayUsage(char const *argv[]) {
-  std::cout
-      << "[USAGE]: " << argv[0]
-      << GetUsageText(argv[0], "flux_tools")
-      << std::endl;
+  std::cout << "[USAGE]: " << argv[0] << GetUsageText(argv[0], "flux_tools")
+            << std::endl;
 }
 
 void handleOpts(int argc, char const *argv[]) {
@@ -27,7 +28,11 @@ void handleOpts(int argc, char const *argv[]) {
       SayUsage(argv);
       exit(0);
     } else if (std::string(argv[opt]) == "-i") {
-      inpDir = argv[++opt];
+      inpDescriptor = argv[++opt];
+    } else if (std::string(argv[opt]) == "-p") {
+      ppfx_inpDescriptor = argv[++opt];
+    } else if (std::string(argv[opt]) == "-N") {
+      ppfx_NUniverses = str2T<UInt_t>(argv[++opt]);
     } else if (std::string(argv[opt]) == "-o") {
       outputFile = argv[++opt];
     } else {
@@ -42,13 +47,24 @@ void handleOpts(int argc, char const *argv[]) {
 int main(int argc, char const *argv[]) {
   TH1::SetDefaultSumw2();
   handleOpts(argc, argv);
-  DK2NuReader *dk2nuRdr = new DK2NuReader("dk2nuTree", inpDir, false);
+  if (!inpDescriptor.size()) {
+    std::cout << "[ERROR]: Expected -i option to be passed." << std::endl;
+    SayUsage(argv);
+    return 1;
+  }
+
+  DK2NuReader *dk2nuRdr = new DK2NuReader("dk2nuTree", inpDescriptor, false);
   if (!dk2nuRdr->GetEntries()) {
     std::cout << "No valid input files found." << std::endl;
     return 1;
   }
 
-  DKMetaReader *dkmRdr = new DKMetaReader("dkmetaTree", inpDir, false);
+  if (ppfx_inpDescriptor.size()) {
+    dk2nuRdr->AddPPFXFriend("PPFX_weights", ppfx_inpDescriptor,
+                            ppfx_NUniverses);
+  }
+
+  DKMetaReader *dkmRdr = new DKMetaReader("dkmetaTree", inpDescriptor, false);
 
   TFile *of = new TFile(outputFile.c_str(), "RECREATE");
 

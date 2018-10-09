@@ -2,8 +2,23 @@
 
 The usage text in each executable is generated from this file, so while this
 file cannot be 'out of date' relative to the usage text, it is possible for
-the usage text to not reflect the current state of each executables CLI.
+the usage text to not reflect the current state of each executable's CLI.
 
+## `dp_MakeLitedk2nu`
+```
+    -i /path/to/DUNE/dk2nu/files  : Can include wildcards (remember to quote
+                                    to avoid shell expansion.)              
+    -p /path/to/DUNE/ppfx_friend  : Adds ppfx friend tree from passed files.
+                                    Can include wildcards, but it is advisable
+                                    to fully specify input paths for both --i
+                                    and -p options when using this, as the
+                                    ordering of the friend files must be kept
+                                    consistent.
+    -N <Number of PPFX universes> : Defaults to 100.
+    -o output.root                : File to write lite dk2nu TTree to.         
+    -?                            : Display this message.
+
+```
 ## `dp_BuildFluxes`
 
 ```
@@ -37,6 +52,12 @@ the usage text to not reflect the current state of each executables CLI.
     -S <species PDG>              : Only fill information for neutrinos of a
                                     given species.
     -L                            : Expect dk2nulite inputs.
+    --PPFX                        : Expects to be able to read PPFX weight
+                                    branches from input dk2nu files (note, only
+                                    dk2nulite files will likely have these
+                                    branches.)
+    --NPPFXU <int>                : The number of PPFX universes, defaults to
+                                    100.
     -?                            : Display this message.
 ```
 

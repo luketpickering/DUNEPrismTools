@@ -37,30 +37,30 @@ struct DK2NuReader {
   Double_t decay_necm;
   Double_t decay_nimpwt;
   Int_t nuray_;
-  Double_t nuray_px[kMaxnuray];   //[nuray_]
-  Double_t nuray_py[kMaxnuray];   //[nuray_]
-  Double_t nuray_pz[kMaxnuray];   //[nuray_]
-  Double_t nuray_E[kMaxnuray];    //[nuray_]
-  Double_t nuray_wgt[kMaxnuray];  //[nuray_]
+  Double_t nuray_px[kMaxnuray];  //[nuray_]
+  Double_t nuray_py[kMaxnuray];  //[nuray_]
+  Double_t nuray_pz[kMaxnuray];  //[nuray_]
+  Double_t nuray_E[kMaxnuray];   //[nuray_]
+  Double_t nuray_wgt[kMaxnuray]; //[nuray_]
   Int_t ancestor_;
-  Int_t ancestor_pdg[kMaxancestor];         //[ancestor_]
-  Double_t ancestor_startx[kMaxancestor];   //[ancestor_]
-  Double_t ancestor_starty[kMaxancestor];   //[ancestor_]
-  Double_t ancestor_startz[kMaxancestor];   //[ancestor_]
-  Double_t ancestor_startt[kMaxancestor];   //[ancestor_]
-  Double_t ancestor_startpx[kMaxancestor];  //[ancestor_]
-  Double_t ancestor_startpy[kMaxancestor];  //[ancestor_]
-  Double_t ancestor_startpz[kMaxancestor];  //[ancestor_]
-  Double_t ancestor_stoppx[kMaxancestor];   //[ancestor_]
-  Double_t ancestor_stoppy[kMaxancestor];   //[ancestor_]
-  Double_t ancestor_stoppz[kMaxancestor];   //[ancestor_]
-  Double_t ancestor_polx[kMaxancestor];     //[ancestor_]
-  Double_t ancestor_poly[kMaxancestor];     //[ancestor_]
-  Double_t ancestor_polz[kMaxancestor];     //[ancestor_]
-  Double_t ancestor_pprodpx[kMaxancestor];  //[ancestor_]
-  Double_t ancestor_pprodpy[kMaxancestor];  //[ancestor_]
-  Double_t ancestor_pprodpz[kMaxancestor];  //[ancestor_]
-  Int_t ancestor_nucleus[kMaxancestor];     //[ancestor_]
+  Int_t ancestor_pdg[kMaxancestor];        //[ancestor_]
+  Double_t ancestor_startx[kMaxancestor];  //[ancestor_]
+  Double_t ancestor_starty[kMaxancestor];  //[ancestor_]
+  Double_t ancestor_startz[kMaxancestor];  //[ancestor_]
+  Double_t ancestor_startt[kMaxancestor];  //[ancestor_]
+  Double_t ancestor_startpx[kMaxancestor]; //[ancestor_]
+  Double_t ancestor_startpy[kMaxancestor]; //[ancestor_]
+  Double_t ancestor_startpz[kMaxancestor]; //[ancestor_]
+  Double_t ancestor_stoppx[kMaxancestor];  //[ancestor_]
+  Double_t ancestor_stoppy[kMaxancestor];  //[ancestor_]
+  Double_t ancestor_stoppz[kMaxancestor];  //[ancestor_]
+  Double_t ancestor_polx[kMaxancestor];    //[ancestor_]
+  Double_t ancestor_poly[kMaxancestor];    //[ancestor_]
+  Double_t ancestor_polz[kMaxancestor];    //[ancestor_]
+  Double_t ancestor_pprodpx[kMaxancestor]; //[ancestor_]
+  Double_t ancestor_pprodpy[kMaxancestor]; //[ancestor_]
+  Double_t ancestor_pprodpz[kMaxancestor]; //[ancestor_]
+  Int_t ancestor_nucleus[kMaxancestor];    //[ancestor_]
   std::string ancestor_proc[kMaxancestor];
   std::string ancestor_ivol[kMaxancestor];
   std::string ancestor_imat[kMaxancestor];
@@ -76,12 +76,12 @@ struct DK2NuReader {
   Int_t tgtexit_tptype;
   Int_t tgtexit_tgen;
   Int_t traj_;
-  Double_t traj_trkx[kMaxtraj];   //[traj_]
-  Double_t traj_trky[kMaxtraj];   //[traj_]
-  Double_t traj_trkz[kMaxtraj];   //[traj_]
-  Double_t traj_trkpx[kMaxtraj];  //[traj_]
-  Double_t traj_trkpy[kMaxtraj];  //[traj_]
-  Double_t traj_trkpz[kMaxtraj];  //[traj_]
+  Double_t traj_trkx[kMaxtraj];  //[traj_]
+  Double_t traj_trky[kMaxtraj];  //[traj_]
+  Double_t traj_trkz[kMaxtraj];  //[traj_]
+  Double_t traj_trkpx[kMaxtraj]; //[traj_]
+  Double_t traj_trkpy[kMaxtraj]; //[traj_]
+  Double_t traj_trkpz[kMaxtraj]; //[traj_]
   Int_t flagbits;
   std::vector<Int_t> vint;
   std::vector<Double_t> vdbl;
@@ -92,6 +92,17 @@ struct DK2NuReader {
   UInt_t CEnt;
 
   void SetBranchAddresses(bool DK2NULite = false);
+  void SetPPFXBranchAddresses(size_t NUniverses = 100);
+
+  TChain *ppfx_tree;
+  UInt_t ppfx_NFiles;
+  UInt_t ppfx_NEntries;
+  double ppfx_cvwgt;
+  double *ppfx_vwgt_tot;
+  UInt_t ppfx_NUniverses;
+
+  void AddPPFXFriend(std::string treeName, std::string inputFiles,
+                     size_t NUniverses);
 
   double GetParentMass();
 
@@ -125,9 +136,9 @@ struct DKMetaReader {
   Double_t beamdxdz;
   Double_t beamdydz;
   Int_t location_;
-  Double_t location_x[kMaxlocation];  //[location_]
-  Double_t location_y[kMaxlocation];  //[location_]
-  Double_t location_z[kMaxlocation];  //[location_]
+  Double_t location_x[kMaxlocation]; //[location_]
+  Double_t location_y[kMaxlocation]; //[location_]
+  Double_t location_z[kMaxlocation]; //[location_]
   // std::string location_name[kMaxlocation];
   // std::vector<std::string> vintnames;
   // std::vector<std::string> vdblnames;

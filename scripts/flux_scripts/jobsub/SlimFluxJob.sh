@@ -17,6 +17,11 @@ if [ ! -e inputs.list ]; then
   exit 3
 fi
 
+INCLUDE_PPFX="0"
+if [ -e ppfx_inputs.list ]; then
+  INCLUDE_PPFX="1"
+fi
+
 PNFS_PATH_APPEND=""
 if [ ! -z ${1} ]; then
   echo "[INFO]: Appending path to pnfs outdir: ${1}"
@@ -57,7 +62,21 @@ echo "[INFO]: NINPUT_FILES_FOUND: ${NINPUT_FILES_FOUND}"
 
 if [ -z ${NINPUT_FILES_FOUND} ]; then
   echo "[ERROR]: Found no input files with: cat inputs.list | head -${LN} | tail -${NFILES_TO_READ}"
-  exit 6
+  exit 7
+fi
+
+if [ "${INCLUDE_PPFX}" == "1" ]; then
+  PPFX_INPUT_FILE_PATHS=( $( cat ppfx_inputs.list | head -${LAST_READ_LN} | tail -${NFILES_TO_READ} ) )
+  PPFX_NINPUT_FILES_FOUND=${#PPFX_INPUT_FILE_PATHS[@]}
+
+  echo "[INFO]: cat ppfx_inputs.list | head -${LN} | tail -${NFILES_TO_READ}"
+  echo "[INFO]: PPFX_INPUT_FILE_PATHS: ${PPFX_INPUT_FILE_PATHS[@]}"
+  echo "[INFO]: PPFX_NINPUT_FILES_FOUND: ${PPFX_NINPUT_FILES_FOUND}"
+
+  if [ ${PPFX_NINPUT_FILES_FOUND} != ${NINPUT_FILES_FOUND} ]; then
+    echo "[ERROR]: Mismatched number of PPFX files (${PPFX_NINPUT_FILES_FOUND} != ${NINPUT_FILES_FOUND})."
+    exit 6
+  fi
 fi
 
 printenv
@@ -76,7 +95,7 @@ fi
 
 if [ -z ${GRID_USER} ]; then
   echo "Failed to get GRID_USER."
-  exit 9
+  exit 8
 fi
 
 cp dp_MakeLitedk2nu $_CONDOR_SCRATCH_DIR/
@@ -114,6 +133,7 @@ cd inputs
 
 echo "Copying inputs @ $(date)"
 
+INPUT_FILE_CSL=""
 for FP_IT in ${INPUT_FILE_PATHS[@]}; do
   FN=${FP_IT##*/}
   echo "[INFO]: File ${FP_IT} => ${FN}"
@@ -129,11 +149,51 @@ for FP_IT in ${INPUT_FILE_PATHS[@]}; do
   echo "[FILE: ${FP_IT}]: ifdh cp $IFDH_OPTION ${FP_IT} ${FN}"
   ifdh cp $IFDH_OPTION ${FP_IT} ${FN}
 
+  if [ -z ${INPUT_FILE_CSL} ]; then
+    INPUT_FILE_CSL="inputs/${FN}"
+  else
+    INPUT_FILE_CSL="inputs/${FN},${INPUT_FILE_CSL}"
+  fi
+
   if [ $? -ne 0 ]; then
     echo "Unable to copy input file: \"${FP_IT}\". Does it exist?"
     exit 13
   fi
 done
+
+
+if [ "${INCLUDE_PPFX}" == "1" ]; then
+
+  echo "Copying ppfx_inputs @ $(date)"
+
+  PPFX_INPUT_FILE_CSL=""
+  for FP_IT in ${PPFX_INPUT_FILE_PATHS[@]}; do
+    FN=${FP_IT##*/}
+    echo "[INFO]: File ${FP_IT} => ${FN}"
+
+    echo "ifdh ls ${FP_IT}"
+    ifdh ls ${FP_IT}
+
+    if [ $? -ne 0 ]; then
+      echo "Unable to read input file: \"${FP_IT}\". Does it exist?"
+      exit 12
+    fi
+
+    echo "[PPFX_FILE: ${FP_IT}]: ifdh cp $IFDH_OPTION ${FP_IT} ${FN}"
+    ifdh cp $IFDH_OPTION ${FP_IT} ${FN}
+
+    if [ -z ${PPFX_INPUT_FILE_CSL} ]; then
+      PPFX_INPUT_FILE_CSL="inputs/${FN}"
+    else
+      PPFX_INPUT_FILE_CSL="inputs/${FN},${PPFX_INPUT_FILE_CSL}"
+    fi
+
+    if [ $? -ne 0 ]; then
+      echo "Unable to copy input file: \"${FP_IT}\". Does it exist?"
+      exit 13
+    fi
+  done
+fi
 
 cd ../
 
@@ -151,8 +211,15 @@ echo "[INFO]: Writing output to: ${OUT_FILENAME} "
 
 echo "Slimming fluxes @ $(date)"
 
-echo "./dp_MakeLitedk2nu -i \"inputs/*.dk2nu.root\" -o ${OUT_FILENAME}"
-./dp_MakeLitedk2nu -i "inputs/*.dk2nu.root" -o ${OUT_FILENAME}
+INPUT_FILE_CSL
+PPFX_INPUT_FILE_CSL
+if [ "${INCLUDE_PPFX}" == "1" ]; then
+  echo "./dp_MakeLitedk2nu -i \"${INPUT_FILE_CSL}\" -p \"${PPFX_INPUT_FILE_CSL}\" -o ${OUT_FILENAME}"
+  ./dp_MakeLitedk2nu -i "${INPUT_FILE_CSL}" -p "${PPFX_INPUT_FILE_CSL}" -o ${OUT_FILENAME}
+else
+  echo "./dp_MakeLitedk2nu -i \"${INPUT_FILE_CSL}\" -o ${OUT_FILENAME}"
+  ./dp_MakeLitedk2nu -i "${INPUT_FILE_CSL}" -o ${OUT_FILENAME}
+fi
 
 
 echo "Finished."

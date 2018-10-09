@@ -272,3 +272,30 @@ void FindTH1Peaks(TH1D const *flux, int &left, int &right, int n) {
     content[1] = content[2];
   }
 }
+
+#ifdef USE_EIGEN
+
+Eigen::MatrixXd GetEigenMatrix(TMatrixD const *rm) {
+  Eigen::MatrixXd em(rm->GetNrows(), rm->GetNcols());
+
+  for (Int_t ir = 0; ir < rm->GetNrows(); ++ir) {
+    for (Int_t ic = 0; ic < rm->GetNcols(); ++ic) {
+      em(ir, ic) = (*rm)[ir][ic];
+    }
+  }
+
+  return em;
+}
+TMatrixD GetTMatrixD(Eigen::MatrixXd const &em) {
+  TMatrixD rm(em.rows(), em.cols());
+
+  for (Int_t ir = 0; ir < rm.GetNrows(); ++ir) {
+    for (Int_t ic = 0; ic < rm.GetNcols(); ++ic) {
+      rm[ir][ic] = rm(ir, ic);
+    }
+  }
+
+  return rm;
+}
+
+#endif

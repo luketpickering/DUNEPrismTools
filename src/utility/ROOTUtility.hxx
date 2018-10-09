@@ -10,6 +10,11 @@
 #include "TKey.h"
 #include "TRegexp.h"
 #include "TTree.h"
+#include "TMatrixD.h"
+
+#ifdef USE_EIGEN
+#include "Eigen/Core"
+#endif
 
 #include <iostream>
 #include <limits>
@@ -243,5 +248,10 @@ void FindTH1Peaks(TH1D const *flux, int &left, int &right, int n);
 
 double FindHistogramPeak(TH1D *hist, double resolution,
                          std::string const &WriteName);
+
+#ifdef USE_EIGEN
+Eigen::MatrixXd GetEigenMatrix(TMatrixD const *);
+TMatrixD GetTMatrixD(Eigen::MatrixXd const *);
+#endif
 
 #endif

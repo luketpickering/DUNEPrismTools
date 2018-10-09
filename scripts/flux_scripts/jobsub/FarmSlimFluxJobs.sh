@@ -8,6 +8,7 @@ INPUTLIST=""
 LIFETIME_EXP="30m"
 DISK_EXP="1GB"
 MEM_EXP="1GB"
+INCLUDE_PPFX="0"
 
 while [[ ${#} -gt 0 ]]; do
 
@@ -48,6 +49,12 @@ while [[ ${#} -gt 0 ]]; do
       INPUTLIST=$(readlink -f $2)
       echo "[OPT]: Using \"${INPUTLIST}\" as a dk2nu input file list."
       shift # past argument
+      ;;
+
+      -P|--PPFX)
+
+      INCLUDE_PPFX="1"
+      echo "[OPT]: Looking for PPFX friend files."
       ;;
 
       -n|--n-per-job)
@@ -118,11 +125,12 @@ while [[ ${#} -gt 0 ]]; do
       echo -e "\t-d|--detector-distance     : Detector distance from beam z=0 in cm."
       echo -e "\t-i|--dk2nu-input-directory : Input directory to search for dk2nu.root files"
       echo -e "\t-I|--dk2nu-input-file-list : Newline separated list of files to use as input. Must be located on dcache."
+      echo -e "\t-P|--PPFX                  : Look for PPFX friend trees to input dk2nu files."
       echo -e "\t-n|--n-per-job             : Number of files to run per job. (default: 10)"
       echo -e "\t-N|--NMAXJobs              : Maximum number of jobs to submit."
       echo -e "\t--expected-disk            : Expected disk usage to pass to jobsub -- approx 100MB* the value passed to -\'n\' (default: 1GB)"
-      echo -e "\t--expected-mem             : Expected mem usage to pass to jobsub -- Scales with the number of detector stops in the xml passed to \'--r\' (default: 2GB)"
-      echo -e "\t--expected-walltime        : Expected disk usage to pass to jobsub -- Scales with both of the above, but 20m for 1 million entries and 1000 fluxes to build is about right (default: 20m)"
+      echo -e "\t--expected-mem             : Expected mem usage to pass to jobsub (default: 2GB)"
+      echo -e "\t--expected-walltime        : Expected disk usage to pass to jobsub (default: 20m)"
       echo -e "\t-?|--help                  : Print this message."
       exit 0
       ;;
@@ -200,6 +208,21 @@ else
   fi
 fi
 
+if [ "${INCLUDE_PPFX}" == "1"  ]; then
+
+  rm -f ppfx_inputs.list
+  touch ppfx_inputs.list
+
+  for INP in cat inputs.list; do
+    IDIR=${INP%/*}
+    PPFX_IDIR=$(echo ${IDIR} | sed 's:neutrino/flux:neutrino/ppfx/hadron/flux:g')
+    INPF=${INP##*/}
+    PPFX_INPF=$(echo ${INPF} | sed 's:neutrino_:neutrino_ppfx_friend_:g' | sed 's:dk2nu\.::g')
+    echo ${PPFX_IDIR}/${PPFX_INPF} >> ppfx_inputs.list
+  done
+
+fi
+
 NJOBSTORUN=$(python -c "from math import ceil; print int(ceil(float(${NINPUTS})/float(${NPERJOB}))); ")
 if [ ! -z ${NMAXJOBS} ]; then
   NJOBSTORUN=$(python -c "print min(${NMAXJOBS},${NJOBSTORUN})")
@@ -227,7 +250,7 @@ fi
 
 cp ${DUNEPRISMTOOLSROOT}/bin/dp_MakeLitedk2nu .
 
-tar -zcvf apps.@DUNEPrismTools_VERSION_STRING@.tar.gz dp_MakeLitedk2nu inputs.list
+tar -zcvf apps.@DUNEPrismTools_VERSION_STRING@.tar.gz dp_MakeLitedk2nu *inputs.list
 
 echo "Submitting job: jobsub_submit --group=${EXPERIMENT} --jobid-output-only --resource-provides=usage_model=OPPORTUNISTIC --expected-lifetime=${LIFETIME_EXP} --disk=${DISK_EXP} -N ${NJOBSTORUN} --memory=${MEM_EXP} --cpu=1 --OS=SL6 --tar_file_name=dropbox://apps.@DUNEPrismTools_VERSION_STRING@.tar.gz file://${DUNEPRISMTOOLSROOT}/scripts/SlimFluxJob.sh ${PNFS_PATH_APPEND} ${NPERJOB}"
 JID=$(jobsub_submit --group=${EXPERIMENT} --jobid-output-only --resource-provides=usage_model=OPPORTUNISTIC --expected-lifetime=${LIFETIME_EXP} --disk=${DISK_EXP} -N ${NJOBSTORUN} --memory=${MEM_EXP} --cpu=1 --OS=SL6 --tar_file_name=dropbox://apps.@DUNEPrismTools_VERSION_STRING@.tar.gz file://${DUNEPRISMTOOLSROOT}/scripts/SlimFluxJob.sh ${PNFS_PATH_APPEND} ${NPERJOB})

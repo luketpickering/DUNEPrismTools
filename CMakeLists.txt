@@ -36,6 +36,12 @@ elseif(NOT DEFINED USE_FHICL)
   set(USE_FHICL FALSE)
 endif()
 
+if(USE_EIGEN STREQUAL "")
+  set(USE_EIGEN FALSE)
+elseif(NOT DEFINED USE_EIGEN)
+  set(USE_EIGEN FALSE)
+endif()
+
 ################################################################################
 #                            Check Dependencies
 ################################################################################
@@ -53,6 +59,9 @@ include(${CMAKE_SOURCE_DIR}/cmake/Prob3++Setup.cmake)
 
 ###############################  fhiclcpp  #####################################
 include(${CMAKE_SOURCE_DIR}/cmake/fhiclcppSetup.cmake)
+
+###############################  fhiclcpp  #####################################
+include(${CMAKE_SOURCE_DIR}/cmake/eigenSetup.cmake)
 
 ################################## COMPILER ####################################
 LIST(APPEND EXTRA_CXX_FLAGS -fopenmp)

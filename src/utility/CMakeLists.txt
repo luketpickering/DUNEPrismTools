@@ -14,6 +14,10 @@ install(TARGETS DUNE-PRISM_Utility DESTINATION lib)
 
 target_link_libraries(DUNE-PRISM_Utility ${ROOT_LIBS})
 
+if(DEFINED USE_EIGEN AND USE_EIGEN)
+  add_dependencies(DUNE-PRISM_Utility eigen)
+endif()
+
 if(NOT "${CMAKE_LINK_FLAGS}" STREQUAL "")
   set_target_properties(DUNE-PRISM_Utility PROPERTIES LINK_FLAGS ${CMAKE_LINK_FLAGS})
 endif()
