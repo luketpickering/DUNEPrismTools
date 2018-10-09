@@ -1,0 +1,18 @@
+<DUNEPrism>
+  <RunPlan Name="RunPlan.39mLAr.7mx3mx5mActive_overlaps">
+    <!-- Veto region pads inside of these dimensions -->
+    <Detector DetectorActiveWidth_m="7" DetectorActiveHeight_m="3" DetectorActiveDepth_m="5" />
+    <Stops>
+      <!-- Total POT 1.1E21 -->
+      <Stop LateralOffset_m="0" POTExposure="1.1E20"/>
+      <Stop LateralOffset_m="-4" POTExposure="1.1E20"/>
+      <Stop LateralOffset_m="-8" POTExposure="1.1E20"/>
+      <Stop LateralOffset_m="-12" POTExposure="1.1E20"/>
+      <Stop LateralOffset_m="-16" POTExposure="1.1E20"/>
+      <Stop LateralOffset_m="-20" POTExposure="1.1E20"/>
+      <Stop LateralOffset_m="-24" POTExposure="1.1E20"/>
+      <Stop LateralOffset_m="-28" POTExposure="1.1E20"/>
+      <Stop LateralOffset_m="-32" POTExposure="1.1E20"/>
+    </Stops>
+  </RunPlan>
+</DUNEPrism>

@@ -1,0 +1,254 @@
+<config>
+
+  <PlotStyles>
+
+    <Style Name="Default">
+
+      <FrameBorderMode>0</FrameBorderMode>
+      <CanvasBorderMode>0</CanvasBorderMode>
+      <CanvasColor>0</CanvasColor>
+      <CanvasFillStyle>4000</CanvasFillStyle>
+      <CanvasLineStyle>0</CanvasLineStyle>
+      <CanvasLineWidth>0</CanvasLineWidth>
+      <CanvasLineColor>0</CanvasLineColor>
+
+      <PadBorderMode>0</PadBorderMode>
+      <PadColor>0</PadColor>
+      <PadFillStyle>4000</PadFillStyle>
+      <PadLineStyle>0</PadLineStyle>
+      <PadLineWidth>0</PadLineWidth>
+      <PadLineColor>kBlack</PadLineColor>
+      <PadTickScale>0.5</PadTickScale>
+
+      <PadTopMargin>0.1</PadTopMargin>
+      <PadBottomMargin>0.175</PadBottomMargin>
+      <PadLeftMargin>0.15</PadLeftMargin>
+      <PadRightMargin>0.03</PadRightMargin>
+      <PadGridX>0</PadGridX>
+      <PadGridY>0</PadGridY>
+      <PadTickX>1</PadTickX>
+      <PadTickY>1</PadTickY>
+      <StatColor>kWhite</StatColor>
+      <FillColor>kWhite</FillColor>
+      <LegendBorderSize>0</LegendBorderSize>
+      <LegendFillColor>0</LegendFillColor>
+      <LegendFillStyle>4000</LegendFillStyle>
+      <LegendTextSize>0.06</LegendTextSize>
+      <LegendTextColor>kBlack</LegendTextColor>
+      <LegendFont>132</LegendFont>
+
+      <PaperSize>20</PaperSize>
+      <PaperMargin>26</PaperMargin>
+
+      <TextFont>132</TextFont>
+      <TextSize>1.0</TextSize>
+      <TitleFillColor>kWhite</TitleFillColor>
+      <TitleX>0.4</TitleX>
+      <TitleFontSize>2</TitleFontSize>
+      <TitleFont>132</TitleFont>
+
+      <MarkerStyle>20</MarkerStyle>
+      <HistLineWidth>1.85</HistLineWidth>
+      <ErrorX>0.5</ErrorX>
+      <OptTitle>0</OptTitle>
+      <OptStat>0</OptStat>
+      <OptFit>0</OptFit>
+      <HatchesLineWidth>1.5</HatchesLineWidth>
+
+      <MaxAxisDigits>3</MaxAxisDigits>
+
+      <LabelFontX>132</LabelFontX>
+      <LabelFontY>132</LabelFontY>
+      <LabelFontZ>132</LabelFontZ>
+
+      <TitleFontX>132</TitleFontX>
+      <TitleFontY>132</TitleFontY>
+      <TitleFontZ>132</TitleFontZ>
+
+      <LabelOffsetX>0.0075</LabelOffsetX>
+      <LabelOffsetY>0.0075</LabelOffsetY>
+      <LabelOffsetZ>0.0075</LabelOffsetZ>
+
+      <TitleOffsetX>1.0</TitleOffsetX>
+      <TitleOffsetY>1.0</TitleOffsetY>
+      <TitleOffsetZ>1.0</TitleOffsetZ>
+
+      <LabelSizeX>0.06</LabelSizeX>
+      <LabelSizeY>0.06</LabelSizeY>
+      <LabelSizeZ>0.06</LabelSizeZ>
+
+      <TitleSizeX>0.06</TitleSizeX>
+      <TitleSizeY>0.06</TitleSizeY>
+      <TitleSizeZ>0.06</TitleSizeZ>
+
+      <LabelColorX>kBlack</LabelColorX>
+      <LabelColorY>kBlack</LabelColorY>
+      <LabelColorZ>kBlack</LabelColorZ>
+
+      <TitleColorX>kBlack</TitleColorX>
+      <TitleColorY>kBlack</TitleColorY>
+      <TitleColorZ>kBlack</TitleColorZ>
+
+      <AxisColorX>kBlack</AxisColorX>
+      <AxisColorY>kBlack</AxisColorY>
+      <AxisColorZ>kBlack</AxisColorZ>
+
+    </Style>
+
+  </PlotStyles>
+
+  <Plots>
+
+<!--     <Canvas nx="2" StyleName="Default" SeriesStyleHint="Variety_7" Name="PRISMPlots_GTruth" StyleName="Default" XWidth="600" YWidth="600" PrintName="PRISMPlots_GTruth.pdf" >
+      <Pad xnd="505" ynd="505" yto="1.35" xto="1.15" ats="0.4" ml="0.175" mt="0.08" mb="0.15" mr="0.15" YTitle="Count (A.U.)" XTitle="E (GeV)" ds="1.2">
+
+        <Legend Position="TopRight" Width="0.45" Height="0.45" Title="" TextScale="0.4" NColumns="1" />
+
+        <ExternalTH1 rf="FluxFit.root" tn="GENIE_evr/PredictedMeasurement_unorm" do="CHIST" lw="2" lc="kBlack" lt="GENIE Spline Prediction" />
+        <ExternalTH1 rf="Selected.root" tn="TruthLinearCombinations/LinCombETrue" do="CHIST" lw="3" ls="2" sw="1" fi="1" lc="Variety_0" lt="True (E_{#nu}, Events)" />
+        <ExternalTH1 rf="Selected.root" tn="TruthLinearCombinations/LinCombEProxy" do="CHIST" lw="3" ls="5" sw="1" fi="1" lc="Variety_1" lt="True (E_{Proxy}, Events)" />
+        <ExternalTH1 rf="PRISMPrediction.root" rs="0.5" tn="LinCombEProxy" do="E1" sw="1" fi="1" lc="Variety_2" lt="Corrected (E_{Proxy}, Events)" />
+        <ExternalTH1 rf="PRISMPrediction.root" rs="0.5" tn="LinCombERec" do="E1" sw="1" fi="1" lc="Variety_3" lt="Corrected (E_{Rec}, Events)" />
+
+      </Pad>
+      <Pad xnd="505" ynd="505" yto="1.35" xto="1.15" ats="0.4" ml="0.175" mt="0.08" mb="0.15" mr="0.15" YTitle="Count" XTitle="E (GeV)" ds="1.2">
+
+        <Legend Position="TopRight" Width="0.45" Height="0.3" Title="" TextScale="0.4" NColumns="1" />
+
+        <ExternalTH1 rf="Selected.root" sw="1" tn="TruthLinearCombinations/LinCombETrue" do="CHIST" lc="Variety_0" lw="3" ls="2" lt="True (E_{#nu}, Events)" />
+        <ExternalTH1 rf="Selected.root" sw="1" tn="TruthLinearCombinations/LinCombEProxy" do="CHIST" lc="Variety_1" lw="3" ls="5" lt="True (E_{Proxy}, Events)" />
+        <ExternalTH1 rf="PRISMPrediction.root" sw="1" tn="LinCombEProxy" do="E1" lc="Variety_2" lt="Corrected (E_{Proxy}, Events)" />
+        <ExternalTH1 rf="PRISMPrediction.root" sw="1" tn="LinCombERec" do="E1" lc="Variety_3" lt="Corrected (E_{Rec}, Events)" />
+
+      </Pad>
+
+      <Pad xnd="505" ynd="505" yto="1.35" xto="1.15" ats="0.4" ml="0.175" mt="0.08" mb="0.15" mr="0.15" YTitle="Count" XTitle="Offset (cm)" dmx="3" dmn="-3" >
+        <ExternalTH1 rf="FluxFit.root" tn="weighted_fluxes/Coeffs" do="CHIST" lc="0" lw="0" ls="0" xmx="38"/>
+        <ExternalTGraph rf="FluxFit.root" tn="coeffs" lc="Variety_0" mc="Variety_0" ms="20" mw="0.5" />
+      </Pad>
+
+      <Pad xnd="505" ynd="505" yto="1.35" xto="1.15" ats="0.4" ml="0.175" mt="0.08" mb="0.15" mr="0.15" YTitle="FD Flux Correction (Needs POT scale)" XTitle="E (GeV)"  ds="1.2">
+        <Legend Position="BottomLeft" Width="0.45" Height="0.2" Title="" TextScale="0.25" NColumns="1" />
+        <ExternalTH1 rf="PRISMPrediction.root" sw="1" tn="FDFluxCorrection_True" do="E1" lc="Variety_0" lt="True E_{#nu}, FDEff+Osc weighted" />
+        <ExternalTH1 rf="PRISMPrediction.root" sw="1" tn="FDFluxCorrection_ERec" do="E1" lc="Variety_2" lt="E_{Rec}, FDEff+Osc weighted" />
+      </Pad>
+
+    </Canvas>
+
+    <Canvas StyleName="Default" SeriesStyleHint="Variety_7" Name="PRISMPlots" StyleName="Default" XWidth="600" YWidth="600" PrintName="PRISMPlots.pdf" >
+      <Pad xnd="505" ynd="505" yto="1.35" xto="1.15" ats="0.4" ml="0.175" mt="0.08" mb="0.15" mr="0.15" YTitle="Count" XTitle="E (GeV)" ds="1.2">
+
+        <Legend Position="TopRight" Width="0.45" Height="0.3" Title="" TextScale="0.4" NColumns="1" />
+
+        <ExternalTH1 rf="Selected.root" sw="1" tn="TruthLinearCombinations/LinCombEProxy" do="EHIST" lc="Variety_1" lw="2" lt="True (E_{Proxy}, Events)" />
+        <ExternalTH1 rf="PRISMPrediction.root" sw="1" tn="LinCombEProxy" do="E1" lc="Variety_2" mc="Variety_2" mw="0.75" ms="20" lt="Corrected (E_{Proxy}, Events)" />
+        <ExternalTH1 rf="PRISMPrediction.root" sw="1" tn="LinCombERec" do="E1" lc="Variety_3" mc="Variety_3" mw="0.75" ms="20" lt="Corrected (E_{Rec}, Events)" />
+
+      </Pad>
+      <Pad xnd="505" ynd="505" yto="1.35" xto="1.15" ats="0.4" ml="0.175" mt="0.08" mb="0.15" mr="0.15" YTitle="Count (Arb. Norm.)" XTitle="E (GeV)" ds="1.2">
+
+        <Legend Position="TopRight" Width="0.45" Height="0.3" Title="" TextScale="0.4" NColumns="1" />
+
+        <ExternalTH1 rf="PRISMPrediction.root" sw="1" sp="1" tn="FDPrediction_ERec" do="EHIST" lc="kBlack" lt="FD obs." />
+        <ExternalTH1 rf="PRISMPrediction.root" sw="1" sp="1" tn="LinCombERec" do="E1" lc="Variety_3" mc="Variety_3" mw="0.75" ms="20" lt="Linear comb. ND obs." />
+
+      </Pad>
+      <Pad xnd="505" ynd="505" yto="1.35" xto="1.15" ats="0.4" ml="0.175" mt="0.08" mb="0.15" mr="0.15" YTitle="E_{Rec}/E_{Proxy}" XTitle="E (GeV)" dmx="4" dmn="-2">
+
+        <Hist1DRatio do="HIST" lc="Variety_3" mc="Variety_3" mw="0.75" ms="20">
+          <ExternalTH1 rf="PRISMPrediction.root" sw="1" tn="LinCombERec" lt="Corrected (E_{Rec}, Events)" />
+          <ExternalTH1 rf="PRISMPrediction.root" sw="1" tn="LinCombEProxy" lt="Corrected (E_{Proxy}, Events)" />
+        </Hist1DRatio>
+
+      </Pad>
+    </Canvas>
+ -->
+    <Canvas StyleName="Default" SeriesStyleHint="Variety_7" Name="PRISMPlotsForTalk" StyleName="Default" XWidth="600" YWidth="600" PrintName="PRISMPlotsForTalk.pdf" >
+      <Pad xnd="505" ynd="505" yto="1.35" xto="1.15" ats="0.4" ml="0.175" mt="0.08" mb="0.15" mr="0.15" YTitle="Count" XTitle="E (GeV)" ds="1.2">
+
+        <Legend Position="TopRight" Width="0.7" Height="0.3" Title="" TextScale="0.4" NColumns="1" />
+
+        <ExternalTH1 rf="PRISMPrediction.root" sw="1" tn="LinCombOneShotETrue" do="EHIST" lc="Variety_0" lt="Corrected (E_{#nu})" />
+        <ExternalTH1 rf="PRISMPrediction.root" sw="1" tn="LinCombOneShotERec" do="P" lc="Variety_2" mc="Variety_2" mw="0.5" ms="20" lt="Corrected (E_{Rec})" />
+
+      </Pad>
+      <Pad xnd="505" ynd="505" yto="1.35" xto="1.15" ats="0.4" ml="0.175" mt="0.08" mb="0.15" mr="0.15" YTitle="Count" XTitle="E_{#nu} (GeV)" ds="1.2">
+
+        <Legend Position="TopRight" Width="0.7" Height="0.3" Title="" TextScale="0.4" NColumns="1" />
+
+        <ExternalTH1 rf="PRISMPrediction.root" tn="Results/FDPrediction_True_POTScaled_HEURSCALE" do="EHIST" lc="kBlack" lt="Far detector" />
+        <ExternalTH1 rf="PRISMPrediction.root" tn="Results/LinCombOneShotETrue_POTScaled_HEURSCALE" do="P" lc="Variety_3" mc="Variety_3" mw="0.5" ms="20" lt="ND Data" />
+
+      </Pad>
+      <Pad xnd="505" ynd="505" yto="1.35" xto="1.15" ats="0.4" ml="0.175" mt="0.08" mb="0.15" mr="0.15" YTitle="Count" XTitle="E_{#nu} (GeV)" dmn="0" dmx="35E3" >
+
+        <Legend Position="TopRight" Width="0.7" Height="0.3" Title="" TextScale="0.4" NColumns="1" />
+
+        <StackedHist1D>
+          <ExternalTH1 rf="PRISMPrediction.root" tn="Results/FDAcceptanceCorrection_True_HEURSCALE" do="HIST" lc="Variety_4" fc="Variety_4" fs="1000" lt="Acceptance correction" />
+          <ExternalTH1 rf="PRISMPrediction.root" tn="Results/FDFluxCorrection_True_HEURSCALE" do="HIST" lc="Variety_2" fc="Variety_2" fs="1000" lt="Flux correction" />
+          <ExternalTH1 rf="PRISMPrediction.root" tn="Results/LinCombOneShotETrue_POTScaled_HEURSCALE" do="HIST" lc="Variety_3" fc="Variety_3" fs="1000" lt="ND Data" />
+        </StackedHist1D>
+        <ExternalTH1 rf="PRISMPrediction.root" tn="Results/FDPrediction_True_POTScaled_HEURSCALE" do="EHIST" lc="kBlack" lt="Far detector" />
+        <ExternalTH1 rf="PRISMPrediction.root" tn="Results/LinCombOneShotETrue_POTScaled_WithCorr_HEURSCALE" do="E" lc="Variety_0" mc="Variety_0" mw="0.4" ms="20" />
+
+      </Pad>
+      <Pad xnd="505" ynd="505" yto="1.35" xto="1.15" ats="0.4" ml="0.175" mt="0.08" mb="0.15" mr="0.15" YTitle="Count" XTitle="E_{Rec} (GeV)" dmn="0" dmx="35E3" >
+
+        <Legend Position="TopRight" Width="0.7" Height="0.3" Title="" TextScale="0.4" NColumns="1" />
+
+        <StackedHist1D>
+          <ExternalTH1 rf="PRISMPrediction.root" tn="Results/FDAcceptanceCorrection_ERec_HEURSCALE" do="HIST" lc="Variety_4" fc="Variety_4" fs="1000" lt="Acceptance correction" />
+          <ExternalTH1 rf="PRISMPrediction.root" tn="Results/FDFluxCorrection_ERec_HEURSCALE" do="HIST" lc="Variety_2" fc="Variety_2" fs="1000" lt="Flux correction" />
+          <ExternalTH1 rf="PRISMPrediction.root" tn="Results/LinCombOneShotERec_POTScaled_HEURSCALE" do="HIST" lc="Variety_3" fc="Variety_3" fs="1000" lt="ND Data" />
+        </StackedHist1D>
+        <ExternalTH1 rf="PRISMPrediction.root" tn="Results/FDPrediction_ERec_POTScaled_HEURSCALE" do="EHIST" lc="kBlack" lt="Far detector" />
+        <ExternalTH1 rf="PRISMPrediction.root" tn="Results/LinCombOneShotERec_POTScaled_WithCorr_HEURSCALE" do="E" lc="Variety_0" mc="Variety_0" mw="0.4" ms="20" />
+
+      </Pad>
+    </Canvas>
+
+<!--
+    <Canvas StyleName="Default" SeriesStyleHint="Variety_7" Name="NDFDERecRatios" StyleName="Default" XWidth="600" YWidth="600" PrintName="NDFDERecRatios.pdf" >
+      <Pad xnd="505" ynd="505" yto="1.35" xto="1.15" ats="0.4" ml="0.175" mt="0.08" mb="0.15" mr="0.15" YTitle="Count" XTitle="E (GeV)" ds="1.2">
+
+        <Legend Position="TopRight" Width="0.45" Height="0.3" Title="Far detector" TextScale="0.4" NColumns="1" />
+
+        <ExternalTH1 rf="PRISMPrediction.root" sw="1" tn="FDPrediction_True" do="CHIST" lc="kBlack" lt="E_{#nu}" />
+        <ExternalTH1 rf="PRISMPrediction.root" sw="1" tn="FDPrediction_ERec" do="E1" lc="Variety_2" lt="E_{Rec}" />
+
+      </Pad>
+      <Pad xnd="505" ynd="505" yto="1.35" xto="1.15" ats="0.4" ml="0.175" mt="0.08" mb="0.15" mr="0.15" YTitle="Count" XTitle="E (GeV)" ds="1.2">
+
+        <Legend Position="TopRight" Width="0.45" Height="0.3" Title="Near detector" TextScale="0.4" NColumns="1" />
+
+        <ExternalTH1 rf="PRISMPrediction.root" sw="1" tn="LinCombOneShotETrue" do="CHIST" lc="kBlack" lt="E_{#nu}" />
+        <ExternalTH1 rf="PRISMPrediction.root" sw="1" tn="LinCombOneShotEProxy" do="CHIST" lc="Variety_1" lt="E_{Avail}" />
+        <ExternalTH1 rf="PRISMPrediction.root" sw="1" tn="LinCombOneShotERec" do="E1" lc="Variety_2" lt="E_{Rec}" />
+
+      </Pad>
+      <Pad xnd="505" ynd="505" yto="1.35" xto="1.15" ats="0.4" ml="0.175" mt="0.08" mb="0.15" mr="0.15" YTitle="E_{Rec}/E_{Proxy}" XTitle="E (GeV)" dmx="4" dmn="-2">
+
+        <Hist1DRatio do="HIST" lc="Variety_3">
+          <ExternalTH1 rf="PRISMPrediction.root" sw="1" tn="FDPrediction_ERec" />
+          <ExternalTH1 rf="PRISMPrediction.root" sw="1" tn="FDPrediction_True" />
+        </Hist1DRatio>
+
+      </Pad>
+      <Pad xnd="505" ynd="505" yto="1.35" xto="1.15" ats="0.4" ml="0.175" mt="0.08" mb="0.15" mr="0.15" YTitle="E_{Rec}/E_{Proxy}" XTitle="E (GeV)" dmx="4" dmn="-2">
+
+        <Hist1DRatio do="HIST" lc="Variety_3">
+          <ExternalTH1 rf="PRISMPrediction.root" sw="1" tn="LinCombOneShotERec" />
+          <ExternalTH1 rf="PRISMPrediction.root" sw="1" tn="LinCombOneShotETrue" />
+        </Hist1DRatio>
+
+        <Hist1DRatio do="HIST" lc="Variety_4">
+          <ExternalTH1 rf="PRISMPrediction.root" sw="1" tn="LinCombOneShotERec" />
+          <ExternalTH1 rf="PRISMPrediction.root" sw="1" tn="LinCombOneShotEProxy" />
+        </Hist1DRatio>
+
+      </Pad>
+    </Canvas> -->
+
+  </Plots>
+</config>

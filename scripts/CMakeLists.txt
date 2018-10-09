@@ -1,0 +1,5 @@
+file(GLOB FLUXSCRIPTS ${CMAKE_CURRENT_SOURCE_DIR}/flux_scripts/jobsub/*.sh)
+install(PROGRAMS ${FLUXSCRIPTS} DESTINATION ${CMAKE_INSTALL_PREFIX}/scripts/flux_scripts/)
+
+file(GLOB G4PYSIMSCRIPTS ${CMAKE_CURRENT_SOURCE_DIR}/sim_scripts/g4py/jobsub/*.sh)
+install(PROGRAMS ${G4PYSIMSCRIPTS} DESTINATION ${CMAKE_INSTALL_PREFIX}/scripts/sim_scripts/g4py)

@@ -1,0 +1,22 @@
+BEGIN_PROLOG
+
+OscillationParameters_T2K2017: {
+  S2Th12: 0.297
+  S2Th13: 0.0214
+  S2Th23: 0.534
+
+  Dm2_21: 7.37E-5
+  Dm2_Atm: 2.539E-3
+  dcp: 0
+}
+
+Baseline_DUNE: {
+  dip_angle: 5.8
+}
+
+Oscillation_T2K2017_DUNE: {
+  OscillationParameters: @local::OscillationParameters_T2K2017
+  Baseline: @local::Baseline_DUNE
+}
+
+END_PROLOG
