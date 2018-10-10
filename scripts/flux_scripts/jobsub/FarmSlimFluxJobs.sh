@@ -9,6 +9,7 @@ LIFETIME_EXP="30m"
 DISK_EXP="1GB"
 MEM_EXP="1GB"
 INCLUDE_PPFX="0"
+DRY_RUN="0"
 
 while [[ ${#} -gt 0 ]]; do
 
@@ -118,6 +119,11 @@ while [[ ${#} -gt 0 ]]; do
       shift # past argument
       ;;
 
+      -D|--dry-run)
+        echo -e "[OPT]: Performing dry run."
+        DRY_RUN="1"
+      ;;
+
       -?|--help)
 
       echo "[RUNLIKE] ${SCRIPTNAME}"
@@ -128,9 +134,10 @@ while [[ ${#} -gt 0 ]]; do
       echo -e "\t-P|--PPFX                  : Look for PPFX friend trees to input dk2nu files."
       echo -e "\t-n|--n-per-job             : Number of files to run per job. (default: 10)"
       echo -e "\t-N|--NMAXJobs              : Maximum number of jobs to submit."
-      echo -e "\t--expected-disk            : Expected disk usage to pass to jobsub -- approx 100MB* the value passed to -\'n\' (default: 1GB)"
-      echo -e "\t--expected-mem             : Expected mem usage to pass to jobsub (default: 2GB)"
-      echo -e "\t--expected-walltime        : Expected disk usage to pass to jobsub (default: 20m)"
+      echo -e "\t--expected-disk            : Expected disk usage to pass to jobsub -- approx 100MB* the value passed to -\'n\', double if using PPFX (default: 1GB)"
+      echo -e "\t--expected-mem             : Expected mem usage to pass to jobsub (default: 1GB)"
+      echo -e "\t--expected-walltime        : Expected disk usage to pass to jobsub (default: 30m)"
+      echo -e "\t-D|--dry-run)              : Do not submit any jobs"
       echo -e "\t-?|--help                  : Print this message."
       exit 0
       ;;
@@ -213,11 +220,17 @@ if [ "${INCLUDE_PPFX}" == "1"  ]; then
   rm -f ppfx_inputs.list
   touch ppfx_inputs.list
 
-  for INP in cat inputs.list; do
+  for INP in $(cat inputs.list); do
+    echo "[INFO]: Searching for PPFX friend file for \"${INP}\""
     IDIR=${INP%/*}
     PPFX_IDIR=$(echo ${IDIR} | sed 's:neutrino/flux:neutrino/ppfx/hadron/flux:g')
     INPF=${INP##*/}
     PPFX_INPF=$(echo ${INPF} | sed 's:neutrino_:neutrino_ppfx_friend_:g' | sed 's:dk2nu\.::g')
+    if [ ! -e ${PPFX_IDIR}/${PPFX_INPF} ]; then
+      echo "[ERROR]: Requested PPFX, but failed to find expected file: \"${PPFX_IDIR}/${PPFX_INPF}\" from found dk2nu file: \"${INP}\""
+      exit 1
+    fi
+    echo -e "\tFound: ${PPFX_IDIR}/${PPFX_INPF}"
     echo ${PPFX_IDIR}/${PPFX_INPF} >> ppfx_inputs.list
   done
 
@@ -248,13 +261,21 @@ if [ $? -ne 0 ]; then
   echo "Made /pnfs/dune/persistent/users/${USER}/${PNFS_PATH_APPEND}/slimflux."
 fi
 
+if [ "${DRY_RUN}" == "1" ]; then
+  echo "[INFO]: DONE Dry run..."
+  exit 0
+fi
+
 cp ${DUNEPRISMTOOLSROOT}/bin/dp_MakeLitedk2nu .
 
-tar -zcvf apps.@DUNEPrismTools_VERSION_STRING@.tar.gz dp_MakeLitedk2nu *inputs.list
+tar -zcvf apps.${DUNEPRISMTOOLS_VERSION}.tar.gz dp_MakeLitedk2nu *inputs.list
 
-echo "Submitting job: jobsub_submit --group=${EXPERIMENT} --jobid-output-only --resource-provides=usage_model=OPPORTUNISTIC --expected-lifetime=${LIFETIME_EXP} --disk=${DISK_EXP} -N ${NJOBSTORUN} --memory=${MEM_EXP} --cpu=1 --OS=SL6 --tar_file_name=dropbox://apps.@DUNEPrismTools_VERSION_STRING@.tar.gz file://${DUNEPRISMTOOLSROOT}/scripts/SlimFluxJob.sh ${PNFS_PATH_APPEND} ${NPERJOB}"
-JID=$(jobsub_submit --group=${EXPERIMENT} --jobid-output-only --resource-provides=usage_model=OPPORTUNISTIC --expected-lifetime=${LIFETIME_EXP} --disk=${DISK_EXP} -N ${NJOBSTORUN} --memory=${MEM_EXP} --cpu=1 --OS=SL6 --tar_file_name=dropbox://apps.@DUNEPrismTools_VERSION_STRING@.tar.gz file://${DUNEPRISMTOOLSROOT}/scripts/SlimFluxJob.sh ${PNFS_PATH_APPEND} ${NPERJOB})
-echo "Done."
+echo "Submitting job: jobsub_submit --group=${EXPERIMENT} --jobid-output-only --resource-provides=usage_model=OPPORTUNISTIC --expected-lifetime=${LIFETIME_EXP} --disk=${DISK_EXP} -N ${NJOBSTORUN} --memory=${MEM_EXP} --cpu=1 --OS=SL6 --tar_file_name=dropbox://apps.${DUNEPRISMTOOLS_VERSION}.tar.gz file://${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/SlimFluxJob.sh ${PNFS_PATH_APPEND} ${NPERJOB}"
+JID=$(jobsub_submit --group=${EXPERIMENT} --jobid-output-only --resource-provides=usage_model=OPPORTUNISTIC --expected-lifetime=${LIFETIME_EXP} --disk=${DISK_EXP} -N ${NJOBSTORUN} --memory=${MEM_EXP} --cpu=1 --OS=SL6 --tar_file_name=dropbox://apps.${DUNEPRISMTOOLS_VERSION}.tar.gz file://${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/SlimFluxJob.sh ${PNFS_PATH_APPEND} ${NPERJOB})
+
+JID=$(echo ${JID} | tr -d "\n" | tr -d " " | tr -d "\t")
+
+echo "Submitted job with ID: ${JID}"
 
 cd ../
 rm -r sub_tmp

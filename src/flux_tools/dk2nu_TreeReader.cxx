@@ -4,6 +4,7 @@
 
 #include <iostream>
 #include <vector>
+#include <algorithm>
 
 DK2NuReader::DK2NuReader(std::string treeName, std::string inputFiles,
                          bool DK2NULite)

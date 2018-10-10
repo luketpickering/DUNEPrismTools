@@ -48,6 +48,7 @@ if [ "${EXTRA_SETUP_SCRIPT}" ]; then
 fi
 
 export DUNEPRISMTOOLSROOT="@CMAKE_INSTALL_PREFIX@"
+export DUNEPRISMTOOLS_VERSION="@DUNEPrismTools_VERSION_STRING@"
 
 if [ "@USE_FHICL@" == "TRUE" ]; then
   echo "[INFO]: Sourcing fhiclcpp environment"

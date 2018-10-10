@@ -117,9 +117,9 @@ source /cvmfs/dune.opensciencegrid.org/products/dune/setup_dune.sh
 setup root v6_10_04d -q debug:e14:nu
 setup ifdhc v2_1_0 -q debug:e14:p2713d
 
-export IFDH_CP_UNLINK_ON_ERROR=1;
-export IFDH_CP_MAXRETRIES=1;
-export IFDH_DEBUG=1;
+export IFDH_CP_UNLINK_ON_ERROR=1
+export IFDH_CP_MAXRETRIES=1
+export IFDH_DEBUG=0
 
 ifdh ls ${PNFS_OUTDIR}/slimflux
 
@@ -211,8 +211,6 @@ echo "[INFO]: Writing output to: ${OUT_FILENAME} "
 
 echo "Slimming fluxes @ $(date)"
 
-INPUT_FILE_CSL
-PPFX_INPUT_FILE_CSL
 if [ "${INCLUDE_PPFX}" == "1" ]; then
   echo "./dp_MakeLitedk2nu -i \"${INPUT_FILE_CSL}\" -p \"${PPFX_INPUT_FILE_CSL}\" -o ${OUT_FILENAME}"
   ./dp_MakeLitedk2nu -i "${INPUT_FILE_CSL}" -p "${PPFX_INPUT_FILE_CSL}" -o ${OUT_FILENAME}

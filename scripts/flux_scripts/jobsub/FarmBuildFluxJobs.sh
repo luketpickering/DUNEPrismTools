@@ -333,11 +333,11 @@ fi
 
 cp ${DUNEPRISMTOOLSROOT}/bin/dp_BuildFluxes .
 
-tar -zcvf apps.@DUNEPrismTools_VERSION_STRING@.tar.gz dp_BuildFluxes inputs.list
+tar -zcvf apps.${DUNEPRISMTOOLS_VERSION}.tar.gz dp_BuildFluxes inputs.list
 FLUX_WINDOW_DESCRIPTOR_ENC=$(python -c "import urllib; print urllib.quote('''${FLUX_WINDOW_DESCRIPTOR}''')")
 echo "Encoded flux window descriptor: ${FLUX_WINDOW_DESCRIPTOR_ENC}"
 
-JID=$(jobsub_submit --group=${EXPERIMENT} --jobid-output-only --resource-provides=usage_model=OPPORTUNISTIC --expected-lifetime=${LIFETIME_EXP} --disk=${DISK_EXP} -N ${NJOBSTORUN} --memory=${MEM_EXP} --cpu=1 --OS=SL6 --tar_file_name=dropbox://apps.@DUNEPrismTools_VERSION_STRING@.tar.gz file://${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/BuildFluxJob.sh ${DET_DIST_CM} ${BINNING_DESCRIPTOR} ${REUSEPARENTS} ${SPECARG} ${DK2NULITE} ${PNFS_PATH_APPEND} ${NPERJOB} "${FLUX_WINDOW_DESCRIPTOR_ENC}")
+JID=$(jobsub_submit --group=${EXPERIMENT} --jobid-output-only --resource-provides=usage_model=OPPORTUNISTIC --expected-lifetime=${LIFETIME_EXP} --disk=${DISK_EXP} -N ${NJOBSTORUN} --memory=${MEM_EXP} --cpu=1 --OS=SL6 --tar_file_name=dropbox://apps.${DUNEPRISMTOOLS_VERSION}.tar.gz file://${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/BuildFluxJob.sh ${DET_DIST_CM} ${BINNING_DESCRIPTOR} ${REUSEPARENTS} ${SPECARG} ${DK2NULITE} ${PNFS_PATH_APPEND} ${NPERJOB} "${FLUX_WINDOW_DESCRIPTOR_ENC}")
 
 cd ../
 rm -rf sub_tmp
