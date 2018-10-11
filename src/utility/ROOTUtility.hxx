@@ -8,9 +8,9 @@
 #include "TH1D.h"
 #include "TH2D.h"
 #include "TKey.h"
+#include "TMatrixD.h"
 #include "TRegexp.h"
 #include "TTree.h"
-#include "TMatrixD.h"
 
 #ifdef USE_EIGEN
 #include "Eigen/Core"
@@ -251,6 +251,12 @@ double FindHistogramPeak(TH1D *hist, double resolution,
 
 #ifdef USE_EIGEN
 Eigen::MatrixXd GetEigenMatrix(TMatrixD const *);
+Eigen::VectorXd GetEigenFlatVector(TH2 const *);
+Eigen::VectorXd GetEigenFlatVector(std::vector<std::unique_ptr<TH2>> const &);
+Eigen::VectorXd GetEigenFlatVector(TH1 const *);
+Eigen::VectorXd GetEigenFlatVector(std::vector<std::unique_ptr<TH1>> const &);
+Eigen::VectorXd CatEigenVector(Eigen::VectorXd const &,
+                               Eigen::VectorXd const &);
 TMatrixD GetTMatrixD(Eigen::MatrixXd const *);
 #endif
 

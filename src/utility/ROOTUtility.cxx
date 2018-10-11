@@ -3,6 +3,8 @@
 #include "TGraph.h"
 #include "TObjArray.h"
 
+#include <numeric>
+
 TFile *CheckOpenFile(std::string const &fname, char const *opts) {
   TFile *inpF = new TFile(fname.c_str(), opts);
   if (!inpF || !inpF->IsOpen()) {
@@ -286,6 +288,73 @@ Eigen::MatrixXd GetEigenMatrix(TMatrixD const *rm) {
 
   return em;
 }
+
+Eigen::VectorXd GetEigenFlatVector(TH2 const *rh) {
+  Eigen::VectorXd ev(rh->GetXaxis()->GetNbins() * rh->GetYaxis()->GetNbins());
+
+  size_t idx = 0;
+  for (Int_t x_it = 0; x_it < rh->GetXaxis()->GetNbins(); ++x_it) {
+    for (Int_t y_it = 0; y_it < rh->GetYaxis()->GetNbins(); ++y_it) {
+      ev(idx++) = rh->GetBinContent(x_it + 1, y_it + 1);
+    }
+  }
+  return ev;
+}
+
+Eigen::VectorXd
+GetEigenFlatVector(std::vector<std::unique_ptr<TH2>> const &rhv) {
+  size_t NBins = std::accumulate(
+      rhv.begin(), rhv.end(), 0, [](size_t nb, std::unique_ptr<TH2> const &rh) {
+        return nb + (rh->GetXaxis()->GetNbins() * rh->GetYaxis()->GetNbins());
+      });
+  Eigen::VectorXd ev(NBins);
+
+  size_t idx = 0;
+  for (std::unique_ptr<TH2> const &rh : rhv) {
+    Eigen::VectorXd const &ev_i = GetEigenFlatVector(rh.get());
+    for (Int_t i = 0; i < ev_i.size(); ++i) {
+      ev(idx++) = ev_i(i);
+    }
+  }
+
+  return ev;
+}
+
+Eigen::VectorXd GetEigenFlatVector(TH1 const *rh) {
+  Int_t dim = rh->GetDimension();
+  if (dim == 1) {
+    Eigen::VectorXd ev(rh->GetXaxis()->GetNbins());
+    size_t idx = 0;
+    for (Int_t x_it = 0; x_it < rh->GetXaxis()->GetNbins(); ++x_it) {
+      ev(idx++) = rh->GetBinContent(x_it + 1);
+    }
+    return ev;
+  } else if (dim == 2) {
+    return GetEigenFlatVector(static_cast<TH2 const *>(rh));
+  }
+  std::cout << "[ERROR]: GetEigenFlatVector cannot handle THND where N = "
+            << dim << std::endl;
+  throw;
+}
+
+Eigen::VectorXd
+GetEigenFlatVector(std::vector<std::unique_ptr<TH1>> const &rhv) {
+  throw;
+}
+
+Eigen::VectorXd CatEigenVector(Eigen::VectorXd const &a,
+                               Eigen::VectorXd const &b) {
+  Eigen::VectorXd c(a.size() + b.size());
+  size_t idx = 0;
+  for (Int_t i = 0; i < a.size(); ++i) {
+    c(idx++) = a(i);
+  }
+  for (Int_t i = 0; i < b.size(); ++i) {
+    c(idx++) = b(i);
+  }
+  return c;
+}
+
 TMatrixD GetTMatrixD(Eigen::MatrixXd const &em) {
   TMatrixD rm(em.rows(), em.cols());
 
