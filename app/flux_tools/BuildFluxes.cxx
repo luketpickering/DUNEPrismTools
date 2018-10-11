@@ -585,7 +585,7 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
           TH2D *hist = univ_hists[hist_index];
           for (Int_t xbin_it = 0; xbin_it < hist->GetXaxis()->GetNbins();
                ++xbin_it) {
-            double scale = 1E-4 * hist->GetXaxis()->GetBinWidth(xbin_it + 1);
+            double scale = 1E-4 / hist->GetXaxis()->GetBinWidth(xbin_it + 1);
             for (Int_t ybin_it = 0; ybin_it < hist->GetYaxis()->GetNbins();
                  ++ybin_it) {
 
@@ -597,7 +597,6 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
           }   // Loop over x bins
         }     // Loop over decay parents
       }       // Loop over universes
-
     } else {
       for (size_t ppfx_univ_it = 0; ppfx_univ_it < NPPFXU; ++ppfx_univ_it) {
         for (size_t hist_index = 0; hist_index < (DoExtra ? 5 : 1);
