@@ -310,7 +310,7 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
 
   std::vector<std::vector<std::vector<TH1 *>>> Hists;
   std::vector<std::vector<std::vector<TH2D *>>> Hists_2D;
-  size_t NPPFXU = (ReadDK2NULitePPFX ? NPPFX_Universes : 0) + 1;
+  size_t NPPFXU = (ReadDK2NULitePPFX ? NPPFX_Universes + 2 : 1);
   bool use_PPFX = (NPPFXU > 1);
   Hists.resize(NPPFXU);
   Hists_2D.resize(NPPFXU);
@@ -326,6 +326,9 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
 
       if (use_PPFX) {
         if (ppfx_univ_it == 0) {
+          hist_name << "_Nom";
+
+        } else if (ppfx_univ_it == 1) {
           hist_name << "_CV";
 
         } else {
@@ -427,6 +430,7 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
 
   std::vector<size_t> NNuPDGTargets;
   for (auto i : NuPDGTargets) {
+    (void)i;
     NNuPDGTargets.push_back(0);
   }
 
@@ -527,9 +531,9 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
 
         double ppfx_w = 1;
         if (use_PPFX) {
-          if (ppfx_univ_it == 0) {
+          if (ppfx_univ_it == 1) {
             ppfx_w = dk2nuRdr.ppfx_cvwgt;
-          } else {
+          } else if (ppfx_univ_it > 1) {
             ppfx_w = dk2nuRdr.ppfx_vwgt_tot[ppfx_univ_it - 1];
           }
         }
@@ -565,107 +569,108 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
     } // End loop over angle bins
   }   // End loop over decay parents
 
-  for (size_t nuPDG_it = 0; nuPDG_it < NuPDGTargets.size(); ++nuPDG_it) {
-    std::cout << "[INFO]: Found " << NNuPDGTargets[nuPDG_it]
-              << " Neutrinos with PDG: " << NuPDGTargets[nuPDG_it] << std::endl;
+  if (false) {
 
-    double integ = Hists[0][nuPDG_it][0]->Integral();
-    if (!std::isnormal(integ)) {
-      std::cerr << "[ERROR]: Flux for PDG: " << NuPDGTargets[nuPDG_it]
-                << " has bad integral (" << integ << ")" << std::endl;
-      throw;
-    }
+    for (size_t nuPDG_it = 0; nuPDG_it < NuPDGTargets.size(); ++nuPDG_it) {
+      std::cout << "[INFO]: Found " << NNuPDGTargets[nuPDG_it]
+                << " Neutrinos with PDG: " << NuPDGTargets[nuPDG_it]
+                << std::endl;
 
-    // Scale to /cm^2 and per GeV (xbin width)
-    if (NOffAxisBins > 1) {
-      for (Int_t xbin_it = 0;
-           xbin_it < Hists_2D[0][nuPDG_it][0]->GetXaxis()->GetNbins();
-           ++xbin_it) {
-        for (Int_t ybin_it = 0;
-             ybin_it < Hists_2D[0][nuPDG_it][0]->GetYaxis()->GetNbins();
-             ++ybin_it) {
+      double integ = Hists[0][nuPDG_it][0]->Integral();
+      if (!std::isnormal(integ)) {
+        std::cerr << "[ERROR]: Flux for PDG: " << NuPDGTargets[nuPDG_it]
+                  << " has bad integral (" << integ << ")" << std::endl;
+        throw;
+      }
 
-          for (size_t ppfx_univ_it = 0; ppfx_univ_it < NPPFXU; ++ppfx_univ_it) {
+      // Scale to /cm^2 and per GeV (xbin width)
+      if (NOffAxisBins > 1) {
+        for (Int_t xbin_it = 0;
+             xbin_it < Hists_2D[0][nuPDG_it][0]->GetXaxis()->GetNbins();
+             ++xbin_it) {
+          for (Int_t ybin_it = 0;
+               ybin_it < Hists_2D[0][nuPDG_it][0]->GetYaxis()->GetNbins();
+               ++ybin_it) {
 
-            double scale =
-                1E-4 *
-                Hists_2D[ppfx_univ_it][nuPDG_it][0]->GetXaxis()->GetBinWidth(
-                    xbin_it + 1);
-            double bc = Hists_2D[ppfx_univ_it][nuPDG_it][0]->GetBinContent(
-                xbin_it + 1, ybin_it + 1);
-            double be = Hists_2D[ppfx_univ_it][nuPDG_it][0]->GetBinError(
-                xbin_it + 1, ybin_it + 1);
-            Hists_2D[ppfx_univ_it][nuPDG_it][0]->SetBinContent(
-                xbin_it + 1, ybin_it + 1, bc * scale);
-            Hists_2D[ppfx_univ_it][nuPDG_it][0]->SetBinError(
-                xbin_it + 1, ybin_it + 1, be * scale);
-            if (DoExtra) {
-              scale =
+            for (size_t ppfx_univ_it = 0; ppfx_univ_it < NPPFXU;
+                 ++ppfx_univ_it) {
+
+              double scale =
                   1E-4 *
-                  Hists_2D[ppfx_univ_it][nuPDG_it][1]->GetXaxis()->GetBinWidth(
+                  Hists_2D[ppfx_univ_it][nuPDG_it][0]->GetXaxis()->GetBinWidth(
                       xbin_it + 1);
-              bc = Hists_2D[ppfx_univ_it][nuPDG_it][1]->GetBinContent(
+              double bc = Hists_2D[ppfx_univ_it][nuPDG_it][0]->GetBinContent(
                   xbin_it + 1, ybin_it + 1);
-              be = Hists_2D[ppfx_univ_it][nuPDG_it][1]->GetBinError(
+              double be = Hists_2D[ppfx_univ_it][nuPDG_it][0]->GetBinError(
                   xbin_it + 1, ybin_it + 1);
-              Hists_2D[ppfx_univ_it][nuPDG_it][1]->SetBinContent(
+              Hists_2D[ppfx_univ_it][nuPDG_it][0]->SetBinContent(
                   xbin_it + 1, ybin_it + 1, bc * scale);
-              Hists_2D[ppfx_univ_it][nuPDG_it][1]->SetBinError(
+              Hists_2D[ppfx_univ_it][nuPDG_it][0]->SetBinError(
                   xbin_it + 1, ybin_it + 1, be * scale);
+              if (DoExtra) {
+                scale = 1E-4 * Hists_2D[ppfx_univ_it][nuPDG_it][1]
+                                   ->GetXaxis()
+                                   ->GetBinWidth(xbin_it + 1);
+                bc = Hists_2D[ppfx_univ_it][nuPDG_it][1]->GetBinContent(
+                    xbin_it + 1, ybin_it + 1);
+                be = Hists_2D[ppfx_univ_it][nuPDG_it][1]->GetBinError(
+                    xbin_it + 1, ybin_it + 1);
+                Hists_2D[ppfx_univ_it][nuPDG_it][1]->SetBinContent(
+                    xbin_it + 1, ybin_it + 1, bc * scale);
+                Hists_2D[ppfx_univ_it][nuPDG_it][1]->SetBinError(
+                    xbin_it + 1, ybin_it + 1, be * scale);
 
-              scale =
-                  1E-4 *
-                  Hists_2D[ppfx_univ_it][nuPDG_it][2]->GetXaxis()->GetBinWidth(
-                      xbin_it + 1);
-              bc = Hists_2D[ppfx_univ_it][nuPDG_it][2]->GetBinContent(
-                  xbin_it + 1, ybin_it + 1);
-              be = Hists_2D[ppfx_univ_it][nuPDG_it][2]->GetBinError(
-                  xbin_it + 1, ybin_it + 1);
-              Hists_2D[ppfx_univ_it][nuPDG_it][2]->SetBinContent(
-                  xbin_it + 1, ybin_it + 1, bc * scale);
-              Hists_2D[ppfx_univ_it][nuPDG_it][2]->SetBinError(
-                  xbin_it + 1, ybin_it + 1, be * scale);
+                scale = 1E-4 * Hists_2D[ppfx_univ_it][nuPDG_it][2]
+                                   ->GetXaxis()
+                                   ->GetBinWidth(xbin_it + 1);
+                bc = Hists_2D[ppfx_univ_it][nuPDG_it][2]->GetBinContent(
+                    xbin_it + 1, ybin_it + 1);
+                be = Hists_2D[ppfx_univ_it][nuPDG_it][2]->GetBinError(
+                    xbin_it + 1, ybin_it + 1);
+                Hists_2D[ppfx_univ_it][nuPDG_it][2]->SetBinContent(
+                    xbin_it + 1, ybin_it + 1, bc * scale);
+                Hists_2D[ppfx_univ_it][nuPDG_it][2]->SetBinError(
+                    xbin_it + 1, ybin_it + 1, be * scale);
 
-              scale =
-                  1E-4 *
-                  Hists_2D[ppfx_univ_it][nuPDG_it][3]->GetXaxis()->GetBinWidth(
-                      xbin_it + 1);
-              bc = Hists_2D[ppfx_univ_it][nuPDG_it][3]->GetBinContent(
-                  xbin_it + 1, ybin_it + 1);
-              be = Hists_2D[ppfx_univ_it][nuPDG_it][3]->GetBinError(
-                  xbin_it + 1, ybin_it + 1);
-              Hists_2D[ppfx_univ_it][nuPDG_it][3]->SetBinContent(
-                  xbin_it + 1, ybin_it + 1, bc * scale);
-              Hists_2D[ppfx_univ_it][nuPDG_it][3]->SetBinError(
-                  xbin_it + 1, ybin_it + 1, be * scale);
+                scale = 1E-4 * Hists_2D[ppfx_univ_it][nuPDG_it][3]
+                                   ->GetXaxis()
+                                   ->GetBinWidth(xbin_it + 1);
+                bc = Hists_2D[ppfx_univ_it][nuPDG_it][3]->GetBinContent(
+                    xbin_it + 1, ybin_it + 1);
+                be = Hists_2D[ppfx_univ_it][nuPDG_it][3]->GetBinError(
+                    xbin_it + 1, ybin_it + 1);
+                Hists_2D[ppfx_univ_it][nuPDG_it][3]->SetBinContent(
+                    xbin_it + 1, ybin_it + 1, bc * scale);
+                Hists_2D[ppfx_univ_it][nuPDG_it][3]->SetBinError(
+                    xbin_it + 1, ybin_it + 1, be * scale);
 
-              scale =
-                  1E-4 *
-                  Hists_2D[ppfx_univ_it][nuPDG_it][4]->GetXaxis()->GetBinWidth(
-                      xbin_it + 1);
-              bc = Hists_2D[ppfx_univ_it][nuPDG_it][4]->GetBinContent(
-                  xbin_it + 1, ybin_it + 1);
-              be = Hists_2D[ppfx_univ_it][nuPDG_it][4]->GetBinError(
-                  xbin_it + 1, ybin_it + 1);
-              Hists_2D[ppfx_univ_it][nuPDG_it][4]->SetBinContent(
-                  xbin_it + 1, ybin_it + 1, bc * scale);
-              Hists_2D[ppfx_univ_it][nuPDG_it][4]->SetBinError(
-                  xbin_it + 1, ybin_it + 1, be * scale);
+                scale = 1E-4 * Hists_2D[ppfx_univ_it][nuPDG_it][4]
+                                   ->GetXaxis()
+                                   ->GetBinWidth(xbin_it + 1);
+                bc = Hists_2D[ppfx_univ_it][nuPDG_it][4]->GetBinContent(
+                    xbin_it + 1, ybin_it + 1);
+                be = Hists_2D[ppfx_univ_it][nuPDG_it][4]->GetBinError(
+                    xbin_it + 1, ybin_it + 1);
+                Hists_2D[ppfx_univ_it][nuPDG_it][4]->SetBinContent(
+                    xbin_it + 1, ybin_it + 1, bc * scale);
+                Hists_2D[ppfx_univ_it][nuPDG_it][4]->SetBinError(
+                    xbin_it + 1, ybin_it + 1, be * scale);
+              }
             }
+          } // Loop over y bins
+        }   // Loop over x bins
+      } else {
+        for (size_t ppfx_univ_it = 0; ppfx_univ_it < NPPFXU; ++ppfx_univ_it) {
+          Hists[ppfx_univ_it][nuPDG_it][0]->Scale(1E-4, "width");
+          if (DoExtra) {
+            Hists[ppfx_univ_it][nuPDG_it][1]->Scale(1E-4, "width");
+            Hists[ppfx_univ_it][nuPDG_it][2]->Scale(1E-4, "width");
+            Hists[ppfx_univ_it][nuPDG_it][3]->Scale(1E-4, "width");
+            Hists[ppfx_univ_it][nuPDG_it][4]->Scale(1E-4, "width");
           }
         }
       }
-    } else {
-      for (size_t ppfx_univ_it = 0; ppfx_univ_it < NPPFXU; ++ppfx_univ_it) {
-        Hists[ppfx_univ_it][nuPDG_it][0]->Scale(1E-4, "width");
-        if (DoExtra) {
-          Hists[ppfx_univ_it][nuPDG_it][1]->Scale(1E-4, "width");
-          Hists[ppfx_univ_it][nuPDG_it][2]->Scale(1E-4, "width");
-          Hists[ppfx_univ_it][nuPDG_it][3]->Scale(1E-4, "width");
-          Hists[ppfx_univ_it][nuPDG_it][4]->Scale(1E-4, "width");
-        }
-      }
-    }
+    } // Loop over histograms
   }
 
   outfile->Write();
