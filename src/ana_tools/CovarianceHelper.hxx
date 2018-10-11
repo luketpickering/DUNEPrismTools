@@ -16,18 +16,21 @@ class CovarianceBuilder {
   bool ZeroMean, MeanIsSet;
 
 public:
-  CovarianceBuilder(int NRows);
+  CovarianceBuilder(int NRows = 0);
 
-  void AddThrow_MeanCalc(double *t);
+  void Resize(int);
+
+  void AddThrow_MeanCalc(double const *t);
   void FinalizeMeanCalc();
 
   void SetZeroMean();
-  void SetMean(double *t);
+  void SetMean(double const *t);
 
-  void AddThrow_CovMatCalc(double *t);
+  void AddThrow_CovMatCalc(double const *t);
   void FinalizeCovMatCalc();
 
   Eigen::MatrixXd const &GetCovMatrix() { return CovMatrix; };
+  Eigen::MatrixXd GetCorrMatrix();
 };
 
 #endif

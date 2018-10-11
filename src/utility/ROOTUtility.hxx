@@ -249,15 +249,31 @@ void FindTH1Peaks(TH1D const *flux, int &left, int &right, int n);
 double FindHistogramPeak(TH1D *hist, double resolution,
                          std::string const &WriteName);
 
+std::vector<double> Getstdvector(TH2 const *);
+std::vector<double> Getstdvector(TH1 const *);
+
+template <typename T>
+void Mergestdvector(std::vector<T> &a, std::vector<T> const &b) {
+  for (T const &b_i : b) {
+    a.push_back(b_i);
+  }
+}
+
+template <typename THN>
+std::vector<double> Getstdvector(std::vector<std::unique_ptr<THN>> const &rhv) {
+  std::vector<double> ev;
+
+  for (std::unique_ptr<THN> const &rh : rhv) {
+    Mergestdvector(ev, Getstdvector(rh.get()));
+  }
+
+  return ev;
+}
+
 #ifdef USE_EIGEN
 Eigen::MatrixXd GetEigenMatrix(TMatrixD const *);
-Eigen::VectorXd GetEigenFlatVector(TH2 const *);
-Eigen::VectorXd GetEigenFlatVector(std::vector<std::unique_ptr<TH2>> const &);
-Eigen::VectorXd GetEigenFlatVector(TH1 const *);
-Eigen::VectorXd GetEigenFlatVector(std::vector<std::unique_ptr<TH1>> const &);
-Eigen::VectorXd CatEigenVector(Eigen::VectorXd const &,
-                               Eigen::VectorXd const &);
-TMatrixD GetTMatrixD(Eigen::MatrixXd const *);
+Eigen::VectorXd GetEigenFlatVector(std::vector<double> const &);
+TMatrixD GetTMatrixD(Eigen::MatrixXd const &);
 #endif
 
 #endif

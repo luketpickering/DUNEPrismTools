@@ -1,5 +1,6 @@
-#include "ROOTUtility.hxx"
 #include "PhysicsUtility.hxx"
+#include "ROOTUtility.hxx"
+#include "GetUsage.hxx"
 
 #include "TFile.h"
 #include "TRegexp.h"
@@ -15,18 +16,10 @@
 
 std::vector<std::string> input_patterns;
 std::string outputfile = "";
+size_t NPPFX_Universes = 0;
 
 void SayUsage(char const *argv[]) {
-  std::cout << "[USAGE]: " << argv[0] << std::endl;
-  std::cout
-      << "\t-i <Input search pattern>  : Search pattern to find input "
-         "files. Can be specified multiple times.\n"
-      << std::endl;
-  std::cout
-      << "\t-o <Output file name>      : File to write combined output to."
-      << std::endl;
-  std::cout
-      << "\t-?                         : Display this message."
+  std::cout << "[USAGE]: " << argv[0] << GetUsageText(argv[0], "flux_tools")
             << std::endl;
 }
 
@@ -37,7 +30,9 @@ void handleOpts(int argc, char const *argv[]) {
       input_patterns.push_back(argv[++opt]);
     } else if (std::string(argv[opt]) == "-o") {
       outputfile = argv[++opt];
-    } else if (std::string(argv[opt]) == "-?"||
+    } else if (std::string(argv[opt]) == "--NPPFXU") {
+      NPPFX_Universes = str2T<UInt_t>(argv[++opt]);
+    } else if (std::string(argv[opt]) == "-?" ||
                std::string(argv[opt]) == "--help") {
       SayUsage(argv);
       exit(0);
@@ -68,9 +63,15 @@ int main(int argc, char const *argv[]) {
   }
 
   std::vector<int> NuPDGTargets = {-12, 12, -14, 14};
-  std::map< int, std::vector<TH1 *> > InputHists;
+  std::map<int, std::vector<std::vector<TH1 *>>> InputHists;
+  size_t NPPFXU = (NPPFX_Universes ? NPPFX_Universes + 2 : 1);
+  bool use_PPFX = (NPPFXU > 1);
 
   size_t NFilesAdded = 0, NHistogramsAdded = 0;
+
+  for (int nu_pdg : NuPDGTargets) {
+    InputHists[nu_pdg].resize(NPPFXU);
+  }
 
   for (size_t ip_it = 0; ip_it < input_patterns.size(); ++ip_it) {
     std::string input_pattern = input_patterns[ip_it];
@@ -91,11 +92,10 @@ int main(int argc, char const *argv[]) {
       delete cwd;
     } else {
       if (AsteriskPos < lastFSlash) {
-        std::cout
-            << "[ERROR]: Currently cannot handle a wildcard in the "
-               "directory structure. Please put input files in the same "
-               "directory. Expected -i \"../some/rel/path/*.root\""
-            << std::endl;
+        std::cout << "[ERROR]: Currently cannot handle a wildcard in the "
+                     "directory structure. Please put input files in the same "
+                     "directory. Expected -i \"../some/rel/path/*.root\""
+                  << std::endl;
         return 1;
       }
       dirpath = input_pattern.substr(0, lastFSlash + 1);
@@ -116,21 +116,38 @@ int main(int argc, char const *argv[]) {
           TFile *ifl = CheckOpenFile(dirpath + ent->d_name);
 
           // Read histograms
-          for (size_t nuPDG_it = 0; nuPDG_it < NuPDGTargets.size(); ++nuPDG_it) {
-            std::stringstream hist_name("");
-            hist_name << "LBNF_" << GetSpeciesName(NuPDGTargets[nuPDG_it]) << "_flux";
-            TH1 * ih = dynamic_cast<TH1 *>(ifl->Get(hist_name.str().c_str()));
-            if(!ih){
-              continue;
-            }
-            if(!InputHists.count(NuPDGTargets[nuPDG_it])){
-              InputHists[NuPDGTargets[nuPDG_it]] = std::vector<TH1 *>();
-            }
-            InputHists[NuPDGTargets[nuPDG_it]].push_back(static_cast<TH1 *>(ih->Clone()));
-            InputHists[NuPDGTargets[nuPDG_it]].back()->SetDirectory(nullptr);
-            NHistogramsAdded++;
-          }
+          for (int nu_pdg : NuPDGTargets) {
 
+            for (size_t ppfx_univ_it = 0; ppfx_univ_it < NPPFXU;
+                 ++ppfx_univ_it) {
+
+              std::stringstream hist_name("");
+
+              hist_name << "LBNF_" << GetSpeciesName(nu_pdg) << "_flux";
+
+      if (use_PPFX) {
+        if (ppfx_univ_it == 0) {
+          hist_name << "_Nom";
+
+        } else if (ppfx_univ_it == 1) {
+          hist_name << "_CV";
+
+        } else {
+          hist_name << "_univ_" << (ppfx_univ_it - 1);
+        }
+      }
+
+              TH1 *ih = dynamic_cast<TH1 *>(ifl->Get(hist_name.str().c_str()));
+              if (!ih) {
+                continue;
+              }
+
+              InputHists[nu_pdg][ppfx_univ_it].push_back(
+                  static_cast<TH1 *>(ih->Clone()));
+              InputHists[nu_pdg][ppfx_univ_it].back()->SetDirectory(nullptr);
+              NHistogramsAdded++;
+            }
+          }
 
           NFilesAdded++;
           ifl->Close();
@@ -145,21 +162,23 @@ int main(int argc, char const *argv[]) {
     }
   }
   std::cout << "[INFO]: Added " << NFilesAdded << " files (" << NHistogramsAdded
-    << " Histograms)." << std::endl;
+            << " Histograms)." << std::endl;
 
   TFile *ofl = CheckOpenFile(outputfile, "RECREATE");
   ofl->cd();
 
-  for (size_t nuPDG_it = 0; nuPDG_it < NuPDGTargets.size(); ++nuPDG_it) {
-    for (size_t hist_it = 1;
-      hist_it < InputHists[NuPDGTargets[nuPDG_it]].size(); ++hist_it) {
-      InputHists[NuPDGTargets[nuPDG_it]][0]->Add(
-          InputHists[NuPDGTargets[nuPDG_it]][hist_it]);
-    }
-    if(InputHists[NuPDGTargets[nuPDG_it]].size()){
-      InputHists[NuPDGTargets[nuPDG_it]][0]->Scale(
-          1.0/double(InputHists[NuPDGTargets[nuPDG_it]].size()));
-      InputHists[NuPDGTargets[nuPDG_it]][0]->SetDirectory(ofl);
+  for (int nu_pdg : NuPDGTargets) {
+    for (size_t ppfx_univ_it = 0; ppfx_univ_it < NPPFXU; ++ppfx_univ_it) {
+      for (size_t hist_it = 1;
+           hist_it < InputHists[nu_pdg][ppfx_univ_it].size(); ++hist_it) {
+        InputHists[nu_pdg][ppfx_univ_it][0]->Add(
+            InputHists[nu_pdg][ppfx_univ_it][hist_it]);
+      }
+      if (InputHists[nu_pdg][ppfx_univ_it].size()) {
+        InputHists[nu_pdg][ppfx_univ_it][0]->Scale(
+            1.0 / double(InputHists[nu_pdg][ppfx_univ_it].size()));
+        InputHists[nu_pdg][ppfx_univ_it][0]->SetDirectory(ofl);
+      }
     }
   }
 

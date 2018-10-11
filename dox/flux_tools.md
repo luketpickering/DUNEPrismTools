@@ -5,6 +5,7 @@ file cannot be 'out of date' relative to the usage text, it is possible for
 the usage text to not reflect the current state of each executable's CLI.
 
 ## `dp_MakeLitedk2nu`
+
 ```
     -i /path/to/DUNE/dk2nu/files  : Can include wildcards (remember to quote
                                     to avoid shell expansion.)              
@@ -19,6 +20,7 @@ the usage text to not reflect the current state of each executable's CLI.
     -?                            : Display this message.
 
 ```
+
 ## `dp_BuildFluxes`
 
 ```
@@ -67,6 +69,7 @@ the usage text to not reflect the current state of each executable's CLI.
     -i <Input search pattern>  : Search pattern to find input files. Can be
                                  specified multiple times.
     -o <Output file name>      : File to write combined output to.
+    --NPPFXU <int>             : The number of PPFX universes. Defaults to 0.
     -?                         : Display this message.
 ```
 
@@ -163,6 +166,7 @@ the usage text to not reflect the current state of each executable's CLI.
 ```
 
 ## `dp_OscillateFlux`
+
 ```
     -p <p1,p2,p3,p4,p5,p6>              : A comma separated list of oscillation
                                           parameters:
@@ -200,7 +204,9 @@ the usage text to not reflect the current state of each executable's CLI.
                                           into a subdirectory of the root    
                                           file.      
 ```
+
 ## `dp_FluxSmusher`
+
 ```
   Input options:   
     -i <ROOT file,FluxHist1DName>  : Input histogram, multiple instances can be
@@ -220,4 +226,14 @@ the usage text to not reflect the current state of each executable's CLI.
                                      overwrite a file of the same name,
                                      -a will append the fit result to   
                                      the file.                          
+```
+
+## `dp_BuildUncertaintyMatrix`
+
+```
+    --fhicl                       : FHiCL configuration file, see
+                                    ${DUNEPRISMTOOLSROOT}/fcl/flux_uncertainty_unputs.fcl
+                                    for an example.         
+    -?                            : Display this message.
+
 ```

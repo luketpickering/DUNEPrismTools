@@ -4,7 +4,7 @@ SET(FLUX_APPS
   OscillateFlux
   # PredictRunPlanEventRates -- Deprecated
   CombineBuiltFluxes
-  # BuildUncertaintyMatrix
+  BuildUncertaintyMatrix
   MakeLitedk2nu
   FluxSmusher
 )

@@ -17,7 +17,18 @@ void CovarianceBuilder::SetZeroMean() {
   MeanCalcFinalize = true;
 }
 
-void CovarianceBuilder::AddThrow_MeanCalc(double *t) {
+void CovarianceBuilder::Resize(int NewNRows) {
+  CovMatrix = Eigen::MatrixXd::Zero(NewNRows, NewNRows);
+  MeanVector = Eigen::VectorXd::Zero(NewNRows);
+  NThrows_MeanCalc = 0;
+  NThrows_CovMatCalc = 0;
+  NRows = NewNRows;
+  MeanCalcFinalize = false;
+  ZeroMean = false;
+  MeanIsSet = false;
+}
+
+void CovarianceBuilder::AddThrow_MeanCalc(double const *t) {
   if (MeanCalcFinalize) {
     return;
   }
@@ -69,7 +80,7 @@ void CovarianceBuilder::FinalizeMeanCalc() {
   MeanCalcFinalize = true;
 }
 
-void CovarianceBuilder::SetMean(double *t) {
+void CovarianceBuilder::SetMean(double const *t) {
 
   for (int i = 0; i < NRows; ++i) {
 #ifdef COVHELPER_DEBUG
@@ -85,7 +96,7 @@ void CovarianceBuilder::SetMean(double *t) {
   MeanIsSet = true;
 }
 
-void CovarianceBuilder::AddThrow_CovMatCalc(double *t) {
+void CovarianceBuilder::AddThrow_CovMatCalc(double const *t) {
   FinalizeMeanCalc();
   NThrows_CovMatCalc++;
 
@@ -193,4 +204,17 @@ void CovarianceBuilder::FinalizeCovMatCalc() {
       CovMatrix(i, j) *= NThrowsWeight;
     }
   }
+}
+
+Eigen::MatrixXd CovarianceBuilder::GetCorrMatrix() {
+  Eigen::MatrixXd CorrMat = Eigen::MatrixXd::Zero(NRows, NRows);
+
+  for (Int_t ix = 0; ix < NRows; ++ix) {
+    for (Int_t jy = 0; jy < NRows; ++jy) {
+
+      CorrMat(ix, jy) = CovMatrix(ix, jy) /
+                        (sqrt(CovMatrix(ix, ix)) * sqrt(CovMatrix(jy, jy)));
+    }
+  }
+  return CorrMat;
 }

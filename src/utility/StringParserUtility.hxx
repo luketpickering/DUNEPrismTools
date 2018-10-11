@@ -1,13 +1,12 @@
 #ifndef STRINGPARSERUTILITY_HXX_SEEN
 #define STRINGPARSERUTILITY_HXX_SEEN
 
+#include <iostream>
 #include <sstream>
 #include <string>
 #include <vector>
-#include <iostream>
 
-template <typename T>
-inline T str2T(std::string const &str) {
+template <typename T> inline T str2T(std::string const &str) {
   std::istringstream stream(str);
   T d;
   stream >> d;
@@ -21,20 +20,19 @@ inline T str2T(std::string const &str) {
   return d;
 }
 
-template <typename T>
-inline std::string to_str(T const &inp) {
+template <typename T> inline std::string to_str(T const &inp) {
   std::stringstream stream("");
   stream << inp;
   return stream.str();
 }
 
-template <>
-inline bool str2T<bool>(std::string const &str) {
+template <> inline bool str2T<bool>(std::string const &str) {
   if ((str == "true") || (str == "True") || (str == "TRUE") || (str == "1")) {
     return true;
   }
 
-  if ((str == "false") || (str == "False") || (str == "FALSE") || (str == "0")) {
+  if ((str == "false") || (str == "False") || (str == "FALSE") ||
+      (str == "0")) {
     return false;
   }
 
@@ -70,7 +68,7 @@ template <typename T>
 inline std::vector<T> strsToTs(std::vector<std::string> const &strs) {
   std::vector<T> vals;
 
-  for(std::string const &s : strs){
+  for (std::string const &s : strs) {
     if (s.empty()) {
       continue;
     }
@@ -92,7 +90,33 @@ std::vector<double> BuildDoubleList(std::string const &str);
 std::vector<double> ParseDoubleListDescriptor(std::string const &str);
 // Converts "1_5:2,5_10:1,15" into a vector containing: 1,3,5,6,7,8,9,10,15
 std::vector<double> BuildBinEdges(std::string const &str);
-std::vector< std::pair<double,double> > BuildRangesList(std::string const &str);
+std::vector<std::pair<double, double>> BuildRangesList(std::string const &str);
 void chomp(std::string &str);
+
+inline std::string str_replace(std::string const &inp, std::string const &from,
+                               std::string const &to) {
+  std::stringstream ss("");
+
+  size_t nextOccurence = 0;
+  size_t prevOccurence = 0;
+  bool AtEnd = false;
+  while (!AtEnd) {
+    nextOccurence = inp.find(from, prevOccurence);
+    if (nextOccurence == std::string::npos) {
+      if (prevOccurence == inp.length()) {
+        break;
+      }
+      AtEnd = true;
+    }
+    if ((nextOccurence != prevOccurence) || (nextOccurence == 0)) {
+      ss << inp.substr(prevOccurence, (nextOccurence - prevOccurence));
+      if (!AtEnd) {
+        ss << to;
+      }
+    }
+    prevOccurence = nextOccurence + from.size();
+  }
+  return ss.str();
+}
 
 #endif
