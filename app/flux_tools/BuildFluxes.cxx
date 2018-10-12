@@ -332,7 +332,7 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
           hist_name << "_CV";
 
         } else {
-          hist_name << "_univ_" << (ppfx_univ_it - 1);
+          hist_name << "_univ_" << (ppfx_univ_it - 2);
         }
       }
 

@@ -20,6 +20,8 @@ foreach(appname ${FLUX_APPS})
   target_link_libraries(dp_${appname} ${MODULETargets})
   target_link_libraries(dp_${appname} ${ROOT_LIBS})
 
+  add_dependencies(dp_${appname} spectra)
+
   if(NOT "${CMAKE_LINK_FLAGS}" STREQUAL "")
     set_target_properties(dp_${appname} PROPERTIES LINK_FLAGS ${CMAKE_LINK_FLAGS})
   endif()

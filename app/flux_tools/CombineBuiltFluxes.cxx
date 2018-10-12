@@ -1,6 +1,6 @@
+#include "GetUsage.hxx"
 #include "PhysicsUtility.hxx"
 #include "ROOTUtility.hxx"
-#include "GetUsage.hxx"
 
 #include "TFile.h"
 #include "TRegexp.h"
@@ -125,17 +125,17 @@ int main(int argc, char const *argv[]) {
 
               hist_name << "LBNF_" << GetSpeciesName(nu_pdg) << "_flux";
 
-      if (use_PPFX) {
-        if (ppfx_univ_it == 0) {
-          hist_name << "_Nom";
+              if (use_PPFX) {
+                if (ppfx_univ_it == 0) {
+                  hist_name << "_Nom";
 
-        } else if (ppfx_univ_it == 1) {
-          hist_name << "_CV";
+                } else if (ppfx_univ_it == 1) {
+                  hist_name << "_CV";
 
-        } else {
-          hist_name << "_univ_" << (ppfx_univ_it - 1);
-        }
-      }
+                } else {
+                  hist_name << "_univ_" << (ppfx_univ_it - 2);
+                }
+              }
 
               TH1 *ih = dynamic_cast<TH1 *>(ifl->Get(hist_name.str().c_str()));
               if (!ih) {

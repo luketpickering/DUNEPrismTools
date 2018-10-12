@@ -278,8 +278,17 @@ void FindTH1Peaks(TH1D const *flux, int &left, int &right, int n) {
 std::vector<double> Getstdvector(TH2 const *rh) {
   std::vector<double> ev;
 
-  for (Int_t x_it = 0; x_it < rh->GetXaxis()->GetNbins(); ++x_it) {
-    for (Int_t y_it = 0; y_it < rh->GetYaxis()->GetNbins(); ++y_it) {
+  for (Int_t y_it = 0; y_it < rh->GetYaxis()->GetNbins(); ++y_it) {
+    for (Int_t x_it = 0; x_it < rh->GetXaxis()->GetNbins(); ++x_it) {
+#ifdef DEBUG_GETFLATVECTOR
+      if (rh->GetBinContent(x_it + 1, y_it + 1) &&
+          !std::isnormal(rh->GetBinContent(x_it + 1, y_it + 1))) {
+        std::cout << "[ERROR]: Got bad bin entry at (" << x_it << ", " << y_it
+                  << ") = " << rh->GetBinContent(x_it + 1, y_it + 1)
+                  << std::endl;
+        throw;
+      }
+#endif
       ev.push_back(rh->GetBinContent(x_it + 1, y_it + 1));
     }
   }
@@ -292,6 +301,14 @@ std::vector<double> Getstdvector(TH1 const *rh) {
   if (dim == 1) {
     std::vector<double> ev;
     for (Int_t x_it = 0; x_it < rh->GetXaxis()->GetNbins(); ++x_it) {
+#ifdef DEBUG_GETFLATVECTOR
+      if (rh->GetBinContent(x_it + 1) &&
+          !std::isnormal(rh->GetBinContent(x_it + 1))) {
+        std::cout << "[ERROR]: Got bad bin entry at (" << x_it
+                  << ") = " << rh->GetBinContent(x_it + 1) << std::endl;
+        throw;
+      }
+#endif
       ev.push_back(rh->GetBinContent(x_it + 1));
     }
     return ev;
@@ -317,37 +334,6 @@ Eigen::MatrixXd GetEigenMatrix(TMatrixD const *rm) {
   return em;
 }
 
-Eigen::VectorXd GetEigenFlatVector(TH2 const *rh) {
-  Eigen::VectorXd ev(rh->GetXaxis()->GetNbins() * rh->GetYaxis()->GetNbins());
-
-  size_t idx = 0;
-  for (Int_t x_it = 0; x_it < rh->GetXaxis()->GetNbins(); ++x_it) {
-    for (Int_t y_it = 0; y_it < rh->GetYaxis()->GetNbins(); ++y_it) {
-      ev(idx++) = rh->GetBinContent(x_it + 1, y_it + 1);
-    }
-  }
-  return ev;
-}
-
-Eigen::VectorXd
-GetEigenFlatVector(std::vector<std::unique_ptr<TH2>> const &rhv) {
-  size_t NBins = std::accumulate(
-      rhv.begin(), rhv.end(), 0, [](size_t nb, std::unique_ptr<TH2> const &rh) {
-        return nb + (rh->GetXaxis()->GetNbins() * rh->GetYaxis()->GetNbins());
-      });
-  Eigen::VectorXd ev(NBins);
-
-  size_t idx = 0;
-  for (std::unique_ptr<TH2> const &rh : rhv) {
-    Eigen::VectorXd const &ev_i = GetEigenFlatVector(rh.get());
-    for (Int_t i = 0; i < ev_i.size(); ++i) {
-      ev(idx++) = ev_i(i);
-    }
-  }
-
-  return ev;
-}
-
 Eigen::VectorXd GetEigenFlatVector(std::vector<double> const &v) {
   Eigen::VectorXd ev(v.size());
   size_t idx = 0;
@@ -358,12 +344,12 @@ Eigen::VectorXd GetEigenFlatVector(std::vector<double> const &v) {
   return ev;
 }
 
-TMatrixD GetTMatrixD(Eigen::MatrixXd const &em) {
-  TMatrixD rm(em.rows(), em.cols());
+std::unique_ptr<TMatrixD> GetTMatrixD(Eigen::MatrixXd const &em) {
+  std::unique_ptr<TMatrixD> rm(new TMatrixD(em.rows(), em.cols()));
 
-  for (Int_t ir = 0; ir < rm.GetNrows(); ++ir) {
-    for (Int_t ic = 0; ic < rm.GetNcols(); ++ic) {
-      rm[ir][ic] = rm(ir, ic);
+  for (Int_t ir = 0; ir < rm->GetNrows(); ++ir) {
+    for (Int_t ic = 0; ic < rm->GetNcols(); ++ic) {
+      (*rm)[ir][ic] = em(ir, ic);
     }
   }
 

@@ -273,7 +273,7 @@ std::vector<double> Getstdvector(std::vector<std::unique_ptr<THN>> const &rhv) {
 #ifdef USE_EIGEN
 Eigen::MatrixXd GetEigenMatrix(TMatrixD const *);
 Eigen::VectorXd GetEigenFlatVector(std::vector<double> const &);
-TMatrixD GetTMatrixD(Eigen::MatrixXd const &);
+std::unique_ptr<TMatrixD> GetTMatrixD(Eigen::MatrixXd const &);
 #endif
 
 #endif

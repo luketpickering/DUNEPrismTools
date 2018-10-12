@@ -4,7 +4,7 @@
 
 #include <iostream>
 
-#define COVHELPER_DEBUG
+//#define COVHELPER_DEBUG
 
 CovarianceBuilder::CovarianceBuilder(int NRows)
     : CovMatrix(Eigen::MatrixXd::Zero(NRows, NRows)),
@@ -34,6 +34,8 @@ void CovarianceBuilder::AddThrow_MeanCalc(double const *t) {
   }
 
   NThrows_MeanCalc++;
+
+  #pragma omp parallel for
   for (int i = 0; i < NRows; ++i) {
 #ifdef COVHELPER_DEBUG
     if (t[i] != t[i] || (t[i] && !std::isnormal(t[i]))) {
@@ -73,6 +75,7 @@ void CovarianceBuilder::FinalizeMeanCalc() {
   }
 #endif
 
+  #pragma omp parallel for
   for (int i = 0; i < NRows; ++i) {
     MeanVector(i) *= NThrowsWeight;
   }
@@ -136,12 +139,15 @@ void CovarianceBuilder::AddThrow_CovMatCalc(double const *t) {
 #endif
 
   if (ZeroMean) {
+    #pragma omp parallel for
     for (int i = 0; i < NRows; ++i) {
       for (int j = 0; j < NRows; ++j) {
         CovMatrix(i, j) += t[i] * t[j];
       }
     }
   } else {
+
+    #pragma omp parallel for
     for (int i = 0; i < NRows; ++i) {
       for (int j = 0; j < NRows; ++j) {
         CovMatrix(i, j) += (t[i] - MeanVector(i)) * (t[j] - MeanVector(j));
@@ -199,6 +205,7 @@ void CovarianceBuilder::FinalizeCovMatCalc() {
   }
 #endif
 
+  #pragma omp parallel for
   for (int i = 0; i < NRows; ++i) {
     for (int j = 0; j < NRows; ++j) {
       CovMatrix(i, j) *= NThrowsWeight;
@@ -209,6 +216,7 @@ void CovarianceBuilder::FinalizeCovMatCalc() {
 Eigen::MatrixXd CovarianceBuilder::GetCorrMatrix() {
   Eigen::MatrixXd CorrMat = Eigen::MatrixXd::Zero(NRows, NRows);
 
+  #pragma omp parallel for
   for (Int_t ix = 0; ix < NRows; ++ix) {
     for (Int_t jy = 0; jy < NRows; ++jy) {
 
