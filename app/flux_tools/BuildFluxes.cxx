@@ -359,67 +359,24 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
         }
       }
 
-      Hists[ppfx_univ_it][nuPDG_it].push_back(
-          (NOffAxisBins < 2)
-              ? new TH1D(hist_name.str().c_str(), hist_title.c_str(),
-                         (EnergyBinning.size() - 1), EnergyBinning.data())
-              : static_cast<TH1 *>(
-                    new TH2D(hist_name.str().c_str(), hist_title.c_str(),
-                             (EnergyBinning.size() - 1), EnergyBinning.data(),
-                             (OffAxisSteps.size() - 1), OffAxisSteps.data())));
-      if (NOffAxisBins > 1) {
-        Hists_2D[ppfx_univ_it][nuPDG_it].push_back(
-            static_cast<TH2D *>(Hists[ppfx_univ_it][nuPDG_it].back()));
-      }
+      for (std::string parent_suffix : {"", "pi", "k", "k0", "mu"}) {
+        if (parent_suffix.size()) {
+          if (&&!DoExtra) {
+            continue;
+          }
+          parent_suffix = std::string("_") + parent_suffix;
+        }
 
-      if (DoExtra) {
         Hists[ppfx_univ_it][nuPDG_it].push_back(
             (NOffAxisBins < 2)
-                ? new TH1D((hist_name.str() + "_pi").c_str(),
+                ? new TH1D((hist_name.str() + parent_suffix).c_str(),
                            hist_title.c_str(), (EnergyBinning.size() - 1),
                            EnergyBinning.data())
-                : static_cast<TH1 *>(new TH2D(
-                      (hist_name.str() + "_pi").c_str(), hist_title.c_str(),
-                      (EnergyBinning.size() - 1), EnergyBinning.data(),
-                      (OffAxisSteps.size() - 1), OffAxisSteps.data())));
-        if (NOffAxisBins > 1) {
-          Hists_2D[ppfx_univ_it][nuPDG_it].push_back(
-              static_cast<TH2D *>(Hists[ppfx_univ_it][nuPDG_it].back()));
-        }
-        Hists[ppfx_univ_it][nuPDG_it].push_back(
-            (NOffAxisBins < 2)
-                ? new TH1D((hist_name.str() + "_k").c_str(), hist_title.c_str(),
-                           (EnergyBinning.size() - 1), EnergyBinning.data())
-                : static_cast<TH1 *>(new TH2D(
-                      (hist_name.str() + "_k").c_str(), hist_title.c_str(),
-                      (EnergyBinning.size() - 1), EnergyBinning.data(),
-                      (OffAxisSteps.size() - 1), OffAxisSteps.data())));
-        if (NOffAxisBins > 1) {
-          Hists_2D[ppfx_univ_it][nuPDG_it].push_back(
-              static_cast<TH2D *>(Hists[ppfx_univ_it][nuPDG_it].back()));
-        }
-        Hists[ppfx_univ_it][nuPDG_it].push_back(
-            (NOffAxisBins < 2)
-                ? new TH1D((hist_name.str() + "_k0").c_str(),
-                           hist_title.c_str(), (EnergyBinning.size() - 1),
-                           EnergyBinning.data())
-                : static_cast<TH1 *>(new TH2D(
-                      (hist_name.str() + "_k0").c_str(), hist_title.c_str(),
-                      (EnergyBinning.size() - 1), EnergyBinning.data(),
-                      (OffAxisSteps.size() - 1), OffAxisSteps.data())));
-        if (NOffAxisBins > 1) {
-          Hists_2D[ppfx_univ_it][nuPDG_it].push_back(
-              static_cast<TH2D *>(Hists[ppfx_univ_it][nuPDG_it].back()));
-        }
-        Hists[ppfx_univ_it][nuPDG_it].push_back(
-            (NOffAxisBins < 2)
-                ? new TH1D((hist_name.str() + "_mu").c_str(),
-                           hist_title.c_str(), (EnergyBinning.size() - 1),
-                           EnergyBinning.data())
-                : static_cast<TH1 *>(new TH2D(
-                      (hist_name.str() + "_mu").c_str(), hist_title.c_str(),
-                      (EnergyBinning.size() - 1), EnergyBinning.data(),
-                      (OffAxisSteps.size() - 1), OffAxisSteps.data())));
+                : static_cast<TH1 *>(
+                      new TH2D((hist_name.str() + parent_suffix).c_str(),
+                               hist_title.c_str(), (EnergyBinning.size() - 1),
+                               EnergyBinning.data(), (OffAxisSteps.size() - 1),
+                               OffAxisSteps.data())));
         if (NOffAxisBins > 1) {
           Hists_2D[ppfx_univ_it][nuPDG_it].push_back(
               static_cast<TH2D *>(Hists[ppfx_univ_it][nuPDG_it].back()));
