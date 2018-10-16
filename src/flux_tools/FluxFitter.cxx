@@ -153,12 +153,12 @@ bool FluxFitter::Fit() {
   ROOT::Math::Functor fcn(
       [&](double const *coeffs) {
         if (LHoodEval->GetNLHCalls() && !(LHoodEval->GetNLHCalls() % 5000)) {
-          auto diff = std::chrono::duration_cast<std::chrono::milliseconds>(
+          auto diff = std::chrono::duration_cast<std::chrono::seconds>(
               std::chrono::high_resolution_clock::now() - lap);
           lap = std::chrono::high_resolution_clock::now();
           std::cout << "[INFO]: Call: " << LHoodEval->GetNLHCalls()
-                    << ", Last 5k calls took "
-                    << (double(diff.count()) / 1000.0) << "s" << std::endl;
+                    << ", Last 5k calls took " << diff.count() << "s"
+                    << std::endl;
           std::cout << "[INFO]: Likelihood state: " << LHoodEval->State()
                     << std::endl;
         }
@@ -226,7 +226,9 @@ void FluxFitter::SetGaussParameters(double GaussC, double GaussW,
   }
 }
 
-void FluxFitter::Write(TDirectory *td) { LHoodEval->Write(td, Coefficients.data()); }
+void FluxFitter::Write(TDirectory *td) {
+  LHoodEval->Write(td, Coefficients.data());
+}
 
 #ifdef USE_FHICL
 FluxFitter::FluxFitterOptions

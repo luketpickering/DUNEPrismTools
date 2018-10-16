@@ -12,11 +12,9 @@
 #include "fhiclcpp/make_ParameterSet.h"
 
 #include "Eigen/Core"
-#include "Eigen/Eigenvalues"
-
-#include <SymEigsSolver.h>
 
 #include <cfloat>
+#include <chrono>
 #include <cmath>
 #include <memory>
 #include <string>
@@ -81,14 +79,34 @@ int main(int argc, char const *argv[]) {
   fhicl::ParameterSet flux_uncert_config =
       ps.get<fhicl::ParameterSet>("FluxUncertainty");
 
+  std::string OutputFile =
+      flux_uncert_config.get<std::string>("OutputFile", "");
+  std::unique_ptr<TFile> oupF(nullptr);
+  if (OutputFile.size()) {
+    bool UPDATEOutputFile =
+        !flux_uncert_config.get<bool>("RecreateOutputFile", false);
+
+    oupF = std::unique_ptr<TFile>(
+        CheckOpenFile(OutputFile, UPDATEOutputFile ? "UPDATE" : "RECREATE"));
+  }
+
   std::string flux_slice_descriptor =
       flux_uncert_config.get<std::string>("FluxSlicesDescriptor", "");
 
-  std::vector<std::vector<double>> AllRelativeTweaks;
-  std::vector<std::unique_ptr<TH1>> NominalHistograms;
+  std::vector<std::unique_ptr<TH1>> NominalHistogramSet;
+
+  bool CovMatInitialized = false;
+  Eigen::MatrixXd FullCovarianceMatrix;
 
   for (fhicl::ParameterSet const &twk_ps :
        flux_uncert_config.get<std::vector<std::string>>("Tweaks")) {
+
+    bool BuildNomHistoSet = !NominalHistogramSet.size();
+    bool dump_diagnostics = twk_ps.get<bool>("dump_diagnostics", false);
+
+    std::vector<std::vector<double>> RelativeTweaks;
+    std::vector<std::vector<double>>
+        diags_Predictions; // only used for diagnostics
 
     std::string twk_name = twk_ps.get<std::string>("Name");
     std::cout << "[INFO]: Building tweak: " << twk_name << std::endl;
@@ -122,18 +140,27 @@ int main(int argc, char const *argv[]) {
           std::vector<std::unique_ptr<TH1D>> nom_hists =
               MergeSplitTH2D(flux2D, true, XRanges);
           Mergestdvector(flux_pred_nom, Getstdvector(nom_hists));
-          size_t h_ctr = 0;
-          for (auto &&h : nom_hists) {
-            h->SetName(
-                (twk_name + "_Nom_slice_" + std::to_string(h_ctr++)).c_str());
-            NominalHistograms.push_back(std::move(h));
+          if (BuildNomHistoSet) {
+            if (nom_hists.size() > 1) {
+              NominalHistogramSet.push_back(ReMergeSplitTH2D(
+                  nom_hists, XRanges, flux2D->GetName(), flux2D->GetTitle()));
+            } else if (nom_hists.size()) {
+              NominalHistogramSet.push_back(std::move(nom_hists.front()));
+            }
           }
         } else {
           std::unique_ptr<TH1> nom_hist =
               GetHistogram_uptr<TH1>(NominalInputFile, NominalHistName);
           Mergestdvector(flux_pred_nom, Getstdvector(nom_hist.get()));
           nom_hist->SetName((twk_name + "_Nom").c_str());
-          NominalHistograms.push_back(std::move(nom_hist));
+          if (BuildNomHistoSet) {
+            NominalHistogramSet.push_back(std::move(nom_hist));
+          }
+        }
+
+        if (BuildNomHistoSet) {
+          NominalHistogramSet.back()->SetName(
+              (pred_config + "_" + species).c_str());
         }
       } // End species -- Nominal
     }   // End configurations -- Nominal
@@ -190,10 +217,10 @@ int main(int argc, char const *argv[]) {
         }
       }
 
-      if (AllRelativeTweaks.size() &&
-          (AllRelativeTweaks.back().size() != flux_pred_i.size())) {
+      if (RelativeTweaks.size() &&
+          (RelativeTweaks.back().size() != flux_pred_i.size())) {
         std::cout << "[ERROR]: Mismatched flux vector length: "
-                  << AllRelativeTweaks.back().size()
+                  << RelativeTweaks.back().size()
                   << " != " << flux_pred_i.size() << std::endl;
         throw;
       }
@@ -206,129 +233,225 @@ int main(int argc, char const *argv[]) {
         throw;
       }
 
-      AllRelativeTweaks.push_back(std::move(flux_pred_i));
+      if (dump_diagnostics) {
+        diags_Predictions.push_back(flux_pred_i);
+      }
+
+      RelativeTweaks.push_back(std::move(flux_pred_i));
       for (size_t fbin_i = 0; fbin_i < flux_pred_nom.size(); ++fbin_i) {
-        if (!std::isnormal(AllRelativeTweaks.back()[fbin_i]) ||
+        if (!std::isnormal(RelativeTweaks.back()[fbin_i]) ||
             !std::isnormal(flux_pred_nom[fbin_i])) {
-          AllRelativeTweaks.back()[fbin_i] = 1;
+          RelativeTweaks.back()[fbin_i] = 1;
         } else {
-          if (!std::isnormal(AllRelativeTweaks.back()[fbin_i] /
+          if (!std::isnormal(RelativeTweaks.back()[fbin_i] /
                              flux_pred_nom[fbin_i])) {
             std::cout << "[ERROR]: For flux prediction " << t_it << " for "
                       << twk_name << ", bin " << fbin_i << " was non-normal("
-                      << show_classification(AllRelativeTweaks.back()[fbin_i] /
+                      << show_classification(RelativeTweaks.back()[fbin_i] /
                                              flux_pred_nom[fbin_i])
-                      << "): " << AllRelativeTweaks.back()[fbin_i] << "/"
+                      << "): " << RelativeTweaks.back()[fbin_i] << "/"
                       << flux_pred_nom[fbin_i] << std::endl;
             throw;
           }
-          AllRelativeTweaks.back()[fbin_i] /= flux_pred_nom[fbin_i];
+          RelativeTweaks.back()[fbin_i] =
+              1 - (RelativeTweaks.back()[fbin_i] / flux_pred_nom[fbin_i]);
         }
       }
     }
-  }
-
-  if (!AllRelativeTweaks.size()) {
-    std::cout << "[WARN]: Found no configured flux tweaks" << std::endl;
-    return 1;
-  }
-
-  CovarianceBuilder cb(AllRelativeTweaks.back().size());
-
-#ifdef DEBUG_BUILDUCERTMATRIX
-  size_t t_it = 0;
-#endif
-  std::cout << "[INFO]: Building " << AllRelativeTweaks.back().size() << "x"
-            << AllRelativeTweaks.back().size() << " covariance matrix."
-            << std::endl;
-  std::cout << "[INFO]: Running mean calculation..." << std::endl;
-  for (std::vector<double> const &flux_tweak : AllRelativeTweaks) {
-#ifdef DEBUG_BUILDUCERTMATRIX
-    std::cout << "[INFO]: Adding mean tweak " << t_it++ << " with "
-              << flux_tweak.size() << " entries " << std::endl;
-#endif
-    cb.AddThrow_MeanCalc(flux_tweak.data());
-  }
-
-  cb.FinalizeMeanCalc();
-  std::cout << "[INFO]: Done" << std::endl;
-
-#ifdef DEBUG_BUILDUCERTMATRIX
-  t_it = 0;
-#endif
-  std::cout << "[INFO]: Running covmat calculation..." << std::endl;
-  for (std::vector<double> const &flux_tweak : AllRelativeTweaks) {
-#ifdef DEBUG_BUILDUCERTMATRIX
-    std::cout << "[INFO]: Adding covmat tweak " << t_it++ << " with "
-              << flux_tweak.size() << " entries " << std::endl;
-#endif
-    cb.AddThrow_CovMatCalc(flux_tweak.data());
-  }
-  cb.FinalizeCovMatCalc();
-  std::cout << "[INFO]: Done" << std::endl;
-
-  if (flux_uncert_config.get<bool>("use_Eigen")) {
-    std::cout << "[INFO]: Attempting decomposition with Eigen" << std::endl;
-    Eigen::EigenSolver<Eigen::MatrixXd> es(cb.GetCovMatrix());
-    std::cout << "[INFO]: Done" << std::endl;
-
-    Eigen::EigenSolver<Eigen::MatrixXd>::EigenvalueType evs = es.eigenvalues();
-
-    double ev_tot = 0;
-    for (Int_t i = 0; i < evs.size(); ++i) {
-      ev_tot += evs(i).real();
+    if (!RelativeTweaks.size()) {
+      std::cout << "[WARN]: Found no configured flux tweaks" << std::endl;
+      return 1;
     }
 
-    double ev_run = 0;
-    for (Int_t i = 0; i < evs.size(); ++i) {
-      ev_run += evs(i).real();
-      std::cout << "EV[" << i << "] = " << evs(i) << ", All Evs < " << i
-                << " contain " << (ev_run / ev_tot) * 100.0
-                << "% of the variance." << std::endl;
-    }
-  } else {
-    size_t NEVs = flux_uncert_config.get<size_t>("num_eigenvalues");
-    std::cout
-        << "[INFO]: Attempting decomposition with Spectra, looking for top "
-        << NEVs << " eigenvalues." << std::endl;
+    CovarianceBuilder cb(RelativeTweaks);
 
-    Spectra::DenseSymMatProd<double> op(cb.GetCovMatrix());
-    Spectra::SymEigsSolver<double, Spectra::LARGEST_ALGE,
-                           Spectra::DenseSymMatProd<double>>
-        eigs(&op, NEVs, std::min(2 * NEVs, AllRelativeTweaks.back().size()));
-    // Initialize and compute
-    eigs.init();
-    eigs.compute();
-
-    // Retrieve results
-    Eigen::VectorXd evalues;
-    if (eigs.info() == Spectra::SUCCESSFUL) {
-      evalues = eigs.eigenvalues();
+    if (!CovMatInitialized) {
+      FullCovarianceMatrix = cb.GetCovMatrix();
+      CovMatInitialized = true;
+      std::cout << "[INFO]: Built first covariance component, size: "
+                << cb.GetCovMatrix().rows() << " x " << cb.GetCovMatrix().rows()
+                << std::endl;
+    } else if (FullCovarianceMatrix.rows() == cb.GetCovMatrix().rows()) {
+      FullCovarianceMatrix += cb.GetCovMatrix();
+    } else {
+      std::cout << "[ERROR]: Attempting to add covariance component of size "
+                << cb.GetCovMatrix().rows() << " x " << cb.GetCovMatrix().rows()
+                << " to full covariance of size: "
+                << FullCovarianceMatrix.rows() << " x "
+                << FullCovarianceMatrix.rows() << std::endl;
+      return 1;
     }
 
-    std::cout << "Eigenvalues found:\n" << evalues.size() << std::endl;
+    if (oupF && dump_diagnostics) {
+      TDirectory *td =
+          oupF->mkdir((std::string("Diagnostics_") + twk_name).c_str());
 
-    for (Int_t i = 0; i < evalues.size(); ++i) {
-      std::cout << "EV[" << i << "] = " << evalues(i) << std::endl;
+      std::vector<std::unique_ptr<TH1>> nom_histograms =
+          CloneHistVector(NominalHistogramSet, "_nominal_pred");
+
+      FillHistFromstdvector(nom_histograms, flux_pred_nom);
+
+      for (std::unique_ptr<TH1> &h : nom_histograms) {
+        h->SetDirectory(td);
+        h.release(); // Let root look after the histo again.
+      }
+
+      std::vector<std::unique_ptr<TH1>> mean_pred_histograms =
+          CloneHistVector(NominalHistogramSet, "_mean_pred");
+
+      std::vector<double> mean_pred_vector;
+      std::vector<double> stddev_pred_vector;
+      for (int i = 0; i < cb.NRows; ++i) {
+        mean_pred_vector.push_back((1 + cb.GetMeanVector()[i]) *
+                                   flux_pred_nom[i]);
+        stddev_pred_vector.push_back(cb.GetStdDevVector()[i] *
+                                     flux_pred_nom[i]);
+      }
+
+      FillHistFromstdvector(mean_pred_histograms, mean_pred_vector, 0,
+                            stddev_pred_vector);
+
+      for (std::unique_ptr<TH1> &h : mean_pred_histograms) {
+        h->SetDirectory(td);
+        h.release(); // Let root look after the histo again.
+      }
+
+      std::vector<std::unique_ptr<TH1>> stddev_histograms =
+          CloneHistVector(NominalHistogramSet, "_stddev");
+
+      TH1D *mean_std_dev = new TH1D("mean_std_dev", "", mean_pred_vector.size(),
+                                    0, mean_pred_vector.size());
+      mean_std_dev->SetDirectory(td);
+
+      std::vector<double> mean_vector;
+      std::vector<double> stddev_vector;
+      for (int i = 0; i < cb.NRows; ++i) {
+        stddev_vector.push_back(cb.GetStdDevVector()[i]);
+        mean_vector.push_back(cb.GetMeanVector()[i]);
+      }
+
+      FillHistFromstdvector(stddev_histograms, stddev_vector);
+      FillHistFromstdvector(mean_std_dev, mean_vector, 0, stddev_vector);
+
+      for (std::unique_ptr<TH1> &h : stddev_histograms) {
+        h->SetDirectory(td);
+        h.release(); // Let root look after the histo again.
+      }
+
+      std::vector<std::unique_ptr<TH1>> mean_fractional_histograms =
+          CloneHistVector(NominalHistogramSet, "_mean_fractional");
+
+      std::vector<double> mean_fractional_vector;
+      for (int i = 0; i < cb.NRows; ++i) {
+        mean_fractional_vector.push_back(cb.GetMeanVector()[i]);
+      }
+
+      FillHistFromstdvector(mean_fractional_histograms, mean_fractional_vector);
+
+      for (std::unique_ptr<TH1> &h : mean_fractional_histograms) {
+        h->SetDirectory(td);
+        h.release(); // Let root look after the histo again.
+      }
+
+      TH2D *variation_distributions =
+          new TH2D("ThrowVariations", ";Bin content;Bin number;NThrows",
+                   stddev_vector.size(), 0, stddev_vector.size(), 100, -1, 1);
+      variation_distributions->SetDirectory(td);
+
+      for (size_t tw_it = 0; tw_it < RelativeTweaks.size(); ++tw_it) {
+        TDirectory *t_id =
+            td->mkdir((std::string("_tweak_") + std::to_string(tw_it)).c_str());
+
+        std::vector<std::unique_ptr<TH1>> pred_histograms = CloneHistVector(
+            NominalHistogramSet, std::string("_pred_") + std::to_string(tw_it));
+
+        FillHistFromstdvector(pred_histograms, diags_Predictions[tw_it]);
+
+        for (std::unique_ptr<TH1> &h : pred_histograms) {
+          h->SetDirectory(t_id);
+          h.release(); // Let root look after the histo again.
+        }
+
+        std::vector<std::unique_ptr<TH1>> tweak_histograms =
+            CloneHistVector(NominalHistogramSet, std::string("_fractional_") +
+                                                     std::to_string(tw_it));
+
+        FillHistFromstdvector(tweak_histograms, RelativeTweaks[tw_it]);
+
+        for (std::unique_ptr<TH1> &h : tweak_histograms) {
+          h->SetDirectory(t_id);
+          h.release(); // Let root look after the histo again.
+        }
+
+        for (size_t bin_it = 0; bin_it < RelativeTweaks[tw_it].size();
+             ++bin_it) {
+          variation_distributions->Fill(bin_it, RelativeTweaks[tw_it][bin_it]);
+        }
+      }
+
+      TDirectory *md = td->mkdir("Matrices");
+      md->cd();
+      std::unique_ptr<TMatrixD> covmat = GetTMatrixD(cb.GetCovMatrix());
+      std::unique_ptr<TMatrixD> corrmat =
+          GetTMatrixD(CovToCorr(cb.GetCovMatrix()));
+
+      covmat->Write("covmat");
+      corrmat->Write("corrmat");
     }
   }
 
-  std::string OutputFile = flux_uncert_config.get<std::string>("OutputFile");
-  bool UPDATEOutputFile =
-      !flux_uncert_config.get<bool>("RecreateOutputFile", false);
+  size_t NEigvals = flux_uncert_config.get<size_t>("num_eigenvalues", 10);
 
-  std::unique_ptr<TFile> oupF = std::unique_ptr<TFile>(
-      CheckOpenFile(OutputFile, UPDATEOutputFile ? "UPDATE" : "RECREATE"));
+  EigenvalueHelper eh;
+  eh.ComputeFromMatrix(FullCovarianceMatrix,
+                       flux_uncert_config.get<bool>("use_Spectra", true),
+                       NEigvals);
 
-  std::unique_ptr<TMatrixD> covmat = GetTMatrixD(cb.GetCovMatrix());
-  std::unique_ptr<TMatrixD> corrmat = GetTMatrixD(cb.GetCorrMatrix());
+  NEigvals = eh.EigVals.size();
 
-  covmat->Write("covmat");
-  corrmat->Write("corrmat");
+  Eigen::MatrixXd Tweaks = eh.GetEffectiveParameterVectors();
 
-  for (auto &h : NominalHistograms) {
-    h->Write(h->GetName());
+  if (oupF) {
+
+    TH1D *Evs = new TH1D("eigenvalues", ";Eigen value index;Magnitude",
+                         NEigvals, 0, NEigvals);
+    Evs->SetDirectory(oupF.get());
+
+    FillHistFromEigenVector(Evs, eh.EigVals);
+
+    TDirectory *td = oupF->mkdir("EffectiveFluxParameters");
+    for (int tw_it = 0; tw_it < Tweaks.rows(); ++tw_it) {
+      TDirectory *t_id =
+          td->mkdir((std::string("param_") + std::to_string(tw_it)).c_str());
+
+      std::vector<std::unique_ptr<TH1>> tweak_histograms =
+          CloneHistVector(NominalHistogramSet);
+
+      FillHistFromEigenVector(tweak_histograms, Tweaks.row(tw_it));
+
+      for (std::unique_ptr<TH1> &h : tweak_histograms) {
+        h->SetDirectory(t_id);
+        h.release(); // Let root look after the histo again.
+      }
+    }
+
+    TDirectory *n_d = td->mkdir("nominal");
+    for (auto &h : NominalHistogramSet) {
+      h->SetDirectory(n_d);
+      h.release();
+    }
+
+    if (flux_uncert_config.get<bool>("WriteMatrices", false)) {
+      TDirectory *md = oupF->mkdir("Matrices");
+      md->cd();
+      std::unique_ptr<TMatrixD> covmat = GetTMatrixD(FullCovarianceMatrix);
+      std::unique_ptr<TMatrixD> corrmat =
+          GetTMatrixD(CovToCorr(FullCovarianceMatrix));
+
+      covmat->Write("covmat");
+      corrmat->Write("corrmat");
+    }
+
+    oupF->Write();
   }
-
-  oupF->Write();
 }

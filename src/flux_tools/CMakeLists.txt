@@ -4,6 +4,7 @@ add_library(DUNE-PRISM_FluxTools
   FluxLikelihood.cxx
   FluxFitter.cxx
   FluxCombiner.cxx
+  EffectiveFluxUncertaintyHelper.cxx
 )
 
 if(DEFINED USE_FHICL AND USE_FHICL)

@@ -132,7 +132,7 @@ int main(int argc, char const *argv[]) {
     ParameterThrows[t_it].resize(
         static_cast<int>(VALORModel::TrueClass::kNVALORDials));
   }
-  CovarianceThrower ct(*UncertMatrix, Seed, InversionTolerance);
+  CovarianceDecompThrower ct(*UncertMatrix, Seed, InversionTolerance);
   CovarianceBuilder paramThrowsCB(
       static_cast<int>(VALORModel::TrueClass::kNVALORDials));
   paramThrowsCB.SetZeroMean();

@@ -129,10 +129,10 @@ GetProjectionBinRange(std::pair<double, double> ValRange, TAxis *axis) {
 
 std::vector<TH1D *>
 MergeSplitTH2D(TH2D *t2, bool AlongY,
-               std::vector<std::pair<double, double>> Vals) {
+               std::vector<std::pair<double, double>> const &Vals) {
   std::vector<TH1D *> split;
 
-  for (std::pair<double, double> v : Vals) {
+  for (std::pair<double, double> const &v : Vals) {
     std::pair<Int_t, Int_t> binr =
         GetProjectionBinRange(v, (AlongY ? t2->GetYaxis() : t2->GetXaxis()));
 
@@ -152,7 +152,7 @@ MergeSplitTH2D(TH2D *t2, bool AlongY,
 
 std::vector<std::unique_ptr<TH1D>>
 MergeSplitTH2D(std::unique_ptr<TH2D> &t2, bool AlongY,
-               std::vector<std::pair<double, double>> Vals) {
+               std::vector<std::pair<double, double>> const &Vals) {
   std::vector<TH1D *> split = MergeSplitTH2D(t2.get(), AlongY, Vals);
 
   std::vector<std::unique_ptr<TH1D>> split_uptr;
@@ -162,6 +162,47 @@ MergeSplitTH2D(std::unique_ptr<TH2D> &t2, bool AlongY,
   }
 
   return split_uptr;
+}
+
+std::unique_ptr<TH2D>
+ReMergeSplitTH2D(std::vector<std::unique_ptr<TH1D>> const &split,
+                 std::vector<std::pair<double, double>> const &Vals,
+                 std::string const &name, std::string const &title) {
+  std::vector<double> XBins, YBins;
+
+  for (int bi_it = 0; bi_it < split.front()->GetXaxis()->GetNbins(); ++bi_it) {
+    XBins.push_back(split.front()->GetXaxis()->GetBinLowEdge(bi_it + 1));
+    // std::cout << "[XBIN]: " << bi_it << ", Low edge = " << XBins.back()
+    // << std::endl;
+  }
+  XBins.push_back(split.front()->GetXaxis()->GetBinUpEdge(
+      split.front()->GetXaxis()->GetNbins()));
+  // std::cout << "[XBIN]: " << (XBins.size() - 1)
+  // << ", Up edge = " << XBins.back() << std::endl;
+
+  for (size_t bi_it = 0; bi_it < Vals.size(); ++bi_it) {
+    YBins.push_back(Vals[bi_it].first);
+    // std::cout << "[YBIN]: " << bi_it << ", Low edge = " << YBins.back()
+    // << std::endl;
+  }
+  YBins.push_back(Vals.back().second);
+  // std::cout << "[YBIN]: " << Vals.size() << ", Up edge = " << YBins.back()
+  // << std::endl;
+
+  std::unique_ptr<TH2D> mechanically_reclaimed_histogram(
+      new TH2D(name.c_str(), title.c_str(), (XBins.size() - 1), XBins.data(),
+               (YBins.size() - 1), YBins.data()));
+
+  for (size_t y_it = 0; y_it < split.size(); ++y_it) {
+    for (int x_it = 0; x_it < split.front()->GetXaxis()->GetNbins(); ++x_it) {
+      mechanically_reclaimed_histogram->SetBinContent(
+          x_it + 1, y_it + 1, split[y_it]->GetBinContent(x_it + 1));
+      mechanically_reclaimed_histogram->SetBinError(
+          x_it + 1, y_it + 1, split[y_it]->GetBinError(x_it + 1));
+    }
+  }
+
+  return mechanically_reclaimed_histogram;
 }
 
 TH2D *SliceNormTH2D(TH2D *t2, bool AlongY) {
@@ -315,12 +356,117 @@ std::vector<double> Getstdvector(TH1 const *rh) {
   } else if (dim == 2) {
     return Getstdvector(static_cast<TH2 const *>(rh));
   }
-  std::cout << "[ERROR]: GetEigenFlatVector cannot handle THND where N = "
+  std::cout << "[ERROR]: Getstdvector cannot handle THND where N = " << dim
+            << std::endl;
+  throw;
+}
+
+size_t FillHistFromstdvector(TH2 *rh, std::vector<double> const &vals,
+                             size_t offset, std::vector<double> const &error) {
+  for (Int_t y_it = 0; y_it < rh->GetYaxis()->GetNbins(); ++y_it) {
+    for (Int_t x_it = 0; x_it < rh->GetXaxis()->GetNbins(); ++x_it) {
+      rh->SetBinContent(x_it + 1, y_it + 1, vals[offset]);
+      if (error.size()) {
+        rh->SetBinError(x_it + 1, y_it + 1, error[offset]);
+      }
+      offset++;
+    }
+    // Reset flow bins
+    rh->SetBinContent(0, y_it + 1, 0);
+    rh->SetBinError(0, y_it + 1, 0);
+    rh->SetBinContent(rh->GetXaxis()->GetNbins() + 1, y_it + 1, 0);
+    rh->SetBinError(rh->GetXaxis()->GetNbins() + 1, y_it + 1, 0);
+  }
+
+  for (Int_t x_it = 0; x_it < rh->GetXaxis()->GetNbins() + 2; ++x_it) {
+    // Reset flow bins
+    rh->SetBinContent(x_it, 0, 0);
+    rh->SetBinError(x_it, 0, 0);
+
+    rh->SetBinContent(x_it, rh->GetYaxis()->GetNbins() + 1, 0);
+    rh->SetBinError(x_it, rh->GetYaxis()->GetNbins() + 1, 0);
+  }
+  return offset;
+}
+size_t FillHistFromstdvector(TH1 *rh, std::vector<double> const &vals,
+                             size_t offset, std::vector<double> const &error) {
+  Int_t dim = rh->GetDimension();
+  if (dim == 1) {
+    for (Int_t x_it = 0; x_it < rh->GetXaxis()->GetNbins(); ++x_it) {
+      rh->SetBinContent(x_it + 1, vals[offset]);
+      if (error.size()) {
+        rh->SetBinError(x_it + 1, error[offset]);
+      }
+      offset++;
+    }
+    // Reset flow bins
+    rh->SetBinContent(0, 0);
+    rh->SetBinError(0, 0);
+    rh->SetBinContent(rh->GetXaxis()->GetNbins() + 1, 0);
+    rh->SetBinError(rh->GetXaxis()->GetNbins() + 1, 0);
+    return offset;
+  } else if (dim == 2) {
+    return FillHistFromstdvector(static_cast<TH2 *>(rh), vals, offset, error);
+  }
+  std::cout << "[ERROR]: FillHistFromstdvector cannot handle THND where N = "
             << dim << std::endl;
   throw;
 }
 
 #ifdef USE_EIGEN
+
+size_t FillHistFromEigenVector(TH2 *rh, Eigen::VectorXd const &vals,
+                               size_t offset, Eigen::VectorXd const &error) {
+  for (Int_t y_it = 0; y_it < rh->GetYaxis()->GetNbins(); ++y_it) {
+    for (Int_t x_it = 0; x_it < rh->GetXaxis()->GetNbins(); ++x_it) {
+      rh->SetBinContent(x_it + 1, y_it + 1, vals(offset));
+      if (error.size()) {
+        rh->SetBinError(x_it + 1, y_it + 1, error(offset));
+      }
+      offset++;
+    }
+    // Reset flow bins
+    rh->SetBinContent(0, y_it + 1, 0);
+    rh->SetBinError(0, y_it + 1, 0);
+    rh->SetBinContent(rh->GetXaxis()->GetNbins() + 1, y_it + 1, 0);
+    rh->SetBinError(rh->GetXaxis()->GetNbins() + 1, y_it + 1, 0);
+  }
+
+  for (Int_t x_it = 0; x_it < rh->GetXaxis()->GetNbins() + 2; ++x_it) {
+    // Reset flow bins
+    rh->SetBinContent(x_it, 0, 0);
+    rh->SetBinError(x_it, 0, 0);
+
+    rh->SetBinContent(x_it, rh->GetYaxis()->GetNbins() + 1, 0);
+    rh->SetBinError(x_it, rh->GetYaxis()->GetNbins() + 1, 0);
+  }
+  return offset;
+}
+
+size_t FillHistFromEigenVector(TH1 *rh, Eigen::VectorXd const &vals,
+                               size_t offset, Eigen::VectorXd const &error) {
+  Int_t dim = rh->GetDimension();
+  if (dim == 1) {
+    for (Int_t x_it = 0; x_it < rh->GetXaxis()->GetNbins(); ++x_it) {
+      rh->SetBinContent(x_it + 1, vals(offset));
+      if (error.size()) {
+        rh->SetBinError(x_it + 1, error(offset));
+      }
+      offset++;
+    }
+    // Reset flow bins
+    rh->SetBinContent(0, 0);
+    rh->SetBinError(0, 0);
+    rh->SetBinContent(rh->GetXaxis()->GetNbins() + 1, 0);
+    rh->SetBinError(rh->GetXaxis()->GetNbins() + 1, 0);
+    return offset;
+  } else if (dim == 2) {
+    return FillHistFromEigenVector(static_cast<TH2 *>(rh), vals, offset, error);
+  }
+  std::cout << "[ERROR]: FillHistFromstdvector cannot handle THND where N = "
+            << dim << std::endl;
+  throw;
+}
 
 Eigen::MatrixXd GetEigenMatrix(TMatrixD const *rm) {
   Eigen::MatrixXd em(rm->GetNrows(), rm->GetNcols());

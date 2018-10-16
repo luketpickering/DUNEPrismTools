@@ -112,11 +112,14 @@ inline std::vector<TH *> GetHistograms(std::string const &fname,
 }
 
 template <class TH>
-inline std::unique_ptr<TH> GetHistogram_uptr(TFile *f,
-                                             std::string const &fhname) {
+inline std::unique_ptr<TH>
+GetHistogram_uptr(TFile *f, std::string const &fhname, bool no_throw = false) {
   TH *fh = dynamic_cast<TH *>(f->Get(fhname.c_str()));
 
   if (!fh) {
+    if (no_throw) {
+      return std::unique_ptr<TH>(nullptr);
+    }
     std::cout << "[ERROR]: Couldn't get TH: " << fhname
               << " from input file: " << f->GetName() << std::endl;
     exit(1);
@@ -131,12 +134,13 @@ inline std::unique_ptr<TH> GetHistogram_uptr(TFile *f,
 
 template <class TH>
 inline std::unique_ptr<TH> GetHistogram_uptr(std::string const &fname,
-                                             std::string const &hname) {
+                                             std::string const &hname,
+                                             bool no_throw = false) {
   TDirectory *ogDir = gDirectory;
 
   TFile *inpF = CheckOpenFile(fname);
 
-  std::unique_ptr<TH> h = GetHistogram_uptr<TH>(inpF, hname);
+  std::unique_ptr<TH> h = GetHistogram_uptr<TH>(inpF, hname, no_throw);
 
   inpF->Close();
   delete inpF;
@@ -178,6 +182,46 @@ GetHistograms_uptr(std::string const &fname, std::string const &hnamePattern) {
   return histos;
 }
 
+template <class RType>
+inline std::unique_ptr<RType>
+GetROOTObject_uptr(TFile *f, std::string const &fhname, bool no_throw = false) {
+  RType *fh = dynamic_cast<RType *>(f->Get(fhname.c_str()));
+
+  if (!fh) {
+    if (no_throw) {
+      return std::unique_ptr<RType>(nullptr);
+    }
+    std::cout << "[ERROR]: Couldn't get RType: " << fhname
+              << " from input file: " << f->GetName() << std::endl;
+    exit(1);
+  }
+
+  std::unique_ptr<RType> inpH =
+      std::unique_ptr<RType>(static_cast<RType *>(fh->Clone()));
+
+  return inpH;
+}
+
+template <class RType>
+inline std::unique_ptr<RType> GetROOTObject_uptr(std::string const &fname,
+                                                 std::string const &hname,
+                                                 bool no_throw = false) {
+  TDirectory *ogDir = gDirectory;
+
+  TFile *inpF = CheckOpenFile(fname);
+
+  std::unique_ptr<RType> h = GetROOTObject_uptr<RType>(inpF, hname, no_throw);
+
+  inpF->Close();
+  delete inpF;
+
+  if (ogDir) {
+    ogDir->cd();
+  }
+
+  return h;
+}
+
 std::vector<std::pair<std::pair<double, double>, TH1D *>>
 SplitTH2D(TH2D const *t2, bool AlongY,
           double min = -std::numeric_limits<double>::max(),
@@ -189,12 +233,18 @@ InterpolateSplitTH2D(TH2D *t2, bool AlongY, std::vector<double> Vals);
 std::pair<Int_t, Int_t>
 GetProjectionBinRange(std::pair<double, double> ValRange, TAxis *axis);
 
-std::vector<TH1D *> MergeSplitTH2D(TH2D *t2, bool AlongY,
-                                   std::vector<std::pair<double, double>> Vals);
+std::vector<TH1D *>
+MergeSplitTH2D(TH2D *t2, bool AlongY,
+               std::vector<std::pair<double, double>> const &Vals);
 
 std::vector<std::unique_ptr<TH1D>>
 MergeSplitTH2D(std::unique_ptr<TH2D> &t2, bool AlongY,
-               std::vector<std::pair<double, double>> Vals);
+               std::vector<std::pair<double, double>> const &Vals);
+
+std::unique_ptr<TH2D>
+ReMergeSplitTH2D(std::vector<std::unique_ptr<TH1D>> const &,
+                 std::vector<std::pair<double, double>> const &Vals,
+                 std::string const &name, std::string const &title = "");
 
 TH2D *SliceNormTH2D(TH2D *t2, bool AlongY);
 
@@ -253,14 +303,22 @@ std::vector<double> Getstdvector(TH2 const *);
 std::vector<double> Getstdvector(TH1 const *);
 
 template <typename T>
-void Mergestdvector(std::vector<T> &a, std::vector<T> const &b) {
+inline void Mergestdvector(std::vector<T> &a, std::vector<T> const &b) {
   for (T const &b_i : b) {
     a.push_back(b_i);
   }
 }
 
+template <typename T>
+inline void Mergestdvector(std::vector<T> &a, std::vector<T> &&b) {
+  for (T &b_i : b) {
+    a.push_back(std::move(b_i));
+  }
+}
+
 template <typename THN>
-std::vector<double> Getstdvector(std::vector<std::unique_ptr<THN>> const &rhv) {
+inline std::vector<double>
+Getstdvector(std::vector<std::unique_ptr<THN>> const &rhv) {
   std::vector<double> ev;
 
   for (std::unique_ptr<THN> const &rh : rhv) {
@@ -270,7 +328,57 @@ std::vector<double> Getstdvector(std::vector<std::unique_ptr<THN>> const &rhv) {
   return ev;
 }
 
+size_t FillHistFromstdvector(TH2 *, std::vector<double> const &,
+                             size_t offset = 0,
+                             std::vector<double> const &error = {});
+size_t FillHistFromstdvector(TH1 *, std::vector<double> const &,
+                             size_t offset = 0,
+                             std::vector<double> const &error = {});
+template <typename THN>
+inline size_t FillHistFromstdvector(std::vector<std::unique_ptr<THN>> &rhv,
+                                    std::vector<double> const &vals,
+                                    size_t offset = 0,
+                                    std::vector<double> const &error = {}) {
+
+  for (std::unique_ptr<THN> const &rh : rhv) {
+    offset = FillHistFromstdvector(rh.get(), vals, offset, error);
+  }
+  return offset;
+}
+
+template <typename THN>
+inline std::vector<std::unique_ptr<THN>>
+CloneHistVector(std::vector<std::unique_ptr<THN>> const &rhv,
+                std::string const &post_fix = "") {
+  std::vector<std::unique_ptr<THN>> clonev;
+  for (std::unique_ptr<THN> const &rh : rhv) {
+    clonev.emplace_back(static_cast<THN *>(
+        rh->Clone((std::string(rh->GetName()) + post_fix).c_str())));
+    clonev.back()->SetDirectory(nullptr);
+  }
+  return clonev;
+}
+
 #ifdef USE_EIGEN
+
+size_t
+FillHistFromEigenVector(TH2 *, Eigen::VectorXd const &, size_t offset = 0,
+                        Eigen::VectorXd const &error = Eigen::VectorXd());
+size_t
+FillHistFromEigenVector(TH1 *, Eigen::VectorXd const &, size_t offset = 0,
+                        Eigen::VectorXd const &error = Eigen::VectorXd());
+template <typename THN>
+inline size_t
+FillHistFromEigenVector(std::vector<std::unique_ptr<THN>> &rhv,
+                        Eigen::VectorXd const &vals, size_t offset = 0,
+                        Eigen::VectorXd const &error = Eigen::VectorXd()) {
+
+  for (std::unique_ptr<THN> const &rh : rhv) {
+    offset = FillHistFromEigenVector(rh.get(), vals, offset, error);
+  }
+  return offset;
+}
+
 Eigen::MatrixXd GetEigenMatrix(TMatrixD const *);
 Eigen::VectorXd GetEigenFlatVector(std::vector<double> const &);
 std::unique_ptr<TMatrixD> GetTMatrixD(Eigen::MatrixXd const &);
