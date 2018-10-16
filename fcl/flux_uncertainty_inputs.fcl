@@ -1,0 +1,16 @@
+FluxUncertainty: {
+  InputFile:"bla.root"
+
+  NEffectiveParametersToRead: 50
+
+  ND_detector_tag: "ND"
+  FD_detector_tag: "FD"
+
+  nu_mode_beam_tag: "nu"
+  nubar_mode_beam_tag: "nubar"
+
+  numu_species_tag: "numu"
+  nue_species_tag: "nue"
+  numubar_species_tag: "numubar"
+  nuebar_species_tag: "nuebar"
+}

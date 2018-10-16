@@ -1,0 +1,64 @@
+BEGIN_PROLOG
+
+Nominal_Prediction_Input: {
+  InputFile: "nominal.root"
+  InputHistName: "LBNF_%S_flux"
+}
+
+PredictionConfigurations: [ND_nu, ND_nubar, FD_nu, FD_nubar]
+
+END_PROLOG
+
+PPFX: {
+  Name: "PPFX"
+  NThrows: 100
+  NThrowSkip: 1
+
+  Nominal: {
+    InputFile: "HadronProdUncerts_%C.root"
+    InputHistName: "LBNF_%S_flux_CV"
+  }
+
+  InputFile: "HadronProdUncerts_%C.root"
+  VariedHistName: "LBNF_%S_flux_univ_%i"
+
+  dump_diagnostics: true
+
+}
+
+HornCurrent: {
+  Name: "HornCurrent"
+
+  Nominal: @local::Nominal_Prediction_Input
+
+  InputFile: "HC_%C.root"
+  VariedHistName: "LBNF_%S_flux"
+}
+
+FullFluxUncertainty: {
+  Species: [numu]
+  Configurations: [ND_nu]
+  Tweaks: [@local::PPFX, @local::HornCurrent]
+}
+
+
+PPFX.Nominal.InputFile: nominal_w_ppfx_fluxes.root
+PPFX.InputFile: nominal_w_ppfx_fluxes.root
+
+JustPPFX_ND_numu: {
+
+  use_Spectra: true # use spectra, if not, use Eigen (very slow for anything larger than a few hundred columns)
+  num_eigenvalues: 50 # Dump out the 'tweak' definitions for the top X most important eigen values
+
+  # FluxSlicesDescriptor: "0.25_32.75:1"
+  FluxSlicesDescriptor: "0_33:0.5"
+  Species: [numu]
+  Configurations: [ND_nu]
+  Tweaks: [@local::PPFX]
+}
+
+FluxUncertainty: @local::JustPPFX_ND_numu
+
+FluxUncertainty.OutputFile: "FluxCovmat.root"
+FluxUncertainty.RecreateOutputFile: true
+FluxUncertainty.WriteMatrices: true # For a 6kx6k matrix, this will be 512mb
