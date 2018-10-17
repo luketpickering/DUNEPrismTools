@@ -87,6 +87,9 @@ FLUX_WINDOW_DESCRIPTOR=$(python -c "import urllib; print urllib.unquote('''${FLU
 
 echo "Unencoded flux window descriptor: ${FLUX_WINDOW_DESCRIPTOR}"
 
+PPFX_ARG="${9}"
+echo "[INFO]: PPFX Argument: \"${PPFX_ARG}\""
+
 echo "[INFO]: Reading ${NFILES_TO_READ} files."
 
 echo "[INFO]: JobID ${CLUSTER}, ArrayID ${PROCESS}"
@@ -161,7 +164,7 @@ setup ifdhc v2_1_0 -q debug:e14:p2713d
 
 export IFDH_CP_UNLINK_ON_ERROR=1;
 export IFDH_CP_MAXRETRIES=1;
-export IFDH_DEBUG=1;
+# export IFDH_DEBUG=0;
 
 ifdh ls ${PNFS_OUTDIR}/flux
 
@@ -219,8 +222,8 @@ echo "[INFO]: Writing output to: ${OUT_FILENAME} "
 
 echo "Building fluxes @ $(date)"
 
-echo "./dp_BuildFluxes -i \"inputs/*.dk2nu.root\" -o ${OUT_FILENAME} -z ${DET_DIST_CM} -vb ${BINNING_DESCRIPTOR} ${RUPARG} ${FLUX_WINDOW_DESCRIPTOR} ${DK2NU_LITE_ARG} &> dp_BuildFluxes.${CLUSTER}.${PROCESS}.log"
-./dp_BuildFluxes -i "inputs/*.dk2nu.root" -o ${OUT_FILENAME} -z ${DET_DIST_CM} -vb ${BINNING_DESCRIPTOR} ${RUPARG} ${FLUX_WINDOW_DESCRIPTOR} ${DK2NU_LITE_ARG} &> dp_BuildFluxes.${CLUSTER}.${PROCESS}.log
+echo "./dp_BuildFluxes -i \"inputs/*.dk2nu.root\" -o ${OUT_FILENAME} -z ${DET_DIST_CM} -vb ${BINNING_DESCRIPTOR} ${RUPARG} ${FLUX_WINDOW_DESCRIPTOR} ${DK2NU_LITE_ARG} ${PPFX_ARG} &> dp_BuildFluxes.${CLUSTER}.${PROCESS}.log"
+./dp_BuildFluxes -i "inputs/*.dk2nu.root" -o ${OUT_FILENAME} -z ${DET_DIST_CM} -vb ${BINNING_DESCRIPTOR} ${RUPARG} ${FLUX_WINDOW_DESCRIPTOR} ${DK2NU_LITE_ARG} ${PPFX_ARG} &> dp_BuildFluxes.${CLUSTER}.${PROCESS}.log
 
 echo "Finished."
 
