@@ -361,7 +361,7 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
 
       for (std::string parent_suffix : {"", "pi", "k", "k0", "mu"}) {
         if (parent_suffix.size()) {
-          if (&&!DoExtra) {
+          if (!DoExtra) {
             continue;
           }
           parent_suffix = std::string("_") + parent_suffix;
