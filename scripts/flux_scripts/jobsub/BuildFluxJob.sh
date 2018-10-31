@@ -159,8 +159,10 @@ voms-proxy-info --all
 
 source /cvmfs/dune.opensciencegrid.org/products/dune/setup_dune.sh
 
-setup root v6_10_04d -q debug:e14:nu
-setup ifdhc v2_1_0 -q debug:e14:p2713d
+setup root v6_06_08 -q e10:nu:prof
+setup ifdhc v2_1_0
+
+ups active
 
 export IFDH_CP_UNLINK_ON_ERROR=1;
 export IFDH_CP_MAXRETRIES=1;
@@ -222,12 +224,17 @@ echo "[INFO]: Writing output to: ${OUT_FILENAME} "
 
 echo "Building fluxes @ $(date)"
 
-echo "./dp_BuildFluxes -i \"inputs/*.dk2nu.root\" -o ${OUT_FILENAME} -z ${DET_DIST_CM} -vb ${BINNING_DESCRIPTOR} ${RUPARG} ${FLUX_WINDOW_DESCRIPTOR} ${DK2NU_LITE_ARG} ${PPFX_ARG} &> dp_BuildFluxes.${CLUSTER}.${PROCESS}.log"
-./dp_BuildFluxes -i "inputs/*.dk2nu.root" -o ${OUT_FILENAME} -z ${DET_DIST_CM} -vb ${BINNING_DESCRIPTOR} ${RUPARG} ${FLUX_WINDOW_DESCRIPTOR} ${DK2NU_LITE_ARG} ${PPFX_ARG} &> dp_BuildFluxes.${CLUSTER}.${PROCESS}.log
+echo "./dp_BuildFluxes -i \"inputs/*dk2nu*root\" -o ${OUT_FILENAME} -z ${DET_DIST_CM} -vb ${BINNING_DESCRIPTOR} ${RUPARG} ${FLUX_WINDOW_DESCRIPTOR} ${DK2NU_LITE_ARG} ${PPFX_ARG} &> dp_BuildFluxes.${CLUSTER}.${PROCESS}.log"
+./dp_BuildFluxes -i "inputs/*dk2nu*root" -o ${OUT_FILENAME} -z ${DET_DIST_CM} -vb ${BINNING_DESCRIPTOR} ${RUPARG} ${FLUX_WINDOW_DESCRIPTOR} ${DK2NU_LITE_ARG} ${PPFX_ARG} &> dp_BuildFluxes.${CLUSTER}.${PROCESS}.log
 
 echo "Finished."
 
 echo "Copying output @ $(date)"
+
+if [ ! -e ${OUT_FILENAME} ]; then
+  echo "[ERROR]: Failed to produce expected output file."
+  exit 1
+fi
 
 echo "ifdh cp -D $IFDH_OPTION ${OUT_FILENAME} ${PNFS_OUTDIR}/flux/"
 ifdh cp -D $IFDH_OPTION ${OUT_FILENAME} ${PNFS_OUTDIR}/flux/

@@ -9,3 +9,6 @@ install(FILES ${GNSPLRDR} DESTINATION ${CMAKE_INSTALL_PREFIX}/configs/genie_spli
 
 file(GLOB RPXML ${CMAKE_CURRENT_SOURCE_DIR}/run_plans/*.xml)
 install(FILES ${RPXML} DESTINATION ${CMAKE_INSTALL_PREFIX}/configs/run_plans)
+
+file(GLOB g4lbnf_macros ${CMAKE_CURRENT_SOURCE_DIR}/g4lbnf_macros/*.mac)
+install(FILES ${g4lbnf_macros} DESTINATION ${CMAKE_INSTALL_PREFIX}/configs/g4lbnf_macros)

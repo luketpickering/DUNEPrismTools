@@ -157,7 +157,9 @@ G4LBNE_DK2NUFILE_PREFIX=g4lbnf
 
 cp ${BEAM_MACRO} ${BEAM_MACRO}.inp
 
-cat ${BEAM_MACRO}.inp | sed "s/__RUNID__/${PROCESS}/g" | sed "s/__DK2NUFILENAME__/${G4LBNE_DK2NUFILE_PREFIX}/g" > ${BEAM_MACRO}
+SEED=$(od -A n -t dI -N 2 /dev/urandom | tr -d " ")
+
+cat ${BEAM_MACRO}.inp | sed "s/__RUNID__/${PROCESS}/g" | sed "s/__SEED__/${SEED}/g" | sed "s/__DK2NUFILENAME__/${G4LBNE_DK2NUFILE_PREFIX}/g" > ${BEAM_MACRO}
 
 G4LBNE_DK2NUFILE=${G4LBNE_DK2NUFILE_PREFIX}_$(printf "%05g" ${PROCESS}).dk2nu.root
 
