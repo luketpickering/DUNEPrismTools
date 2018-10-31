@@ -6,6 +6,7 @@ PNFS_PATH_APPEND=""
 DK2NU_INPUT_DIR=""
 NMAXJOBS=""
 NPERJOB="10"
+NFILESKIP="0"
 INPUTLIST=""
 LIFETIME_EXP="30m"
 DISK_EXP="1GB"
@@ -95,6 +96,18 @@ while [[ ${#} -gt 0 ]]; do
 
       NPERJOB="$2"
       echo "[OPT]: Each job will handle \"${NPERJOB}\" input files."
+      shift # past argument
+      ;;
+
+      -s|--n-files-skip)
+
+      if [[ ${#} -lt 2 ]]; then
+        echo "[ERROR]: ${1} expected a value."
+        exit 1
+      fi
+
+      NFILESKIP="$2"
+      echo "[OPT]: Will ignore the first \"${NFILESKIP}\" input files."
       shift # past argument
       ;;
 
@@ -203,6 +216,7 @@ while [[ ${#} -gt 0 ]]; do
       echo -e "\t-I|--dk2nu-input-file-list : Newline separated list of files to use as input. Must be located on dcache."
       echo -e "\t-W|--flux-window           : Flux window descriptor, defines off axis flux windows and det height. e.g. far det ( ${FLUX_WINDOW_DESCRIPTOR} )"
       echo -e "\t-n|--n-per-job             : Number of files to run per job. (default: 10)"
+      echo -e "\t-s|--n-files-skip          : Number of files to to skip before building jobs. (default: 10)"
       echo -e "\t-b|--binning               : dp_BuildFluxes variable binning descriptor. (default: 0,0.5,1_3:0.25,3_4:0.5,4_10:1,10_20:2)"
       echo -e "\t-S|--species               : Only build fluxes for neutrino species with given PDG"
       echo -e "\t-P|--no-reuse-parents      : Each decay parent is only used once, not once per flux prediction plane."
@@ -263,6 +277,13 @@ if [ ! -z ${INPUTLIST} ]; then
   fi
   cp ${INPUTLIST} inputs.list
 
+  if [ ! -z ${NFILESKIP} ]; then
+    NINPUTS=$(cat inputs.list | wc -l)
+    N=$((NINPUTS - NFILESKIP))
+    mv inputs.list inputs.list.full
+    cat inputs.list.full | tail -n ${N} > inputs.list
+  fi
+
   NINPUTS=$(cat inputs.list | wc -l)
 
   if [ "${NINPUTS}" == "0" ]; then
@@ -283,9 +304,16 @@ else
     voms-proxy-info --all
 
     echo "[INFO]: ifdh ls ${DK2NU_INPUT_DIR}"
-    ifdh ls ${DK2NU_INPUT_DIR} | grep "dk2nu.root$" > inputs.list
+    ifdh ls ${DK2NU_INPUT_DIR} | grep "dk2nu.*root$" > inputs.list
   else
-    echo -e "import os,re\nfor x in os.listdir('${DK2NU_INPUT_DIR}'):\n if re.match('.*dk2nu.root',x):\n  print x;" | python > inputs.list
+    echo -e "import os,re\nfor x in os.listdir('${DK2NU_INPUT_DIR}'):\n if re.match('.*dk2nu.*root',x):\n  print x;" | python > inputs.list
+  fi
+
+  if [ ! -z ${NFILESKIP} ]; then
+    NINPUTS=$(cat inputs.list | wc -l)
+    N=$((NINPUTS - NFILESKIP))
+    mv inputs.list inputs.list.full
+    cat inputs.list.full | tail -n ${N} > inputs.list
   fi
 
   NINPUTS=$(cat inputs.list | wc -l)
@@ -352,7 +380,7 @@ cd ../
 rm -rf sub_tmp
 
 echo -e "#!/bin/sh\n source /cvmfs/fermilab.opensciencegrid.org/products/common/etc/setups.sh; setup jobsub_client; jobsub_q --user=${USER} --group=${EXPERIMENT} --jobid=${JID}" > JID_${JID}.q.sh
-echo -e "#!/bin/sh\n source /cvmfs/fermilab.opensciencegrid.org/products/common/etc/setups.sh; setup jobsub_client; jobsub_rm ---user=${USER} --group=${EXPERIMENT} -jobid=${JID}" > JID_${JID}.rm.sh
+echo -e "#!/bin/sh\n source /cvmfs/fermilab.opensciencegrid.org/products/common/etc/setups.sh; setup jobsub_client; jobsub_rm --user=${USER} --group=${EXPERIMENT} --jobid=${JID}" > JID_${JID}.rm.sh
 echo -e "#!/bin/sh\n source /cvmfs/fermilab.opensciencegrid.org/products/common/etc/setups.sh; setup jobsub_client; mkdir ${JID}_log; cd ${JID}_log; jobsub_fetchlog --user=${USER} --group=${EXPERIMENT} --jobid=${JID}; tar -zxvf *.tgz" > JID_${JID}.fetchlog.sh
 
 chmod +x JID_${JID}.q.sh JID_${JID}.rm.sh JID_${JID}.fetchlog.sh
