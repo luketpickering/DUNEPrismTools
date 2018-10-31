@@ -386,28 +386,57 @@ public:
   size_t NCoefficients;
   size_t low_offset, FitIdxLow, FitIdxHigh;
 
-  void Initialize(Params const &p,
-                  std::pair<std::string, std::string> NDFluxDescriptor,
-                  std::pair<std::string, std::string> FDFluxDescriptor) {
+  void
+  Initialize(Params const &p,
+             std::pair<std::string, std::string> NDFluxDescriptor = {"", ""},
+             std::pair<std::string, std::string> FDFluxDescriptor = {"", ""}) {
 
     FluxMatrix_Full = Eigen::MatrixXd::Zero(0, 0);
 
     fParams = p;
 
+    if (NDFluxDescriptor.first.size() && NDFluxDescriptor.second.size()) {
+
+      std::unique_ptr<TH2> Flux2D =
+          GetHistogram<TH2>(NDFluxDescriptor.first, NDFluxDescriptor.second);
+
+      if (!Flux2D) {
+        std::cout << "[ERROR]: Found no input flux with name: \""
+                  << NDFluxDescriptor.first << "\" in file: \""
+                  << NDFluxDescriptor.second << "\"." << std::endl;
+        throw;
+      }
+
+      SetNDFluxes(Flux2D.get());
+
+    } // end ND setup
+
+    if (FDFluxDescriptor.first.size() && FDFluxDescriptor.second.size()) {
+
+      FDFlux_unosc =
+          GetHistogram<TH1>(FDFluxDescriptor.first, FDFluxDescriptor.second);
+
+      if (fParams.MergeENuBins) {
+        FDFlux_unosc->Rebin(fParams.MergeENuBins);
+        FDFlux_unosc->Scale(1.0 / double(fParams.MergeENuBins));
+      }
+
+      FDFlux_osc =
+          std::unique_ptr<TH1>(static_cast<TH1 *>(FDFlux_unosc->Clone()));
+      FDFlux_osc->SetDirectory(nullptr);
+      FDFlux_osc->Reset();
+    }
+  }
+
+  void SetNDFluxes(TH2 *const NDFluxes, bool ApplyXRanges = true) {
+
     std::vector<std::pair<double, double>> XRanges;
-    if (fParams.OffAxisRangesDescriptor.size()) {
+    if (ApplyXRanges && fParams.OffAxisRangesDescriptor.size()) {
       XRanges = BuildRangesList(fParams.OffAxisRangesDescriptor);
     }
 
-    std::unique_ptr<TH2> Flux2D =
-        GetHistogram<TH2>(NDFluxDescriptor.first, NDFluxDescriptor.second);
-
-    if (!Flux2D) {
-      std::cout << "[ERROR]: Found no input flux with name: \""
-                << NDFluxDescriptor.first << "\" in file: \""
-                << NDFluxDescriptor.second << "\"." << std::endl;
-      throw;
-    }
+    std::unique_ptr<TH2> Flux2D(static_cast<TH2 *>(NDFluxes->Clone()));
+    Flux2D->SetDirectory(nullptr);
 
     if (fParams.MergeENuBins && fParams.MergeOAPBins) {
       Flux2D->Rebin2D(fParams.MergeENuBins, fParams.MergeOAPBins);
@@ -454,22 +483,9 @@ public:
     }
 
     NCoefficients = FluxMatrix_Full.cols();
-
-    FDFlux_unosc =
-        GetHistogram<TH1>(FDFluxDescriptor.first, FDFluxDescriptor.second);
-
-    if (fParams.MergeENuBins) {
-      FDFlux_unosc->Rebin(fParams.MergeENuBins);
-      FDFlux_unosc->Scale(1.0 / double(fParams.MergeENuBins));
-    }
-
-    FDFlux_osc =
-        std::unique_ptr<TH1>(static_cast<TH1 *>(FDFlux_unosc->Clone()));
-    FDFlux_osc->SetDirectory(nullptr);
-    FDFlux_osc->Reset();
   }
 
-  void BuildTargetFlux(std::array<double, 6> OscParameters = {},
+  void OscillateFDFlux(std::array<double, 6> OscParameters = {},
                        std::pair<int, int> OscChannel = {14, 14},
                        double DipAngle_degrees = 5.8) {
 
@@ -497,6 +513,24 @@ public:
                                     FDFlux_unosc->GetBinContent(bi_it + 1));
     }
 
+    BuildTargetFlux();
+  }
+
+  void SetFDOscFlux(TH1 *const FDFlux) {
+
+    FDFlux_osc = std::unique_ptr<TH1>(static_cast<TH1 *>(FDFlux->Clone()));
+    FDFlux_osc->SetDirectory(nullptr);
+    FDFlux_osc->Reset();
+
+    if (fParams.MergeENuBins) {
+      FDFlux_osc->Rebin(fParams.MergeENuBins);
+      FDFlux_osc->Scale(1.0 / double(fParams.MergeENuBins));
+    }
+
+    BuildTargetFlux();
+  }
+
+  void BuildTargetFlux() {
     int FitBinLow = 1;
     int FitBinHigh = FDFlux_osc->GetXaxis()->GetNbins();
     low_offset = 0;

@@ -11,11 +11,13 @@ int NEnuBinMerge = 0;
 int method = 1;
 
 double OutOfRangeChi2Factor = 0.1;
+double RegFactor = 1E-7;
 
 void SayUsage(char const *argv[]) {
   std::cout << "Runlike: " << argv[0]
             << " -N <NDFluxFile,NDFluxHistName> -F <FDFluxFile,FDFluxHistName> "
-               "[-o Output.root -M <1:SVD, 2:QR, 3:Normal, 4:Inverse> -MX <NEnuBinMerge> -OR OutOfRangeChi2Factor]"
+               "[-o Output.root -M <1:SVD, 2:QR, 3:Normal, 4:Inverse> -MX "
+               "<NEnuBinMerge> -OR OutOfRangeChi2Factor -RF RegFactor]"
             << std::endl;
 }
 
@@ -47,13 +49,17 @@ void handleOpts(int argc, char const *argv[]) {
     } else if (std::string(argv[opt]) == "-M") {
       method = str2T<int>(argv[++opt]);
       if ((method < 1) || (method > 4)) {
-        std::cout << "[WARN]: Invalid option for solving method, defaulting to QR." << std::endl;
+        std::cout
+            << "[WARN]: Invalid option for solving method, defaulting to QR."
+            << std::endl;
         method = 2;
       }
-    }else if (std::string(argv[opt]) == "-MX") {
+    } else if (std::string(argv[opt]) == "-MX") {
       NEnuBinMerge = str2T<int>(argv[++opt]);
     } else if (std::string(argv[opt]) == "-OR") {
       OutOfRangeChi2Factor = str2T<double>(argv[++opt]);
+    } else if (std::string(argv[opt]) == "-RF") {
+      RegFactor = str2T<double>(argv[++opt]);
     } else if ((std::string(argv[opt]) == "-?") ||
                (std::string(argv[opt]) == "--help")) {
       SayUsage(argv);
@@ -88,12 +94,12 @@ int main(int argc, char const *argv[]) {
   //     pre-conditioning
 
   // Out of fit range behavior
-  p.OORMode =
-      FluxLinearSolver::Params::kGaussianDecay; // To left/right of last
+  p.OORMode = FluxLinearSolver::Params::kGaussianDecay; // To left/right of last
   //     'fit'
   // bin decay gaussianly
   // p.OORMode =
-  //     FluxLinearSolver::Params::kIgnore; // Throw away bins outside of the range
+  //     FluxLinearSolver::Params::kIgnore; // Throw away bins outside of the
+  //     range
   // p.OORMode = FluxLinearSolver::Params::kZero; // Set the target outside of
   // the range to zero
 
@@ -121,7 +127,7 @@ int main(int argc, char const *argv[]) {
   std::pair<int, int> OscChannel{14, 14};
 
   // Defaults to DUNE baseline;
-  fls.BuildTargetFlux(OscParameters, OscChannel);
+  fls.OscillateFDFlux(OscParameters, OscChannel);
 
   size_t nsteps = 5000;
   double start = -20;
@@ -137,7 +143,7 @@ int main(int argc, char const *argv[]) {
     lcurve.SetPoint(l_it, res_norm, soln_norm);
   }
 
-  fls.Solve(0);
+  fls.Solve(RegFactor);
 
   TFile *f = CheckOpenFile(OutputFile, "RECREATE");
   fls.Write(f);
