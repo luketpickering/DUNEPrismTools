@@ -19,6 +19,7 @@ FLUX_WINDOW_DESCRIPTOR="-x -0.3_36:0.6 -h 200"
 #Far detector example
 # FLUX_WINDOW_DESCRIPTOR="-x -12.90_12.90:25.80 -h 2260"
 FORCE_REMOVE="0"
+PPFX_ARG=""
 
 while [[ ${#} -gt 0 ]]; do
 
@@ -139,6 +140,11 @@ while [[ ${#} -gt 0 ]]; do
       echo "[OPT]: Will use each decay parent once."
       ;;
 
+      -X|--PPFX)
+      PPFX_ARG="--PPFX"
+      echo "[OPT]: Will try and make PPFX varied fluxes."
+      ;;
+
       -f|--force-remove)
 
       FORCE_REMOVE="1"
@@ -202,6 +208,7 @@ while [[ ${#} -gt 0 ]]; do
       echo -e "\t-P|--no-reuse-parents      : Each decay parent is only used once, not once per flux prediction plane."
       echo -e "\t-D|--dk2nu-lite            : dp_BuildFluxes will expect the input to be the dk2nu_lite format produced by dp_MakeLitedk2nu."
       echo -e "\t-N|--NMAXJobs              : Maximum number of jobs to submit."
+      echo -e "\t-X|--PPFX                  : Make PPFX variations, PPFX weight branches must exist in the input files."
       echo -e "\t-f|--force-remove          : If output directories already exist, force remove them."
       echo -e "\t--expected-disk            : Expected disk usage to pass to jobsub -- approx 100MB* the value passed to -\'n\' (default: 1GB)"
       echo -e "\t--expected-mem             : Expected mem usage to pass to jobsub -- Scales with the number of detector stops in the xml passed to \'--r\' (default: 2GB)"
@@ -337,14 +344,15 @@ tar -zcvf apps.${DUNEPRISMTOOLS_VERSION}.tar.gz dp_BuildFluxes inputs.list
 FLUX_WINDOW_DESCRIPTOR_ENC=$(python -c "import urllib; print urllib.quote('''${FLUX_WINDOW_DESCRIPTOR}''')")
 echo "Encoded flux window descriptor: ${FLUX_WINDOW_DESCRIPTOR_ENC}"
 
-JID=$(jobsub_submit --group=${EXPERIMENT} --jobid-output-only --resource-provides=usage_model=OPPORTUNISTIC --expected-lifetime=${LIFETIME_EXP} --disk=${DISK_EXP} -N ${NJOBSTORUN} --memory=${MEM_EXP} --cpu=1 --OS=SL6 --tar_file_name=dropbox://apps.${DUNEPRISMTOOLS_VERSION}.tar.gz file://${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/BuildFluxJob.sh ${DET_DIST_CM} ${BINNING_DESCRIPTOR} ${REUSEPARENTS} ${SPECARG} ${DK2NULITE} ${PNFS_PATH_APPEND} ${NPERJOB} "${FLUX_WINDOW_DESCRIPTOR_ENC}")
+JID=$(jobsub_submit --group=${EXPERIMENT} --jobid-output-only --resource-provides=usage_model=OPPORTUNISTIC --expected-lifetime=${LIFETIME_EXP} --disk=${DISK_EXP} -N ${NJOBSTORUN} --memory=${MEM_EXP} --cpu=1 --OS=SL6 --tar_file_name=dropbox://apps.${DUNEPRISMTOOLS_VERSION}.tar.gz file://${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/BuildFluxJob.sh ${DET_DIST_CM} ${BINNING_DESCRIPTOR} ${REUSEPARENTS} ${SPECARG} ${DK2NULITE} ${PNFS_PATH_APPEND} ${NPERJOB} "${FLUX_WINDOW_DESCRIPTOR_ENC} ${PPFX_ARG}")
+
+JID=$(echo ${JID} | tr -d "\n" | tr -d " " | tr -d "\t")
 
 cd ../
 rm -rf sub_tmp
 
-
-echo -e "#!/bin/sh\n source /cvmfs/fermilab.opensciencegrid.org/products/common/etc/setups.sh; setup jobsub_client; jobsub_q --jobid=${JID}" > JID_${JID}.q.sh
-echo -e "#!/bin/sh\n source /cvmfs/fermilab.opensciencegrid.org/products/common/etc/setups.sh; setup jobsub_client; jobsub_rm --jobid=${JID}" > JID_${JID}.rm.sh
-echo -e "#!/bin/sh\n source /cvmfs/fermilab.opensciencegrid.org/products/common/etc/setups.sh; setup jobsub_client; mkdir ${JID}_log; cd ${JID}_log; jobsub_fetchlog --jobid=${JID}; tar -zxvf *.tgz" > JID_${JID}.fetchlog.sh
+echo -e "#!/bin/sh\n source /cvmfs/fermilab.opensciencegrid.org/products/common/etc/setups.sh; setup jobsub_client; jobsub_q --user=${USER} --group=${EXPERIMENT} --jobid=${JID}" > JID_${JID}.q.sh
+echo -e "#!/bin/sh\n source /cvmfs/fermilab.opensciencegrid.org/products/common/etc/setups.sh; setup jobsub_client; jobsub_rm ---user=${USER} --group=${EXPERIMENT} -jobid=${JID}" > JID_${JID}.rm.sh
+echo -e "#!/bin/sh\n source /cvmfs/fermilab.opensciencegrid.org/products/common/etc/setups.sh; setup jobsub_client; mkdir ${JID}_log; cd ${JID}_log; jobsub_fetchlog --user=${USER} --group=${EXPERIMENT} --jobid=${JID}; tar -zxvf *.tgz" > JID_${JID}.fetchlog.sh
 
 chmod +x JID_${JID}.q.sh JID_${JID}.rm.sh JID_${JID}.fetchlog.sh

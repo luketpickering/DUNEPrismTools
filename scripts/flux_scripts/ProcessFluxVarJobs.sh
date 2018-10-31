@@ -3,23 +3,32 @@
 BINNING_DESCRIPTOR_FITS="0_10:0.025"
 BINNING_DESCRIPTOR_UNCERTS="0,0.5,1_3:0.25,3_4:0.5,4_10:1,10_20:2"
 
+#### With PPFX
+
+${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/FarmBuildFluxJobs.sh \
+   --expected-walltime 70m --expected-disk 3GB \
+   --expected-mem 512MB -b ${BINNING_DESCRIPTOR_UNCERTS} \
+   -p nominal_5E7POT_w_ppfx/DUNEPrismFluxes/FHC/uniform_binning_wider -d 57400 \
+   -i /pnfs/dune/persistent/users/picker24/nominal_5E7POT_w_ppfx/v3r5p4_beta/QGSP_BERT/OptimizedEngineeredSept2017Review/neutrino/slimflux \
+   -n 2 -D -W " -x -0.25_45.25:0.5 -h 300 " -f -X
+
 #### With Dan
 
-
-${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/FarmBuildFluxJobs.sh \
-   --expected-walltime 60m --expected-disk 1GB \
-   --expected-mem 1536MB -b ${BINNING_DESCRIPTOR_FITS} \
-   -p nominal_1E9/DUNEPrismFluxes/RHC/uniform_binning_wider -d 57400 \
-   -i /pnfs/dune/persistent/users/picker24/nominal_1E9/v3r5p4/QGSP_BERT/OptimizedEngineeredSept2017Review/antineutrino/slimflux/ \
-   -n 10 -D -W " -x -0.25_45.25:0.5 -h 3 " -f
-
-
-${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/FarmBuildFluxJobs.sh \
-   --expected-walltime 60m --expected-disk 1GB \
-   --expected-mem 1536MB -b ${BINNING_DESCRIPTOR_FITS} \
-   -p nominal_1E9/DUNEPrismFluxes/FHC/uniform_binning_wider -d 57400 \
-   -i /pnfs/dune/persistent/users/picker24/nominal_1E9/v3r5p4/QGSP_BERT/OptimizedEngineeredSept2017Review/neutrino/slimflux/ \
-   -n 10 -D -W " -x -0.25_45.25:0.5 -h 3 " -f
+#
+# ${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/FarmBuildFluxJobs.sh \
+#    --expected-walltime 60m --expected-disk 1GB \
+#    --expected-mem 1536MB -b ${BINNING_DESCRIPTOR_FITS} \
+#    -p nominal_1E9/DUNEPrismFluxes/RHC/uniform_binning_wider -d 57400 \
+#    -i /pnfs/dune/persistent/users/picker24/nominal_1E9/v3r5p4/QGSP_BERT/OptimizedEngineeredSept2017Review/antineutrino/slimflux/ \
+#    -n 10 -D -W " -x -0.25_45.25:0.5 -h 3 " -f
+#
+#
+# ${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/FarmBuildFluxJobs.sh \
+#    --expected-walltime 60m --expected-disk 1GB \
+#    --expected-mem 1536MB -b ${BINNING_DESCRIPTOR_FITS} \
+#    -p nominal_1E9/DUNEPrismFluxes/FHC/uniform_binning_wider -d 57400 \
+#    -i /pnfs/dune/persistent/users/picker24/nominal_1E9/v3r5p4/QGSP_BERT/OptimizedEngineeredSept2017Review/neutrino/slimflux/ \
+#    -n 10 -D -W " -x -0.25_45.25:0.5 -h 3 " -f
 
 
 

@@ -5,7 +5,7 @@
 ${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/FarmSlimFluxJobs.sh \
   -p nominal_5E7POT_w_ppfx/v3r5p4_beta/QGSP_BERT/OptimizedEngineeredSept2017Review/neutrino \
   -i /pnfs/dune/persistent/users/picker24/nominal_5E7POT_w_ppfx/v3r5p4_beta/QGSP_BERT/OptimizedEngineeredSept2017Review/neutrino/flux \
-  -n 15 -P --expected-disk 4GB --expected-mem 1GB --expected-walltime 10m
+  -n 15 -P --expected-disk 4GB --expected-mem 1GB --expected-walltime 15m
 
 ### Near detector
 
