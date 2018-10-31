@@ -413,18 +413,9 @@ public:
 
     if (FDFluxDescriptor.first.size() && FDFluxDescriptor.second.size()) {
 
-      FDFlux_unosc =
+      std::unique_ptr<TH1> FDFlux =
           GetHistogram<TH1>(FDFluxDescriptor.first, FDFluxDescriptor.second);
-
-      if (fParams.MergeENuBins) {
-        FDFlux_unosc->Rebin(fParams.MergeENuBins);
-        FDFlux_unosc->Scale(1.0 / double(fParams.MergeENuBins));
-      }
-
-      FDFlux_osc =
-          std::unique_ptr<TH1>(static_cast<TH1 *>(FDFlux_unosc->Clone()));
-      FDFlux_osc->SetDirectory(nullptr);
-      FDFlux_osc->Reset();
+      SetFDFluxUnOsc(FDFlux.get());
     }
   }
 
@@ -516,18 +507,30 @@ public:
     BuildTargetFlux();
   }
 
-  void SetFDOscFlux(TH1 *const FDFlux) {
-
-    FDFlux_osc = std::unique_ptr<TH1>(static_cast<TH1 *>(FDFlux->Clone()));
-    FDFlux_osc->SetDirectory(nullptr);
-    FDFlux_osc->Reset();
+  void SetFDFluxUnOsc(TH1 *const FDFlux) {
+    FDFlux_unosc = std::unique_ptr<TH1>(static_cast<TH1 *>(FDFlux->Clone()));
+    FDFlux_unosc->SetDirectory(nullptr);
 
     if (fParams.MergeENuBins) {
-      FDFlux_osc->Rebin(fParams.MergeENuBins);
-      FDFlux_osc->Scale(1.0 / double(fParams.MergeENuBins));
+      FDFlux_unosc->Rebin(fParams.MergeENuBins);
+      FDFlux_unosc->Scale(1.0 / double(fParams.MergeENuBins));
     }
 
-    BuildTargetFlux();
+    FDFlux_osc =
+        std::unique_ptr<TH1>(static_cast<TH1 *>(FDFlux_unosc->Clone()));
+    FDFlux_osc->SetDirectory(nullptr);
+    FDFlux_osc->Reset();
+  }
+
+  TH1 *GetFDFluxToOsc() {
+    Int_t NEBins = FDFlux_unosc->GetXaxis()->GetNbins();
+
+    for (Int_t bi_it = 0; bi_it < NEBins; ++bi_it) {
+      FDFlux_osc->SetBinContent(bi_it + 1,
+                                FDFlux_unosc->GetBinContent(bi_it + 1));
+    }
+
+    return FDFlux_osc.get();
   }
 
   void BuildTargetFlux() {
