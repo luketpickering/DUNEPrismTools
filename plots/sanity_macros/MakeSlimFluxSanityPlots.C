@@ -32,10 +32,10 @@ void MakeSlimFluxSanityPlots(char const *add, bool append = false,
   dk2nuTree_lite->Draw("decay_vy*1E-2:decay_vz*1E-2 >> p_yz_imp",
                        "decay_nimpwt", "GOFF");
 
-  TH2D *p_xy_imp_fine = new TH2D("p_xy_imp_fine", "", 400, -20, 20, 400, -20, 20);
+  TH2D *p_xy_imp_fine = new TH2D("p_xy_imp_fine", "", 40, -20, 20, 40, -20, 20);
   dk2nuTree_lite->Draw("decay_vy:decay_vx >> p_xy_imp_fine",
                        "decay_nimpwt", "GOFF");
-  TH2D *p_yz_imp_fine = new TH2D("p_yz_imp_fine", "", 1000, 0, 10000, 600, -30, 30);
+  TH2D *p_yz_imp_fine = new TH2D("p_yz_imp_fine", "", 1000, 0, 10000, 60, -30, 30);
   dk2nuTree_lite->Draw("decay_vy:decay_vz >> p_yz_imp_fine",
                        "decay_nimpwt", "GOFF");
 
