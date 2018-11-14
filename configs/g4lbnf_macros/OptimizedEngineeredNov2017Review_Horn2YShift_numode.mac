@@ -1,0 +1,80 @@
+#-----------------------------------------------------------------------------------
+#
+# An example script for running the Standard Neutrino Beam simulation in G4LBNE
+# using a Geant4 generated proton beam.
+# This is using the 3 Horns system, optimized and engineered.
+# January 2017.
+#
+# Place here the commands that modify the default geometry.
+# We are at Geant4 stage call "PreInit"
+#
+#
+# For 1.2 MW operation:
+#
+#/LBNE/det/Use1p2MW True
+/LBNE/det/UseConceptDesignOptimEngineered True
+/LBNE/det/UseSimpleCylindricalTarget True
+/LBNE/det/Use1p2MWSmallTgt False
+/LBNE/det/UseRALTGTv1 True
+#
+/LBNE/det/seHornCurrent 293 kA
+#
+
+# Shift Horn 2
+/LBNE/Surveyor/PosUpstreamLeftBallHorn2 0.0 0.5 0.0
+/LBNE/Surveyor/PosUpstreamRightBallHorn2 0.0 0.5 0.0
+/LBNE/Surveyor/PosDownstreamLeftBallHorn2 0.0 0.5 0.0
+/LBNE/Surveyor/PosDownstreamRightBallHorn2 0.0 0.5 0.0
+
+
+/LBNE/det/construct
+#
+#exit
+/run/initialize
+
+/LBNE/generator/beamSigmaX 2.7 mm
+/LBNE/generator/beamSigmaY 2.7 mm
+#
+# We are at Geant4 stage "idle"
+#
+/event/verbose 0
+/tracking/verbose 0
+#
+# Primary vertex setting
+#
+# Allows the RunID, which is included in the
+# output file name(s), to be set at runtime.
+#
+# Primary vertex setting
+#
+# Allows the RunID, which is included in the
+# output file name(s), to be set at runtime.
+#
+#
+/LBNE/run/SetSelectionByImportanceWeight True
+/LBNE/run/setRunID __RUNID__
+/LBNE/rndm/setRndmSeed __SEED__
+#
+# If NOT using an external hadron file then this establishes how
+# many particles(protons) to use during the simulation. To be consistent
+# with past neutrino ntuples each run uses 500000 or 100000 protons
+#
+/LBNE/run/NEvents __NEVENTS__
+
+/LBNE/output/CreateDk2NuOutput True
+/LBNE/output/OutputDk2NuFileName __DK2NUFILENAME__
+
+/LBNE/output/CreateOutput False
+
+#
+#/LBNE/output/DoComputeEDepInGraphite true
+# This will place Geant4 in the stage "EventProc", i.e. ,simulating events.
+#
+#/tracking/verbose 0
+/run/beamOn
+#
+exit
+#
+#NOTE: To debug problems grep for "PROBLEM" in the output of the simulation
+# "PROBLEM" statements are printed when there is a problem.
+#
