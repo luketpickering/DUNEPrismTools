@@ -3,6 +3,8 @@
 
 #include "Eigen/Dense"
 
+#include <iostream>
+
 enum EvRateSolver { kSVD = 1, kQR, kNormal, kInverse };
 
 Eigen::VectorXd SolveEvRate(Eigen::MatrixXd const &EvRateMatrix,
