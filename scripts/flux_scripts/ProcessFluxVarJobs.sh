@@ -66,22 +66,22 @@ ${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/FarmBuildFluxJobs.sh \
 
 
 #With focussing
-for i in nu nubar; do
-  for j in p1; do
-    for k in WL HC DPR; do
-      ${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/FarmBuildFluxJobs.sh \
-         --expected-walltime 2h --expected-disk 2GB \
-         --expected-mem 512MB -b ${BINNING_DESCRIPTOR_UNCERTS} \
-         -p Focussing/DUNEPrismFluxes/ND_${i}/uncert_binning -d 57400 \
-         -i /pnfs/dune/persistent/users/picker24/Focussing/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${k}${j}/${i}/dk2nulite \
-         -n 20 -D -W " -x -0.25_45.25:0.5 -h 300 " -f
-
-      ${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/FarmBuildFluxJobs.sh \
-         --expected-walltime 2h --expected-disk 2GB \
-         --expected-mem 512MB -b ${BINNING_DESCRIPTOR_FITS} \
-         -p Focussing/DUNEPrismFluxes/ND_${i}/fit_binning -d 57400 \
-         -i /pnfs/dune/persistent/users/picker24/Focussing/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${k}${j}/${i}/dk2nulite \
-         -n 20 -D -W " -x -0.25_45.25:0.5 -h 300 " -f
+# for i in nu nubar; do
+#   for j in p1; do
+#     for k in WL HC DPR; do
+#       ${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/FarmBuildFluxJobs.sh \
+#          --expected-walltime 2h --expected-disk 2GB \
+#          --expected-mem 512MB -b ${BINNING_DESCRIPTOR_UNCERTS} \
+#          -p Focussing/DUNEPrismFluxes/ND_${i}/${k}${j}/uncert_binning -d 57400 \
+#          -i /pnfs/dune/persistent/users/picker24/Focussing/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${k}${j}/${i}/dk2nulite \
+#          -n 20 -D -W " -x -0.25_45.25:0.5 -h 300 " -f
+#
+#       ${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/FarmBuildFluxJobs.sh \
+#          --expected-walltime 2h --expected-disk 2GB \
+#          --expected-mem 512MB -b ${BINNING_DESCRIPTOR_FITS} \
+#          -p Focussing/DUNEPrismFluxes/ND_${i}/${k}${j}/fit_binning -d 57400 \
+#          -i /pnfs/dune/persistent/users/picker24/Focussing/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${k}${j}/${i}/dk2nulite \
+#          -n 20 -D -W " -x -0.25_45.25:0.5 -h 300 " -f
 
       # ${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/FarmBuildFluxJobs.sh \
       #    --expected-walltime 2h --expected-disk 2GB \
@@ -97,6 +97,6 @@ for i in nu nubar; do
       #    -i /pnfs/dune/persistent/users/picker24/Focussing/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${k}${j}/${i}/dk2nulite \
       #    -n 20 -D -W " -x -12.90_12.90:25.80 -h 2260 " -f
 
-    done
-  done
-done
+#     done
+#   done
+# done

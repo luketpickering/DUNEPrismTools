@@ -27,6 +27,7 @@ for i in nu nubar; do
       --expected-mem 1GB \
       --expected-walltime 5h
     done
+  done
 done
 
 # ${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/FarmG4LBNE_PPFX_Makedk2nuLite.sh \
