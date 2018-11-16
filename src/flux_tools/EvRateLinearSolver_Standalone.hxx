@@ -12,7 +12,7 @@ Eigen::VectorXd SolveEvRate(Eigen::MatrixXd const &NDEvRateMatrix,
                             EvRateSolver algo_id = kInverse,
                             double regfactor = 1E-10) {
 
-  bool use_reg = reg_param > 0;
+  bool use_reg = regfactor > 0;
   size_t NFluxes = NDEvRateMatrix.cols();
   size_t NBins = NDEvRateMatrix.rows();
   size_t NEqs = NBins + (use_reg * NFluxes);
@@ -22,13 +22,13 @@ Eigen::VectorXd SolveEvRate(Eigen::MatrixXd const &NDEvRateMatrix,
 
   if (use_reg) {
     NDEvRateMatrix_wreg = Eigen::MatrixXd::Zero(NEqs, NFluxes);
-    FDEvRate_wreg = Eigen::MatrixXd::Zero(NEqs);
+    FDEvRate_wreg = Eigen::VectorXd::Zero(NEqs);
     FDEvRate_wreg.topRows(NBins) = FDEvRate.topRows(NBins);
 
     for (size_t row_it = 0; row_it < (NFluxes - 1); ++row_it) {
-      NDEvRateMatrix_wreg(row_it + NBins, row_it) = reg_param;
+      NDEvRateMatrix_wreg(row_it + NBins, row_it) = regfactor;
     }
-    NDEvRateMatrix_wreg(NEqs - 1, NFluxes - 1) = reg_param;
+    NDEvRateMatrix_wreg(NEqs - 1, NFluxes - 1) = regfactor;
   }
 
   Eigen::VectorXd solution;
