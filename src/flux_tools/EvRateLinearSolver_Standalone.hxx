@@ -7,80 +7,78 @@
 
 enum EvRateSolver { kSVD = 1, kQR, kNormal, kInverse };
 
-Eigen::VectorXd SolveEvRate(Eigen::MatrixXd const &EvRateMatrix,
-                            Eigen::VectorXd const &Target,
+Eigen::VectorXd SolveEvRate(Eigen::MatrixXd const &NDEvRateMatrix,
+                            Eigen::VectorXd const &FDEvRate,
                             EvRateSolver algo_id = kInverse,
                             double regfactor = 1E-10) {
 
   bool use_reg = reg_param > 0;
-  size_t NFluxes = EvRateMatrix.cols();
-  size_t NBins = EvRateMatrix.rows();
+  size_t NFluxes = NDEvRateMatrix.cols();
+  size_t NBins = NDEvRateMatrix.rows();
   size_t NEqs = NBins + (use_reg * NFluxes);
 
-  Eigen::MatrixXd FluxMatrix_Solve = Eigen::MatrixXd::Zero(NEqs, NFluxes);
-  Eigen::VectorXd Target_Solve = Eigen::MatrixXd::Zero(NEqs);
-  Target_Solve.topRows(NBins) = Target.topRows(NBins);
-
-  Eigen::VectorXd solution;
+  Eigen::MatrixXd NDEvRateMatrix_wreg;
+  Eigen::VectorXd FDEvRate_wreg;
 
   if (use_reg) {
+    NDEvRateMatrix_wreg = Eigen::MatrixXd::Zero(NEqs, NFluxes);
+    FDEvRate_wreg = Eigen::MatrixXd::Zero(NEqs);
+    FDEvRate_wreg.topRows(NBins) = FDEvRate.topRows(NBins);
+
     for (size_t row_it = 0; row_it < (NFluxes - 1); ++row_it) {
-      FluxMatrix_Solve(row_it + NBins, row_it) = reg_param;
+      NDEvRateMatrix_wreg(row_it + NBins, row_it) = reg_param;
     }
-    FluxMatrix_Solve(NEqs - 1, NFluxes - 1) = reg_param;
+    NDEvRateMatrix_wreg(NEqs - 1, NFluxes - 1) = reg_param;
   }
+
+  Eigen::VectorXd solution;
 
   switch (algo_id) {
   case kSVD: {
     if (use_reg) {
       solution =
-          FluxMatrix_Solve.bdcSvd(Eigen::ComputeThinU | Eigen::ComputeThinV)
-              .solve(Target_Solve);
+          NDEvRateMatrix_wreg.bdcSvd(Eigen::ComputeThinU | Eigen::ComputeThinV)
+              .solve(FDEvRate_wreg);
     } else {
-      solution = FluxMatrix_Solve.topRows(NBins)
-                     .bdcSvd(Eigen::ComputeThinU | Eigen::ComputeThinV)
-                     .solve(Target_Solve.topRows(NBins));
+      solution =
+          NDEvRateMatrix.bdcSvd(Eigen::ComputeThinU | Eigen::ComputeThinV)
+              .solve(FDEvRate);
     }
     break;
   }
   case kQR: {
     if (use_reg) {
-      solution = FluxMatrix_Solve.colPivHouseholderQr().solve(Target_Solve);
+      solution = NDEvRateMatrix_wreg.colPivHouseholderQr().solve(FDEvRate_wreg);
     } else {
-      solution = FluxMatrix_Solve.topRows(NBins).colPivHouseholderQr().solve(
-          Target_Solve.topRows(NBins));
+      solution = NDEvRateMatrix.colPivHouseholderQr().solve(FDEvRate);
     }
     break;
   }
   case kNormal: {
     if (use_reg) {
-      solution = (FluxMatrix_Solve.transpose() * FluxMatrix_Solve)
+      solution = (NDEvRateMatrix_wreg.transpose() * NDEvRateMatrix_wreg)
                      .ldlt()
-                     .solve(FluxMatrix_Solve.transpose() * Target_Solve);
+                     .solve(NDEvRateMatrix_wreg.transpose() * FDEvRate_wreg);
     } else {
-      solution = (FluxMatrix_Solve.transpose() * FluxMatrix_Solve)
+      solution = (NDEvRateMatrix.transpose() * NDEvRateMatrix)
                      .topRows(NBins)
                      .ldlt()
-                     .solve(FluxMatrix_Solve.topRows(NBins).transpose() *
-                            Target_Solve.topRows(NBins));
+                     .solve(NDEvRateMatrix.transpose() * FDEvRate);
     }
     break;
   }
   case kInverse: {
     if (use_reg) {
-      solution = ((FluxMatrix_Solve.topRows(NBins).transpose() *
-                   FluxMatrix_Solve.topRows(NBins)) +
-                  FluxMatrix_Solve.bottomRows(NFluxes).transpose() *
-                      FluxMatrix_Solve.bottomRows(NFluxes))
+      solution = ((NDEvRateMatrix_wreg.topRows(NBins).transpose() *
+                   NDEvRateMatrix_wreg.topRows(NBins)) +
+                  NDEvRateMatrix_wreg.bottomRows(NFluxes).transpose() *
+                      NDEvRateMatrix_wreg.bottomRows(NFluxes))
                      .inverse() *
-                 FluxMatrix_Solve.topRows(NBins).transpose() *
-                 Target_Solve.topRows(NBins);
+                 NDEvRateMatrix_wreg.topRows(NBins).transpose() *
+                 FDEvRate_wreg.topRows(NBins);
     } else {
-      solution = (FluxMatrix_Solve.topRows(NBins).transpose() *
-                  FluxMatrix_Solve.topRows(NBins))
-                     .inverse() *
-                 FluxMatrix_Solve.topRows(NBins).transpose() *
-                 Target_Solve.topRows(NBins);
+      solution = (NDEvRateMatrix.transpose() * NDEvRateMatrix).inverse() *
+                 NDEvRateMatrix.transpose() * FDEvRate;
     }
     break;
   }
