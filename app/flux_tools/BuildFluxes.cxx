@@ -590,7 +590,7 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
           if (ppfx_univ_it == 1) {
             ppfx_w = dk2nuRdr.ppfx_cvwgt;
           } else if (ppfx_univ_it > 1) {
-            ppfx_w = dk2nuRdr.ppfx_vwgt_tot[ppfx_univ_it - 1];
+            ppfx_w = dk2nuRdr.ppfx_vwgt_tot[ppfx_univ_it - 2];
           }
         }
 
