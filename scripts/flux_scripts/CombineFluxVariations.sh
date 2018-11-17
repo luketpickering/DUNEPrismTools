@@ -1,5 +1,6 @@
 #!/bin/bash
 
+<<<<<<< Updated upstream
 dp_CombineBuiltFluxes  \
 	-i "/pnfs/dune/persistent/users/picker24/nominal_1.5E8_wppfx/DUNEPrismFluxes/ND_nu/uncert_binning/flux/Fluxes.*.root" \
   --NPPFXU 100 \
@@ -9,6 +10,17 @@ dp_CombineBuiltFluxes  \
 	-i "/pnfs/dune/persistent/users/picker24/nominal_2.5E8_wppfx/DUNEPrismFluxes/ND_nubar/uncert_binning/flux/Fluxes.*.root" \
   --NPPFXU 100 \
 	-o ND_nubar_OptimizedEngineeredNov2017Review_uncert_binning_wppfx.root
+=======
+# dp_CombineBuiltFluxes  \
+# 	-i "/pnfs/dune/persistent/users/picker24/nominal_1.5E8_wppfx/DUNEPrismFluxes/ND_nu/uncert_binning/flux/Fluxes.*.root" \
+#   --NPPFXU 100 \
+# 	-o ND_nu_OptimizedEngineeredNov2017Review_uncert_binning_wppfx.root
+#
+# dp_CombineBuiltFluxes  \
+# 	-i "/pnfs/dune/persistent/users/picker24/nominal_2.5E8_wppfx/DUNEPrismFluxes/ND_nubar/uncert_binning/flux/Fluxes.*.root" \
+#   --NPPFXU 100 \
+# 	-o ND_nubar_OptimizedEngineeredNov2017Review_uncert_binning_wppfx.root
+>>>>>>> Stashed changes
 
 #With focussing
 for i in nu nubar; do
@@ -22,3 +34,7 @@ for i in nu nubar; do
 		done
 	done
 done
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes

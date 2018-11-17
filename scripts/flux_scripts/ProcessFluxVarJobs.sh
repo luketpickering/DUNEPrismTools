@@ -3,6 +3,7 @@
 BINNING_DESCRIPTOR_FITS="0_10:0.025"
 BINNING_DESCRIPTOR_UNCERTS="0,0.5,1_3:0.25,3_4:0.5,4_10:1,10_20:2"
 
+<<<<<<< Updated upstream
 #### With PPFX
 
 #nu
@@ -35,6 +36,8 @@ ${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/FarmBuildFluxJobs.sh \
    -i /pnfs/dune/persistent/users/picker24/nominal_2.5E8_wppfx/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/antineutrino/dk2nulite \
    -n 20 -D -W " -x -0.25_45.25:0.5 -h 300 " -f -X
 
+=======
+>>>>>>> Stashed changes
 #With focussing
 for i in nu nubar; do
   for j in p1; do
@@ -55,3 +58,7 @@ for i in nu nubar; do
     done
   done
 done
+<<<<<<< Updated upstream
+=======
+
+>>>>>>> Stashed changes
