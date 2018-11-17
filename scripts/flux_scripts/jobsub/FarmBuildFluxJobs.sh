@@ -1,7 +1,5 @@
 #!/bin/sh
 
-DET_DIST_CM=57400
-# FD_cm 128700000
 PNFS_PATH_APPEND=""
 DK2NU_INPUT_DIR=""
 NMAXJOBS=""
@@ -11,16 +9,8 @@ INPUTLIST=""
 LIFETIME_EXP="30m"
 DISK_EXP="1GB"
 MEM_EXP="2GB"
-BINNING_DESCRIPTOR="0,0.5,1_3:0.25,3_4:0.5,4_10:1,10_20:2"
-REUSEPARENTS="1"
-SPECARG="0"
-DK2NULITE="0"
-#near detector
-FLUX_WINDOW_DESCRIPTOR="-x -0.3_36:0.6 -h 200"
-#Far detector example
-# FLUX_WINDOW_DESCRIPTOR="-x -12.90_12.90:25.80 -h 2260"
 FORCE_REMOVE="0"
-PPFX_ARG=""
+CONFIG_FCL="build_ND_fluxes_numode.fcl"
 
 while [[ ${#} -gt 0 ]]; do
 
@@ -36,18 +26,6 @@ while [[ ${#} -gt 0 ]]; do
 
       PNFS_PATH_APPEND="$2"
       echo "[OPT]: Writing output to /pnfs/dune/persistent/users/${USER}/${PNFS_PATH_APPEND}"
-      shift # past argument
-      ;;
-
-      -d|--detector-distance)
-
-      if [[ ${#} -lt 2 ]]; then
-        echo "[ERROR]: ${1} expected a value."
-        exit 1
-      fi
-
-      DET_DIST_CM="$2"
-      echo "[OPT]: Detector assumed to be at z=${DET_DIST_CM} cm in beam simulation coordinates."
       shift # past argument
       ;;
 
@@ -75,18 +53,6 @@ while [[ ${#} -gt 0 ]]; do
       shift # past argument
       ;;
 
-      -W|--flux-window)
-
-      if [[ ${#} -lt 2 ]]; then
-        echo "[ERROR]: ${1} expected a value."
-        exit 1
-      fi
-
-      FLUX_WINDOW_DESCRIPTOR="$2"
-      echo "[OPT]: Flux window descriptor: \"${FLUX_WINDOW_DESCRIPTOR}\"."
-      shift # past argument
-      ;;
-
       -n|--n-per-job)
 
       if [[ ${#} -lt 2 ]]; then
@@ -96,6 +62,18 @@ while [[ ${#} -gt 0 ]]; do
 
       NPERJOB="$2"
       echo "[OPT]: Each job will handle \"${NPERJOB}\" input files."
+      shift # past argument
+      ;;
+
+      -F|--fhicl)
+
+      if [[ ${#} -lt 2 ]]; then
+        echo "[ERROR]: ${1} expected a value."
+        exit 1
+      fi
+
+      CONFIG_FCL="$2"
+      echo "[OPT]: Using ${CONFIG_FCL}."
       shift # past argument
       ;;
 
@@ -123,51 +101,10 @@ while [[ ${#} -gt 0 ]]; do
       shift # past argument
       ;;
 
-      -b|--binning)
-
-      if [[ ${#} -lt 2 ]]; then
-        echo "[ERROR]: ${1} expected a value."
-        exit 1
-      fi
-
-      BINNING_DESCRIPTOR="$2"
-      echo "[OPT]: Using binning descriptor: \"${BINNING_DESCRIPTOR}\"."
-      shift # past argument
-      ;;
-
-      -S|--species)
-
-      if [[ ${#} -lt 2 ]]; then
-        echo "[ERROR]: ${1} expected a value."
-        exit 1
-      fi
-
-      SPECARG="$2"
-      echo "[OPT]: Only running for species, PDG = \"${SPECARG}\"."
-      shift # past argument
-      ;;
-
-      -P|--no-reuse-parents)
-
-      REUSEPARENTS="0"
-      echo "[OPT]: Will use each decay parent once."
-      ;;
-
-      -X|--PPFX)
-      PPFX_ARG="--PPFX"
-      echo "[OPT]: Will try and make PPFX varied fluxes."
-      ;;
-
       -f|--force-remove)
 
       FORCE_REMOVE="1"
       echo "[OPT]: Will remove output directories if they exist."
-      ;;
-
-      -D|--dk2nu-lite)
-
-      DK2NULITE="1"
-      echo "[OPT]: Assuming input is dk2nu lite."
       ;;
 
       --expected-walltime)
@@ -194,7 +131,6 @@ while [[ ${#} -gt 0 ]]; do
       shift # past argument
       ;;
 
-
       --expected-mem)
 
       if [[ ${#} -lt 2 ]]; then
@@ -211,18 +147,11 @@ while [[ ${#} -gt 0 ]]; do
 
       echo "[RUNLIKE] ${SCRIPTNAME}"
       echo -e "\t-p|--pnfs-path-append      : Path to append to output path: /pnfs/dune/persistent/users/${USER}/"
-      echo -e "\t-d|--detector-distance     : Detector distance from beam z=0 in cm."
       echo -e "\t-i|--dk2nu-input-directory : Input directory to search for dk2nu.root files"
       echo -e "\t-I|--dk2nu-input-file-list : Newline separated list of files to use as input. Must be located on dcache."
-      echo -e "\t-W|--flux-window           : Flux window descriptor, defines off axis flux windows and det height. e.g. far det ( ${FLUX_WINDOW_DESCRIPTOR} )"
       echo -e "\t-n|--n-per-job             : Number of files to run per job. (default: 10)"
       echo -e "\t-s|--n-files-skip          : Number of files to to skip before building jobs. (default: 10)"
-      echo -e "\t-b|--binning               : dp_BuildFluxes variable binning descriptor. (default: 0,0.5,1_3:0.25,3_4:0.5,4_10:1,10_20:2)"
-      echo -e "\t-S|--species               : Only build fluxes for neutrino species with given PDG"
-      echo -e "\t-P|--no-reuse-parents      : Each decay parent is only used once, not once per flux prediction plane."
-      echo -e "\t-D|--dk2nu-lite            : dp_BuildFluxes will expect the input to be the dk2nu_lite format produced by dp_MakeLitedk2nu."
-      echo -e "\t-N|--NMAXJobs              : Maximum number of jobs to submit."
-      echo -e "\t-X|--PPFX                  : Make PPFX variations, PPFX weight branches must exist in the input files."
+      echo -e "\t-F|--fhicl                    : Flux calculation configuration file."
       echo -e "\t-f|--force-remove          : If output directories already exist, force remove them."
       echo -e "\t--expected-disk            : Expected disk usage to pass to jobsub -- approx 100MB* the value passed to -\'n\' (default: 1GB)"
       echo -e "\t--expected-mem             : Expected mem usage to pass to jobsub -- Scales with the number of detector stops in the xml passed to \'--r\' (default: 2GB)"
@@ -368,11 +297,16 @@ fi
 
 cp ${DUNEPRISMTOOLSROOT}/bin/dp_BuildFluxes .
 
-tar -zcvf apps.${DUNEPRISMTOOLS_VERSION}.tar.gz dp_BuildFluxes inputs.list
-FLUX_WINDOW_DESCRIPTOR_ENC=$(python -c "import urllib; print urllib.quote('''${FLUX_WINDOW_DESCRIPTOR}''')")
-echo "Encoded flux window descriptor: ${FLUX_WINDOW_DESCRIPTOR_ENC}"
+if [ ! -e ${DUNEPRISMTOOLSROOT}/fcl/${CONFIG_FCL} ]; then
+  echo "[ERROR]: Expected to find ${DUNEPRISMTOOLSROOT}/fcl/${CONFIG_FCL}"
+  exit 8
+fi
 
-JID=$(jobsub_submit --group=${EXPERIMENT} --jobid-output-only --resource-provides=usage_model=OPPORTUNISTIC --expected-lifetime=${LIFETIME_EXP} --disk=${DISK_EXP} -N ${NJOBSTORUN} --memory=${MEM_EXP} --cpu=1 --OS=SL6 --tar_file_name=dropbox://apps.${DUNEPRISMTOOLS_VERSION}.tar.gz file://${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/BuildFluxJob.sh ${DET_DIST_CM} ${BINNING_DESCRIPTOR} ${REUSEPARENTS} ${SPECARG} ${DK2NULITE} ${PNFS_PATH_APPEND} ${NPERJOB} "${FLUX_WINDOW_DESCRIPTOR_ENC} ${PPFX_ARG}")
+cp ${DUNEPRISMTOOLSROOT}/fcl/${CONFIG_FCL} build_flux.fcl
+
+tar -zcvf apps.${DUNEPRISMTOOLS_VERSION}.tar.gz dp_BuildFluxes inputs.list build_flux.fcl
+
+JID=$(jobsub_submit --group=${EXPERIMENT} --jobid-output-only --resource-provides=usage_model=OPPORTUNISTIC --expected-lifetime=${LIFETIME_EXP} --disk=${DISK_EXP} -N ${NJOBSTORUN} --memory=${MEM_EXP} --cpu=1 --OS=SL6 --tar_file_name=dropbox://apps.${DUNEPRISMTOOLS_VERSION}.tar.gz file://${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/BuildFluxJob.sh  ${PNFS_PATH_APPEND} ${NPERJOB})
 
 JID=$(echo ${JID} | tr -d "\n" | tr -d " " | tr -d "\t")
 
