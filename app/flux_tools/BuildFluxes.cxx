@@ -12,6 +12,9 @@
 #include "TRandom3.h"
 #include "TVector3.h"
 
+#include "fhiclcpp/ParameterSet.h"
+#include "fhiclcpp/make_ParameterSet.h"
+
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -255,6 +258,8 @@ void handleOpts(int argc, char const *argv[]) {
       NPPFX_Universes = str2T<UInt_t>(argv[++opt]);
     } else if (std::string(argv[opt]) == "--fhicl") {
 
+      fhicl::ParameterSet ps = fhicl::make_ParameterSet(argv[++opt]);
+
       //  std::vector<int> NuPDGTargets = {-12, 12, -14, 14};
       for (std::string const &nuname : {"nuebar", "nue", "numubar", "numu"}) {
         OffAxisSteps.push_back(BuildBinEdges(
@@ -361,11 +366,11 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
 
   std::vector<int> NuPDGTargets = {-12, 12, -14, 14};
   if (OnlySpecies) {
-    std::vector<int>::iterator pdg_it = NuPDGTargets.find(OnlySpecies);
+    std::vector<int>::iterator pdg_it =
+        std::find(NuPDGTargets.begin(), NuPDGTargets.end(), OnlySpecies);
     if (pdg_it == NuPDGTargets.end()) {
-    std:
-      cout << "[ERROR]: OnlySpecies = " << OnlySpecies << " is invalid."
-           << std::endl;
+      std::cout << "[ERROR]: OnlySpecies = " << OnlySpecies << " is invalid."
+                << std::endl;
       throw;
     }
     size_t idx = std::distance(NuPDGTargets.begin(), pdg_it);
@@ -623,13 +628,14 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
       throw;
     }
 
+    Int_t NOffAxisBins = Int_t(OffAxisSteps[nuPDG_it].size()) - 1;
     // Scale to /cm^2 and per GeV (xbin width)
     if (NOffAxisBins > 1) {
       for (size_t ppfx_univ_it = 0; ppfx_univ_it < NPPFXU; ++ppfx_univ_it) {
-        std::vector<TH2D *> &univ_hists = Hists_2D[ppfx_univ_it][nuPDG_it];
+        std::vector<TH2 *> &univ_hists = Hists_2D[ppfx_univ_it][nuPDG_it];
         for (size_t hist_index = 0; hist_index < (DoExtra ? 5 : 1);
              ++hist_index) {
-          TH2D *hist = univ_hists[hist_index];
+          TH2 *hist = univ_hists[hist_index];
           for (Int_t xbin_it = 0; xbin_it < hist->GetXaxis()->GetNbins();
                ++xbin_it) {
             double scale = 1E-4 / hist->GetXaxis()->GetBinWidth(xbin_it + 1);
