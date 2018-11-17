@@ -1,7 +1,7 @@
-nuebar_off_axis_binning: "-0.25_33.25:0.5"
-nue_off_axis_binning: "-0.25_33.25:0.5"
-numubar_off_axis_binning: "-0.25_33.25:0.5"
-numu_off_axis_binning: "-0.25_33.25:0.5"
+nuebar_off_axis_binning: "-12.90_12.90:25.80"
+nue_off_axis_binning: "-12.90_12.90:25.80"
+numubar_off_axis_binning: "-12.90_12.90:25.80"
+numu_off_axis_binning: "-12.90_12.90:25.80"
 
 nuebar_energy_binning: "0_5:0.5,5_10:1,10_20:2"
 nue_energy_binning: "0_5:0.5,5_10:1,10_20:2"
@@ -16,7 +16,7 @@ make_extra_plots: false
 flux_window_height_m: 3
 # max_decay_parents
 
-flux_window_z_from_target_m: 574
+flux_window_z_from_target_km: 1300
 
 # Whether each decay parent is used for each off-axis slice
 limit_decay_parent_use: false
@@ -25,7 +25,7 @@ limit_decay_parent_use: false
 
 use_dk2nu_lite: true
 
-use_dk2nu_ppfx: false
+use_dk2nu_ppfx: true
 number_ppfx_universes: 100
 
 use_THF: true

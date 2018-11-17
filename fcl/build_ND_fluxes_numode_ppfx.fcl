@@ -25,7 +25,7 @@ limit_decay_parent_use: false
 
 use_dk2nu_lite: true
 
-use_dk2nu_ppfx: false
+use_dk2nu_ppfx: true
 number_ppfx_universes: 100
 
 use_THF: true
