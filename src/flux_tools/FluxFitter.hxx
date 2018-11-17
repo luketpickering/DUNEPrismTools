@@ -34,6 +34,9 @@ public:
 
     double MINUITTolerance;
     unsigned int MaxLikelihoodCalls;
+
+    bool UseSVD;
+    double SVDTol;
   };
 
   void InitializeFlux(FluxFitterOptions const &,

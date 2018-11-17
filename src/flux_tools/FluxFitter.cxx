@@ -243,7 +243,6 @@ MakeFluxFitterOptions(fhicl::ParameterSet const &ps) {
   ffo.CoeffLimit = ps.get<double>("CoeffLimit", 10);
   ffo.MaxLikelihoodCalls = ps.get<size_t>("MaxLikelihoodCalls", 5E5);
   ffo.MINUITTolerance = ps.get<double>("MINUITTolerance", 1E-5);
-
   return ffo;
 }
 #endif

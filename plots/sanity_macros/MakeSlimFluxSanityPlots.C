@@ -54,7 +54,7 @@ void MakeSlimFluxSanityPlots(char const *add, bool append = false,
     dk2nuTree_lite->SetBranchAddress("decay_nimpwt", &impweight);
 
     size_t npars = dk2nuTree_lite->GetEntries();
-    for (size_t it = 0; it < npars, ++it) {
+    for (size_t it = 0; it < npars: ++it) {
       dk2nuTree_lite->GetEntry(it);
       stree->Fill();
     }

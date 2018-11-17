@@ -5,15 +5,23 @@ LIST(APPEND SRC_FILES
 
 if(DEFINED USE_EIGEN AND USE_EIGEN)
   LIST(APPEND SRC_FILES
-    CovarianceHelper.cxx)
+    CovarianceHelper.cxx
+    VariationBuilders.cxx)
 endif()
 
 add_library(DUNE-PRISM_AnaTools
   ${SRC_FILES}
 )
 
+if(DEFINED USE_FHICL AND USE_FHICL)
+  add_dependencies(DUNE-PRISM_AnaTools fhiclcpp-simple)
+endif()
+
 include_directories(${INCDIRS})
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+
+# Requried for fhiclcpp
+include_directories(${CMAKE_INSTALL_PREFIX}/include)
 
 install(TARGETS DUNE-PRISM_AnaTools DESTINATION lib)
 

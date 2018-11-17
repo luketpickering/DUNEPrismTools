@@ -10,6 +10,8 @@
 #include "fhiclcpp/ParameterSet.h"
 #endif
 
+#include "Eigen/Dense"
+
 #include <memory>
 #include <sstream>
 #include <string>
@@ -58,6 +60,8 @@ public:
   virtual std::string State() const { return ""; };
 
   virtual void Write(TDirectory *, double const *FluxCoefficients) const;
+
+  virtual ~FluxLinearCombiner() = default;
 };
 
 class FluxTargetLikelihood : public FluxLinearCombiner {

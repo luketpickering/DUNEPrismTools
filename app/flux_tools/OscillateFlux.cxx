@@ -9,6 +9,7 @@
 
 #include "BargerPropagator.h"
 
+#include <fstream>
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -21,6 +22,7 @@ std::string inpFile, inpHistName;
 std::string oupFile, oupHistName;
 std::string outputDir;
 bool UPDATEOutputFile = false;
+bool DumpBiFlx = false;
 
 int nuPDGFrom, nuPDGTo;
 
@@ -109,6 +111,9 @@ void handleOpts(int argc, char const *argv[]) {
       double baseline_cm = str2T<double>(argv[++opt]) * 1E5;
 
       DipAngle = asin(baseline_cm / (2.0 * REarth_cm)) / deg2rad;
+
+    } else if (std::string(argv[opt]) == "-B") {
+      DumpBiFlx = true;
 
     } else if (std::string(argv[opt]) == "-?" ||
                std::string(argv[opt]) == "--help") {
@@ -207,12 +212,19 @@ int main(int argc, char const *argv[]) {
 
   inpH = static_cast<TH1 *>(inpH->Clone());
 
+  std::unique_ptr<TH1> oinpH =
+      std::unique_ptr<TH1>(static_cast<TH1 *>(inpH->Clone()));
+  oinpH->SetDirectory(nullptr);
+
   TFile *oupF =
       CheckOpenFile(oupFile.c_str(), UPDATEOutputFile ? "UPDATE" : "RECREATE");
   TDirectory *oupD = oupF;
 
   if (outputDir.length()) {
-    oupD = oupF->mkdir(outputDir.c_str());
+    oupD = oupF->GetDirectory(outputDir.c_str());
+    if (!oupD) {
+      oupD = oupF->mkdir(outputDir.c_str());
+    }
   }
   oupD->cd();
 
@@ -245,6 +257,54 @@ int main(int argc, char const *argv[]) {
       std::cout << "Bad osc weight for ENu: " << enu << std::endl;
     }
     POsc->SetPoint(i - 1, enu, ow);
+  }
+
+  if (DumpBiFlx) {
+    TGraph *biflx = new TGraph();
+
+    biflx->Set(1E3);
+
+    std::ofstream biflx_out("biflux_markers.txt");
+
+    double min = 0;
+    double step = (2 * M_PI) / double(1E3);
+    for (size_t dcp_it = 0; dcp_it < 1E3; ++dcp_it) {
+
+      OscParams[5] = min + double(dcp_it) * step;
+      oh.Setup(OscParams, DipAngle);
+      oh.SetOscillationChannel(-abs(nuPDGFrom), -abs(nuPDGTo));
+
+      std::unique_ptr<TH1> to_osc =
+          std::unique_ptr<TH1>(static_cast<TH1 *>(oinpH->Clone()));
+      to_osc->SetDirectory(nullptr);
+
+      double y_integ = 0;
+      for (int bin_it = 0; bin_it < to_osc->GetXaxis()->GetNbins(); ++bin_it) {
+        to_osc->SetBinContent(
+            bin_it + 1,
+            oinpH->GetBinContent(bin_it + 1) *
+                oh.GetWeight(oinpH->GetXaxis()->GetBinCenter(bin_it + 1)));
+      }
+      y_integ = to_osc->Integral();
+
+      oh.SetOscillationChannel(abs(nuPDGFrom), abs(nuPDGTo));
+
+      double x_integ = 0;
+      for (int bin_it = 0; bin_it < to_osc->GetXaxis()->GetNbins(); ++bin_it) {
+        to_osc->SetBinContent(
+            bin_it + 1,
+            oinpH->GetBinContent(bin_it + 1) *
+                oh.GetWeight(oinpH->GetXaxis()->GetBinCenter(bin_it + 1)));
+      }
+      x_integ = to_osc->Integral();
+
+      biflx->SetPoint(dcp_it, x_integ, y_integ);
+
+      if ((dcp_it == 0) || (dcp_it == 250) || (dcp_it == 500) || (dcp_it == 750)) {
+        biflx_out << x_integ << ", " << y_integ << std::endl;
+      }
+    }
+    biflx->Write("BiFluxPlot");
   }
 
   if (!UPDATEOutputFile || outputDir.size()) {

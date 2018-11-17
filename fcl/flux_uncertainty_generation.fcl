@@ -1,64 +1,78 @@
 BEGIN_PROLOG
 
 Nominal_Prediction_Input: {
-  InputFile: "nominal.root"
-  InputHistName: "LBNF_%S_flux"
+  InputFile: "%C_OptimizedEngineeredNov2017Review_uncert_binning_wppfx.root"
+  InputHistName: "LBNF_%S_flux_Nom"
 }
 
-PredictionConfigurations: [ND_nu, ND_nubar, FD_nu, FD_nubar]
-
-END_PROLOG
-
-PPFX: {
-  Name: "PPFX"
-  NThrows: 100
-  NThrowSkip: 1
-
-  Nominal: {
-    InputFile: "HadronProdUncerts_%C.root"
-    InputHistName: "LBNF_%S_flux_CV"
-  }
-
-  InputFile: "HadronProdUncerts_%C.root"
-  VariedHistName: "LBNF_%S_flux_univ_%i"
-
-  dump_diagnostics: true
-
-}
-
-HornCurrent: {
-  Name: "HornCurrent"
+DirectSyst_base: {
+  Type: "Direct"
 
   Nominal: @local::Nominal_Prediction_Input
 
-  InputFile: "HC_%C.root"
-  VariedHistName: "LBNF_%S_flux"
+  Varied: {
+    InputHistName: "LBNF_%S_flux"
+  }
+
+  dump_diagnostics: true
 }
 
-FullFluxUncertainty: {
-  Species: [numu]
-  Configurations: [ND_nu]
-  Tweaks: [@local::PPFX, @local::HornCurrent]
+HornCurrent: @local::DirectSyst_base
+HornCurrent.Name: "HornCurrent"
+HornCurrent.Varied.InputFile: "%C_OptimizedEngineeredNov2017Review_uncert_binning_HCp1.root"
+
+DecayPipeRadius: @local::DirectSyst_base
+DecayPipeRadius.Name: "DecayPipeRadius"
+DecayPipeRadius.Varied.InputFile: "%C_OptimizedEngineeredNov2017Review_uncert_binning_DPRp1.root"
+
+PPFX: {
+  Type: "Thrown"
+  Name: "PPFX"
+  NThrows: 99
+
+  Nominal: {
+    InputFile: "%C_OptimizedEngineeredNov2017Review_uncert_binning_wppfx.root"
+    InputHistName: "LBNF_%S_flux_CV"
+  }
+
+  InputFile: "%C_OptimizedEngineeredNov2017Review_uncert_binning_wppfx.root"
+  VariedHistName: "LBNF_%S_flux_univ_%i"
+
+  dump_diagnostics: false
 }
 
+AllConfigurations: [ND_nu, ND_nubar, FD_nu, FD_nubar]
+numode_Configurations: [ND_nu, FD_nu]
 
-PPFX.Nominal.InputFile: nominal_w_ppfx_fluxes.root
-PPFX.InputFile: nominal_w_ppfx_fluxes.root
+numuOnly: [numu]
+AllSpecies: [numu, nue, numubar, nuebar]
 
-JustPPFX_ND_numu: {
+NominalOffAxisRange: "0_32.5:0.5"
+OnAxisOnly: "0_0:0.5"
+
+END_PROLOG
+
+FluxUncertainty: {
 
   use_Spectra: true # use spectra, if not, use Eigen (very slow for anything larger than a few hundred columns)
-  num_eigenvalues: 50 # Dump out the 'tweak' definitions for the top X most important eigen values
+  num_eigenvalues: 100 # Dump out the 'tweak' definitions for the top X most important eigen values
 
-  # FluxSlicesDescriptor: "0.25_32.75:1"
-  FluxSlicesDescriptor: "0_33:0.5"
-  Species: [numu]
-  Configurations: [ND_nu]
-  Tweaks: [@local::PPFX]
+  FluxSlicesDescriptor_ND_nu: @local::NominalOffAxisRange
+  FluxSlicesDescriptor_ND_nubar: @local::NominalOffAxisRange
+  Species: @local::AllSpecies
+  Configurations: @local::AllConfigurations
+
+  # FluxSlicesDescriptor_ND_nu: @local::OnAxisOnly
+  # FluxSlicesDescriptor_ND_nubar: @local::OnAxisOnly
+  # Species: @local::numuOnly
+  # Configurations: @local::numode_Configurations
+
+  # Tweaks: [@local::PPFX, @sequence::DirectTweaks]
+  # Tweaks: [@sequence::DirectTweaks]
+  Tweaks: [@local::PPFX, @local::HornCurrent, @local::DecayPipeRadius]
+
 }
-
-FluxUncertainty: @local::JustPPFX_ND_numu
 
 FluxUncertainty.OutputFile: "FluxCovmat.root"
 FluxUncertainty.RecreateOutputFile: true
-FluxUncertainty.WriteMatrices: true # For a 6kx6k matrix, this will be 512mb
+FluxUncertainty.WriteMatrices: false # For a 6kx6k matrix, this will be 512mb

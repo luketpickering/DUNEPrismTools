@@ -6,7 +6,7 @@
 
 #include "TChain.h"
 #include "TFile.h"
-#include "TH2D.h"
+#include "TH2.h"
 #include "TLorentzVector.h"
 #include "TMath.h"
 #include "TRandom3.h"
@@ -144,7 +144,7 @@ std::tuple<double, double, double> GetNuWeight(DK2NuReader &dk2nuRdr,
   return std::make_tuple(nu_energy, nuRay.Theta(), nu_wght);
 }
 
-std::vector<double> OffAxisSteps;
+std::vector<std::vector<double>> OffAxisSteps;
 enum OffAxisStepUnits { kPostion_m = 0, kmrad, kdegrees };
 OffAxisStepUnits stepType;
 
@@ -156,11 +156,12 @@ bool ReUseParents = true;
 bool DK2NULite = false;
 bool ReadDK2NULitePPFX = false;
 UInt_t NPPFX_Universes = 100;
+bool UseTHF = false;
 
 double ZDist = 57400;
 int NMaxNeutrinos = -1;
 
-std::vector<double> EnergyBinning;
+std::vector<std::vector<double>> EnergyBinning;
 
 std::string outputFile;
 
@@ -186,21 +187,31 @@ void handleOpts(int argc, char const *argv[]) {
     } else if (std::string(argv[opt]) == "-m") {
       std::cout << "\t--Handling off-axis position specifier: " << argv[opt]
                 << " " << argv[opt + 1] << std::endl;
-      OffAxisSteps = BuildBinEdges(argv[++opt]);
+      OffAxisSteps.push_back(BuildBinEdges(argv[++opt]));
+      for (size_t i = 0; i < 3; ++i) {
+        OffAxisSteps.push_back(OffAxisSteps.back());
+      }
       stepType = kmrad;
     } else if (std::string(argv[opt]) == "-d") {
       std::cout << "\t--Handling off-axis position specifier: " << argv[opt]
                 << " " << argv[opt + 1] << std::endl;
-      OffAxisSteps = BuildBinEdges(argv[++opt]);
+      OffAxisSteps.push_back(BuildBinEdges(argv[++opt]));
+      for (size_t i = 0; i < 3; ++i) {
+        OffAxisSteps.push_back(OffAxisSteps.back());
+      }
       stepType = kdegrees;
     } else if (std::string(argv[opt]) == "-x") {
       std::cout << "\t--Handling off-axis position specifier: " << argv[opt]
                 << " " << argv[opt + 1] << std::endl;
-      OffAxisSteps = BuildBinEdges(argv[++opt]);
+      OffAxisSteps.push_back(BuildBinEdges(argv[++opt]));
+      for (size_t i = 0; i < 3; ++i) {
+        OffAxisSteps.push_back(OffAxisSteps.back());
+      }
       stepType = kPostion_m;
     } else if (std::string(argv[opt]) == "-e") {
       DoExtra = true;
     } else if (std::string(argv[opt]) == "-b") {
+      EnergyBinning.clear();
       std::vector<double> binningDescriptor =
           ParseToVect<double>(argv[++opt], ",");
       if (binningDescriptor.size() != 3) {
@@ -212,12 +223,20 @@ void handleOpts(int argc, char const *argv[]) {
       double BLow = binningDescriptor[1];
       double BUp = binningDescriptor[2];
       double bwidth = (BUp - BLow) / double(NBins);
-      EnergyBinning.push_back(BLow);
+      std::vector<double> ebins;
+      ebins.push_back(BLow);
       for (Int_t i = 0; i < NBins; ++i) {
-        EnergyBinning.push_back(EnergyBinning.back() + bwidth);
+        ebins.push_back(ebins.back() + bwidth);
+      }
+      for (size_t i = 0; i < 4; ++i) {
+        EnergyBinning.push_back(ebins);
       }
     } else if (std::string(argv[opt]) == "-vb") {
-      EnergyBinning = BuildBinEdges(argv[++opt]);
+      EnergyBinning.clear();
+      EnergyBinning.push_back(BuildBinEdges(argv[++opt]));
+      for (size_t i = 0; i < 3; ++i) {
+        EnergyBinning.push_back(EnergyBinning.back());
+      }
     } else if (std::string(argv[opt]) == "-h") {
       detector_half_height = str2T<double>(argv[++opt]) / 2.0;
     } else if (std::string(argv[opt]) == "-n") {
@@ -234,6 +253,44 @@ void handleOpts(int argc, char const *argv[]) {
       ReadDK2NULitePPFX = true;
     } else if (std::string(argv[opt]) == "--NPPFXU") {
       NPPFX_Universes = str2T<UInt_t>(argv[++opt]);
+    } else if (std::string(argv[opt]) == "--fhicl") {
+
+      //  std::vector<int> NuPDGTargets = {-12, 12, -14, 14};
+      for (std::string const &nuname : {"nuebar", "nue", "numubar", "numu"}) {
+        OffAxisSteps.push_back(BuildBinEdges(
+            ps.get<std::string>(nuname + "_off_axis_binning", "0_0:1")));
+        EnergyBinning.push_back(BuildBinEdges(
+            ps.get<std::string>(nuname + "_energy_binning", "0_20:0.2")));
+      }
+
+      std::string off_axis_step =
+          ps.get<std::string>("off_axis_step_type", "position_m");
+      if (off_axis_step == "mrad") {
+        stepType = kmrad;
+      } else if (off_axis_step == "degrees") {
+        stepType = kdegrees;
+      } else if (off_axis_step == "position_m") {
+        stepType = kPostion_m;
+      } else {
+        std::cout
+            << "[ERROR]: Read \"off_axis_step: " << off_axis_step
+            << "\", but only understand one of: [mrad, degrees, <position_m>]."
+            << std::endl;
+        exit(1);
+      }
+
+      DoExtra = ps.get<bool>("make_extra_plots", false);
+      detector_half_height =
+          ps.get<double>("flux_window_height_m") * 1.0E2 / 2.0;
+      NMaxNeutrinos = ps.get<int>("max_decay_parents", -1);
+      ZDist = ps.get<double>("flux_window_z_from_target_m") * 1.0E2;
+      ReUseParents = !ps.get<bool>("limit_decay_parent_use", false);
+      OnlySpecies = ps.get<int>("only_nu_species_pdg", 0);
+      DK2NULite = ps.get<bool>("use_dk2nu_lite", true);
+      ReadDK2NULitePPFX = ps.get<bool>("use_dk2nu_ppfx", true);
+      NPPFX_Universes = ps.get<int>("number_ppfx_universes", 100);
+      UseTHF = ps.get<bool>("use_THF", false);
+
     } else {
       std::cout << "[ERROR]: Unknown option: " << argv[opt] << std::endl;
       SayUsage(argv);
@@ -245,17 +302,17 @@ void handleOpts(int argc, char const *argv[]) {
 
 constexpr double rad2deg = 90.0 / asin(1);
 
-std::pair<double, TVector3> GetRandomFluxWindowPosition(TRandom3 &rnjesus,
-                                                        Int_t FluxWindow = -1) {
+std::pair<double, TVector3>
+GetRandomFluxWindowPosition(TRandom3 &rnjesus,
+                            std::vector<double> const &oasteps,
+                            Int_t FluxWindow = -1) {
   double OffAxisCenter =
-      ((FluxWindow == -1)
-           ? (OffAxisSteps.back() + OffAxisSteps.front())
-           : (OffAxisSteps[FluxWindow + 1] + OffAxisSteps[FluxWindow])) /
+      ((FluxWindow == -1) ? (oasteps.back() + oasteps.front())
+                          : (oasteps[FluxWindow + 1] + oasteps[FluxWindow])) /
       2.0;
   double OffAxisHalfRange =
-      ((FluxWindow == -1)
-           ? (OffAxisSteps.back() - OffAxisSteps.front())
-           : (OffAxisSteps[FluxWindow + 1] - OffAxisSteps[FluxWindow])) /
+      ((FluxWindow == -1) ? (oasteps.back() - oasteps.front())
+                          : (oasteps[FluxWindow + 1] - oasteps[FluxWindow])) /
       2.0;
 
   TVector3 rndDetPos(0, (2.0 * rnjesus.Uniform() - 1.0) * detector_half_height,
@@ -285,8 +342,7 @@ std::pair<double, TVector3> GetRandomFluxWindowPosition(TRandom3 &rnjesus,
 void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
   TRandom3 rnjesus;
 
-  Int_t NOffAxisBins = Int_t(OffAxisSteps.size()) - 1;
-  if (NOffAxisBins == -1) {
+  if (!OffAxisSteps.size()) {
     std::cout << "[ERROR]: No off-axis positions specified (Try `-x 0`)."
               << std::endl;
     throw;
@@ -305,11 +361,21 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
 
   std::vector<int> NuPDGTargets = {-12, 12, -14, 14};
   if (OnlySpecies) {
-    NuPDGTargets = std::vector<int>{OnlySpecies};
+    std::vector<int>::iterator pdg_it = NuPDGTargets.find(OnlySpecies);
+    if (pdg_it == NuPDGTargets.end()) {
+    std:
+      cout << "[ERROR]: OnlySpecies = " << OnlySpecies << " is invalid."
+           << std::endl;
+      throw;
+    }
+    size_t idx = std::distance(NuPDGTargets.begin(), pdg_it);
+    EnergyBinning = std::vector<std::vector<double>>{EnergyBinning[idx]};
+    OffAxisSteps = std::vector<std::vector<double>>{OffAxisSteps[idx]};
+    NuPDGTargets = std::vector<int>{NuPDGTargets[idx]};
   }
 
   std::vector<std::vector<std::vector<TH1 *>>> Hists;
-  std::vector<std::vector<std::vector<TH2D *>>> Hists_2D;
+  std::vector<std::vector<std::vector<TH2 *>>> Hists_2D;
   size_t NPPFXU = (ReadDK2NULitePPFX ? NPPFX_Universes + 2 : 1);
   bool use_PPFX = (NPPFXU > 1);
   Hists.resize(NPPFXU);
@@ -323,6 +389,8 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
     for (size_t nuPDG_it = 0; nuPDG_it < NuPDGTargets.size(); ++nuPDG_it) {
       std::stringstream hist_name("");
       hist_name << "LBNF_" << GetSpeciesName(NuPDGTargets[nuPDG_it]) << "_flux";
+
+      Int_t NOffAxisBins = Int_t(OffAxisSteps[nuPDG_it].size()) - 1;
 
       if (use_PPFX) {
         if (ppfx_univ_it == 0) {
@@ -367,19 +435,39 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
           parent_suffix = std::string("_") + parent_suffix;
         }
 
-        Hists[ppfx_univ_it][nuPDG_it].push_back(
-            (NOffAxisBins < 2)
-                ? new TH1D((hist_name.str() + parent_suffix).c_str(),
-                           hist_title.c_str(), (EnergyBinning.size() - 1),
-                           EnergyBinning.data())
-                : static_cast<TH1 *>(
-                      new TH2D((hist_name.str() + parent_suffix).c_str(),
-                               hist_title.c_str(), (EnergyBinning.size() - 1),
-                               EnergyBinning.data(), (OffAxisSteps.size() - 1),
-                               OffAxisSteps.data())));
+        if (UseTHF) {
+          Hists[ppfx_univ_it][nuPDG_it].push_back(
+              (NOffAxisBins < 2)
+                  ? new TH1F((hist_name.str() + parent_suffix).c_str(),
+                             hist_title.c_str(),
+                             (EnergyBinning[nuPDG_it].size() - 1),
+                             EnergyBinning[nuPDG_it].data())
+                  : static_cast<TH1 *>(
+                        new TH2F((hist_name.str() + parent_suffix).c_str(),
+                                 hist_title.c_str(),
+                                 (EnergyBinning[nuPDG_it].size() - 1),
+                                 EnergyBinning[nuPDG_it].data(),
+                                 (OffAxisSteps[nuPDG_it].size() - 1),
+                                 OffAxisSteps[nuPDG_it].data())));
+        } else {
+          Hists[ppfx_univ_it][nuPDG_it].push_back(
+              (NOffAxisBins < 2)
+                  ? new TH1D((hist_name.str() + parent_suffix).c_str(),
+                             hist_title.c_str(),
+                             (EnergyBinning[nuPDG_it].size() - 1),
+                             EnergyBinning[nuPDG_it].data())
+                  : static_cast<TH1 *>(
+                        new TH2D((hist_name.str() + parent_suffix).c_str(),
+                                 hist_title.c_str(),
+                                 (EnergyBinning[nuPDG_it].size() - 1),
+                                 EnergyBinning[nuPDG_it].data(),
+                                 (OffAxisSteps[nuPDG_it].size() - 1),
+                                 OffAxisSteps[nuPDG_it].data())));
+        }
+
         if (NOffAxisBins > 1) {
           Hists_2D[ppfx_univ_it][nuPDG_it].push_back(
-              static_cast<TH2D *>(Hists[ppfx_univ_it][nuPDG_it].back()));
+              static_cast<TH2 *>(Hists[ppfx_univ_it][nuPDG_it].back()));
         }
       }
     }
@@ -403,6 +491,12 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
       continue;
     }
 
+    int nuPDG_it =
+        std::distance(NuPDGTargets.begin(),
+                      std::find(NuPDGTargets.begin(), NuPDGTargets.end(),
+                                dk2nuRdr.decay_ntype));
+    Int_t NOffAxisBins = Int_t(OffAxisSteps[nuPDG_it].size()) - 1;
+
     double wF = (dk2nuRdr.decay_nimpwt / TMath::Pi()) * (1.0 / TotalPOT);
 
     // If there are no off axis bins, then we want to just build flux on-axis,
@@ -412,18 +506,14 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
 
       // If we are not re-using the decay parents, then this is placed randomly
       // over the whole off-axis range.
-      std::pair<double, TVector3> det_point =
-          GetRandomFluxWindowPosition(rnjesus, ReUseParents ? ang_it : -1);
+      std::pair<double, TVector3> det_point = GetRandomFluxWindowPosition(
+          rnjesus, OffAxisSteps[nuPDG_it], ReUseParents ? ang_it : -1);
 
       std::tuple<double, double, double> nuStats =
           GetNuWeight(dk2nuRdr, det_point.second);
 
       double w = std::get<2>(nuStats) * wF;
 
-      int nuPDG_it =
-          std::distance(NuPDGTargets.begin(),
-                        std::find(NuPDGTargets.begin(), NuPDGTargets.end(),
-                                  dk2nuRdr.decay_ntype));
       if (nuPDG_it == 4) {
         std::cout << "Warning, couldn't find plot index for NuPDG: "
                   << dk2nuRdr.decay_ntype << std::endl;

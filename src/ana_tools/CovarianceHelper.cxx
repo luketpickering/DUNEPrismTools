@@ -8,6 +8,8 @@
 #include <chrono>
 #include <iostream>
 
+// #define CHECK_FOR_BAD_ENTRIES
+
 Eigen::MatrixXd CovToCorr(Eigen::MatrixXd const &CovMatrix) {
   Eigen::MatrixXd CorrMat =
       Eigen::MatrixXd::Zero(CovMatrix.rows(), CovMatrix.rows());
@@ -37,11 +39,14 @@ CovarianceBuilder::CovarianceBuilder(
     return;
   }
 
-  for (std::vector<double> const &flux_tweak : RandomVectors) {
-    AddThrow_MeanCalc(flux_tweak.data());
+  if (RandomVectors.size() > 1) {
+    for (std::vector<double> const &flux_tweak : RandomVectors) {
+      AddThrow_MeanCalc(flux_tweak.data());
+    }
+    FinalizeMeanCalc();
+  } else {
+    SetZeroMean();
   }
-
-  FinalizeMeanCalc();
 
   for (std::vector<double> const &flux_tweak : RandomVectors) {
     AddThrow_CovMatCalc(flux_tweak.data());
@@ -72,6 +77,15 @@ void CovarianceBuilder::AddThrow_MeanCalc(double const *t) {
   }
 
   NThrows_MeanCalc++;
+
+#ifdef CHECK_FOR_BAD_ENTRIES
+  for (int i = 0; i < NRows; ++i) {
+    if (!std::isnormal(t[i])) {
+      std::cout << "[WARN]: Odd value in AddThrow_MeanCalc: " << t[i]
+                << std::endl;
+    }
+  }
+#endif
 
   Eigen::Map<Eigen::VectorXd const> t_v(t, NRows);
   MeanVector += t_v;
@@ -111,10 +125,10 @@ void CovarianceBuilder::FinalizeCovMatCalc() {
     throw;
   }
 
-  CovMatrix.bottomLeftCorner(NRows - 1, NRows - 1) =
-      CovMatrix.topRightCorner(NRows - 1, NRows - 1).transpose();
+  // CovMatrix.bottomLeftCorner(NRows - 1, NRows - 1) =
+  //     CovMatrix.topRightCorner(NRows - 1, NRows - 1).transpose();
 
-  CovMatrix.array() /= (double(NThrows_CovMatCalc) - 1);
+  CovMatrix.array() /= (double(NThrows_CovMatCalc) - (!ZeroMean));
 }
 
 Eigen::MatrixXd CovarianceBuilder::GetCorrMatrix() {

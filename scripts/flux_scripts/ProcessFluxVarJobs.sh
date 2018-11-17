@@ -20,21 +20,6 @@ ${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/FarmBuildFluxJobs.sh \
    -i /pnfs/dune/persistent/users/picker24/nominal_1.5E8_wppfx/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/neutrino/dk2nulite \
    -n 20 -D -W " -x -0.25_45.25:0.5 -h 300 " -f -X
 
-# ${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/FarmBuildFluxJobs.sh \
-#    --expected-walltime 2h --expected-disk 2GB \
-#    --expected-mem 512MB -b ${BINNING_DESCRIPTOR_UNCERTS} \
-#    -p nominal_1.5E8_wppfx/DUNEPrismFluxes/FD_nu/uncert_binning -d 128700000 \
-#    -i /pnfs/dune/persistent/users/picker24/nominal_1.5E8_wppfx/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/neutrino/dk2nulite \
-#    -n 20 -D -W " -x -12.90_12.90:25.80 -h 2260 " -f -X
-#
-# ${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/FarmBuildFluxJobs.sh \
-#    --expected-walltime 2h --expected-disk 2GB \
-#    --expected-mem 512MB -b ${BINNING_DESCRIPTOR_FITS} \
-#    -p nominal_1.5E8_wppfx/DUNEPrismFluxes/FD_nu/fit_binning -d 128700000 \
-#    -i /pnfs/dune/persistent/users/picker24/nominal_1.5E8_wppfx/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/neutrino/dk2nulite \
-#    -n 20 -D -W " -x -12.90_12.90:25.80 -h 2260 " -f -X
-
-
 #nubar
 ${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/FarmBuildFluxJobs.sh \
    --expected-walltime 2h --expected-disk 2GB \
@@ -50,53 +35,23 @@ ${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/FarmBuildFluxJobs.sh \
    -i /pnfs/dune/persistent/users/picker24/nominal_2.5E8_wppfx/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/antineutrino/dk2nulite \
    -n 20 -D -W " -x -0.25_45.25:0.5 -h 300 " -f -X
 
-# ${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/FarmBuildFluxJobs.sh \
-#    --expected-walltime 2h --expected-disk 2GB \
-#    --expected-mem 512MB -b ${BINNING_DESCRIPTOR_UNCERTS} \
-#    -p nominal_2.5E8_wppfx/DUNEPrismFluxes/FD_nubar/uncert_binning -d 128700000 \
-#    -i /pnfs/dune/persistent/users/picker24/nominal_2.5E8_wppfx/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/antineutrino/dk2nulite \
-#    -n 20 -D -W " -x -12.90_12.90:25.80 -h 2260 " -f -X
-#
-# ${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/FarmBuildFluxJobs.sh \
-#    --expected-walltime 2h --expected-disk 2GB \
-#    --expected-mem 512MB -b ${BINNING_DESCRIPTOR_FITS} \
-#    -p nominal_2.5E8_wppfx/DUNEPrismFluxes/FD_nubar/fit_binning -d 128700000 \
-#    -i /pnfs/dune/persistent/users/picker24/nominal_2.5E8_wppfx/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/antineutrino/dk2nulite \
-#    -n 20 -D -W " -x -12.90_12.90:25.80 -h 2260 " -f -X
-
-
 #With focussing
-# for i in nu nubar; do
-#   for j in p1; do
-#     for k in WL HC DPR; do
-#       ${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/FarmBuildFluxJobs.sh \
-#          --expected-walltime 2h --expected-disk 2GB \
-#          --expected-mem 512MB -b ${BINNING_DESCRIPTOR_UNCERTS} \
-#          -p Focussing/DUNEPrismFluxes/ND_${i}/${k}${j}/uncert_binning -d 57400 \
-#          -i /pnfs/dune/persistent/users/picker24/Focussing/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${k}${j}/${i}/dk2nulite \
-#          -n 20 -D -W " -x -0.25_45.25:0.5 -h 300 " -f
-#
-#       ${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/FarmBuildFluxJobs.sh \
-#          --expected-walltime 2h --expected-disk 2GB \
-#          --expected-mem 512MB -b ${BINNING_DESCRIPTOR_FITS} \
-#          -p Focussing/DUNEPrismFluxes/ND_${i}/${k}${j}/fit_binning -d 57400 \
-#          -i /pnfs/dune/persistent/users/picker24/Focussing/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${k}${j}/${i}/dk2nulite \
-#          -n 20 -D -W " -x -0.25_45.25:0.5 -h 300 " -f
+for i in nu nubar; do
+  for j in p1; do
+    for k in WL HC DPR; do
+      ${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/FarmBuildFluxJobs.sh \
+         --expected-walltime 2h --expected-disk 2GB \
+         --expected-mem 512MB -b ${BINNING_DESCRIPTOR_UNCERTS} \
+         -p Focussing/DUNEPrismFluxes/ND_${i}/${k}${j}/uncert_binning -d 57400 \
+         -i /pnfs/dune/persistent/users/picker24/Focussing/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${k}${j}/${i}/dk2nulite \
+         -n 20 -D -W " -x -0.25_45.25:0.5 -h 300 " -f
 
-      # ${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/FarmBuildFluxJobs.sh \
-      #    --expected-walltime 2h --expected-disk 2GB \
-      #    --expected-mem 512MB -b ${BINNING_DESCRIPTOR_UNCERTS} \
-      #    -p Focussing/DUNEPrismFluxes/FD_${i}/uncert_binning -d 128700000 \
-      #    -i /pnfs/dune/persistent/users/picker24/Focussing/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${k}${j}/${i}/dk2nulite \
-      #    -n 20 -D -W " -x -12.90_12.90:25.80 -h 2260 " -f
-      #
-      # ${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/FarmBuildFluxJobs.sh \
-      #    --expected-walltime 2h --expected-disk 2GB \
-      #    --expected-mem 512MB -b ${BINNING_DESCRIPTOR_FITS} \
-      #    -p Focussing/DUNEPrismFluxes/FD_${i}/fit_binning -d 128700000 \
-      #    -i /pnfs/dune/persistent/users/picker24/Focussing/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${k}${j}/${i}/dk2nulite \
-      #    -n 20 -D -W " -x -12.90_12.90:25.80 -h 2260 " -f
-
-#     done
-#   done
-# done
+      ${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/FarmBuildFluxJobs.sh \
+         --expected-walltime 2h --expected-disk 2GB \
+         --expected-mem 512MB -b ${BINNING_DESCRIPTOR_FITS} \
+         -p Focussing/DUNEPrismFluxes/ND_${i}/${k}${j}/fit_binning -d 57400 \
+         -i /pnfs/dune/persistent/users/picker24/Focussing/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${k}${j}/${i}/dk2nulite \
+         -n 20 -D -W " -x -0.25_45.25:0.5 -h 300 " -f
+    done
+  done
+done

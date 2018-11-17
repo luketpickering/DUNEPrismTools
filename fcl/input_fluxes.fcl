@@ -10,7 +10,7 @@ FluxInputs_FHC: {
 
 FluxInputs_FHC_numu: {
   @table::FluxInputs_FHC
-  InputFluxName: LBNF_numu_flux
+  InputFluxName: LBNF_numu_flux_Nom
 }
 
 FluxInputs_RHC: {
@@ -23,7 +23,7 @@ FluxInputs_RHC: {
 
 FluxInputs_RHC_numubar: {
   @table::FluxInputs_RHC
-  InputFluxName: LBNF_numubar_flux
+  InputFluxName: LBNF_numubar_flux_Nom
 }
 
 END_PROLOG

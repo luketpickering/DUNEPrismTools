@@ -4,7 +4,9 @@
 #include "StringParserUtility.hxx"
 
 #include "TChain.h"
+#include "TF1.h"
 #include "TFile.h"
+#include "TGraph.h"
 #include "TH1D.h"
 #include "TH2D.h"
 #include "TKey.h"
@@ -383,5 +385,94 @@ Eigen::MatrixXd GetEigenMatrix(TMatrixD const *);
 Eigen::VectorXd GetEigenFlatVector(std::vector<double> const &);
 std::unique_ptr<TMatrixD> GetTMatrixD(Eigen::MatrixXd const &);
 #endif
+
+template <size_t n>
+inline std::array<double, n + 1>
+GetPolyFitCoeffs(std::vector<double> const &xvals,
+                 std::vector<double> const &yvals) {
+
+  size_t nd = std::min(xvals.size(), yvals.size());
+  TGraph g(nd);
+  for (size_t i = 0; i < nd; ++i) {
+    g.SetPoint(i, xvals[i], yvals[i]);
+  }
+
+  static std::stringstream ss;
+  static bool first = true;
+  if (first) {
+    std::stringstream x("");
+    for (size_t i = 0; i < n + 1; ++i) {
+      ss << '[' << i << "]" << (i ? "*" : "") << x.str();
+      x << (i ? "*x" : "x");
+      if (i < n) {
+        ss << " + ";
+      }
+    }
+    first = false;
+  }
+
+  static std::unique_ptr<TF1> f(
+      new TF1("f", ss.str().c_str(), xvals.front(), xvals.back()));
+  if (f->IsZombie()) {
+    throw;
+  }
+
+  if (f->GetNpar() != (n + 1)) {
+    throw;
+  }
+
+  g.Fit(f.get(), "Q0");
+
+  std::array<double, n + 1> rtn;
+  for (size_t i = 0; i < (n + 1); ++i) {
+    rtn[i] = f->GetParameter(i);
+  }
+
+  return rtn;
+}
+
+template <size_t n>
+inline std::array<double, n + 1>
+GetPolyFitCoeffs(std::vector<std::pair<double, double>> const &xyvals) {
+
+  size_t nd = xyvals.size();
+  TGraph g(nd);
+  for (size_t i = 0; i < nd; ++i) {
+    g.SetPoint(i, xyvals[i].first, xyvals[i].second);
+  }
+
+  static std::stringstream ss;
+  static bool first = true;
+  if (first) {
+    std::stringstream x("");
+    for (size_t i = 0; i < n + 1; ++i) {
+      ss << '[' << i << "]" << (i ? "*" : "") << x.str();
+      x << (i ? "*x" : "x");
+      if (i < n) {
+        ss << " + ";
+      }
+    }
+    first = false;
+  }
+
+  static std::unique_ptr<TF1> f(new TF1(
+      "f", ss.str().c_str(), xyvals.front().first, xyvals.back().first));
+  if (f->IsZombie()) {
+    throw;
+  }
+
+  if (f->GetNpar() != (n + 1)) {
+    throw;
+  }
+
+  g.Fit(f.get(), "Q0");
+
+  std::array<double, n + 1> rtn;
+  for (size_t i = 0; i < (n + 1); ++i) {
+    rtn[i] = f->GetParameter(i);
+  }
+
+  return rtn;
+}
 
 #endif
