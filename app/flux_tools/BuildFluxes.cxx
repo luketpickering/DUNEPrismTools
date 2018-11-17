@@ -290,7 +290,7 @@ void handleOpts(int argc, char const *argv[]) {
       NMaxNeutrinos = ps.get<int>("max_decay_parents", -1);
       if (ps.has_key("flux_window_z_from_target_m")) {
         ZDist = ps.get<double>("flux_window_z_from_target_m") * 1.0E2;
-      } else if (ps.has_key("flux_window_z_from_target_m")) {
+      } else if (ps.has_key("flux_window_z_from_target_km")) {
         ZDist = ps.get<double>("flux_window_z_from_target_km") * 1.0E5;
       } else {
         std::cout
