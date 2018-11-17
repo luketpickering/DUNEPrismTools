@@ -288,7 +288,17 @@ void handleOpts(int argc, char const *argv[]) {
       detector_half_height =
           ps.get<double>("flux_window_height_m") * 1.0E2 / 2.0;
       NMaxNeutrinos = ps.get<int>("max_decay_parents", -1);
-      ZDist = ps.get<double>("flux_window_z_from_target_m") * 1.0E2;
+      if (ps.has_key("flux_window_z_from_target_m")) {
+        ZDist = ps.get<double>("flux_window_z_from_target_m") * 1.0E2;
+      } else if (ps.has_key("flux_window_z_from_target_m")) {
+        ZDist = ps.get<double>("flux_window_z_from_target_km") * 1.0E5;
+      } else {
+        std::cout
+            << "[ERROR]: Expected to find key: \"flux_window_z_from_target_m\" "
+               "or \"flux_window_z_from_target_km\"."
+            << std::endl;
+        throw;
+      }
       ReUseParents = !ps.get<bool>("limit_decay_parent_use", false);
       OnlySpecies = ps.get<int>("only_nu_species_pdg", 0);
       DK2NULite = ps.get<bool>("use_dk2nu_lite", true);
