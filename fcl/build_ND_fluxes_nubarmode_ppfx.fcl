@@ -28,4 +28,4 @@ use_dk2nu_lite: true
 use_dk2nu_ppfx: true
 number_ppfx_universes: 100
 
-use_THF: true
+use_THF: false
