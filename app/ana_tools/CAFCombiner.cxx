@@ -23,6 +23,7 @@ public:
   TTree *caf;
   TTree *meta;
   TH1D *RunPOT;
+  TH1D *StopFiles;
   size_t nfiles;
 
   // Reco info
@@ -86,8 +87,8 @@ public:
   double FilePOT;
 
   CAFReader()
-      : file(nullptr), caf(nullptr), meta(nullptr), RunPOT(nullptr), nfiles(0) {
-  }
+      : file(nullptr), caf(nullptr), meta(nullptr), RunPOT(nullptr),
+        StopFiles(nullptr), nfiles(0) {}
 
   CAFReader(std::string const &filename) : CAFReader() {
     file = new TFile(filename.c_str(), "READ");
@@ -277,6 +278,9 @@ public:
 
     wrt->RunPOT = new TH1D("RunPOT", "RunPOT;Position (m);POT", 4500, -5, 40);
     wrt->RunPOT->SetDirectory(wrt->file);
+    wrt->StopFiles =
+        new TH1D("StopFiles", "StopFiles;Position (m);NFiles", 4500, -5, 40);
+    wrt->StopFiles->SetDirectory(wrt->file);
 
     return wrt;
   }
@@ -289,6 +293,7 @@ public:
       for (size_t i = 0; i < 700; ++i) {
         double det_pos = (double(i) - 349.5) / 100.0;
         RunPOT->Fill(det_pos + det_x, 1.0 / POTWeight);
+        StopFiles->Fill(det_pos + det_x);
       }
       nfiles++;
     }
