@@ -48,7 +48,8 @@ int main(int argc, char const *argv[]) {
       double POTScale = double(fents) / double(rdr.GetEntries());
 
       std::cout << "[INFO]: Reading " << fents << "/" << rdr.GetEntries()
-                << " CAF events from file " << inpf << std::endl;
+                << " CAF events from file " << inpf
+                << " with POTScale = " << POTScale << std::endl;
 
       for (size_t ent = 0; ent < fents; ++ent) {
         rdr.GetEntry(ent);
@@ -61,10 +62,11 @@ int main(int argc, char const *argv[]) {
           rdr.FilePOT = POTPerFileOverride;
         }
 
-        (*wrtr) = rdr;
         wrtr->FilePOT *= POTScale;
+        (*wrtr) = rdr;
 
         if (ent == 0) {
+          std::cout << "File POT weight = " << wrtr->POTWeight << std::endl;
           wrtr->NewFile();
         }
 
