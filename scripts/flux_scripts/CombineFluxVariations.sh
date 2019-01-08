@@ -33,7 +33,7 @@ for i in nu nubar; do
   for j in Horn1 Horn2; do
     for k in X Y XNeg; do
 
-      if [ ! -e /pnfs/dune/persistent/users/picker24/Focussing/DUNEPrismFluxes/ND_${i}/${k}${j}/${IDIR}/flux ]; then
+      if [ ! -e /pnfs/dune/persistent/users/picker24/Alignment/DUNEPrismFluxes/ND_${i}/${j}${k}/${IDIR}/flux ]; then
         continue;
       fi
 
