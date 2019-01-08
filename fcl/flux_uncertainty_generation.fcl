@@ -25,10 +25,25 @@ DecayPipeRadius: @local::DirectSyst_base
 DecayPipeRadius.Name: "DecayPipeRadius"
 DecayPipeRadius.Varied.InputFile: "%C_OptimizedEngineeredNov2017Review_uncert_binning_DPRp1.root"
 
+WaterLayer: @local::DirectSyst_base
+WaterLayer.Name: "WaterLayer"
+WaterLayer.Varied.InputFile: "%C_OptimizedEngineeredNov2017Review_uncert_binning_WLp1.root"
+
+FocussingTweaks: [@local::HornCurrent, @local::DecayPipeRadius, @local::WaterLayer]
+
+Horn1XShift: @local::DirectSyst_base
+Horn1XShift.Name: "Horn1XShift"
+Horn1XShift.Varied.InputFile: "%C_OptimizedEngineeredNov2017Review_uncert_binning_Horn1XShift.root"
+
+AlignmentTweaks: [@local::Horn1XShift]
+# AlignmentTweaks: []
+
+DirectTweaks: [@sequence::FocussingTweaks, @sequence::AlignmentTweaks]
+
 PPFX: {
   Type: "Thrown"
   Name: "PPFX"
-  NThrows: 99
+  NThrows: 100
 
   Nominal: {
     InputFile: "%C_OptimizedEngineeredNov2017Review_uncert_binning_wppfx.root"
@@ -38,7 +53,7 @@ PPFX: {
   InputFile: "%C_OptimizedEngineeredNov2017Review_uncert_binning_wppfx.root"
   VariedHistName: "LBNF_%S_flux_univ_%i"
 
-  dump_diagnostics: false
+  dump_diagnostics: true
 }
 
 AllConfigurations: [ND_nu, ND_nubar, FD_nu, FD_nubar]
@@ -47,32 +62,43 @@ numode_Configurations: [ND_nu, FD_nu]
 numuOnly: [numu]
 AllSpecies: [numu, nue, numubar, nuebar]
 
-NominalOffAxisRange: "0_32.5:0.5"
+NominalOffAxisRange: "0_32.25:0.5"
+ShortOffAxisRange: "0_2.25:0.5"
 OnAxisOnly: "0_0:0.5"
+OffAxisOnly: "25_25:0.5"
 
 END_PROLOG
 
 FluxUncertainty: {
 
   use_Spectra: true # use spectra, if not, use Eigen (very slow for anything larger than a few hundred columns)
-  num_eigenvalues: 100 # Dump out the 'tweak' definitions for the top X most important eigen values
+  num_eigenvalues: 50 # Dump out the 'tweak' definitions for the top X most important eigen values
 
   FluxSlicesDescriptor_ND_nu: @local::NominalOffAxisRange
-  FluxSlicesDescriptor_ND_nubar: @local::NominalOffAxisRange
+  # FluxSlicesDescriptor_ND_nu: @local::ShortOffAxisRange
+  # FluxSlicesDescriptor_ND_nu: @local::OnAxisOnly
   Species: @local::AllSpecies
-  Configurations: @local::AllConfigurations
+  # Species: [numu]
+  # Configurations: @local::AllConfigurations
+  # Configurations: @local::numode_Configurations
+  Configurations: [ND_nu]
 
   # FluxSlicesDescriptor_ND_nu: @local::OnAxisOnly
   # FluxSlicesDescriptor_ND_nubar: @local::OnAxisOnly
   # Species: @local::numuOnly
   # Configurations: @local::numode_Configurations
 
-  # Tweaks: [@local::PPFX, @sequence::DirectTweaks]
+  Tweaks: [@local::PPFX, @sequence::DirectTweaks]
   # Tweaks: [@sequence::DirectTweaks]
-  Tweaks: [@local::PPFX, @local::HornCurrent, @local::DecayPipeRadius]
 
 }
 
-FluxUncertainty.OutputFile: "FluxCovmat.root"
+# Set off axis descriptor the same for nu and nubar beam modes
+FluxUncertainty.FluxSlicesDescriptor_ND_nubar: @local::FluxUncertainty.FluxSlicesDescriptor_ND_nu
+
+
+FluxUncertainty.OutputFile: "FluxCovmatND_numu_numode_OffAxis.root"
 FluxUncertainty.RecreateOutputFile: true
 FluxUncertainty.WriteMatrices: false # For a 6kx6k matrix, this will be 512mb
+FluxUncertainty.SaveCAFAnaFormat: true # Save output in the format expected by CAFAna
+FluxUncertainty.SaveTH1F: true # Convert output to TH1Fs to save disk space (calculations all done with double precision)
