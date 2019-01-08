@@ -11,6 +11,7 @@
 // Inputs: [ {
 //   InputDirectory: "/path/to/files"
 //   FilePattern: "file_pattern*.root"
+//   NMax: 1E6
 // }, ]
 // OutputFile: "Output_CAF.root"
 
@@ -318,18 +319,23 @@ int main(int argc, char const *argv[]) {
 
     std::vector<std::string> MatchingFileList = GetMatchingFiles(idir, pat);
 
+    size_t NMax = input.get<size_t>("NMax",std::numeric_limits<size_t>::max());
+
     for (std::string const &inpf : MatchingFileList) {
       CAFReader rdr(idir + inpf);
       std::cout << "[INFO]: Reading " << rdr.GetEntries()
                 << " CAF events from file " << inpf << std::endl;
 
-      size_t fents = rdr.GetEntries();
+      size_t fents = std::min(NMax,rdr.GetEntries());
+      double POTScale = double(fents)/double(rdr.GetEntries());
+
       for (size_t ent = 0; ent < fents; ++ent) {
         rdr.GetEntry(ent);
 
         (*wrtr) = rdr;
+        wrtr->FilePOT *= POTScale;
 
-        if (!ent) {
+        if (ent == 0) {
           wrtr->NewFile();
         }
 
@@ -339,7 +345,7 @@ int main(int argc, char const *argv[]) {
   }
 
   std::cout << "[INFO]: Wrote " << wrtr->GetEntries() << " events from "
-            << " input files" << wrtr->GetNFiles() << std::endl;
+            << " " << wrtr->GetNFiles() << " input files" << std::endl;
 
   wrtr->file->Write();
   wrtr->file->Close();
