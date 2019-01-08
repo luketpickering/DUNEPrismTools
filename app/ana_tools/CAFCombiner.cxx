@@ -110,8 +110,14 @@ public:
       throw;
     }
 
-    meta->SetBranchAddress("pot", &FilePOT);
-    meta->GetEntry(0);
+    double pot;
+    meta->SetBranchAddress("pot", &pot);
+    size_t nmeta_ents = meta->GetEntries();
+    for (size_t meta_it = 0; meta_it < nmeta_ents; ++meta_it) {
+      meta->GetEntry(meta_it);
+      FilePOT += pot;
+    }
+    meta->ResetBranchAddresses();
 
     // Set caf branch addresses
     caf->SetBranchAddress("Ev_reco", &Ev_reco);
