@@ -206,7 +206,7 @@ public:
     isFHC = other.isFHC;
 
     POTWeight = 1.0 / other.FilePOT;
-    
+
     return *this;
   }
 
@@ -302,7 +302,7 @@ int main(int argc, char const *argv[]) {
     return 1;
   }
 
-  fhicl::ParameterSet ps = fhicl::make_ParameterSet(argv[0]);
+  fhicl::ParameterSet ps = fhicl::make_ParameterSet(argv[1]);
 
   std::string oupf = ps.get<std::string>("OutputFile");
 
