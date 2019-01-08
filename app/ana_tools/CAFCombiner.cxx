@@ -327,19 +327,25 @@ int main(int argc, char const *argv[]) {
 
     for (std::string const &inpf : MatchingFileList) {
       CAFReader rdr(idir + inpf);
-      std::cout << "[INFO]: Reading " << rdr.GetEntries()
-                << " CAF events from file " << inpf << std::endl;
 
       size_t fents = std::min(NMaxEvents, rdr.GetEntries());
       double POTScale = double(fents) / double(rdr.GetEntries());
 
+      std::cout << "[INFO]: Reading " << fents << "/" << rdr.GetEntries()
+                << " CAF events from file " << inpf << std::endl;
+
       for (size_t ent = 0; ent < fents; ++ent) {
         rdr.GetEntry(ent);
 
-        (*wrtr) = rdr;
         if (POTPerFileOverride != std::numeric_limits<double>::max()) {
-          wrtr->FilePOT = POTPerFileOverride;
+          if (ent == 0) {
+            std::cout << "[INFO]: POT Overriden to " << POTPerFileOverride
+                      << std::endl;
+          }
+          rdr.FilePOT = POTPerFileOverride;
         }
+
+        (*wrtr) = rdr;
         wrtr->FilePOT *= POTScale;
 
         if (ent == 0) {
