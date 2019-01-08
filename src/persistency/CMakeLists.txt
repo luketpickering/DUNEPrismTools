@@ -7,6 +7,7 @@ add_library(DUNE-PRISM_Persistency
   SliceConfigTreeReader.cxx
   StopConfigTreeReader.cxx
   SelectionSummaryTreeReader.cxx
+  CAFReader.cxx
 )
 
 include_directories(${INCDIRS})
