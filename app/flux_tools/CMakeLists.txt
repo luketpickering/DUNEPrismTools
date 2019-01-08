@@ -7,6 +7,7 @@ SET(FLUX_APPS
   BuildUncertaintyMatrix
   MakeLitedk2nu
   FluxSmusher
+  FluxLinearSolver_Standalone
 )
 
 include_directories(${INCDIRS})

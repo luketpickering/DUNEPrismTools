@@ -115,10 +115,10 @@ void FluxFitter::InitializeCoefficientGuess() {
     size_t flux_with_closest_peak_it = LHoodEval->GetNearestPeakingFluxIndex();
 
     for (size_t flux_it = 0; flux_it < NFluxes; flux_it++) {
-      if (abs(flux_it - flux_with_closest_peak_it) ==
+      if (std::abs(long(flux_it) - long(flux_with_closest_peak_it)) ==
           1) { // Neighbours are negative
         Coefficients[flux_it] = -0.35;
-      } else if (abs(flux_it - flux_with_closest_peak_it) == 0) {
+      } else if (std::abs(long(flux_it) - long(flux_with_closest_peak_it)) == 0) {
         Coefficients[flux_it] = 1;
       } else { // Others start free
         Coefficients[flux_it] = 0;

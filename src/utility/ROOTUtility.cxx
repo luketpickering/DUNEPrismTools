@@ -502,4 +502,69 @@ std::unique_ptr<TMatrixD> GetTMatrixD(Eigen::MatrixXd const &em) {
   return rm;
 }
 
+std::unique_ptr<TH1F> TH1ToF(TH1 *const &hin) {
+  if (!hin) {
+    throw;
+  }
+  std::vector<float> XBins, YBins;
+
+  for (int bi_it = 0; bi_it < hin->GetXaxis()->GetNbins(); ++bi_it) {
+    XBins.push_back(hin->GetXaxis()->GetBinLowEdge(bi_it + 1));
+  }
+  XBins.push_back(hin->GetXaxis()->GetBinUpEdge(hin->GetXaxis()->GetNbins()));
+
+  std::unique_ptr<TH1F> mechanically_reclaimed_histogram(new TH1F(
+      hin->GetName(), hin->GetTitle(), (XBins.size() - 1), XBins.data()));
+
+  for (int xbi_it = 0; xbi_it < hin->GetXaxis()->GetNbins(); ++xbi_it) {
+    mechanically_reclaimed_histogram->SetBinContent(
+        xbi_it + 1, hin->GetBinContent(xbi_it + 1));
+    mechanically_reclaimed_histogram->SetBinError(xbi_it + 1,
+                                                  hin->GetBinError(xbi_it + 1));
+  }
+
+  return mechanically_reclaimed_histogram;
+}
+
+std::unique_ptr<TH2F> TH2ToF(TH2 *const &hin) {
+  if (!hin) {
+    throw;
+  }
+  std::vector<float> XBins, YBins;
+
+  for (int bi_it = 0; bi_it < hin->GetXaxis()->GetNbins(); ++bi_it) {
+    XBins.push_back(hin->GetXaxis()->GetBinLowEdge(bi_it + 1));
+  }
+  XBins.push_back(hin->GetXaxis()->GetBinUpEdge(hin->GetXaxis()->GetNbins()));
+
+  for (int bi_it = 0; bi_it < hin->GetYaxis()->GetNbins(); ++bi_it) {
+    YBins.push_back(hin->GetYaxis()->GetBinLowEdge(bi_it + 1));
+  }
+  YBins.push_back(hin->GetYaxis()->GetBinUpEdge(hin->GetYaxis()->GetNbins()));
+
+  std::unique_ptr<TH2F> mechanically_reclaimed_histogram(
+      new TH2F(hin->GetName(), hin->GetTitle(), (XBins.size() - 1),
+               XBins.data(), (YBins.size() - 1), YBins.data()));
+
+  for (int xbi_it = 0; xbi_it < hin->GetXaxis()->GetNbins(); ++xbi_it) {
+    for (int ybi_it = 0; ybi_it < hin->GetYaxis()->GetNbins(); ++ybi_it) {
+      mechanically_reclaimed_histogram->SetBinContent(
+          xbi_it + 1, ybi_it + 1, hin->GetBinContent(xbi_it + 1, ybi_it + 1));
+      mechanically_reclaimed_histogram->SetBinError(
+          xbi_it + 1, ybi_it + 1, hin->GetBinError(xbi_it + 1, ybi_it + 1));
+    }
+  }
+
+  return mechanically_reclaimed_histogram;
+}
+
+std::unique_ptr<TH1> THToF(std::unique_ptr<TH1> &hin) {
+  if (hin->GetDimension() == 1) {
+    return TH1ToF(dynamic_cast<TH1 *>(hin.get()));
+  } else if (hin->GetDimension() == 2) {
+    return TH2ToF(dynamic_cast<TH2 *>(hin.get()));
+  }
+  throw;
+}
+
 #endif

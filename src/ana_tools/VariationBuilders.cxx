@@ -20,8 +20,11 @@ const char *show_classification(double x) {
 }
 
 void VariationBuilder::BaseConfigure(fhicl::ParameterSet const &ps) {
+  NDOF = 0;
+
   paramset = ps;
   DumpDiagnostics = paramset.get<bool>("dump_diagnostics", false);
+  DumpMatrices = paramset.get<bool>("dump_matrices", false);
   Name = paramset.get<std::string>("Name");
   std::cout << "[INFO]: Building tweak: " << Name << std::endl;
 
@@ -93,6 +96,8 @@ void ThrownVariations::Process() {
 
   size_t NThrows = paramset.get<size_t>("NThrows");
   size_t NThrowSkip = paramset.get<size_t>("NThrowSkip", 0);
+
+  NDOF = NThrows - NThrowSkip;
 
   std::cout << "[INFO]: Processing thrown source: " << Name << ", with "
             << NThrows << " throws." << std::endl;
@@ -307,13 +312,16 @@ void ThrownVariations::Process() {
     }
   }
 
-  TDirectory *md = td->mkdir("Matrices");
-  md->cd();
-  std::unique_ptr<TMatrixD> covmat = GetTMatrixD(cb.GetCovMatrix());
-  std::unique_ptr<TMatrixD> corrmat = GetTMatrixD(CovToCorr(cb.GetCovMatrix()));
+  if (DumpMatrices) {
+    TDirectory *md = td->mkdir("Matrices");
+    md->cd();
+    std::unique_ptr<TMatrixD> covmat = GetTMatrixD(cb.GetCovMatrix());
+    std::unique_ptr<TMatrixD> corrmat =
+        GetTMatrixD(CovToCorr(cb.GetCovMatrix()));
 
-  covmat->Write("covmat");
-  corrmat->Write("corrmat");
+    covmat->Write("covmat");
+    corrmat->Write("corrmat");
+  }
 }
 
 void DiscreteVariations::Configure(fhicl::ParameterSet const &ps) {
@@ -400,8 +408,6 @@ void DiscreteVariations::Configure(fhicl::ParameterSet const &ps) {
                     << NominalPrediction[fbin_i] << std::endl;
           throw;
         }
-        std::cout << "--TWK bin [" << fbin_i << "] = " << pred_twk[fbin_i]
-                  << ", frac = " << std::flush;
         pred_twk[fbin_i] = 1 - (pred_twk[fbin_i] / NominalPrediction[fbin_i]);
         std::cout << pred_twk[fbin_i] << std::endl;
       }
@@ -411,6 +417,7 @@ void DiscreteVariations::Configure(fhicl::ParameterSet const &ps) {
   }
 
   size_t NSigs = DiscreteTweaks.size();
+
   std::vector<std::pair<double, double>> xyvals;
 
   for (size_t fbin_i = 0; fbin_i < NominalPrediction.size(); ++fbin_i) {
@@ -448,6 +455,8 @@ void DiscreteVariations::Configure(fhicl::ParameterSet const &ps) {
 void DiscreteVariations::Process() {
 
   std::random_device r;
+
+  NDOF = 1;
 
   std::mt19937 RNEngine(r());
   std::normal_distribution<double> RNJesus(0, 1);
@@ -596,17 +605,22 @@ void DiscreteVariations::Process() {
     }
   }
 
-  TDirectory *md = td->mkdir("Matrices");
-  md->cd();
-  std::unique_ptr<TMatrixD> covmat = GetTMatrixD(cb.GetCovMatrix());
-  std::unique_ptr<TMatrixD> corrmat = GetTMatrixD(CovToCorr(cb.GetCovMatrix()));
+  if (DumpMatrices) {
+    TDirectory *md = td->mkdir("Matrices");
+    md->cd();
+    std::unique_ptr<TMatrixD> covmat = GetTMatrixD(cb.GetCovMatrix());
+    std::unique_ptr<TMatrixD> corrmat =
+        GetTMatrixD(CovToCorr(cb.GetCovMatrix()));
 
-  covmat->Write("covmat");
-  corrmat->Write("corrmat");
+    covmat->Write("covmat");
+    corrmat->Write("corrmat");
+  }
 }
 
 void DirectVariations::Configure(fhicl::ParameterSet const &ps) {
   BaseConfigure(ps);
+
+  NDOF = 1;
 
   std::vector<double> pred_twk;
 
@@ -657,6 +671,10 @@ void DirectVariations::Configure(fhicl::ParameterSet const &ps) {
     throw;
   }
 
+  if (DumpDiagnostics) {
+    diags_Predictions.push_back(pred_twk);
+  }
+
   for (size_t fbin_i = 0; fbin_i < NominalPrediction.size(); ++fbin_i) {
     if (!std::isnormal(pred_twk[fbin_i]) ||
         !std::isnormal(NominalPrediction[fbin_i])) {
@@ -671,10 +689,7 @@ void DirectVariations::Configure(fhicl::ParameterSet const &ps) {
                   << NominalPrediction[fbin_i] << std::endl;
         throw;
       }
-      std::cout << "--TWK bin [" << fbin_i << "] = " << pred_twk[fbin_i]
-                << ", frac = " << std::flush;
       pred_twk[fbin_i] = 1 - (pred_twk[fbin_i] / NominalPrediction[fbin_i]);
-      std::cout << pred_twk[fbin_i] << std::endl;
     }
   }
 
@@ -731,45 +746,52 @@ void DirectVariations::Process() {
   std::vector<std::unique_ptr<TH1>> stddev_histograms =
       CloneHistVector(NominalHistogramSet, "_stddev");
 
-  TH1D *mean_std_dev = new TH1D("mean_std_dev", "", mean_pred_vector.size(), 0,
-                                mean_pred_vector.size());
-  mean_std_dev->SetDirectory(td);
-
-  std::vector<double> mean_vector;
   std::vector<double> stddev_vector;
   for (int i = 0; i < cb.NRows; ++i) {
     stddev_vector.push_back(cb.GetStdDevVector()[i]);
-    mean_vector.push_back(cb.GetMeanVector()[i]);
   }
 
   FillHistFromstdvector(stddev_histograms, stddev_vector);
-  FillHistFromstdvector(mean_std_dev, mean_vector, 0, stddev_vector);
 
   for (std::unique_ptr<TH1> &h : stddev_histograms) {
     h->SetDirectory(td);
     h.release(); // Let root look after the histo again.
   }
 
-  std::vector<std::unique_ptr<TH1>> mean_fractional_histograms =
-      CloneHistVector(NominalHistogramSet, "_mean_fractional");
+  std::vector<std::unique_ptr<TH1>> pred_histograms =
+      CloneHistVector(NominalHistogramSet, "_pred");
 
-  std::vector<double> mean_fractional_vector;
-  for (int i = 0; i < cb.NRows; ++i) {
-    mean_fractional_vector.push_back(cb.GetMeanVector()[i]);
-  }
+  FillHistFromstdvector(pred_histograms, diags_Predictions.front());
 
-  FillHistFromstdvector(mean_fractional_histograms, mean_fractional_vector);
-
-  for (std::unique_ptr<TH1> &h : mean_fractional_histograms) {
+  for (std::unique_ptr<TH1> &h : pred_histograms) {
     h->SetDirectory(td);
     h.release(); // Let root look after the histo again.
   }
 
-  TDirectory *md = td->mkdir("Matrices");
-  md->cd();
-  std::unique_ptr<TMatrixD> covmat = GetTMatrixD(cb.GetCovMatrix());
-  std::unique_ptr<TMatrixD> corrmat = GetTMatrixD(CovToCorr(cb.GetCovMatrix()));
+  std::vector<std::unique_ptr<TH1>> pred_fractional_histograms =
+      CloneHistVector(NominalHistogramSet, "_pred_fractional");
 
-  covmat->Write("covmat");
-  corrmat->Write("corrmat");
+  std::vector<double> frac(diags_Predictions.front().size());
+  for (size_t bin_it = 0; bin_it < diags_Predictions.front().size(); ++bin_it) {
+    frac[bin_it] =
+        (1 - (diags_Predictions.front()[bin_it] / NominalPrediction[bin_it]));
+  }
+
+  FillHistFromstdvector(pred_fractional_histograms, frac);
+
+  for (std::unique_ptr<TH1> &h : pred_fractional_histograms) {
+    h->SetDirectory(td);
+    h.release(); // Let root look after the histo again.
+  }
+
+  if (DumpMatrices) {
+    TDirectory *md = td->mkdir("Matrices");
+    md->cd();
+    std::unique_ptr<TMatrixD> covmat = GetTMatrixD(cb.GetCovMatrix());
+    std::unique_ptr<TMatrixD> corrmat =
+        GetTMatrixD(CovToCorr(cb.GetCovMatrix()));
+
+    covmat->Write("covmat");
+    corrmat->Write("corrmat");
+  }
 }

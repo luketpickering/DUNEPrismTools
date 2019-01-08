@@ -21,6 +21,21 @@ void SayUsage(char const *argv[]) {
             << std::endl;
 }
 
+double deriv(double *evals, double step) {
+  return (-evals[2] + 8 * evals[1] - 8 * evals[-1] + evals[-2]) / (12 * step);
+}
+
+double second_deriv(double *evals, double step) {
+  double first_deriv_evals[5];
+
+  first_deriv_evals[0] = deriv(&evals[-2], step);
+  first_deriv_evals[1] = deriv(&evals[-1], step);
+  first_deriv_evals[3] = deriv(&evals[1], step);
+  first_deriv_evals[4] = deriv(&evals[2], step);
+
+  return deriv(&first_deriv_evals[2], step);
+}
+
 void handleOpts(int argc, char const *argv[]) {
   int opt = 1;
   while (opt < argc) {
@@ -119,34 +134,61 @@ int main(int argc, char const *argv[]) {
   // Use 0.5 m flux windows between -0.25 m and 32.5 m (65)
   p.OffAxisRangesDescriptor = "0_32:0.5";
 
-  fls.Initialize(p, {NDFile, NDHist}, {FDFile, FDHist});
+  fls.Initialize(p, {NDFile, NDHist}, {FDFile, FDHist}, true);
 
-  std::array<double, 6> OscParameters{0.297,   0.0214,   0.534,
-                                      7.37E-5, 2.539E-3, 0};
-  // numu disp
-  std::pair<int, int> OscChannel{14, 14};
+  // std::array<double, 6> OscParameters{0.297,   0.0214,   0.534,
+  //                                     7.37E-5, 2.539E-3, 0};
+  // // numu disp
+  // std::pair<int, int> OscChannel{14, 14};
+  //
+  // // Defaults to DUNE baseline;
+  // fls.OscillateFDFlux(OscParameters, OscChannel);
 
-  // Defaults to DUNE baseline;
-  fls.OscillateFDFlux(OscParameters, OscChannel);
-
-  size_t nsteps = 5000;
-  double start = -20;
-  double end = 5;
+  size_t nsteps = 1000;
+  double start = -10;
+  double end = -6;
   TGraph lcurve(nsteps);
+  TGraph kcurve(nsteps - 8);
   double step = double(end - start) / double(nsteps);
 
+  std::vector<double> eta_hat, rho_hat;
   for (size_t l_it = 0; l_it < nsteps; ++l_it) {
     double reg_exp = start + double(l_it) * step;
     // Passed parameter is regularization factor, should scan for the best one,
     double soln_norm, res_norm;
     fls.Solve(pow(10, reg_exp), res_norm, soln_norm);
-    lcurve.SetPoint(l_it, res_norm, soln_norm);
+
+    eta_hat.push_back(log(soln_norm));
+    rho_hat.push_back(log(res_norm));
+
+    lcurve.SetPoint(l_it, rho_hat.back() / 2.0, eta_hat.back() / 2.0);
   }
 
-  fls.Solve(RegFactor);
+  double max_curv = -std::numeric_limits<double>::max();
+  double best_reg;
+  for (size_t l_it = 4; l_it < (nsteps - 4); ++l_it) {
+
+    double curv =
+        2.0 *
+        (deriv(&rho_hat[l_it], step) * second_deriv(&eta_hat[l_it], step) -
+         deriv(&eta_hat[l_it], step) * second_deriv(&rho_hat[l_it], step)) /
+        pow(pow(deriv(&rho_hat[l_it], step), 2) +
+                pow(deriv(&eta_hat[l_it], step), 2),
+            3 / 2);
+
+    kcurve.SetPoint(l_it - 4, start + double(l_it) * step, curv);
+
+    if (curv > max_curv) {
+      max_curv = curv;
+      best_reg = pow(10, start + double(l_it) * step);
+    }
+  }
+
+  fls.Solve(best_reg);
 
   TFile *f = CheckOpenFile(OutputFile, "RECREATE");
   fls.Write(f);
   lcurve.Write("lcurve");
+  kcurve.Write("kcurve");
   f->Write();
 }

@@ -1,39 +1,45 @@
 #!/bin/bash
 
-# dp_CombineBuiltFluxes  \
-# 	-i "/pnfs/dune/persistent/users/picker24/nominal_5E8POT_wppfx/DUNEPrismFluxes/ND_nu/uncert_binning/flux/Fluxes.*.root" \
-#   --NPPFXU 100 \
-# 	-o ND_nu_OptimizedEngineeredNov2017Review_uncert_binning_wppfx.root
-#
-# dp_CombineBuiltFluxes  \
-# 	-i "/pnfs/dune/persistent/users/picker24/nominal_5E8POT_wppfx/DUNEPrismFluxes/ND_nubar/uncert_binning/flux/Fluxes.*.root" \
-#   --NPPFXU 100 \
-# 	-o ND_nubar_OptimizedEngineeredNov2017Review_uncert_binning_wppfx.root
+IDIR="old_uncert_binning"
+
+dp_CombineBuiltFluxes  \
+	-i "/pnfs/dune/persistent/users/picker24/nominal_5E8POT_wppfx/DUNEPrismFluxes/ND_nu/${IDIR}/flux/Fluxes.*.root" \
+  --NPPFXU 100 \
+	-o ND_nu_OptimizedEngineeredNov2017Review_${IDIR}_wppfx.root
+
+dp_CombineBuiltFluxes  \
+	-i "/pnfs/dune/persistent/users/picker24/nominal_5E8POT_wppfx/DUNEPrismFluxes/ND_nubar/${IDIR}/flux/Fluxes.*.root" \
+  --NPPFXU 100 \
+	-o ND_nubar_OptimizedEngineeredNov2017Review_${IDIR}_wppfx.root
 
 #With focussing
-# for i in nu nubar; do
-#   for j in p1; do
-#     for k in WL HC DPR; do
-#
-# 		dp_CombineBuiltFluxes  \
-# 			-i "/pnfs/dune/persistent/users/picker24/Focussing/DUNEPrismFluxes/ND_${i}/${k}${j}/uncert_binning/flux/Fluxes.*.root" \
-# 			-o ND_${i}_OptimizedEngineeredNov2017Review_uncert_binning_${k}${j}.root
-#
-# 		done
-# 	done
-# done
+for i in nu nubar; do
+  for j in p1 m1; do
+    for k in WL HC DPR; do
 
-# for i in nu nubar; do
-#   for j in DecayPipe Horn1 Horn2; do
-#     for k in X Y; do
-for i in nu ; do
-  for j in Horn1; do
-    for k in X; do
+      if [ ! -e /pnfs/dune/persistent/users/picker24/Focussing/DUNEPrismFluxes/ND_${i}/${k}${j}/${IDIR}/flux ]; then
+        continue;
+      fi
 
+		dp_CombineBuiltFluxes  \
+			-i "/pnfs/dune/persistent/users/picker24/Focussing/DUNEPrismFluxes/ND_${i}/${k}${j}/${IDIR}/flux/Fluxes.*.root" \
+			-o ND_${i}_OptimizedEngineeredNov2017Review_${IDIR}_${k}${j}.root
+
+		done
+	done
+done
+
+for i in nu nubar; do
+  for j in Horn1 Horn2; do
+    for k in X Y XNeg; do
+
+      if [ ! -e /pnfs/dune/persistent/users/picker24/Focussing/DUNEPrismFluxes/ND_${i}/${k}${j}/${IDIR}/flux ]; then
+        continue;
+      fi
 
 			dp_CombineBuiltFluxes  \
-				-i "/pnfs/dune/persistent/users/picker24/Alignment/DUNEPrismFluxes/ND_${i}/${j}${k}/uncert_binning/flux/Fluxes.*.root" \
-				-o ND_${i}_OptimizedEngineeredNov2017Review_uncert_binning_${j}${k}Shift.root
+				-i "/pnfs/dune/persistent/users/picker24/Alignment/DUNEPrismFluxes/ND_${i}/${j}${k}/${IDIR}/flux/Fluxes.*.root" \
+				-o ND_${i}_OptimizedEngineeredNov2017Review_${IDIR}_${j}${k}Shift.root
 
     done
   done

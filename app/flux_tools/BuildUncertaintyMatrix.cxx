@@ -63,6 +63,10 @@ int main(int argc, char const *argv[]) {
   fhicl::ParameterSet flux_uncert_config =
       ps.get<fhicl::ParameterSet>("FluxUncertainty");
 
+  bool SaveCAFAnaFormat =
+      flux_uncert_config.get<bool>("SaveCAFAnaFormat", false);
+  bool SaveTH1F = flux_uncert_config.get<bool>("SaveTH1F", false);
+
   std::string OutputFile =
       flux_uncert_config.get<std::string>("OutputFile", "");
   std::unique_ptr<TFile> oupF(nullptr);
@@ -84,6 +88,7 @@ int main(int argc, char const *argv[]) {
   bool CovMatInitialized = false;
   Eigen::MatrixXd FullCovarianceMatrix;
 
+  size_t MaxNDOF = 0;
   for (fhicl::ParameterSet twk_ps :
        flux_uncert_config.get<std::vector<std::string>>("Tweaks")) {
     for (std::string const &Conf : Configurations) {
@@ -100,6 +105,7 @@ int main(int argc, char const *argv[]) {
     }
 
     varb->Process();
+    MaxNDOF += varb->GetNDOF();
 
     if (!CovMatInitialized) {
       FullCovarianceMatrix = varb->GetCovarianceComponent();
@@ -115,7 +121,10 @@ int main(int argc, char const *argv[]) {
 
   size_t NEigvals = flux_uncert_config.get<size_t>("num_eigenvalues", 10);
 
-  std::cout << "[INFO]: Attempting to invert..." << std::endl;
+  NEigvals = std::min(NEigvals, MaxNDOF);
+
+  std::cout << "[INFO]: Attempting to invert with " << MaxNDOF << " NDOF ..."
+            << std::endl;
   EigenvalueHelper eh;
   try {
     eh.ComputeFromMatrix(FullCovarianceMatrix,
@@ -138,8 +147,8 @@ int main(int argc, char const *argv[]) {
   }
   std::cout << "[INFO]: Minimum kept variance: "
             << (100.0 * KeptVar /
-                (KeptVar + eh.EigVals[NEigvals - 1] *
-                               double(FullCovarianceMatrix.rows() - NEigvals)))
+                (KeptVar +
+                 eh.EigVals[NEigvals - 1] * double(MaxNDOF - NEigvals)))
             << "%" << std::endl;
 
   Eigen::MatrixXd Tweaks = eh.GetEffectiveParameterVectors();
@@ -152,74 +161,99 @@ int main(int argc, char const *argv[]) {
 
     FillHistFromEigenVector(Evs, eh.EigVals);
 
-    TDirectory *td = oupF->mkdir("EffectiveFluxParameters");
+    TDirectory *td;
+    if (!SaveCAFAnaFormat) {
+      td = oupF->mkdir("EffectiveFluxParameters");
+    }
     for (int tw_it = 0; tw_it < Tweaks.cols(); ++tw_it) {
-      TDirectory *t_id =
-          td->mkdir((std::string("param_") + std::to_string(tw_it)).c_str());
+      if (!SaveCAFAnaFormat) {
 
-      std::vector<std::unique_ptr<TH1>> tweak_histograms =
-          CloneHistVector(NominalHistogramSet);
+        TDirectory *t_id =
+            td->mkdir((std::string("param_") + std::to_string(tw_it)).c_str());
 
-      FillHistFromEigenVector(tweak_histograms, Tweaks.col(tw_it));
+        std::vector<std::unique_ptr<TH1>> tweak_histograms =
+            CloneHistVector(NominalHistogramSet);
 
-      for (std::unique_ptr<TH1> &h : tweak_histograms) {
-        h->SetDirectory(t_id);
-        h.release(); // Let root look after the histo again.
-      }
+        FillHistFromEigenVector(tweak_histograms, Tweaks.col(tw_it));
 
-      // Output with CAFAna naming scheme
-      std::stringstream dir_caf_ss("");
-      dir_caf_ss << "syst" << tw_it << std::endl;
-      TDirectory *td_caf = oupF->mkdir(dir_caf_ss.str().c_str());
-
-      std::vector<std::unique_ptr<TH1>> tweak_histograms_caf =
-          CloneHistVector(NominalHistogramSet);
-
-      FillHistFromEigenVector(tweak_histograms_caf, Tweaks.col(tw_it));
-
-      for (std::unique_ptr<TH1> &h : tweak_histograms_caf) {
-        // Name translation
-        std::string hname = h->GetName();
-
-        std::string species;
-        if (hname.find("numubar") != std::string::npos) {
-          species = "numubar";
-        } else if (hname.find("numu") != std::string::npos) {
-          species = "numu";
-        } else if (hname.find("nuebar") != std::string::npos) {
-          species = "nuebar";
-        } else if (hname.find("nue") != std::string::npos) {
-          species = "nue";
+        for (std::unique_ptr<TH1> &h : tweak_histograms) {
+          if (SaveTH1F) {
+            std::unique_ptr<TH1> h_f = THToF(h);
+            h_f->SetDirectory(t_id);
+            h_f.release();
+          } else {
+            h->SetDirectory(t_id);
+            h.release();
+          }
         }
-        std::string det;
-        std::string beam_mode;
-        if (hname.find("ND_nubar") != std::string::npos) {
-          det = "ND";
-          beam_mode = "RHC";
-        } else if (hname.find("ND_nu") != std::string::npos) {
-          det = "ND";
-          beam_mode = "FHC";
-        } else if (hname.find("FD_nubar") != std::string::npos) {
-          det = "FD";
-          beam_mode = "RHC";
-        } else if (hname.find("FD_nu") != std::string::npos) {
-          det = "FD";
-          beam_mode = "FHC";
+      } else {
+
+        // Output with CAFAna naming scheme
+        std::stringstream dir_caf_ss("");
+        dir_caf_ss << "syst" << tw_it;
+        TDirectory *td_caf = oupF->mkdir(dir_caf_ss.str().c_str());
+
+        std::vector<std::unique_ptr<TH1>> tweak_histograms_caf =
+            CloneHistVector(NominalHistogramSet);
+
+        FillHistFromEigenVector(tweak_histograms_caf, Tweaks.col(tw_it));
+
+        for (std::unique_ptr<TH1> &h : tweak_histograms_caf) {
+          // Name translation
+          std::string hname = h->GetName();
+
+          std::string species;
+          if (hname.find("numubar") != std::string::npos) {
+            species = "numubar";
+          } else if (hname.find("numu") != std::string::npos) {
+            species = "numu";
+          } else if (hname.find("nuebar") != std::string::npos) {
+            species = "nuebar";
+          } else if (hname.find("nue") != std::string::npos) {
+            species = "nue";
+          }
+          std::string det;
+          std::string beam_mode;
+          if (hname.find("ND_nubar") != std::string::npos) {
+            det = "ND";
+            beam_mode = "RHC";
+          } else if (hname.find("ND_nu") != std::string::npos) {
+            det = "ND";
+            beam_mode = "FHC";
+          } else if (hname.find("FD_nubar") != std::string::npos) {
+            det = "FD";
+            beam_mode = "RHC";
+          } else if (hname.find("FD_nu") != std::string::npos) {
+            det = "FD";
+            beam_mode = "FHC";
+          }
+
+          std::stringstream caf_name("");
+
+          caf_name << det << "_" << species << "_" << beam_mode;
+          h->SetName(caf_name.str().c_str());
+          if (SaveTH1F) {
+            std::unique_ptr<TH1> h_f = THToF(h);
+            h_f->SetDirectory(td_caf);
+            h_f.release();
+          } else {
+            h->SetDirectory(td_caf);
+            h.release();
+          }
         }
-
-        std::stringstream caf_name("");
-
-        caf_name << det << "_" << species << "_" << beam_mode;
-        h->SetName(caf_name.str().c_str());
-        h->SetDirectory(td_caf);
-        h.release(); // Let root look after the histo again.
       }
     }
 
-    TDirectory *n_d = td->mkdir("nominal");
+    TDirectory *n_d = oupF->mkdir("nominal");
     for (auto &h : NominalHistogramSet) {
-      h->SetDirectory(n_d);
-      h.release();
+      if (SaveTH1F) {
+        std::unique_ptr<TH1> h_f = THToF(h);
+        h_f->SetDirectory(n_d);
+        h_f.release();
+      } else {
+        h->SetDirectory(n_d);
+        h.release();
+      }
     }
 
     if (flux_uncert_config.get<bool>("WriteMatrices", false)) {

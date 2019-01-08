@@ -475,4 +475,6 @@ GetPolyFitCoeffs(std::vector<std::pair<double, double>> const &xyvals) {
   return rtn;
 }
 
+std::unique_ptr<TH1> THToF(std::unique_ptr<TH1> &hin);
+
 #endif

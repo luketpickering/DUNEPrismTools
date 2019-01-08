@@ -1,15 +1,17 @@
 SET(ANA_APPS
   # FluxVarFriendTreeBuilder
-  XSecVarFriendTreeBuilder
-  EfficiencyWeightFriendTreeBuilder
-  PRISMAnalysis
-  RunSelection
-  ProduceEfficiencyCorrector
-  ProduceDiagnosticPlots
+  # XSecVarFriendTreeBuilder
+  # EfficiencyWeightFriendTreeBuilder
+  # PRISMAnalysis
+  # RunSelection
+  # ProduceEfficiencyCorrector
+  # ProduceDiagnosticPlots
+  CAFCombiner
 )
 
 include_directories(${INCDIRS})
-include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+# Requried for fhiclcpp
+include_directories(${CMAKE_INSTALL_PREFIX}/include)
 
 foreach(appname ${ANA_APPS})
 

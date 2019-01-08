@@ -3,11 +3,20 @@
 #include "ROOTUtility.hxx"
 #include "StringParserUtility.hxx"
 
+#ifdef USE_FHICL
+#include "FluxCombiner.hxx"
+#endif
+
 #include "TFile.h"
 #include "TGraph.h"
 #include "TH1D.h"
 
 #include "BargerPropagator.h"
+
+#ifdef USE_FHICL
+#include "fhiclcpp/ParameterSet.h"
+#include "fhiclcpp/make_ParameterSet.h"
+#endif
 
 #include <fstream>
 #include <iostream>
@@ -26,9 +35,21 @@ bool DumpBiFlx = false;
 
 int nuPDGFrom, nuPDGTo;
 
+#ifdef USE_FHICL
+std::string fhicl_name;
+#endif
+
 void SayUsage(char const *argv[]) {
   std::cout << "[USAGE]: " << argv[0] << GetUsageText(argv[0], "flux_tools")
             << std::endl;
+#ifdef USE_FHICL
+  std::cout
+      << "  --fhicl <config.fcl>          : Configure fux oscillation via a \n"
+         "                                  FHiCL configuration file. \n"
+         "                                  N.B. All other command line \n"
+         "                                  options will be ignored."
+      << std::endl;
+#endif
 }
 
 const static double REarth_cm = 6371.393 * 1.0E5;
@@ -114,9 +135,14 @@ void handleOpts(int argc, char const *argv[]) {
 
     } else if (std::string(argv[opt]) == "-B") {
       DumpBiFlx = true;
-
-    } else if (std::string(argv[opt]) == "-?" ||
-               std::string(argv[opt]) == "--help") {
+    }
+#ifdef USE_FHICL
+    else if (std::string(argv[opt]) == "--fhicl") {
+      fhicl_name = argv[++opt];
+    }
+#endif
+    else if (std::string(argv[opt]) == "-?" ||
+             std::string(argv[opt]) == "--help") {
       SayUsage(argv);
       exit(0);
     } else {
@@ -187,6 +213,41 @@ double OscWeight(double enu) {
 int main(int argc, char const *argv[]) {
   TH1::SetDefaultSumw2();
   handleOpts(argc, argv);
+
+#ifdef USE_FHICL
+  if (fhicl_name.length()) {
+    std::vector<std::unique_ptr<TH1D>> comps;
+    fhicl::ParameterSet ps = fhicl::make_ParameterSet(fhicl_name);
+    std::unique_ptr<TH1D> osc_flux = GetCombinedFlux(ps, comps);
+
+    oupFile = ps.get<std::string>("OutputFile");
+    outputDir = ps.get<std::string>("OutputDir","");
+    oupHistName = ps.get<std::string>("OutputHistName", "osc");
+    UPDATEOutputFile = ps.get<bool>("UpdateOutputFile", false);
+
+    TFile *oupF =
+        CheckOpenFile(oupFile, UPDATEOutputFile ? "UPDATE" : "RECREATE");
+
+    TDirectory *oupD = oupF;
+
+    if (outputDir.length()) {
+      oupD = oupF->GetDirectory(outputDir.c_str());
+      if (!oupD) {
+        oupD = oupF->mkdir(outputDir.c_str());
+      }
+    }
+    oupD->cd();
+
+    osc_flux->SetName(oupHistName.c_str());
+    osc_flux->SetDirectory(oupD);
+    osc_flux.release();
+
+    oupF->Write();
+    oupF->Close();
+
+    return 0;
+  }
+#endif
 
   if (!inpFile.length() || !inpHistName.length()) {
     std::cout << "[ERROR]: No input file or input histogram name specified."
@@ -300,7 +361,8 @@ int main(int argc, char const *argv[]) {
 
       biflx->SetPoint(dcp_it, x_integ, y_integ);
 
-      if ((dcp_it == 0) || (dcp_it == 250) || (dcp_it == 500) || (dcp_it == 750)) {
+      if ((dcp_it == 0) || (dcp_it == 250) || (dcp_it == 500) ||
+          (dcp_it == 750)) {
         biflx_out << x_integ << ", " << y_integ << std::endl;
       }
     }

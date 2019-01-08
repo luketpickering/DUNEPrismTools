@@ -389,7 +389,8 @@ public:
   void
   Initialize(Params const &p,
              std::pair<std::string, std::string> NDFluxDescriptor = {"", ""},
-             std::pair<std::string, std::string> FDFluxDescriptor = {"", ""}) {
+             std::pair<std::string, std::string> FDFluxDescriptor = {"", ""},
+             bool FDIsOsc = false) {
 
     FluxMatrix_Full = Eigen::MatrixXd::Zero(0, 0);
 
@@ -415,7 +416,12 @@ public:
 
       std::unique_ptr<TH1> FDFlux =
           GetHistogram<TH1>(FDFluxDescriptor.first, FDFluxDescriptor.second);
-      SetFDFluxUnOsc(FDFlux.get());
+      if (!FDIsOsc) {
+        SetFDFluxUnOsc(FDFlux.get());
+      } else {
+        SetFDFluxOsc(FDFlux.get());
+        BuildTargetFlux();
+      }
     }
   }
 
@@ -520,6 +526,18 @@ public:
         std::unique_ptr<TH1>(static_cast<TH1 *>(FDFlux_unosc->Clone()));
     FDFlux_osc->SetDirectory(nullptr);
     FDFlux_osc->Reset();
+  }
+
+  void SetFDFluxOsc(TH1 *const FDFlux) {
+    FDFlux_osc = std::unique_ptr<TH1>(static_cast<TH1 *>(FDFlux->Clone()));
+    FDFlux_osc->SetDirectory(nullptr);
+
+    if (fParams.MergeENuBins) {
+      FDFlux_osc->Rebin(fParams.MergeENuBins);
+      FDFlux_osc->Scale(1.0 / double(fParams.MergeENuBins));
+    }
+
+    FDFlux_unosc = nullptr;
   }
 
   TH1 *GetFDFluxToOsc() {
@@ -714,7 +732,7 @@ public:
     if (use_reg) {
       for (size_t row_it = 0; row_it < (NFluxes - 1); ++row_it) {
         FluxMatrix_Solve(row_it + NBins, row_it) = reg_param;
-        // FluxMatrix_Solve(row_it + NBins, row_it + 1) = -reg_param;
+        FluxMatrix_Solve(row_it + NBins, row_it + 1) = -reg_param;
       }
       FluxMatrix_Solve(NEqs - 1, NFluxes - 1) = reg_param;
     }
@@ -788,7 +806,8 @@ public:
     soln_norm = 0;
     if (reg_param > 0) {
       soln_norm =
-          (FluxMatrix_Solve.bottomRows(NFluxes) * last_solution).squaredNorm();
+          (FluxMatrix_Solve.bottomRows(NFluxes) * last_solution / reg_param)
+              .squaredNorm();
     }
 
     return last_solution;

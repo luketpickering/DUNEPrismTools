@@ -17,10 +17,13 @@
 
 class VariationBuilder {
 protected:
+  size_t NDOF;
+
   fhicl::ParameterSet paramset;
 
   TDirectory *diagdir;
   bool DumpDiagnostics;
+  bool DumpMatrices;
   std::vector<std::vector<double>>
       diags_Predictions; // only used for diagnostics
 
@@ -46,10 +49,13 @@ public:
   }
   Eigen::MatrixXd GetCovarianceComponent() const { return CovarianceComponent; }
 
+  size_t GetNDOF() { return NDOF; }
+
   virtual ~VariationBuilder() = default;
 };
 
 class ThrownVariations : public VariationBuilder {
+
 public:
   ThrownVariations() : VariationBuilder() {}
   void Configure(fhicl::ParameterSet const &);
