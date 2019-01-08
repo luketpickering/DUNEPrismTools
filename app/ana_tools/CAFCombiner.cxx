@@ -11,7 +11,8 @@
 // Inputs: [ {
 //   InputDirectory: "/path/to/files"
 //   FilePattern: "file_pattern*.root"
-//   NMax: 1E6
+//   NMaxEvents: 1E6
+//   POTPerFileOverride: 1E17
 // }, ]
 // OutputFile: "Output_CAF.root"
 
@@ -319,20 +320,26 @@ int main(int argc, char const *argv[]) {
 
     std::vector<std::string> MatchingFileList = GetMatchingFiles(idir, pat);
 
-    size_t NMax = input.get<size_t>("NMax",std::numeric_limits<size_t>::max());
+    size_t NMaxEvents =
+        input.get<size_t>("NMaxEvents", std::numeric_limits<size_t>::max());
+    double POTPerFileOverride = input.get<double>(
+        "POTPerFileOverride", std::numeric_limits<double>::max());
 
     for (std::string const &inpf : MatchingFileList) {
       CAFReader rdr(idir + inpf);
       std::cout << "[INFO]: Reading " << rdr.GetEntries()
                 << " CAF events from file " << inpf << std::endl;
 
-      size_t fents = std::min(NMax,rdr.GetEntries());
-      double POTScale = double(fents)/double(rdr.GetEntries());
+      size_t fents = std::min(NMaxEvents, rdr.GetEntries());
+      double POTScale = double(fents) / double(rdr.GetEntries());
 
       for (size_t ent = 0; ent < fents; ++ent) {
         rdr.GetEntry(ent);
 
         (*wrtr) = rdr;
+        if (POTPerFileOverride != std::numeric_limits<double>::max()) {
+          wrtr->FilePOT = POTPerFileOverride;
+        }
         wrtr->FilePOT *= POTScale;
 
         if (ent == 0) {
