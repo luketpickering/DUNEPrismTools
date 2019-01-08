@@ -59,10 +59,15 @@ int main(int argc, char const *argv[]) {
             std::cout << "[INFO]: POT Overriden to " << POTPerFileOverride
                       << std::endl;
           }
-          rdr.FilePOT = POTPerFileOverride;
+          rdr.FilePOT = POTPerFileOverride * POTScale;
+        } else {
+          if (ent == 0) {
+            std::cout << "[INFO]: File reported total POT = " << rdr.FilePOT
+                      << std::endl;
+            rdr.FilePOT *= POTScale;
+          }
         }
 
-        wrtr->FilePOT *= POTScale;
         (*wrtr) = rdr;
 
         if (ent == 0) {
