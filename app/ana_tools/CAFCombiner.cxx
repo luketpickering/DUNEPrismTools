@@ -16,12 +16,13 @@
 
 class CAFReader {
 
+public:
+
   TFile *file;
   TTree *caf;
   TTree *meta;
   TH1D *RunPOT;
 
-public:
   // Reco info
   double Ev_reco;
   double Elep_reco;
@@ -289,6 +290,7 @@ public:
 
   ~CAFReader() {
     if (file) {
+      std::cout << "[INFO]: Closing file " << file->GetName() << std::endl;
       file->Close();
     }
   }
@@ -335,4 +337,7 @@ int main(int argc, char const *argv[]) {
       }
     }
   }
+
+  wrtr->file->Write();
+  wrtr->file->Close();
 }
