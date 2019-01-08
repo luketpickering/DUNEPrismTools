@@ -17,11 +17,11 @@
 class CAFReader {
 
 public:
-
   TFile *file;
   TTree *caf;
   TTree *meta;
   TH1D *RunPOT;
+  size_t nfiles;
 
   // Reco info
   double Ev_reco;
@@ -41,7 +41,6 @@ public:
 
   // Truth info
   double Ev;
-  double Elep;
   int isCC;
   int nuPDG;
   int LepPDG;
@@ -84,7 +83,9 @@ public:
   double POTWeight;
   double FilePOT;
 
-  CAFReader() : file(nullptr), caf(nullptr), meta(nullptr), RunPOT(nullptr) {}
+  CAFReader()
+      : file(nullptr), caf(nullptr), meta(nullptr), RunPOT(nullptr), nfiles(0) {
+  }
 
   CAFReader(std::string const &filename) : CAFReader() {
     file = new TFile(filename.c_str(), "READ");
@@ -124,7 +125,6 @@ public:
     caf->SetBranchAddress("muon_ecal", &muon_ecal);
     caf->SetBranchAddress("muon_exit", &muon_exit);
     caf->SetBranchAddress("Ev", &Ev);
-    caf->SetBranchAddress("Elep", &Elep);
     caf->SetBranchAddress("isCC", &isCC);
     caf->SetBranchAddress("nuPDG", &nuPDG);
     caf->SetBranchAddress("LepPDG", &LepPDG);
@@ -175,7 +175,6 @@ public:
     muon_ecal = other.muon_ecal;
     muon_exit = other.muon_exit;
     Ev = other.Ev;
-    Elep = other.Elep;
     isCC = other.isCC;
     nuPDG = other.nuPDG;
     LepPDG = other.LepPDG;
@@ -237,7 +236,6 @@ public:
     wrt->caf->Branch("muon_ecal", &wrt->muon_ecal, "muon_ecal/D");
     wrt->caf->Branch("muon_exit", &wrt->muon_exit, "muon_exit/D");
     wrt->caf->Branch("Ev", &wrt->Ev, "Ev/D");
-    wrt->caf->Branch("Elep", &wrt->Elep, "Elep/D");
     wrt->caf->Branch("isCC", &wrt->isCC, "isCC/D");
     wrt->caf->Branch("nuPDG", &wrt->nuPDG, "nuPDG/D");
     wrt->caf->Branch("LepPDG", &wrt->LepPDG, "LepPDG/D");
@@ -284,8 +282,10 @@ public:
         double det_pos = (double(i) - 349.5) / 100.0;
         RunPOT->Fill(det_pos + det_x, 1.0 / POTWeight);
       }
+      nfiles++;
     }
   }
+  size_t GetNFiles() { return nfiles; }
   void Fill() { caf->Fill(); }
 
   ~CAFReader() {
@@ -337,6 +337,9 @@ int main(int argc, char const *argv[]) {
       }
     }
   }
+
+  std::cout << "[INFO]: Wrote " << wrtr->GetEntries() << " events from "
+            << " input files" << wrtr->GetNFiles() << std::endl;
 
   wrtr->file->Write();
   wrtr->file->Close();
