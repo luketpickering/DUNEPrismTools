@@ -4,8 +4,8 @@
 #include "fhiclcpp/make_ParameterSet.h"
 
 #include "TFile.h"
-#include "TTree.h"
 #include "TH1D.h"
+#include "TTree.h"
 
 // Expected FHiCL like
 // Inputs: [ {
@@ -220,7 +220,7 @@ public:
       throw;
     }
 
-    wrt->caf = new TTree("caf","");
+    wrt->caf = new TTree("caf", "");
 
     wrt->caf->Branch("Ev_reco", &wrt->Ev_reco, "Ev_reco/D");
     wrt->caf->Branch("Elep_reco", &wrt->Elep_reco, "Elep_reco/D");
@@ -310,23 +310,24 @@ int main(int argc, char const *argv[]) {
 
   for (fhicl::ParameterSet input :
        ps.get<std::vector<fhicl::ParameterSet>>("Inputs")) {
-    std::string idir = input.get<std::string>("InputDirectory");
+    std::string idir =
+        EnsureTrailingSlash(input.get<std::string>("InputDirectory"));
     std::string pat = input.get<std::string>("FilePattern");
 
     std::vector<std::string> MatchingFileList = GetMatchingFiles(idir, pat);
 
     for (std::string const &inpf : MatchingFileList) {
-      CAFReader rdr(inpf);
+      CAFReader rdr(idir + inpf);
       std::cout << "[INFO]: Reading " << rdr.GetEntries()
                 << " CAF events from file " << inpf << std::endl;
 
       size_t fents = rdr.GetEntries();
-      for(size_t ent = 0; ent < fents; ++ent){
+      for (size_t ent = 0; ent < fents; ++ent) {
         rdr.GetEntry(ent);
 
         (*wrtr) = rdr;
 
-        if(!ent){
+        if (!ent) {
           wrtr->NewFile();
         }
 
