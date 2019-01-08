@@ -96,8 +96,8 @@ voms-proxy-info --all
 
 source /cvmfs/dune.opensciencegrid.org/products/dune/setup_dune.sh
 
-setup root v6_06_08 -q e10:nu:prof
-setup ifdhc v2_1_0
+setup root v6_10_08b -q e15:nu:prof
+setup ifdhc v2_3_9
 
 ups active
 
@@ -170,7 +170,14 @@ echo "./dp_BuildFluxes -i \"inputs/*dk2nu*root\" -o ${OUT_FILENAME} --fhicl ./bu
 
 echo "Finished."
 
+echo "------ls-------"
+ls -lah
+echo "---------------"
+
 echo "Copying output @ $(date)"
+
+echo "ifdh cp -D $IFDH_OPTION dp_BuildFluxes.${CLUSTER}.${PROCESS}.log ${PNFS_OUTDIR}/logs/"
+ifdh cp -D $IFDH_OPTION dp_BuildFluxes.${CLUSTER}.${PROCESS}.log ${PNFS_OUTDIR}/logs/
 
 if [ ! -e ${OUT_FILENAME} ]; then
   echo "[ERROR]: Failed to produce expected output file."
@@ -179,8 +186,5 @@ fi
 
 echo "ifdh cp -D $IFDH_OPTION ${OUT_FILENAME} ${PNFS_OUTDIR}/flux/"
 ifdh cp -D $IFDH_OPTION ${OUT_FILENAME} ${PNFS_OUTDIR}/flux/
-echo "ifdh cp -D $IFDH_OPTION dp_BuildFluxes.${CLUSTER}.${PROCESS}.log ${PNFS_OUTDIR}/logs/"
-ifdh cp -D $IFDH_OPTION dp_BuildFluxes.${CLUSTER}.${PROCESS}.log ${PNFS_OUTDIR}/logs/
-
 
 echo "All stop @ $(date)"

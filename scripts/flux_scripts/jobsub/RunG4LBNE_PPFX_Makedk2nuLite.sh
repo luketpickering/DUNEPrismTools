@@ -136,6 +136,12 @@ voms-proxy-info --all
 
 source setups/setup.sh
 
+echo "${G4LIB}"
+echo "------ls-------"
+ls ${G4LIB}
+echo "---------------"
+
+
 export IFDH_CP_UNLINK_ON_ERROR=1;
 export IFDH_CP_MAXRETRIES=1;
 

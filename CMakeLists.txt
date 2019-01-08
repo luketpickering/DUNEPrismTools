@@ -31,15 +31,15 @@ elseif(NOT DEFINED CMAKE_BUILD_TYPE)
 endif()
 
 if(USE_FHICL STREQUAL "")
-  set(USE_FHICL FALSE)
+  set(USE_FHICL TRUE)
 elseif(NOT DEFINED USE_FHICL)
-  set(USE_FHICL FALSE)
+  set(USE_FHICL TRUE)
 endif()
 
 if(USE_EIGEN STREQUAL "")
-  set(USE_EIGEN FALSE)
+  set(USE_EIGEN TRUE)
 elseif(NOT DEFINED USE_EIGEN)
-  set(USE_EIGEN FALSE)
+  set(USE_EIGEN TRUE)
 endif()
 
 ################################################################################
