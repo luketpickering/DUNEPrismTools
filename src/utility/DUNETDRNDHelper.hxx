@@ -31,10 +31,16 @@ inline bool IsWall_Select(double const &vtx_x) {
   }
   return false;
 }
+
+inline bool PRISMVertex_Select(double const &vtx_x) {
+  return std::abs(vtx_x) < 200;
+}
+
 inline bool XFV_Select(double const &vtx_x) {
-  return (std::abs(vtx_x) < 300) && !IsWall_Select(vtx_x) &&
+  return PRISMVertex_Select(vtx_x) && !IsWall_Select(vtx_x) &&
          !IsCathode_Select(vtx_x);
 }
+
 inline bool FV_Select(CAFReader const &ev) {
   return XFV_Select(ev.vtx_x) && (std::abs(ev.vtx_y) < 100) &&
          (ev.vtx_z > 50) && (ev.vtx_z < 350);

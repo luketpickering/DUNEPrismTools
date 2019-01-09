@@ -56,9 +56,9 @@ inline TH *GetHistogram(TFile *f, std::string const &fhname,
   TH *inpH = dynamic_cast<TH *>(f->Get(fhname.c_str()));
 
   if (!inpH) {
-    std::cout << "[ERROR]: Couldn't get TH: " << fhname
-              << " from input file: " << f->GetName() << std::endl;
     if (exit_on_fail) {
+      std::cout << "[ERROR]: Couldn't get TH: " << fhname
+                << " from input file: " << f->GetName() << std::endl;
       exit(1);
     } else {
       return nullptr;
