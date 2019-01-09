@@ -231,7 +231,7 @@ void CAFReader::Fill() { caf->Fill(); }
 
 CAFReader::~CAFReader() {
   if (file) {
-    std::cout << "[INFO]: Closing file " << file->GetName() << std::endl;
+    // std::cout << "[INFO]: Closing file " << file->GetName() << std::endl;
     file->Close();
   }
 }
