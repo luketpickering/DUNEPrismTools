@@ -1,4 +1,5 @@
 #include "CAFReader.hxx"
+#include "DUNETDRNDHelper.hxx"
 
 #include "ROOTUtility.hxx"
 
@@ -213,8 +214,10 @@ void CAFReader::NewFile() {
   } else {
     for (size_t i = 0; i < 700; ++i) {
       double det_pos = (double(i) - 349.5) / 100.0;
-      RunPOT->Fill(det_pos + det_x, FilePOT);
-      StopFiles->Fill(det_pos + det_x);
+      if (NotCathode_Select(det_pos)) {
+        RunPOT->Fill(det_pos + det_x, FilePOT);
+        StopFiles->Fill(det_pos + det_x);
+      }
     }
     nfiles++;
   }

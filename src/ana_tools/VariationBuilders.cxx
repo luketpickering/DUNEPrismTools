@@ -795,3 +795,142 @@ void DirectVariations::Process() {
     corrmat->Write("corrmat");
   }
 }
+
+
+void UniformVariations::Configure(fhicl::ParameterSet const &ps) {
+  BaseConfigure(ps);
+
+  NDOF = 1;
+
+  double Uncertainty_pc = ps.get<double>("Uncertainty_pc");
+
+  std::vector<double> pred_twk;
+
+  for(double & np : NominalPrediction){
+    pred_twk.push_back(np*(1 + Uncertainty_pc/100.0));
+  }
+
+  if (DumpDiagnostics) {
+    diags_Predictions.push_back(pred_twk);
+  }
+
+  for (size_t fbin_i = 0; fbin_i < NominalPrediction.size(); ++fbin_i) {
+    if (!std::isnormal(pred_twk[fbin_i]) ||
+        !std::isnormal(NominalPrediction[fbin_i])) {
+      pred_twk[fbin_i] = 0;
+    } else {
+      if (!std::isnormal(pred_twk[fbin_i] / NominalPrediction[fbin_i])) {
+        std::cout << "[ERROR]: For flux prediction: " << Name << ", bin "
+                  << fbin_i << " was non-normal("
+                  << show_classification(pred_twk[fbin_i] /
+                                         NominalPrediction[fbin_i])
+                  << "): " << pred_twk[fbin_i] << "/"
+                  << NominalPrediction[fbin_i] << std::endl;
+        throw;
+      }
+      pred_twk[fbin_i] = 1 - (pred_twk[fbin_i] / NominalPrediction[fbin_i]);
+    }
+  }
+
+  RelativeTweaks.push_back(std::move(pred_twk));
+}
+
+void UniformVariations::Process() {
+  CovarianceBuilder cb(RelativeTweaks);
+
+  CovarianceComponent = cb.GetCovMatrix();
+
+  if (!(diagdir && DumpDiagnostics)) {
+    return;
+  }
+
+  TDirectory *td = diagdir->mkdir((std::string("Diagnostics_") + Name).c_str());
+
+  std::vector<std::unique_ptr<TH1>> nom_histograms =
+      CloneHistVector(NominalHistogramSet, "_nominal_pred");
+
+  FillHistFromstdvector(nom_histograms, NominalPrediction);
+
+  for (std::unique_ptr<TH1> &h : nom_histograms) {
+    h->SetDirectory(td);
+    h.release(); // Let root look after the histo again.
+  }
+
+  TH1D *nominal_1D = new TH1D(
+      "nominal_pred_1D", ";Bin Number;#Phi_{#nu} cm^{-2} GeV^{-1} per POT",
+      NominalPrediction.size(), 0, NominalPrediction.size());
+  FillHistFromstdvector(nominal_1D, NominalPrediction);
+  nominal_1D->SetDirectory(td);
+
+  std::vector<std::unique_ptr<TH1>> mean_pred_histograms =
+      CloneHistVector(NominalHistogramSet, "_mean_pred");
+
+  std::vector<double> mean_pred_vector;
+  std::vector<double> stddev_pred_vector;
+  for (int i = 0; i < cb.NRows; ++i) {
+    mean_pred_vector.push_back((1 + cb.GetMeanVector()[i]) *
+                               NominalPrediction[i]);
+    stddev_pred_vector.push_back(cb.GetStdDevVector()[i] *
+                                 NominalPrediction[i]);
+  }
+
+  FillHistFromstdvector(mean_pred_histograms, mean_pred_vector, 0,
+                        stddev_pred_vector);
+
+  for (std::unique_ptr<TH1> &h : mean_pred_histograms) {
+    h->SetDirectory(td);
+    h.release(); // Let root look after the histo again.
+  }
+
+  std::vector<std::unique_ptr<TH1>> stddev_histograms =
+      CloneHistVector(NominalHistogramSet, "_stddev");
+
+  std::vector<double> stddev_vector;
+  for (int i = 0; i < cb.NRows; ++i) {
+    stddev_vector.push_back(cb.GetStdDevVector()[i]);
+  }
+
+  FillHistFromstdvector(stddev_histograms, stddev_vector);
+
+  for (std::unique_ptr<TH1> &h : stddev_histograms) {
+    h->SetDirectory(td);
+    h.release(); // Let root look after the histo again.
+  }
+
+  std::vector<std::unique_ptr<TH1>> pred_histograms =
+      CloneHistVector(NominalHistogramSet, "_pred");
+
+  FillHistFromstdvector(pred_histograms, diags_Predictions.front());
+
+  for (std::unique_ptr<TH1> &h : pred_histograms) {
+    h->SetDirectory(td);
+    h.release(); // Let root look after the histo again.
+  }
+
+  std::vector<std::unique_ptr<TH1>> pred_fractional_histograms =
+      CloneHistVector(NominalHistogramSet, "_pred_fractional");
+
+  std::vector<double> frac(diags_Predictions.front().size());
+  for (size_t bin_it = 0; bin_it < diags_Predictions.front().size(); ++bin_it) {
+    frac[bin_it] =
+        (1 - (diags_Predictions.front()[bin_it] / NominalPrediction[bin_it]));
+  }
+
+  FillHistFromstdvector(pred_fractional_histograms, frac);
+
+  for (std::unique_ptr<TH1> &h : pred_fractional_histograms) {
+    h->SetDirectory(td);
+    h.release(); // Let root look after the histo again.
+  }
+
+  if (DumpMatrices) {
+    TDirectory *md = td->mkdir("Matrices");
+    md->cd();
+    std::unique_ptr<TMatrixD> covmat = GetTMatrixD(cb.GetCovMatrix());
+    std::unique_ptr<TMatrixD> corrmat =
+        GetTMatrixD(CovToCorr(cb.GetCovMatrix()));
+
+    covmat->Write("covmat");
+    corrmat->Write("corrmat");
+  }
+}

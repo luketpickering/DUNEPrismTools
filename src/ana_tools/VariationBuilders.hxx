@@ -79,6 +79,13 @@ public:
   void Process();
 };
 
+class UniformVariations : public VariationBuilder {
+public:
+  UniformVariations() : VariationBuilder() {}
+  void Configure(fhicl::ParameterSet const &);
+  void Process();
+};
+
 inline std::unique_ptr<VariationBuilder>
 GetVariationBuilder(fhicl::ParameterSet const &ps) {
   std::unique_ptr<VariationBuilder> var;
@@ -89,6 +96,8 @@ GetVariationBuilder(fhicl::ParameterSet const &ps) {
     var = std::unique_ptr<VariationBuilder>(new DiscreteVariations());
   } else if (type == "Direct") {
     var = std::unique_ptr<VariationBuilder>(new DirectVariations());
+  } else if (type == "Uniform") {
+    var = std::unique_ptr<VariationBuilder>(new UniformVariations());
   } else {
     std::cout << "[ERROR]: Invalid uncertainty component type, expected either "
                  "\"Thrown\" or \"Discrete\", but found: \""
