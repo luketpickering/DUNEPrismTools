@@ -31,17 +31,13 @@ inline bool IsWall_Select(double const &vtx_x) {
   }
   return false;
 }
-inline bool LArActive_Select(CAFReader const &ev) {
-  return (std::abs(ev.vtx_x) < 350) && (std::abs(ev.vtx_y) < 150) &&
-         (ev.vtx_z > 0) && (ev.vtx_z < 400);
-}
-inline bool Ar_Select(CAFReader const &ev) {
-  return LArActive_Select(ev) && !IsWall_Select(ev.vtx_x) &&
-         !IsCathode_Select(ev.vtx_x);
+inline bool XFV_Select(double const &vtx_x) {
+  return (std::abs(vtx_x) < 300) && !IsWall_Select(vtx_x) &&
+         !IsCathode_Select(vtx_x);
 }
 inline bool FV_Select(CAFReader const &ev) {
-  return (std::abs(ev.vtx_x) < 300) && (std::abs(ev.vtx_y) < 100) &&
-         (ev.vtx_z > 50) && (ev.vtx_z < 350) && Ar_Select(ev);
+  return XFV_Select(ev.vtx_x) && (std::abs(ev.vtx_y) < 100) &&
+         (ev.vtx_z > 50) && (ev.vtx_z < 350);
 }
 
 #endif

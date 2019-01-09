@@ -211,13 +211,12 @@ CAFReader *CAFReader::MakeWriter(std::string const &filename) {
   return wrt;
 }
 
-void CAFReader::NewFile() {
+void CAFReader::NewFile(std::function<bool(double const &)> const &IsSel) {
   if (!RunPOT) {
     std::cout << "[ERROR]: NewFile called on non-writer instance" << std::endl;
   } else {
     for (size_t i = 0; i < 700; ++i) {
-      if (IsCathode_Select(double(i) - 349.5) ||
-          IsWall_Select(double(i) - 349.5)) {
+      if (!IsSel(double(i) - 349.5)) {
         continue;
       }
       double det_pos = (double(i) - 349.5) / 100.0;

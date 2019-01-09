@@ -123,7 +123,7 @@ int main(int argc, char const *argv[]) {
                 << " %)." << std::flush;
     }
 
-    if (!Ar_Select(rdr)) {
+    if (!XFV_Select(rdr.vtx_x)) {
       continue;
     }
 

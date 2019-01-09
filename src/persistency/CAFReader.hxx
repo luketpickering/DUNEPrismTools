@@ -5,6 +5,7 @@
 #include "TTree.h"
 
 #include <string>
+#include <functional>
 
 class CAFReader {
 
@@ -91,7 +92,7 @@ public:
 
   static CAFReader *MakeWriter(std::string const &filename);
 
-  void NewFile();
+  void NewFile(std::function<bool(double const &)> const &IsSel);
   size_t GetNFiles();
   void Fill();
 

@@ -72,10 +72,10 @@ int main(int argc, char const *argv[]) {
         (*wrtr) = rdr;
 
         if (ent == 0) {
-          wrtr->NewFile();
+          wrtr->NewFile(XFV_Select);
         }
 
-        if (Ar_Select(rdr)) {
+        if (FV_Select(rdr)) {
           wrtr->Fill();
         }
       }
