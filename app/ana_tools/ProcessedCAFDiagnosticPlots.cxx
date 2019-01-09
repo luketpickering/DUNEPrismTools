@@ -70,10 +70,15 @@ template <size_t dim, class EvType> struct PlotProcessor {
 };
 
 using Plot1DCAF = PlotProcessor<1, CAFReader>;
+using Plot2DCAF = PlotProcessor<2, CAFReader>;
 
 size_t const kAll = 0;
-size_t const kFVSel = 1;
+size_t const kTrueSel = 1;
 size_t const kNumuSel = 2;
+size_t const kNSel = 3;
+
+std::vector<std::string> StageSelectionString = {"_All", "_TrueSel",
+                                                 "_NumuSel"};
 
 // Expect a fhicl like
 // InputFile: ND_FHC_CAF.root
@@ -94,25 +99,40 @@ int main(int argc, char const *argv[]) {
       ps.get<size_t>("NMaxEvents", std::numeric_limits<size_t>::max());
   size_t fents = std::min(NMaxEvents, rdr.GetEntries());
 
-  std::vector<Plot1DCAF> PlotDefinitions;
+  std::vector<Plot1DCAF> Plot1DDefinitions;
 
-  PlotDefinitions.emplace_back(
+  Plot1DDefinitions.emplace_back(
       [](CAFReader const &ev) -> std::array<double, 2> {
         return {ev.det_x + ev.vtx_x * 1E-2, ev.POTWeight};
       },
       "OffAxisEvRate", "", 4500, -5, 40);
 
-  std::vector<std::vector<Plot1DCAF>> AllPlots;
-  AllPlots.resize(3);
+  std::vector<std::vector<Plot1DCAF>> All1DPlots;
+  All1DPlots.resize(kNSel);
 
-  size_t idx = kAll;
-  for (std::string const &suff : {"_All", "_FV", "_NumuSel"}) {
-    for (Plot1DCAF const &p : PlotDefinitions) {
-      AllPlots[idx].emplace_back(p.Clone(p.GetName() + suff));
+  std::vector<Plot2DCAF> Plot2DDefinitions;
+
+  Plot2DDefinitions.emplace_back(
+      [](CAFReader const &ev) -> std::array<double, 3> {
+        return {ev.Ev, ev.det_x + ev.vtx_x * 1E-2, ev.POTWeight};
+      },
+      "OffAxisEvRateEnu", "", 20, 0, 6, 90, -5, 40);
+
+  std::vector<std::vector<Plot2DCAF>> All2DPlots;
+  All2DPlots.resize(kNSel);
+
+  for (size_t i = kAll; i < kNSel; ++i) {
+    for (Plot1DCAF const &p : Plot1DDefinitions) {
+      All1DPlots[i].emplace_back(
+          p.Clone(p.GetName() + StageSelectionString[i]));
     }
-    idx++;
+    for (Plot2DCAF const &p : Plot2DDefinitions) {
+      All2DPlots[i].emplace_back(
+          p.Clone(p.GetName() + StageSelectionString[i]));
+    }
   }
-  PlotDefinitions.clear();
+  Plot1DDefinitions.clear();
+  Plot2DDefinitions.clear();
 
   for (size_t ev_it = 0; ev_it < fents; ++ev_it) {
     rdr.GetEntry(ev_it);
@@ -123,22 +143,31 @@ int main(int argc, char const *argv[]) {
                 << " %)." << std::flush;
     }
 
-    if (!XFV_Select(rdr.vtx_x)) {
+    if (!FV_Select(rdr)) {
       continue;
     }
 
-    for (Plot1DCAF &p : AllPlots[kAll]) {
+    for (Plot1DCAF &p : All1DPlots[kAll]) {
+      p.Process(rdr);
+    }
+    for (Plot2DCAF &p : All2DPlots[kAll]) {
       p.Process(rdr);
     }
 
-    if (FV_Select(rdr)) {
-      for (Plot1DCAF &p : AllPlots[kFVSel]) {
+    if (FHC_Numu_True_Select(rdr)) {
+      for (Plot1DCAF &p : All1DPlots[kTrueSel]) {
         p.Process(rdr);
       }
-      if (ND_FHC_Select(rdr)) {
-        for (Plot1DCAF &p : AllPlots[kNumuSel]) {
-          p.Process(rdr);
-        }
+      for (Plot2DCAF &p : All2DPlots[kTrueSel]) {
+        p.Process(rdr);
+      }
+    }
+    if (ND_FHC_Numu_Select(rdr)) {
+      for (Plot1DCAF &p : All1DPlots[kNumuSel]) {
+        p.Process(rdr);
+      }
+      for (Plot2DCAF &p : All2DPlots[kNumuSel]) {
+        p.Process(rdr);
       }
     }
   }
@@ -147,8 +176,13 @@ int main(int argc, char const *argv[]) {
   std::string oupf = ps.get<std::string>("OutputFile");
   TFile *oupFile = CheckOpenFile(oupf, "RECREATE");
 
-  for (auto &SelectionPlots : AllPlots) {
+  for (auto &SelectionPlots : All1DPlots) {
     for (Plot1DCAF &p : SelectionPlots) {
+      p.Write(oupFile);
+    }
+  }
+  for (auto &SelectionPlots : All2DPlots) {
+    for (Plot2DCAF &p : SelectionPlots) {
       p.Write(oupFile);
     }
   }

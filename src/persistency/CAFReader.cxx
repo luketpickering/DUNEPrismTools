@@ -10,8 +10,8 @@ CAFReader::CAFReader(std::string const &filename) : CAFReader() {
 
   caf = dynamic_cast<TTree *>(file->Get("caf"));
   if (!caf) {
-    std::cout << "[ERROR]: Failed to open caf tree from TFile, " << filename
-              << std::endl;
+    // std::cout << "[ERROR]: Failed to open caf tree from TFile, " << filename
+    // << std::endl;
     return;
   }
 

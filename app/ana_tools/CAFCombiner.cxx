@@ -50,8 +50,11 @@ int main(int argc, char const *argv[]) {
       double POTScale = double(fents) / double(rdr.GetEntries());
 
       std::cout << "[INFO]: Reading " << fents << "/" << rdr.GetEntries()
-                << " CAF events from file " << inpf
-                << " with POTScale = " << POTScale << std::endl;
+                << " CAF events from file " << inpf;
+      if (fents) {
+        std::cout << " with POTScale = " << POTScale;
+      }
+      std::cout << std::endl;
 
       for (size_t ent = 0; ent < fents; ++ent) {
         rdr.GetEntry(ent);
@@ -72,7 +75,7 @@ int main(int argc, char const *argv[]) {
         (*wrtr) = rdr;
 
         if (ent == 0) {
-          wrtr->NewFile(XFV_Select);
+          wrtr->NewFile(rdr.isFD ? FD_XFV_Select : ND_XFV_Select);
         }
 
         if (FV_Select(rdr)) {

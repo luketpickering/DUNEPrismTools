@@ -3,13 +3,21 @@
 
 #include "CAFReader.hxx"
 
-inline bool ND_FHC_Select(CAFReader const &ev) {
+inline bool FHC_Numu_True_Select(CAFReader const &ev) {
+  return ev.isCC && (ev.nuPDG == 14);
+}
+inline bool RHC_Numu_True_Select(CAFReader const &ev) {
+  return ev.isCC && (ev.nuPDG == -14);
+}
+
+inline bool ND_FHC_Numu_Select(CAFReader const &ev) {
   return (ev.reco_q == -1) && (ev.muon_exit == 0) && (ev.Ehad_veto < 30);
 }
-inline bool ND_RHC_Select(CAFReader const &ev) {
+inline bool ND_RHC_Numu_Select(CAFReader const &ev) {
   return (ev.reco_q == 1) && (ev.muon_exit == 0) && (ev.Ehad_veto < 30);
 }
-inline bool IsCathode_Select(double const &vtx_x) {
+
+inline bool ND_IsCathode_Select(double const &vtx_x) {
   constexpr double half_gap = 2;
   for (int i = -3; i < 4; ++i) {
     double cathode_center = i * 102; // cm
@@ -20,7 +28,7 @@ inline bool IsCathode_Select(double const &vtx_x) {
   }
   return false;
 }
-inline bool IsWall_Select(double const &vtx_x) {
+inline bool ND_IsWall_Select(double const &vtx_x) {
   constexpr double half_gap = 2;
   for (int i = -3; i < 4; ++i) {
     double wall_center = -51 + i * 102; // cm
@@ -36,14 +44,21 @@ inline bool PRISMVertex_Select(double const &vtx_x) {
   return std::abs(vtx_x) < 200;
 }
 
-inline bool XFV_Select(double const &vtx_x) {
-  return PRISMVertex_Select(vtx_x) && !IsWall_Select(vtx_x) &&
-         !IsCathode_Select(vtx_x);
+inline bool ND_XFV_Select(double const &vtx_x) {
+  return PRISMVertex_Select(vtx_x) && !ND_IsWall_Select(vtx_x) &&
+         !ND_IsCathode_Select(vtx_x);
 }
 
+inline bool FD_XFV_Select(double const &vtx_x) { return std::abs(vtx_x) < 310; }
+
 inline bool FV_Select(CAFReader const &ev) {
-  return XFV_Select(ev.vtx_x) && (std::abs(ev.vtx_y) < 100) &&
-         (ev.vtx_z > 50) && (ev.vtx_z < 350);
+  if (ev.isFD) {
+    return FD_XFV_Select(ev.vtx_x) && (std::abs(ev.vtx_y) < 550) &&
+           (ev.vtx_z > 50) && (ev.vtx_z < 1244);
+  } else {
+    return ND_XFV_Select(ev.vtx_x) && (std::abs(ev.vtx_y) < 100) &&
+           (ev.vtx_z > 50) && (ev.vtx_z < 350);
+  }
 }
 
 #endif
