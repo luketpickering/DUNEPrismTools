@@ -123,7 +123,7 @@ int main(int argc, char const *argv[]) {
                 << " %)." << std::flush;
     }
 
-    if (!LArActive_Select(rdr)) {
+    if (!Ar_Select(rdr)) {
       continue;
     }
 

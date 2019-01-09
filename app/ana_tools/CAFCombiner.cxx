@@ -2,6 +2,8 @@
 
 #include "CAFReader.hxx"
 
+#include "DUNETDRNDHelper.hxx"
+
 #include "fhiclcpp/ParameterSet.h"
 #include "fhiclcpp/make_ParameterSet.h"
 
@@ -73,7 +75,9 @@ int main(int argc, char const *argv[]) {
           wrtr->NewFile();
         }
 
-        wrtr->Fill();
+        if (Ar_Select(rdr)) {
+          wrtr->Fill();
+        }
       }
     }
   }

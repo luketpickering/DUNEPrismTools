@@ -216,11 +216,13 @@ void CAFReader::NewFile() {
     std::cout << "[ERROR]: NewFile called on non-writer instance" << std::endl;
   } else {
     for (size_t i = 0; i < 700; ++i) {
-      double det_pos = (double(i) - 349.5) / 100.0;
-      if (NotAr_Select(double(i) - 349.5)) {
-        RunPOT->Fill(det_pos + det_x, FilePOT);
-        StopFiles->Fill(det_pos + det_x);
+      if (IsCathode_Select(double(i) - 349.5) ||
+          IsWall_Select(double(i) - 349.5)) {
+        continue;
       }
+      double det_pos = (double(i) - 349.5) / 100.0;
+      RunPOT->Fill(det_pos + det_x, FilePOT);
+      StopFiles->Fill(det_pos + det_x);
     }
     nfiles++;
   }
