@@ -89,10 +89,13 @@ size_t CAFReader::GetEntries() { return caf ? caf->GetEntries() : 0; }
 
 void CAFReader::GetEntry(size_t i) {
   caf->GetEntry(i);
+  double rpot = 0;
   if (HasRunPOTWeight) {
     double xpos = vtx_x * 1E-2 + det_x;
-    POTWeight =
-        1.0 / RunPOT->GetBinContent(RunPOT->GetXaxis()->FindFixBin(xpos));
+    rpot = RunPOT->GetBinContent(RunPOT->GetXaxis()->FindFixBin(xpos));
+  }
+  if (std::isnormal(rpot)) {
+    POTWeight = 1.0 / rpot;
   } else {
     POTWeight = 0;
   }
@@ -214,7 +217,7 @@ void CAFReader::NewFile() {
   } else {
     for (size_t i = 0; i < 700; ++i) {
       double det_pos = (double(i) - 349.5) / 100.0;
-      if (NotCathode_Select(det_pos)) {
+      if (NotAr_Select(double(i) - 349.5)) {
         RunPOT->Fill(det_pos + det_x, FilePOT);
         StopFiles->Fill(det_pos + det_x);
       }
