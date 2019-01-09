@@ -14,7 +14,8 @@ CAFReader::CAFReader(std::string const &filename) : CAFReader() {
     return;
   }
 
-  // If we are loading from a precombined file, the exposure of the run should be in the file and can be used to build event weights.
+  // If we are loading from a precombined file, the exposure of the run should
+  // be in the file and can be used to build event weights.
   TH1D *RunPOTHist = GetHistogram<TH1D>(file, "RunPOT", false);
   HasRunPOTWeight = bool(RunPOTHist);
 
@@ -34,6 +35,8 @@ CAFReader::CAFReader(std::string const &filename) : CAFReader() {
       FilePOT += pot;
     }
     meta->ResetBranchAddresses();
+  } else {
+    RunPOT = RunPOTHist;
   }
 
   // Set caf branch addresses
@@ -89,8 +92,9 @@ void CAFReader::GetEntry(size_t i) {
     double xpos = vtx_x * 1E-2 + det_x;
     POTWeight =
         1.0 / RunPOT->GetBinContent(RunPOT->GetXaxis()->FindFixBin(xpos));
-  } else
-  {POTWeight = 0;}
+  } else {
+    POTWeight = 0;
+  }
 }
 
 CAFReader &CAFReader::operator=(CAFReader const &other) {
@@ -137,6 +141,8 @@ CAFReader &CAFReader::operator=(CAFReader const &other) {
   run = other.run;
   isFD = other.isFD;
   isFHC = other.isFHC;
+
+  FilePOT = other.FilePOT;
 
   return *this;
 }
