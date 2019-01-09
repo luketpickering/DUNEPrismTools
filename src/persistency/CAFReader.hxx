@@ -71,12 +71,14 @@ public:
   int isFD;
   int isFHC;
 
-  double POTWeight;
   double FilePOT;
+  double POTWeight;
+
+  bool HasRunPOTWeight;
 
   CAFReader()
       : file(nullptr), caf(nullptr), meta(nullptr), RunPOT(nullptr),
-        StopFiles(nullptr), nfiles(0) {}
+        StopFiles(nullptr), nfiles(0), HasRunPOTWeight(false) {}
 
   CAFReader(std::string const &filename);
 

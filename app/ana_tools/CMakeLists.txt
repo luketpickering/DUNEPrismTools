@@ -7,6 +7,7 @@ SET(ANA_APPS
   # ProduceEfficiencyCorrector
   # ProduceDiagnosticPlots
   CAFCombiner
+  ProcessedCAFDiagnosticPlots
 )
 
 include_directories(${INCDIRS})

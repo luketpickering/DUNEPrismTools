@@ -54,14 +54,13 @@ int main(int argc, char const *argv[]) {
       for (size_t ent = 0; ent < fents; ++ent) {
         rdr.GetEntry(ent);
 
-        if (POTPerFileOverride != std::numeric_limits<double>::max()) {
-          if (ent == 0) {
+        if (ent == 0) {
+          if (POTPerFileOverride != std::numeric_limits<double>::max()) {
+
             std::cout << "[INFO]: POT Overriden to " << POTPerFileOverride
                       << std::endl;
-          }
-          rdr.FilePOT = POTPerFileOverride * POTScale;
-        } else {
-          if (ent == 0) {
+            rdr.FilePOT = POTPerFileOverride * POTScale;
+          } else {
             std::cout << "[INFO]: File reported total POT = " << rdr.FilePOT
                       << std::endl;
             rdr.FilePOT *= POTScale;
@@ -71,7 +70,6 @@ int main(int argc, char const *argv[]) {
         (*wrtr) = rdr;
 
         if (ent == 0) {
-          std::cout << "File POT weight = " << wrtr->POTWeight << std::endl;
           wrtr->NewFile();
         }
 

@@ -14,11 +14,11 @@ CAFReader::CAFReader(std::string const &filename) : CAFReader() {
     return;
   }
 
-  // Tends to suggest that we wont have a meta tree and all the events will have
-  // POT Weights.
-  bool hasPOTWeightBranch = CheckTTreeHasBranch(caf, "POTWeight");
+  // If we are loading from a precombined file, the exposure of the run should be in the file and can be used to build event weights.
+  TH1D *RunPOTHist = GetHistogram<TH1D>(file, "RunPOT");
+  HasRunPOTWeight = bool(RunPOTHist);
 
-  if (!hasPOTWeightBranch) {
+  if (!HasRunPOTWeight) {
     meta = dynamic_cast<TTree *>(file->Get("meta"));
     if (!meta) {
       std::cout << "[ERROR]: Failed to open meta tree from TFile " << filename
@@ -79,15 +79,19 @@ CAFReader::CAFReader(std::string const &filename) : CAFReader() {
   caf->SetBranchAddress("run", &run);
   caf->SetBranchAddress("isFD", &isFD);
   caf->SetBranchAddress("isFHC", &isFHC);
-
-  if (hasPOTWeightBranch) {
-    caf->SetBranchAddress("POTWeight", &POTWeight);
-  }
 }
 
 size_t CAFReader::GetEntries() { return caf ? caf->GetEntries() : 0; }
 
-void CAFReader::GetEntry(size_t i) { caf->GetEntry(i); }
+void CAFReader::GetEntry(size_t i) {
+  caf->GetEntry(i);
+  if (HasRunPOTWeight) {
+    double xpos = vtx_x * 1E-2 + det_x;
+    POTWeight =
+        1.0 / RunPOT->GetBinContent(RunPOT->GetXaxis()->FindFixBin(xpos));
+  } else
+  {POTWeight = 0;}
+}
 
 CAFReader &CAFReader::operator=(CAFReader const &other) {
 
@@ -133,8 +137,6 @@ CAFReader &CAFReader::operator=(CAFReader const &other) {
   run = other.run;
   isFD = other.isFD;
   isFHC = other.isFHC;
-
-  POTWeight = 1.0 / other.FilePOT;
 
   return *this;
 }
@@ -189,7 +191,6 @@ CAFReader *CAFReader::MakeWriter(std::string const &filename) {
   wrt->caf->Branch("run", &wrt->run, "run/D");
   wrt->caf->Branch("isFD", &wrt->isFD, "isFD/D");
   wrt->caf->Branch("isFHC", &wrt->isFHC, "isFHC/D");
-  wrt->caf->Branch("POTWeight", &wrt->POTWeight, "POTWeight/D");
 
   wrt->RunPOT = new TH1D("RunPOT", "RunPOT;Position (m);POT", 4500, -5, 40);
   wrt->RunPOT->SetDirectory(wrt->file);
@@ -206,7 +207,7 @@ void CAFReader::NewFile() {
   } else {
     for (size_t i = 0; i < 700; ++i) {
       double det_pos = (double(i) - 349.5) / 100.0;
-      RunPOT->Fill(det_pos + det_x, 1.0 / POTWeight);
+      RunPOT->Fill(det_pos + det_x, FilePOT);
       StopFiles->Fill(det_pos + det_x);
     }
     nfiles++;
