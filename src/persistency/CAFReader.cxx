@@ -15,7 +15,7 @@ CAFReader::CAFReader(std::string const &filename) : CAFReader() {
   }
 
   // If we are loading from a precombined file, the exposure of the run should be in the file and can be used to build event weights.
-  TH1D *RunPOTHist = GetHistogram<TH1D>(file, "RunPOT");
+  TH1D *RunPOTHist = GetHistogram<TH1D>(file, "RunPOT", false);
   HasRunPOTWeight = bool(RunPOTHist);
 
   if (!HasRunPOTWeight) {

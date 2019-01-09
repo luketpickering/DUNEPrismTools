@@ -51,13 +51,18 @@ TChain *OpenTChainWithFileList(std::string const &tname,
                                std::string const &flist);
 
 template <class TH>
-inline TH *GetHistogram(TFile *f, std::string const &fhname) {
+inline TH *GetHistogram(TFile *f, std::string const &fhname,
+                        bool exit_on_fail = true) {
   TH *inpH = dynamic_cast<TH *>(f->Get(fhname.c_str()));
 
   if (!inpH) {
     std::cout << "[ERROR]: Couldn't get TH: " << fhname
               << " from input file: " << f->GetName() << std::endl;
-    exit(1);
+    if (exit_on_fail) {
+      exit(1);
+    } else {
+      return nullptr;
+    }
   }
 
   inpH = static_cast<TH *>(inpH->Clone());
