@@ -88,7 +88,7 @@ int main(int argc, char const *argv[]) {
         }
       }
 
-      if (fent) {
+      if (fents) {
         std::cout << "\tSelected " << nsel << "/" << fents << std::endl;
       }
     }
