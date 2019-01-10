@@ -40,19 +40,30 @@ CAFReader::CAFReader(std::string const &filename) : CAFReader() {
     RunPOT = RunPOTHist;
   }
 
+  isNDFile = CheckTTreeHasBranch(caf, "Ev_reco");
+
   // Set caf branch addresses
-  caf->SetBranchAddress("Ev_reco", &Ev_reco);
-  caf->SetBranchAddress("Elep_reco", &Elep_reco);
-  caf->SetBranchAddress("theta_reco", &theta_reco);
-  caf->SetBranchAddress("Ehad_veto", &Ehad_veto);
-  caf->SetBranchAddress("reco_q", &reco_q);
-  caf->SetBranchAddress("reco_numu", &reco_numu);
-  caf->SetBranchAddress("reco_nue", &reco_nue);
-  caf->SetBranchAddress("reco_nc", &reco_nc);
-  caf->SetBranchAddress("muon_contained", &muon_contained);
-  caf->SetBranchAddress("muon_tracker", &muon_tracker);
-  caf->SetBranchAddress("muon_ecal", &muon_ecal);
-  caf->SetBranchAddress("muon_exit", &muon_exit);
+  if (isNDFile) {
+    caf->SetBranchAddress("Ev_reco", &Ev_reco);
+    caf->SetBranchAddress("Elep_reco", &Elep_reco);
+    caf->SetBranchAddress("theta_reco", &theta_reco);
+    caf->SetBranchAddress("Ehad_veto", &Ehad_veto);
+    caf->SetBranchAddress("reco_q", &reco_q);
+    caf->SetBranchAddress("reco_numu", &reco_numu);
+    caf->SetBranchAddress("reco_nue", &reco_nue);
+    caf->SetBranchAddress("reco_nc", &reco_nc);
+    caf->SetBranchAddress("muon_contained", &muon_contained);
+    caf->SetBranchAddress("muon_tracker", &muon_tracker);
+    caf->SetBranchAddress("muon_ecal", &muon_ecal);
+    caf->SetBranchAddress("muon_exit", &muon_exit);
+    caf->SetBranchAddress("det_x", &det_x);
+  } else {
+    caf->SetBranchAddress("Ev_reco_nue", &Ev_reco_nue);
+    caf->SetBranchAddress("Ev_reco_numu", &Ev_reco_numu);
+    caf->SetBranchAddress("cvnnumu", &cvnnumu);
+    caf->SetBranchAddress("cvnnue", &cvnnue);
+  }
+
   caf->SetBranchAddress("Ev", &Ev);
   caf->SetBranchAddress("isCC", &isCC);
   caf->SetBranchAddress("nuPDG", &nuPDG);
@@ -62,7 +73,6 @@ CAFReader::CAFReader(std::string const &filename) : CAFReader() {
   caf->SetBranchAddress("W", &W);
   caf->SetBranchAddress("Y", &Y);
   caf->SetBranchAddress("X", &X);
-  caf->SetBranchAddress("det_x", &det_x);
   caf->SetBranchAddress("vtx_x", &vtx_x);
   caf->SetBranchAddress("vtx_y", &vtx_y);
   caf->SetBranchAddress("vtx_z", &vtx_z);
@@ -146,6 +156,13 @@ CAFReader &CAFReader::operator=(CAFReader const &other) {
   isFD = other.isFD;
   isFHC = other.isFHC;
 
+  Ev_reco_nue = other.Ev_reco_nue;
+  Ev_reco_numu = other.Ev_reco_numu;
+  cvnnumu = other.cvnnumu;
+  cvnnue = other.cvnnue;
+
+  isNDFile = other.isNDFile;
+
   FilePOT = other.FilePOT;
 
   return *this;
@@ -159,18 +176,29 @@ CAFReader *CAFReader::MakeWriter(std::string const &filename) {
 
   wrt->caf = new TTree("caf", "");
 
-  wrt->caf->Branch("Ev_reco", &wrt->Ev_reco, "Ev_reco/D");
-  wrt->caf->Branch("Elep_reco", &wrt->Elep_reco, "Elep_reco/D");
-  wrt->caf->Branch("theta_reco", &wrt->theta_reco, "theta_reco/D");
-  wrt->caf->Branch("Ehad_veto", &wrt->Ehad_veto, "Ehad_veto/D");
-  wrt->caf->Branch("reco_q", &wrt->reco_q, "reco_q/I");
-  wrt->caf->Branch("reco_numu", &wrt->reco_numu, "reco_numu/I");
-  wrt->caf->Branch("reco_nue", &wrt->reco_nue, "reco_nue/I");
-  wrt->caf->Branch("reco_nc", &wrt->reco_nc, "reco_nc/I");
-  wrt->caf->Branch("muon_contained", &wrt->muon_contained, "muon_contained/I");
-  wrt->caf->Branch("muon_tracker", &wrt->muon_tracker, "muon_tracker/I");
-  wrt->caf->Branch("muon_ecal", &wrt->muon_ecal, "muon_ecal/I");
-  wrt->caf->Branch("muon_exit", &wrt->muon_exit, "muon_exit/I");
+  if (wrt->isNDFile) {
+
+    wrt->caf->Branch("Ev_reco", &wrt->Ev_reco, "Ev_reco/D");
+    wrt->caf->Branch("Elep_reco", &wrt->Elep_reco, "Elep_reco/D");
+    wrt->caf->Branch("theta_reco", &wrt->theta_reco, "theta_reco/D");
+    wrt->caf->Branch("Ehad_veto", &wrt->Ehad_veto, "Ehad_veto/D");
+    wrt->caf->Branch("reco_q", &wrt->reco_q, "reco_q/I");
+    wrt->caf->Branch("reco_numu", &wrt->reco_numu, "reco_numu/I");
+    wrt->caf->Branch("reco_nue", &wrt->reco_nue, "reco_nue/I");
+    wrt->caf->Branch("reco_nc", &wrt->reco_nc, "reco_nc/I");
+    wrt->caf->Branch("muon_contained", &wrt->muon_contained,
+                     "muon_contained/I");
+    wrt->caf->Branch("muon_tracker", &wrt->muon_tracker, "muon_tracker/I");
+    wrt->caf->Branch("muon_ecal", &wrt->muon_ecal, "muon_ecal/I");
+    wrt->caf->Branch("muon_exit", &wrt->muon_exit, "muon_exit/I");
+    wrt->caf->Branch("det_x", &wrt->det_x, "det_x/D");
+  } else {
+    wrt->caf->Branch("Ev_reco_nue", &wrt->Ev_reco_nue, "Ev_reco_nue/D");
+    wrt->caf->Branch("Ev_reco_numu", &wrt->Ev_reco_numu, "Ev_reco_numu/D");
+    wrt->caf->Branch("cvnnumu", &wrt->cvnnumu, "cvnnumu/D");
+    wrt->caf->Branch("cvnnue", &wrt->cvnnue, "cvnnue/D");
+  }
+
   wrt->caf->Branch("Ev", &wrt->Ev, "Ev/D");
   wrt->caf->Branch("isCC", &wrt->isCC, "isCC/I");
   wrt->caf->Branch("nuPDG", &wrt->nuPDG, "nuPDG/I");
@@ -180,7 +208,6 @@ CAFReader *CAFReader::MakeWriter(std::string const &filename) {
   wrt->caf->Branch("W", &wrt->W, "W/D");
   wrt->caf->Branch("Y", &wrt->Y, "Y/D");
   wrt->caf->Branch("X", &wrt->X, "X/D");
-  wrt->caf->Branch("det_x", &wrt->det_x, "det_x/D");
   wrt->caf->Branch("vtx_x", &wrt->vtx_x, "vtx_x/D");
   wrt->caf->Branch("vtx_y", &wrt->vtx_y, "vtx_y/D");
   wrt->caf->Branch("vtx_z", &wrt->vtx_z, "vtx_z/D");
