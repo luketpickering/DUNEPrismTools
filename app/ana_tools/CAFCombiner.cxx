@@ -28,7 +28,7 @@ int main(int argc, char const *argv[]) {
 
   std::string oupf = ps.get<std::string>("OutputFile");
 
-  CAFReader *wrtr = nullptr;
+  CAFReader *wrtr = CAFReader::MakeWriter(oupf, true);
 
   for (fhicl::ParameterSet input :
        ps.get<std::vector<fhicl::ParameterSet>>("Inputs")) {
@@ -63,10 +63,6 @@ int main(int argc, char const *argv[]) {
       for (size_t ent = 0; ent < fents; ++ent) {
         rdr.GetEntry(ent);
 
-        if (!wrtr) {
-          wrtr = CAFReader::MakeWriter(oupf, rdr.isNDFile);
-        }
-
         if (ent == 0) {
           if (POTPerFileOverride != std::numeric_limits<double>::max()) {
 
@@ -90,11 +86,13 @@ int main(int argc, char const *argv[]) {
           wrtr->Fill();
           nsel++;
         } else if (!rdr.isFD) {
-          if (!PRISMVertex_Select(rdr.vtx_x)) {
+          if (!rdr.isFD && !PRISMVertex_Select(rdr.vtx_x)) {
             nfail_desert += 1;
-          } else if (ND_IsWall_Select(rdr.vtx_x)) {
+          } else if (rdr.isFD ? FD_IsWall_Select(rdr.vtx_x)
+                              : ND_IsWall_Select(rdr.vtx_x)) {
             nfail_wall += 1;
-          } else if (ND_IsCathode_Select(rdr.vtx_x)) {
+          } else if (rdr.isFD ? FD_IsCathode_Select(rdr.vtx_x)
+                              : ND_IsCathode_Select(rdr.vtx_x)) {
             nfail_cath += 1;
           } else {
             nfail_fv += 1;

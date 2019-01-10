@@ -40,6 +40,9 @@ inline bool ND_IsWall_Select(double const &vtx_x) {
   return false;
 }
 
+inline bool FD_IsCathode_Select(double const &vtx_x) { return false; }
+inline bool FD_IsWall_Select(double const &vtx_x) { return false; }
+
 inline bool PRISMVertex_Select(double const &vtx_x) {
   return std::abs(vtx_x) < 200;
 }
