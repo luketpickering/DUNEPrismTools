@@ -56,6 +56,10 @@ int main(int argc, char const *argv[]) {
       }
 
       size_t nsel = 0;
+      size_t nfail_cath = 0;
+      size_t nfail_wall = 0;
+      size_t nfail_desert = 0;
+      size_t nfail_fv = 0;
       for (size_t ent = 0; ent < fents; ++ent) {
         rdr.GetEntry(ent);
 
@@ -85,11 +89,25 @@ int main(int argc, char const *argv[]) {
         if (FV_Select(rdr)) {
           wrtr->Fill();
           nsel++;
+        } else if (!rdr.isFD) {
+          if (!PRISMVertex_Select(rdr.det_x + rdr.vtx_x * 1E-2)) {
+            nfail_desert += 1;
+          } else if (ND_IsWall_Select(rdr.det_x + rdr.vtx_x * 1E-2)) {
+            nfail_wall += 1;
+          } else if (ND_IsCathode_Select(rdr.det_x + rdr.vtx_x * 1E-2)) {
+            nfail_cath += 1;
+          } else {
+            nfail_fv += 1;
+          }
         }
       }
 
       if (fents) {
         std::cout << "\tSelected " << nsel << "/" << fents << std::endl;
+        std::cout << "\tNFail Vtx Desert " << nfail_desert << std::endl;
+        std::cout << "\tNFail Module Wall " << nfail_wall << std::endl;
+        std::cout << "\tNFail Module Cathode " << nfail_cath << std::endl;
+        std::cout << "\tNFail FV " << nfail_fv << std::endl;
       }
     }
   }
