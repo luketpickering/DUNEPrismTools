@@ -90,11 +90,11 @@ int main(int argc, char const *argv[]) {
           wrtr->Fill();
           nsel++;
         } else if (!rdr.isFD) {
-          if (!PRISMVertex_Select(rdr.det_x + rdr.vtx_x * 1E-2)) {
+          if (!PRISMVertex_Select(rdr.vtx_x)) {
             nfail_desert += 1;
-          } else if (ND_IsWall_Select(rdr.det_x + rdr.vtx_x * 1E-2)) {
+          } else if (ND_IsWall_Select(rdr.vtx_x)) {
             nfail_wall += 1;
-          } else if (ND_IsCathode_Select(rdr.det_x + rdr.vtx_x * 1E-2)) {
+          } else if (ND_IsCathode_Select(rdr.vtx_x)) {
             nfail_cath += 1;
           } else {
             nfail_fv += 1;
