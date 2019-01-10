@@ -146,7 +146,7 @@ public:
 
   CAFReader &operator=(CAFReader const &other);
 
-  static CAFReader *MakeWriter(std::string const &filename);
+  static CAFReader *MakeWriter(std::string const &filename, bool);
 
   void NewFile(std::function<bool(double const &)> const &IsSel);
   size_t GetNFiles();

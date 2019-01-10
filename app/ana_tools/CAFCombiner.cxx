@@ -28,7 +28,7 @@ int main(int argc, char const *argv[]) {
 
   std::string oupf = ps.get<std::string>("OutputFile");
 
-  CAFReader *wrtr = CAFReader::MakeWriter(oupf);
+  CAFReader *wrtr = nullptr;
 
   for (fhicl::ParameterSet input :
        ps.get<std::vector<fhicl::ParameterSet>>("Inputs")) {
@@ -49,15 +49,19 @@ int main(int argc, char const *argv[]) {
       size_t fents = std::min(NMaxEvents, rdr.GetEntries());
       double POTScale = double(fents) / double(rdr.GetEntries());
 
-      std::cout << "[INFO]: Reading " << fents << "/" << rdr.GetEntries()
-                << " CAF events from file " << inpf;
       if (fents) {
-        std::cout << " with POTScale = " << POTScale;
+        std::cout << "[INFO]: Reading " << fents << "/" << rdr.GetEntries()
+                  << " CAF events from file " << inpf
+                  << " with POTScale = " << POTScale << std::endl;
       }
-      std::cout << std::endl;
 
+      size_t nsel = 0;
       for (size_t ent = 0; ent < fents; ++ent) {
         rdr.GetEntry(ent);
+
+        if (!wrtr) {
+          wrtr = CAFReader::MakeWriter(oupf, rdr.isNDFile);
+        }
 
         if (ent == 0) {
           if (POTPerFileOverride != std::numeric_limits<double>::max()) {
@@ -80,7 +84,12 @@ int main(int argc, char const *argv[]) {
 
         if (FV_Select(rdr)) {
           wrtr->Fill();
+          nsel++;
         }
+      }
+
+      if (fent) {
+        std::cout << "\tSelected " << nsel << "/" << fents << std::endl;
       }
     }
   }

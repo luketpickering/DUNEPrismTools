@@ -168,7 +168,7 @@ CAFReader &CAFReader::operator=(CAFReader const &other) {
   return *this;
 }
 
-CAFReader *CAFReader::MakeWriter(std::string const &filename) {
+CAFReader *CAFReader::MakeWriter(std::string const &filename, bool isNDFile) {
 
   CAFReader *wrt = new CAFReader();
 
@@ -176,8 +176,7 @@ CAFReader *CAFReader::MakeWriter(std::string const &filename) {
 
   wrt->caf = new TTree("caf", "");
 
-  if (wrt->isNDFile) {
-
+  if (isNDFile) {
     wrt->caf->Branch("Ev_reco", &wrt->Ev_reco, "Ev_reco/D");
     wrt->caf->Branch("Elep_reco", &wrt->Elep_reco, "Elep_reco/D");
     wrt->caf->Branch("theta_reco", &wrt->theta_reco, "theta_reco/D");
