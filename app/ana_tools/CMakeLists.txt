@@ -8,6 +8,7 @@ SET(ANA_APPS
   # ProduceDiagnosticPlots
   CAFCombiner
   ProcessedCAFDiagnosticPlots
+  ProcessedCAFDumpNominalEventRates
 )
 
 include_directories(${INCDIRS})

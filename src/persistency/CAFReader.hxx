@@ -45,6 +45,7 @@ public:
   double Ev;
   int isCC;
   int nuPDG;
+  int nuPDGunosc;
   int LepPDG;
   int mode;
   double Q2;
@@ -110,6 +111,7 @@ public:
     Ev = 0;
     isCC = 0;
     nuPDG = 0;
+    nuPDGunosc = 0;
     LepPDG = 0;
     mode = 0;
     Q2 = 0;

@@ -62,6 +62,8 @@ CAFReader::CAFReader(std::string const &filename) : CAFReader() {
     caf->SetBranchAddress("Ev_reco_numu", &Ev_reco_numu);
     caf->SetBranchAddress("cvnnumu", &cvnnumu);
     caf->SetBranchAddress("cvnnue", &cvnnue);
+
+    caf->SetBranchAddress("nuPDGunosc", &nuPDGunosc);
   }
 
   caf->SetBranchAddress("Ev", &Ev);
@@ -128,6 +130,7 @@ CAFReader &CAFReader::operator=(CAFReader const &other) {
   Ev = other.Ev;
   isCC = other.isCC;
   nuPDG = other.nuPDG;
+  nuPDGunosc = other.nuPDGunosc;
   LepPDG = other.LepPDG;
   mode = other.mode;
   Q2 = other.Q2;
@@ -196,6 +199,8 @@ CAFReader *CAFReader::MakeWriter(std::string const &filename, bool isNDFile) {
     wrt->caf->Branch("Ev_reco_numu", &wrt->Ev_reco_numu, "Ev_reco_numu/D");
     wrt->caf->Branch("cvnnumu", &wrt->cvnnumu, "cvnnumu/D");
     wrt->caf->Branch("cvnnue", &wrt->cvnnue, "cvnnue/D");
+
+    wrt->caf->Branch("nuPDGunosc", &wrt->nuPDGunosc, "nuPDGunosc/I");
   }
 
   wrt->caf->Branch("Ev", &wrt->Ev, "Ev/D");
