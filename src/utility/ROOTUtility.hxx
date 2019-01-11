@@ -412,7 +412,7 @@ std::unique_ptr<TMatrixD> GetTMatrixD(Eigen::MatrixXd const &);
 template <size_t n>
 inline std::array<double, n + 1>
 GetPolyFitCoeffs(std::vector<double> const &xvals,
-                 std::vector<double> const &yvals) {
+                 std::vector<double> const &yvals, bool LimitNDOF = true) {
 
   size_t nd = std::min(xvals.size(), yvals.size());
   TGraph g(nd);
@@ -420,7 +420,8 @@ GetPolyFitCoeffs(std::vector<double> const &xvals,
     g.SetPoint(i, xvals[i], yvals[i]);
   }
 
-  size_t dof = std::min(size_t(9), std::min(xvals.size() - 1, n));
+  size_t dof =
+      std::min(size_t(9), LimitNDOF ? std::min(xvals.size() - 2, n) : n);
 
   static char polstr[10];
   sprintf(polstr, "pol%d", int(dof));
@@ -438,7 +439,8 @@ GetPolyFitCoeffs(std::vector<double> const &xvals,
 
 template <size_t n>
 inline std::array<double, n + 1>
-GetPolyFitCoeffs(std::vector<std::pair<double, double>> const &xyvals) {
+GetPolyFitCoeffs(std::vector<std::pair<double, double>> const &xyvals,
+                 bool LimitNDOF = true) {
 
   size_t nd = xyvals.size();
   TGraph g(nd);
@@ -446,7 +448,8 @@ GetPolyFitCoeffs(std::vector<std::pair<double, double>> const &xyvals) {
     g.SetPoint(i, xyvals[i].first, xyvals[i].second);
   }
 
-  size_t dof = std::min(size_t(9), std::min(xyvals.size() - 1, n));
+  size_t dof =
+      std::min(size_t(9), LimitNDOF ? std::min(xyvals.size() - 2, n) : n);
 
   static char polstr[10];
   sprintf(polstr, "pol%d", int(dof));
@@ -463,8 +466,9 @@ GetPolyFitCoeffs(std::vector<std::pair<double, double>> const &xyvals) {
 }
 
 template <size_t n>
-inline std::array<double, n + 1> GetPolyFitCoeffs(
-    std::vector<std::tuple<double, double, double>> const &xyevals) {
+inline std::array<double, n + 1>
+GetPolyFitCoeffs(std::vector<std::tuple<double, double, double>> const &xyevals,
+                 bool LimitNDOF = true) {
 
   size_t nd = xyevals.size();
   TGraphErrors g(nd);
@@ -473,7 +477,8 @@ inline std::array<double, n + 1> GetPolyFitCoeffs(
     g.SetPointError(i, 0, std::get<2>(xyevals[i]));
   }
 
-  size_t dof = std::min(size_t(9), std::min(xyevals.size() - 1, n));
+  size_t dof =
+      std::min(size_t(9), LimitNDOF ? std::min(xyevals.size() - 2, n) : n);
 
   static char polstr[10];
   sprintf(polstr, "pol%d", int(dof));

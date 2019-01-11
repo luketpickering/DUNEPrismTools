@@ -24,7 +24,8 @@ public:
   int NRows;
 
   CovarianceBuilder(int NRows = 0);
-  CovarianceBuilder(std::vector<std::vector<double>> const &);
+  CovarianceBuilder(std::vector<std::vector<double>> const &,
+                    bool force_zero_mean = false);
 
   void Resize(int);
 

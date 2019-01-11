@@ -19,7 +19,7 @@ DirectSyst_base: {
 
 DiscreteSyst_base: {
   Type: "Discrete"
-  NThrows: 100
+  NThrows: 1000
 
   Nominal: @local::Nominal_Prediction_Input
 
@@ -54,6 +54,7 @@ HornCurrent.DiscreteTweaks: [
 FocussingTweaks: [@local::DecayPipeRadius, @local::WaterLayer, @local::HornCurrent]
 
 Horn1XShift: @local::DiscreteSyst_base
+Horn1XShift.NThrows: 1000
 Horn1XShift.Name: "Horn1XShift"
 Horn1XShift.DiscreteTweaks: [
   {
@@ -69,6 +70,7 @@ Horn1XShift.DiscreteTweaks: [
 ]
 
 Horn2XShift: @local::DiscreteSyst_base
+Horn2XShift.NThrows: 1000
 Horn2XShift.Name: "Horn2XShift"
 Horn2XShift.DiscreteTweaks: [
   {
@@ -83,6 +85,24 @@ Horn2XShift.DiscreteTweaks: [
   }
 ]
 
+### This is stupid, but can treat Horn shift +1 and -1 shifts as independent
+# Horn1XShift: @local::DirectSyst_base
+# Horn1XShift.Name: "Horn1XShift"
+# Horn1XShift.Varied.InputFile: "%C_OptimizedEngineeredNov2017Review_old_uncert_binning_Horn1XShift.root"
+#
+# Horn2XShift: @local::DirectSyst_base
+# Horn2XShift.Name: "Horn2XShift"
+# Horn2XShift.Varied.InputFile: "%C_OptimizedEngineeredNov2017Review_old_uncert_binning_Horn2XShift.root"
+#
+# Horn1XNegShift: @local::DirectSyst_base
+# Horn1XNegShift.Name: "Horn1XNegShift"
+# Horn1XNegShift.Varied.InputFile: "%C_OptimizedEngineeredNov2017Review_old_uncert_binning_Horn1XNegShift.root"
+#
+# Horn2XNegShift: @local::DirectSyst_base
+# Horn2XNegShift.Name: "Horn2XNegShift"
+# Horn2XNegShift.Varied.InputFile: "%C_OptimizedEngineeredNov2017Review_old_uncert_binning_Horn2XNegShift.root"
+
+
 Horn1YShift: @local::DirectSyst_base
 Horn1YShift.Name: "Horn1YShift"
 Horn1YShift.Varied.InputFile: "%C_OptimizedEngineeredNov2017Review_old_uncert_binning_Horn1YShift.root"
@@ -92,6 +112,7 @@ Horn2YShift.Name: "Horn2YShift"
 Horn2YShift.Varied.InputFile: "%C_OptimizedEngineeredNov2017Review_old_uncert_binning_Horn2YShift.root"
 
 
+# AlignmentTweaks: [@local::Horn1XShift, @local::Horn2XShift,@local::Horn1XNegShift, @local::Horn2XNegShift, @local::Horn1YShift, @local::Horn2YShift]
 AlignmentTweaks: [@local::Horn1XShift, @local::Horn2XShift, @local::Horn1YShift, @local::Horn2YShift]
 # AlignmentTweaks: []
 
@@ -162,6 +183,7 @@ FluxUncertainty: {
   # Configurations: @local::numode_Configurations
 
   Tweaks: [@local::PPFX, @sequence::DiscreteTweaks, @local::POTCounting]
+  # Tweaks: [@local::POTCounting]
   # Tweaks: [@sequence::DiscreteTweaks]
 
 }

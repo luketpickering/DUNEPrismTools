@@ -32,14 +32,14 @@ CovarianceBuilder::CovarianceBuilder(int NRows)
       MeanIsSet(false), NRows(NRows) {}
 
 CovarianceBuilder::CovarianceBuilder(
-    std::vector<std::vector<double>> const &RandomVectors)
+    std::vector<std::vector<double>> const &RandomVectors, bool force_zero_mean)
     : CovarianceBuilder(RandomVectors.size() ? RandomVectors.back().size()
                                              : 0) {
   if (!RandomVectors.size()) {
     return;
   }
 
-  if (RandomVectors.size() > 1) {
+  if (!force_zero_mean && (RandomVectors.size() > 1)) {
     for (std::vector<double> const &flux_tweak : RandomVectors) {
       AddThrow_MeanCalc(flux_tweak.data());
     }

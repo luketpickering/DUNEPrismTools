@@ -1,5 +1,27 @@
 #!/bin/bash
 
+for i in nu nubar; do
+
+    if [ -e /pnfs/dune/persistent/users/picker24/nominal_5E8POT_wppfx/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${i} ]; then
+      echo "[INFO]: Not regenerating /pnfs/dune/persistent/users/picker24/nominal_5E8POT_wppfx/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${i}"
+      continue
+    fi
+
+    if [ ! -e ${DUNEPRISMTOOLSROOT}/configs/g4lbnf_macros/OptimizedEngineeredNov2017Review_${i}mode.mac ]; then
+      echo "[INFO]: No such g4lbnf macro OptimizedEngineeredNov2017Review_${i}mode.mac Not running."
+      continue
+    fi
+
+    ${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/FarmG4LBNE_PPFX_Makedk2nuLite.sh \
+      -m ${DUNEPRISMTOOLSROOT}/configs/g4lbnf_macros/OptimizedEngineeredNov2017Review_${i}mode.mac \
+      -p nominal_5E8POT_wppfx/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${i} \
+      --number-of-jobs 3500 --PPFX \
+      --expected-disk 1GB \
+      --expected-mem 1.9GB \
+      --expected-walltime 4h
+
+done
+
 #focussing
 for i in nu nubar; do
  for j in p1 m1; do
@@ -29,7 +51,7 @@ done
 #alignment
 for i in nu nubar; do
   for j in Horn1 Horn2; do
-    for k in X Y XNeg; do
+    for k in X Y XNeg X3mm XNeg3mm; do
 
     if [ -e /pnfs/dune/persistent/users/picker24/Alignment/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${j}${k}/${i} ]; then
       echo "[INFO]: Not regenerating /pnfs/dune/persistent/users/picker24/Alignment/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${j}${k}/${i}"
@@ -51,19 +73,3 @@ for i in nu nubar; do
    done
  done
 done
-
-# ${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/FarmG4LBNE_PPFX_Makedk2nuLite.sh \
-#   -m ${DUNEPRISMTOOLSROOT}/configs/g4lbnf_macros/OptimizedEngineeredNov2017Review_numode.mac \
-#   -p nominal_3.5E8_wppfx/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/neutrino \
-#   --number-of-jobs 3500 --PPFX \
-#   --expected-disk 1GB \
-#   --expected-mem 1.9GB \
-#   --expected-walltime 4h
-#
-# ${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/FarmG4LBNE_PPFX_Makedk2nuLite.sh \
-#   -m ${DUNEPRISMTOOLSROOT}/configs/g4lbnf_macros/OptimizedEngineeredNov2017Review_nubarmode.mac \
-#   -p nominal_3.5E8_wppfx/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/antineutrino \
-#   --number-of-jobs 3500 --PPFX \
-#   --expected-disk 1GB \
-#   --expected-mem 1.9GB \
-#   --expected-walltime 4h
