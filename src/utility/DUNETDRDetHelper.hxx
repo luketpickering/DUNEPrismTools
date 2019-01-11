@@ -17,6 +17,13 @@ inline bool ND_RHC_Numu_Select(CAFReader const &ev) {
   return (ev.reco_q == 1) && (ev.muon_exit == 0) && (ev.Ehad_veto < 30);
 }
 
+inline bool FD_FHC_Numu_Select(CAFReader const &ev) {
+  return (ev.cvnnumu > 0.7);
+}
+inline bool FD_RHC_Numu_Select(CAFReader const &ev) {
+  return (ev.cvnnumu > 0.7);
+}
+
 inline bool ND_IsCathode_Select(double const &vtx_x) {
   constexpr double half_gap = 2;
   for (int i = -3; i < 4; ++i) {
@@ -62,6 +69,13 @@ inline bool FV_Select(CAFReader const &ev) {
     return ND_XFV_Select(ev.vtx_x) && (std::abs(ev.vtx_y) < 100) &&
            (ev.vtx_z > 50) && (ev.vtx_z < 350);
   }
+}
+
+inline double FD_ND_FVRatio(double x_slice) {
+  double NDSliceFV = x_slice * 200 * (350 - 50);
+  double FDFV = 620 * 1100 * (1244 - 50);
+
+  return FDFV / NDSliceFV;
 }
 
 #endif

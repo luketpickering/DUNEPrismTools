@@ -17,15 +17,33 @@ if [ ! -e inputs.list ]; then
   exit 3
 fi
 
-PNFS_PATH_APPEND=""
+NFILES_TO_READ=1
 if [ ! -z ${1} ]; then
-  echo "[INFO]: Appending path to pnfs outdir: ${1}"
-  PNFS_PATH_APPEND=${1}
+  NFILES_TO_READ=${1}
 fi
 
-NFILES_TO_READ=1
+FIRST_PNFS_PATH_APPEND=""
 if [ ! -z ${2} ]; then
-  NFILES_TO_READ=${2}
+  echo "[INFO]: Appending path to pnfs outdir: ${2}"
+  FIRST_PNFS_PATH_APPEND=${2}
+fi
+
+SECOND_PNFS_PATH_APPEND=""
+if [ ! -z ${3} ]; then
+  echo "[INFO]: Appending path to pnfs outdir: ${3}"
+  SECOND_PNFS_PATH_APPEND=${3}
+fi
+
+FIRST_FCL="ND_build_flux.fcl"
+FIRST_DET="ND"
+if [ ! -e ${FIRST_FCL} ]; then
+  FIRST_FCL="FD_build_flux.fcl"
+  FIRST_DET="FD"
+else
+  if [ ! -z ${SECOND_PNFS_PATH_APPEND} ]; then
+    SECOND_FCL="FD_build_flux.fcl"
+    SECOND_DET="FD"
+  fi
 fi
 
 echo "[INFO]: Reading ${NFILES_TO_READ} files."
@@ -80,7 +98,7 @@ if [ -z ${GRID_USER} ]; then
 fi
 
 cp dp_BuildFluxes $_CONDOR_SCRATCH_DIR/
-cp build_flux.fcl $_CONDOR_SCRATCH_DIR/
+cp *build_flux.fcl $_CONDOR_SCRATCH_DIR/
 
 cd $_CONDOR_SCRATCH_DIR
 
@@ -88,9 +106,6 @@ echo "pwd is $(pwd)"
 echo "------ls-------"
 ls
 echo "---------------"
-
-PNFS_OUTDIR=/pnfs/dune/persistent/users/${GRID_USER}/${PNFS_PATH_APPEND}
-echo "output dir is ${PNFS_OUTDIR}"
 
 voms-proxy-info --all
 
@@ -105,19 +120,43 @@ export IFDH_CP_UNLINK_ON_ERROR=1;
 export IFDH_CP_MAXRETRIES=1;
 # export IFDH_DEBUG=0;
 
-ifdh ls ${PNFS_OUTDIR}/flux
+# check directories
+for STAGE in FIRST SECOND; do
 
-if [ $? -ne 0 ]; then
-  echo "Unable to read ${PNFS_OUTDIR}/flux. Make sure that you have created this directory and given it group write permission (chmod g+w ${PNFS_OUTDIR})."
-  exit 10
-fi
+  GET_DET=${STAGE}_DET
 
-ifdh ls ${PNFS_OUTDIR}/logs
+  if [ -z ${!GET_DET} ]; then
+    echo "[INFO]: There is no stage: ${STAGE}"
+    continue
+  fi
 
-if [ $? -ne 0 ]; then
-  echo "Unable to read ${PNFS_OUTDIR}/logs. Make sure that you have created this directory and given it group write permission (chmod g+w ${PNFS_OUTDIR})."
-  exit 11
-fi
+  GET_PATH_APPEND=${STAGE}_PNFS_PATH_APPEND
+
+  if [ -z ${!GET_PATH_APPEND} ]; then
+    echo "[INFO]: Expected to find output path for stage: ${STAGE}, but failed."
+    exit 25
+  fi
+
+  PNFS_PATH_APPEND=${!GET_PATH_APPEND}
+
+  PNFS_OUTDIR=/pnfs/dune/persistent/users/${GRID_USER}/${PNFS_PATH_APPEND}
+  echo "Output dir for stage: ${STAGE} is ${PNFS_OUTDIR}"
+
+  ifdh ls ${PNFS_OUTDIR}/flux
+
+  if [ $? -ne 0 ]; then
+    echo "Unable to read ${PNFS_OUTDIR}/flux. Make sure that you have created this directory and given it group write permission (chmod g+w ${PNFS_OUTDIR})."
+    exit 10
+  fi
+
+  ifdh ls ${PNFS_OUTDIR}/logs
+
+  if [ $? -ne 0 ]; then
+    echo "Unable to read ${PNFS_OUTDIR}/logs. Make sure that you have created this directory and given it group write permission (chmod g+w ${PNFS_OUTDIR})."
+    exit 11
+  fi
+
+done
 
 mkdir inputs
 cd inputs
@@ -155,36 +194,58 @@ echo "------ls-------"
 ls -lah
 echo "---------------"
 
-echo "------cat ./build_flux.fcl-------"
-cat ./build_flux.fcl
-echo "---------------"
+for i in *build_flux.fcl; do
+  echo "------cat ${i}-------"
+  cat ${i}
+  echo "---------------"
+done
 
-OUT_FILENAME=Fluxes.${CLUSTER}.${PROCESS}.root
+for STAGE in FIRST SECOND; do
 
-echo "[INFO]: Writing output to: ${OUT_FILENAME} "
+  GET_DET=${STAGE}_DET
 
-echo "Building fluxes @ $(date)"
+  if [ -z ${!GET_DET} ]; then
+    echo "[INFO]: There is no stage: ${STAGE}"
+    continue
+  fi
 
-echo "./dp_BuildFluxes -i \"inputs/*dk2nu*root\" -o ${OUT_FILENAME} --fhicl ./build_flux.fcl &> dp_BuildFluxes.${CLUSTER}.${PROCESS}.log"
-./dp_BuildFluxes -i "inputs/*dk2nu*root" -o ${OUT_FILENAME} --fhicl ./build_flux.fcl &> dp_BuildFluxes.${CLUSTER}.${PROCESS}.log
+  DET=${!GET_DET}
 
-echo "Finished."
+  FLUX_FCL=${DET}_build_flux.fcl
 
-echo "------ls-------"
-ls -lah
-echo "---------------"
+  OUT_FILENAME=Fluxes.${DET}.${CLUSTER}.${PROCESS}.root
 
-echo "Copying output @ $(date)"
+  echo "[INFO]: Writing output to: ${OUT_FILENAME} "
 
-echo "ifdh cp -D $IFDH_OPTION dp_BuildFluxes.${CLUSTER}.${PROCESS}.log ${PNFS_OUTDIR}/logs/"
-ifdh cp -D $IFDH_OPTION dp_BuildFluxes.${CLUSTER}.${PROCESS}.log ${PNFS_OUTDIR}/logs/
+  echo "Building fluxes @ $(date)"
 
-if [ ! -e ${OUT_FILENAME} ]; then
-  echo "[ERROR]: Failed to produce expected output file."
-  exit 1
-fi
+  echo "./dp_BuildFluxes -i \"inputs/*dk2nu*root\" -o ${OUT_FILENAME} --fhicl ./${FLUX_FCL} &> dp_BuildFluxes.${CLUSTER}.${PROCESS}.log"
+  ./dp_BuildFluxes -i "inputs/*dk2nu*root" -o ${OUT_FILENAME} --fhicl ./${FLUX_FCL} &> dp_BuildFluxes.${CLUSTER}.${PROCESS}.log
 
-echo "ifdh cp -D $IFDH_OPTION ${OUT_FILENAME} ${PNFS_OUTDIR}/flux/"
-ifdh cp -D $IFDH_OPTION ${OUT_FILENAME} ${PNFS_OUTDIR}/flux/
+  echo "Finished."
+
+  echo "------ls-------"
+  ls -lah
+  echo "---------------"
+
+  GET_PATH_APPEND=${STAGE}_PNFS_PATH_APPEND
+  PNFS_PATH_APPEND=${!GET_PATH_APPEND}
+
+  PNFS_OUTDIR=/pnfs/dune/persistent/users/${GRID_USER}/${PNFS_PATH_APPEND}
+
+  echo "Copying output @ $(date)"
+
+  echo "ifdh cp -D $IFDH_OPTION dp_BuildFluxes.${CLUSTER}.${PROCESS}.log ${PNFS_OUTDIR}/logs/"
+  ifdh cp -D $IFDH_OPTION dp_BuildFluxes.${CLUSTER}.${PROCESS}.log ${PNFS_OUTDIR}/logs/
+
+  if [ ! -e ${OUT_FILENAME} ]; then
+    echo "[ERROR]: Failed to produce expected output file."
+    exit 1
+  fi
+
+  echo "ifdh cp -D $IFDH_OPTION ${OUT_FILENAME} ${PNFS_OUTDIR}/flux/"
+  ifdh cp -D $IFDH_OPTION ${OUT_FILENAME} ${PNFS_OUTDIR}/flux/
+
+done
 
 echo "All stop @ $(date)"

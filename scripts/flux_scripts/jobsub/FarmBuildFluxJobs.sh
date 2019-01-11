@@ -10,7 +10,8 @@ LIFETIME_EXP="30m"
 DISK_EXP="1GB"
 MEM_EXP="2GB"
 FORCE_REMOVE="0"
-CONFIG_FCL="build_ND_fluxes_numode.fcl"
+CONFIG_FCL_ND="build_ND_fluxes_oldbin.fcl"
+CONFIG_FCL_FD="build_FD_fluxes_oldbin.fcl"
 
 while [[ ${#} -gt 0 ]]; do
 
@@ -65,15 +66,27 @@ while [[ ${#} -gt 0 ]]; do
       shift # past argument
       ;;
 
-      -F|--fhicl)
+      -FN|--fhicl-ND)
 
       if [[ ${#} -lt 2 ]]; then
         echo "[ERROR]: ${1} expected a value."
         exit 1
       fi
 
-      CONFIG_FCL="$2"
-      echo "[OPT]: Using ${CONFIG_FCL}."
+      CONFIG_FCL_ND="$2"
+      echo "[OPT]: Using ${CONFIG_FCL_ND} for ND fhicl."
+      shift # past argument
+      ;;
+
+      -FF|--fhicl-FD)
+
+      if [[ ${#} -lt 2 ]]; then
+        echo "[ERROR]: ${1} expected a value."
+        exit 1
+      fi
+
+      CONFIG_FCL_FD="$2"
+      echo "[OPT]: Using ${CONFIG_FCL_FD} for FD fhicl."
       shift # past argument
       ;;
 
@@ -151,7 +164,8 @@ while [[ ${#} -gt 0 ]]; do
       echo -e "\t-I|--dk2nu-input-file-list : Newline separated list of files to use as input. Must be located on dcache."
       echo -e "\t-n|--n-per-job             : Number of files to run per job. (default: 10)"
       echo -e "\t-s|--n-files-skip          : Number of files to to skip before building jobs. (default: 10)"
-      echo -e "\t-F|--fhicl                    : Flux calculation configuration file."
+      echo -e "\t-FN|--fhicl-ND                    : Flux calculation configuration file for ND."
+      echo -e "\t-FD|--fhicl-FD                    : Flux calculation configuration file for FD."
       echo -e "\t-f|--force-remove          : If output directories already exist, force remove them."
       echo -e "\t--expected-disk            : Expected disk usage to pass to jobsub -- approx 100MB* the value passed to -\'n\' (default: 1GB)"
       echo -e "\t--expected-mem             : Expected mem usage to pass to jobsub -- Scales with the number of detector stops in the xml passed to \'--r\' (default: 2GB)"
@@ -183,6 +197,7 @@ mkdir sub_tmp
 cd sub_tmp
 
 # export IFDH_DEBUG=1
+
 
 if [ ! "${EXPERIMENT}" ]; then
   echo "[ERROR]: No experiment. Expected \${EXPERIMENT} to be defined."
@@ -265,35 +280,59 @@ if [ ! -e ${DUNEPRISMTOOLSROOT}/bin/dp_BuildFluxes ]; then
   exit 1
 fi
 
-ifdh ls /pnfs/dune/persistent/users/${USER}/${PNFS_PATH_APPEND}/flux
-
-if [ $? -ne 0 ]; then
-  mkdir -p /pnfs/dune/persistent/users/${USER}/${PNFS_PATH_APPEND}/flux
-  ifdh ls /pnfs/dune/persistent/users/${USER}/${PNFS_PATH_APPEND}/flux
-  if [ $? -ne 0 ]; then
-    echo "Unable to make /pnfs/dune/persistent/users/${USER}/${PNFS_PATH_APPEND}/flux."
-    exit 7
-  fi
-elif [ ${FORCE_REMOVE} == "1" ]; then
-  echo "[INFO]: Force removing previous existant output directories: \"/pnfs/dune/persistent/users/${USER}/${PNFS_PATH_APPEND}/flux\" "
-  rm -rf /pnfs/dune/persistent/users/${USER}/${PNFS_PATH_APPEND}/flux
-  mkdir -p /pnfs/dune/persistent/users/${USER}/${PNFS_PATH_APPEND}/flux
+DO_ND="0"
+if [ -e ${DUNEPRISMTOOLSROOT}/fcl/${CONFIG_FCL_ND} ]; then
+  DO_ND="1"
+  ND_PATH_APPEND=$(echo ${PNFS_PATH_APPEND} | sed "s/__DET__/ND/g")
 fi
 
-ifdh ls /pnfs/dune/persistent/users/${USER}/${PNFS_PATH_APPEND}/logs
-
-if [ $? -ne 0 ]; then
-  mkdir -p /pnfs/dune/persistent/users/${USER}/${PNFS_PATH_APPEND}/logs
-  ifdh ls /pnfs/dune/persistent/users/${USER}/${PNFS_PATH_APPEND}/logs
-  if [ $? -ne 0 ]; then
-    echo "Unable to make /pnfs/dune/persistent/users/${USER}/${PNFS_PATH_APPEND}/logs."
-    exit 7
-  fi
-elif [ ${FORCE_REMOVE} == "1" ]; then
-  echo "[INFO]: Force removing previous existant output directories: \"/pnfs/dune/persistent/users/${USER}/${PNFS_PATH_APPEND}/logs\" "
-  rm -rf /pnfs/dune/persistent/users/${USER}/${PNFS_PATH_APPEND}/logs
-  mkdir -p /pnfs/dune/persistent/users/${USER}/${PNFS_PATH_APPEND}/logs
+DO_FD="0"
+if [ -e ${DUNEPRISMTOOLSROOT}/fcl/${CONFIG_FCL_FD} ]; then
+  DO_FD="1"
+  FD_PATH_APPEND=$(echo ${PNFS_PATH_APPEND} | sed "s/__DET__/FD/g")
 fi
+
+for DET in ND FD; do
+  CHECK_VAR=DO_${DET}
+
+  if [ ${!CHECK_VAR} != "1" ]; then
+    echo "[INFO]: Not processing ${DET} this run."
+    continue
+  fi
+
+  GET_PATH_APPEND=${DET}_PATH_APPEND
+  DET_PATH_APPEND=${!GET_PATH_APPEND}
+
+  ifdh ls /pnfs/dune/persistent/users/${USER}/${DET_PATH_APPEND}/flux
+
+  if [ $? -ne 0 ]; then
+    mkdir -p /pnfs/dune/persistent/users/${USER}/${DET_PATH_APPEND}/flux
+    ifdh ls /pnfs/dune/persistent/users/${USER}/${DET_PATH_APPEND}/flux
+    if [ $? -ne 0 ]; then
+      echo "Unable to make /pnfs/dune/persistent/users/${USER}/${DET_PATH_APPEND}/flux."
+      exit 7
+    fi
+  elif [ ${FORCE_REMOVE} == "1" ]; then
+    echo "[INFO]: Force removing previous existant output directories: \"/pnfs/dune/persistent/users/${USER}/${DET_PATH_APPEND}/flux\" "
+    rm -rf /pnfs/dune/persistent/users/${USER}/${DET_PATH_APPEND}/flux
+    mkdir -p /pnfs/dune/persistent/users/${USER}/${DET_PATH_APPEND}/flux
+  fi
+
+  ifdh ls /pnfs/dune/persistent/users/${USER}/${DET_PATH_APPEND}/logs
+
+  if [ $? -ne 0 ]; then
+    mkdir -p /pnfs/dune/persistent/users/${USER}/${DET_PATH_APPEND}/logs
+    ifdh ls /pnfs/dune/persistent/users/${USER}/${DET_PATH_APPEND}/logs
+    if [ $? -ne 0 ]; then
+      echo "Unable to make /pnfs/dune/persistent/users/${USER}/${DET_PATH_APPEND}/logs."
+      exit 7
+    fi
+  elif [ ${FORCE_REMOVE} == "1" ]; then
+    echo "[INFO]: Force removing previous existant output directories: \"/pnfs/dune/persistent/users/${USER}/${DET_PATH_APPEND}/logs\" "
+    rm -rf /pnfs/dune/persistent/users/${USER}/${DET_PATH_APPEND}/logs
+    mkdir -p /pnfs/dune/persistent/users/${USER}/${DET_PATH_APPEND}/logs
+  fi
+done # End loop over det
 
 cp ${DUNEPRISMTOOLSROOT}/bin/dp_BuildFluxes .
 
@@ -302,11 +341,17 @@ if [ ! -e ${DUNEPRISMTOOLSROOT}/fcl/${CONFIG_FCL} ]; then
   exit 8
 fi
 
-cp ${DUNEPRISMTOOLSROOT}/fcl/${CONFIG_FCL} build_flux.fcl
+if [ ${DO_ND} == "1" ]; then
+  cp ${DUNEPRISMTOOLSROOT}/fcl/${CONFIG_FCL_ND} ND_build_flux.fcl
+fi
 
-tar -zcvf apps.${DUNEPRISMTOOLS_VERSION}.tar.gz dp_BuildFluxes inputs.list build_flux.fcl
+if [ ${DO_FD} == "1" ]; then
+  cp ${DUNEPRISMTOOLSROOT}/fcl/${CONFIG_FCL_FD} FD_build_flux.fcl
+fi
 
-JID=$(jobsub_submit --group=${EXPERIMENT} --jobid-output-only --resource-provides=usage_model=OPPORTUNISTIC --expected-lifetime=${LIFETIME_EXP} --disk=${DISK_EXP} -N ${NJOBSTORUN} --memory=${MEM_EXP} --cpu=1 --OS=SL6 --tar_file_name=dropbox://apps.${DUNEPRISMTOOLS_VERSION}.tar.gz file://${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/BuildFluxJob.sh  ${PNFS_PATH_APPEND} ${NPERJOB})
+tar -zcvf apps.${DUNEPRISMTOOLS_VERSION}.tar.gz dp_BuildFluxes inputs.list *build_flux.fcl
+
+JID=$(jobsub_submit --group=${EXPERIMENT} --jobid-output-only --resource-provides=usage_model=OPPORTUNISTIC --expected-lifetime=${LIFETIME_EXP} --disk=${DISK_EXP} -N ${NJOBSTORUN} --memory=${MEM_EXP} --cpu=1 --OS=SL6 --tar_file_name=dropbox://apps.${DUNEPRISMTOOLS_VERSION}.tar.gz file://${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/BuildFluxJob.sh ${NPERJOB} ${ND_PATH_APPEND} ${FD_PATH_APPEND})
 
 JID=$(echo ${JID} | tr -d "\n" | tr -d " " | tr -d "\t")
 

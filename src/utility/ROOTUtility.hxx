@@ -6,7 +6,9 @@
 #include "TChain.h"
 #include "TF1.h"
 #include "TFile.h"
+#include "TFitResult.h"
 #include "TGraph.h"
+#include "TGraphErrors.h"
 #include "TH1D.h"
 #include "TH2D.h"
 #include "TKey.h"
@@ -18,6 +20,7 @@
 #include "Eigen/Core"
 #endif
 
+#include <cstdio>
 #include <iostream>
 #include <limits>
 #include <memory>
@@ -309,6 +312,9 @@ double FindHistogramPeak(TH1D *hist, double resolution,
 std::vector<double> Getstdvector(TH2 const *);
 std::vector<double> Getstdvector(TH1 const *);
 
+std::vector<double> Getstdvectorerror(TH2 const *);
+std::vector<double> Getstdvectorerror(TH1 const *);
+
 template <typename T>
 inline void Mergestdvector(std::vector<T> &a, std::vector<T> const &b) {
   for (T const &b_i : b) {
@@ -330,6 +336,18 @@ Getstdvector(std::vector<std::unique_ptr<THN>> const &rhv) {
 
   for (std::unique_ptr<THN> const &rh : rhv) {
     Mergestdvector(ev, Getstdvector(rh.get()));
+  }
+
+  return ev;
+}
+
+template <typename THN>
+inline std::vector<double>
+Getstdvectorerror(std::vector<std::unique_ptr<THN>> const &rhv) {
+  std::vector<double> ev;
+
+  for (std::unique_ptr<THN> const &rh : rhv) {
+    Mergestdvector(ev, Getstdvectorerror(rh.get()));
   }
 
   return ev;
@@ -402,35 +420,17 @@ GetPolyFitCoeffs(std::vector<double> const &xvals,
     g.SetPoint(i, xvals[i], yvals[i]);
   }
 
-  static std::stringstream ss;
-  static bool first = true;
-  if (first) {
-    std::stringstream x("");
-    for (size_t i = 0; i < n + 1; ++i) {
-      ss << '[' << i << "]" << (i ? "*" : "") << x.str();
-      x << (i ? "*x" : "x");
-      if (i < n) {
-        ss << " + ";
-      }
-    }
-    first = false;
-  }
+  size_t dof = std::min(size_t(9), std::min(xvals.size() - 1, n));
 
-  static std::unique_ptr<TF1> f(
-      new TF1("f", ss.str().c_str(), xvals.front(), xvals.back()));
-  if (f->IsZombie()) {
-    throw;
-  }
+  static char polstr[10];
+  sprintf(polstr, "pol%d", int(dof));
 
-  if (f->GetNpar() != (n + 1)) {
-    throw;
-  }
-
-  g.Fit(f.get(), "Q0");
+  TFitResultPtr r = g.Fit(polstr, "Q0S");
 
   std::array<double, n + 1> rtn;
-  for (size_t i = 0; i < (n + 1); ++i) {
-    rtn[i] = f->GetParameter(i);
+  std::fill_n(rtn.begin(), n + 1, 0);
+  for (size_t i = 0; i < (dof + 1); ++i) {
+    rtn[i] = r->Parameter(i);
   }
 
   return rtn;
@@ -446,35 +446,44 @@ GetPolyFitCoeffs(std::vector<std::pair<double, double>> const &xyvals) {
     g.SetPoint(i, xyvals[i].first, xyvals[i].second);
   }
 
-  static std::stringstream ss;
-  static bool first = true;
-  if (first) {
-    std::stringstream x("");
-    for (size_t i = 0; i < n + 1; ++i) {
-      ss << '[' << i << "]" << (i ? "*" : "") << x.str();
-      x << (i ? "*x" : "x");
-      if (i < n) {
-        ss << " + ";
-      }
-    }
-    first = false;
-  }
+  size_t dof = std::min(size_t(9), std::min(xyvals.size() - 1, n));
 
-  static std::unique_ptr<TF1> f(new TF1(
-      "f", ss.str().c_str(), xyvals.front().first, xyvals.back().first));
-  if (f->IsZombie()) {
-    throw;
-  }
+  static char polstr[10];
+  sprintf(polstr, "pol%d", int(dof));
 
-  if (f->GetNpar() != (n + 1)) {
-    throw;
-  }
-
-  g.Fit(f.get(), "Q0");
+  TFitResultPtr r = g.Fit(polstr, "Q0S");
 
   std::array<double, n + 1> rtn;
-  for (size_t i = 0; i < (n + 1); ++i) {
-    rtn[i] = f->GetParameter(i);
+  std::fill_n(rtn.begin(), n + 1, 0);
+  for (size_t i = 0; i < (dof + 1); ++i) {
+    rtn[i] = r->Parameter(i);
+  }
+
+  return rtn;
+}
+
+template <size_t n>
+inline std::array<double, n + 1> GetPolyFitCoeffs(
+    std::vector<std::tuple<double, double, double>> const &xyevals) {
+
+  size_t nd = xyevals.size();
+  TGraphErrors g(nd);
+  for (size_t i = 0; i < nd; ++i) {
+    g.SetPoint(i, std::get<0>(xyevals[i]), std::get<1>(xyevals[i]));
+    g.SetPointError(i, 0, std::get<2>(xyevals[i]));
+  }
+
+  size_t dof = std::min(size_t(9), std::min(xyevals.size() - 1, n));
+
+  static char polstr[10];
+  sprintf(polstr, "pol%d", int(dof));
+
+  TFitResultPtr r = g.Fit(polstr, "Q0S");
+
+  std::array<double, n + 1> rtn;
+  std::fill_n(rtn.begin(), n + 1, 0);
+  for (size_t i = 0; i < (dof + 1); ++i) {
+    rtn[i] = r->Parameter(i);
   }
 
   return rtn;

@@ -2,7 +2,7 @@
 
 #include "CAFReader.hxx"
 
-#include "DUNETDRNDHelper.hxx"
+#include "DUNETDRDetHelper.hxx"
 
 #include "fhiclcpp/ParameterSet.h"
 #include "fhiclcpp/make_ParameterSet.h"

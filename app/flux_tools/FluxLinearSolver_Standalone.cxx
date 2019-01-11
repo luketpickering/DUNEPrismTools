@@ -128,7 +128,8 @@ int main(int argc, char const *argv[]) {
 
   // Chi2 factor out of fit range
   p.OORFactor = OutOfRangeChi2Factor;
-  p.FitBetweenFoundPeaks = true;
+  p.FitBetweenFoundPeaks = false;
+  p.FitBetween = {0.5,4};
   p.MergeENuBins = NEnuBinMerge;
   p.MergeOAPBins = 0;
   // Use 0.5 m flux windows between -0.25 m and 32.5 m (65)

@@ -1,8 +1,8 @@
 #include "CAFReader.hxx"
-#include "ROOTUtility.hxx"
 #include "PlotProcessor.hxx"
+#include "ROOTUtility.hxx"
 
-#include "DUNETDRNDHelper.hxx"
+#include "DUNETDRDetHelper.hxx"
 
 #include "fhiclcpp/ParameterSet.h"
 #include "fhiclcpp/make_ParameterSet.h"
@@ -38,9 +38,21 @@ int main(int argc, char const *argv[]) {
 
   Plot1DDefinitions.emplace_back(
       [](CAFReader const &ev) -> std::array<double, 2> {
+        return {ev.det_x + ev.vtx_x * 1E-2, 1};
+      },
+      "OffAxisEvRate_noweight", "", 900, -5, 40);
+
+  Plot1DDefinitions.emplace_back(
+      [](CAFReader const &ev) -> std::array<double, 2> {
         return {ev.det_x + ev.vtx_x * 1E-2, ev.POTWeight};
       },
-      "OffAxisEvRate", "", 4500, -5, 40);
+      "OffAxisEvRate", "", 900, -5, 40);
+
+  Plot1DDefinitions.emplace_back(
+      [](CAFReader const &ev) -> std::array<double, 2> {
+        return {ev.vtx_x * 1E-2, (ev.det_x == 0)};
+      },
+      "vtx_x_noweight", "", 200, -3, 3);
 
   std::vector<std::vector<Plot1DCAF>> All1DPlots;
   All1DPlots.resize(kNSel);

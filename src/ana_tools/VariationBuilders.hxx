@@ -32,6 +32,8 @@ protected:
 
   std::string Name;
   std::vector<double> NominalPrediction;
+  std::vector<double> NominalPredictionError;
+
   std::vector<std::vector<double>> RelativeTweaks;
   std::vector<std::unique_ptr<TH1>> NominalHistogramSet;
   Eigen::MatrixXd CovarianceComponent;
@@ -66,6 +68,7 @@ class DiscreteVariations : public VariationBuilder {
   std::vector<double> sig_vals;
   std::vector<PolyResponse<5>> InterpolatedResponses;
 
+  std::vector<std::vector<double>> diags_Errors; // only used for diagnostics
 public:
   DiscreteVariations() : VariationBuilder() {}
   void Configure(fhicl::ParameterSet const &);

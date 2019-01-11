@@ -15,6 +15,9 @@ template <size_t n> struct PolyResponse : std::array<double, n + 1> {
   PolyResponse(std::vector<std::pair<double, double>> const &xyvals)
       : std::array<double, n + 1>(GetPolyFitCoeffs<n>(xyvals)) {}
 
+  PolyResponse(std::vector<std::tuple<double, double, double>> const &xyevals)
+      : std::array<double, n + 1>(GetPolyFitCoeffs<n>(xyevals)) {}
+
   PolyResponse(std::array<double, n + 1> const &coeffs)
       : std::array<double, n + 1>(coeffs) {}
 

@@ -575,20 +575,6 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
         }
       }
 
-      Int_t bin_it;
-      if (NOffAxisBins > 1) {
-        Int_t bin_it_x =
-            Hists_2D.front()[nuPDG_it].front()->GetXaxis()->FindFixBin(
-                std::get<0>(nuStats));
-        Int_t bin_it_y =
-            Hists_2D.front()[nuPDG_it].front()->GetYaxis()->FindFixBin(
-                det_point.first);
-        bin_it = Hists_2D.front()[nuPDG_it].front()->GetBin(bin_it_x, bin_it_y);
-      } else {
-        bin_it = Hists.front()[nuPDG_it].front()->GetXaxis()->FindFixBin(
-            std::get<0>(nuStats));
-      }
-
       if ((ang_it == 0) || !ReUseParents) {
         NNuPDGTargets[nuPDG_it]++;
       }
@@ -604,11 +590,23 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
           }
         }
 
-        // Should, but doesn't seem to work when filling TH2Ds
-        Hists[ppfx_univ_it][nuPDG_it][0]->AddBinContent(bin_it, w * ppfx_w);
+        // AddBinContent with known bin fails to track errors, must fill each
+        // time.
+        if (NOffAxisBins > 1) {
+          Hists_2D[ppfx_univ_it][nuPDG_it][0]->Fill(
+              std::get<0>(nuStats), det_point.first, w * ppfx_w);
+        } else {
+          Hists[ppfx_univ_it][nuPDG_it][0]->Fill(std::get<0>(nuStats),
+                                                 w * ppfx_w);
+        }
         if (DoExtra) {
-          Hists[ppfx_univ_it][nuPDG_it][extra_hist_index]->AddBinContent(
-              bin_it, w * ppfx_w);
+          if (NOffAxisBins > 1) {
+            Hists_2D[ppfx_univ_it][nuPDG_it][extra_hist_index]->Fill(
+                std::get<0>(nuStats), det_point.first, w * ppfx_w);
+          } else {
+            Hists[ppfx_univ_it][nuPDG_it][extra_hist_index]->Fill(
+                std::get<0>(nuStats), w * ppfx_w);
+          }
         }
 
       } // End loop over PPFX universes

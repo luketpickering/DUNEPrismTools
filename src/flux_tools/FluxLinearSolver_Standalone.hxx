@@ -16,6 +16,9 @@
 #include <utility>
 #include <vector>
 
+#ifdef FLS_WRAP_IN_NAMESPACE
+namespace fls {
+#endif
 // ************ Helper methods from StringParserUtility to make this standalone
 
 template <typename T> inline T str2T(std::string const &str) {
@@ -176,7 +179,11 @@ inline std::unique_ptr<TH> GetHistogram(std::string const &fname,
 
   TFile *inpF = CheckOpenFile(fname);
 
-  std::unique_ptr<TH> h = GetHistogram<TH>(inpF, hname, no_throw);
+  std::unique_ptr<TH> h =
+#ifdef FLS_WRAP_IN_NAMESPACE
+      fls::
+#endif
+          GetHistogram<TH>(inpF, hname, no_throw);
 
   inpF->Close();
   delete inpF;
@@ -849,11 +856,20 @@ public:
         new TH1D("Coeffs", "", last_solution.rows(), 0, last_solution.rows());
     FillHistFromEigenVector(Coeffs, last_solution);
 
+    if (FDFlux_unosc) {
+      static_cast<TH1 *>(FDFlux_unosc->Clone("FDFlux_unosc"))->SetDirectory(td);
+    }
+
     FDFlux_osc_wr->SetDirectory(td);
+    FDFlux_targ->SetDirectory(td);
     FDFlux_targ_OORScale->SetDirectory(td);
     FDFlux_bf->SetDirectory(td);
     Coeffs->SetDirectory(td);
   }
 };
+
+#ifdef FLS_WRAP_IN_NAMESPACE
+}
+#endif
 
 #endif

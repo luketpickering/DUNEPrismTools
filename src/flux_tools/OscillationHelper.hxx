@@ -41,6 +41,16 @@ struct OscillationHelper {
 #endif
 
   OscillationHelper() : IsSetUp(false){};
+  OscillationHelper(OscillationHelper const &other) {
+    DipAngle_degrees = other.DipAngle_degrees;
+    std::copy_n(other.OscParams, 6, OscParams);
+    LengthParam = other.LengthParam;
+    IsSetUp = other.IsSetUp;
+    FromPDG = other.FromPDG;
+    ToPDG = other.ToPDG;
+    FromType = other.FromType;
+    ToType = other.ToType;
+  }
 
   void SetOscillationChannel(int PDGFrom, int PDGTo);
   double GetWeight(double ENu_GeV);

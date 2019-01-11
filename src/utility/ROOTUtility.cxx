@@ -361,6 +361,50 @@ std::vector<double> Getstdvector(TH1 const *rh) {
   throw;
 }
 
+std::vector<double> Getstdvectorerror(TH2 const *rh) {
+  std::vector<double> ev;
+
+  for (Int_t y_it = 0; y_it < rh->GetYaxis()->GetNbins(); ++y_it) {
+    for (Int_t x_it = 0; x_it < rh->GetXaxis()->GetNbins(); ++x_it) {
+#ifdef DEBUG_GETFLATVECTOR
+      if (rh->GetBinContent(x_it + 1, y_it + 1) &&
+          !std::isnormal(rh->GetBinError(x_it + 1, y_it + 1))) {
+        std::cout << "[ERROR]: Got bad bin entry at (" << x_it << ", " << y_it
+                  << ") = " << rh->GetBinError(x_it + 1, y_it + 1) << std::endl;
+        throw;
+      }
+#endif
+      ev.push_back(rh->GetBinError(x_it + 1, y_it + 1));
+    }
+  }
+
+  return ev;
+}
+
+std::vector<double> Getstdvectorerror(TH1 const *rh) {
+  Int_t dim = rh->GetDimension();
+  if (dim == 1) {
+    std::vector<double> ev;
+    for (Int_t x_it = 0; x_it < rh->GetXaxis()->GetNbins(); ++x_it) {
+#ifdef DEBUG_GETFLATVECTOR
+      if (rh->GetBinError(x_it + 1) &&
+          !std::isnormal(rh->GetBinError(x_it + 1))) {
+        std::cout << "[ERROR]: Got bad bin entry at (" << x_it
+                  << ") = " << rh->GetBinError(x_it + 1) << std::endl;
+        throw;
+      }
+#endif
+      ev.push_back(rh->GetBinError(x_it + 1));
+    }
+    return ev;
+  } else if (dim == 2) {
+    return Getstdvectorerror(static_cast<TH2 const *>(rh));
+  }
+  std::cout << "[ERROR]: Getstdvectorerror cannot handle THND where N = " << dim
+            << std::endl;
+  throw;
+}
+
 size_t FillHistFromstdvector(TH2 *rh, std::vector<double> const &vals,
                              size_t offset, std::vector<double> const &error) {
   for (Int_t y_it = 0; y_it < rh->GetYaxis()->GetNbins(); ++y_it) {

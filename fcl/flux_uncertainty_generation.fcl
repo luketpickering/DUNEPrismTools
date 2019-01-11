@@ -1,7 +1,7 @@
 BEGIN_PROLOG
 
 Nominal_Prediction_Input: {
-  InputFile: "%C_OptimizedEngineeredNov2017Review_uncert_binning_wppfx.root"
+  InputFile: "%C_OptimizedEngineeredNov2017Review_old_uncert_binning_wppfx.root"
   InputHistName: "LBNF_%S_flux_Nom"
 }
 
@@ -17,28 +17,85 @@ DirectSyst_base: {
   dump_diagnostics: true
 }
 
-HornCurrent: @local::DirectSyst_base
-HornCurrent.Name: "HornCurrent"
-HornCurrent.Varied.InputFile: "%C_OptimizedEngineeredNov2017Review_uncert_binning_HCp1.root"
+DiscreteSyst_base: {
+  Type: "Discrete"
+  NThrows: 100
+
+  Nominal: @local::Nominal_Prediction_Input
+
+  DiscreteTweaks: []
+
+  dump_diagnostics: true
+}
 
 DecayPipeRadius: @local::DirectSyst_base
 DecayPipeRadius.Name: "DecayPipeRadius"
-DecayPipeRadius.Varied.InputFile: "%C_OptimizedEngineeredNov2017Review_uncert_binning_DPRp1.root"
+DecayPipeRadius.Varied.InputFile: "%C_OptimizedEngineeredNov2017Review_old_uncert_binning_DPRp1.root"
 
 WaterLayer: @local::DirectSyst_base
 WaterLayer.Name: "WaterLayer"
-WaterLayer.Varied.InputFile: "%C_OptimizedEngineeredNov2017Review_uncert_binning_WLp1.root"
+WaterLayer.Varied.InputFile: "%C_OptimizedEngineeredNov2017Review_old_uncert_binning_WLp1.root"
 
-FocussingTweaks: [@local::HornCurrent, @local::DecayPipeRadius, @local::WaterLayer]
+HornCurrent: @local::DiscreteSyst_base
+HornCurrent.Name: "HornCurrent"
+HornCurrent.DiscreteTweaks: [
+  {
+    Value: 1
+    InputFile: "%C_OptimizedEngineeredNov2017Review_old_uncert_binning_HCp1.root"
+    InputHistName: "LBNF_%S_flux"
+  },
+  {
+    Value: -1
+    InputFile: "%C_OptimizedEngineeredNov2017Review_old_uncert_binning_HCm1.root"
+    InputHistName: "LBNF_%S_flux"
+  }
+]
 
-Horn1XShift: @local::DirectSyst_base
+FocussingTweaks: [@local::DecayPipeRadius, @local::WaterLayer, @local::HornCurrent]
+
+Horn1XShift: @local::DiscreteSyst_base
 Horn1XShift.Name: "Horn1XShift"
-Horn1XShift.Varied.InputFile: "%C_OptimizedEngineeredNov2017Review_uncert_binning_Horn1XShift.root"
+Horn1XShift.DiscreteTweaks: [
+  {
+    Value: 1
+    InputFile: "%C_OptimizedEngineeredNov2017Review_old_uncert_binning_Horn1XShift.root"
+    InputHistName: "LBNF_%S_flux"
+  },
+  {
+    Value: -1
+    InputFile: "%C_OptimizedEngineeredNov2017Review_old_uncert_binning_Horn1XNegShift.root"
+    InputHistName: "LBNF_%S_flux"
+  }
+]
 
-AlignmentTweaks: [@local::Horn1XShift]
+Horn2XShift: @local::DiscreteSyst_base
+Horn2XShift.Name: "Horn2XShift"
+Horn2XShift.DiscreteTweaks: [
+  {
+    Value: 1
+    InputFile: "%C_OptimizedEngineeredNov2017Review_old_uncert_binning_Horn2XShift.root"
+    InputHistName: "LBNF_%S_flux"
+  },
+  {
+    Value: -1
+    InputFile: "%C_OptimizedEngineeredNov2017Review_old_uncert_binning_Horn2XNegShift.root"
+    InputHistName: "LBNF_%S_flux"
+  }
+]
+
+Horn1YShift: @local::DirectSyst_base
+Horn1YShift.Name: "Horn1YShift"
+Horn1YShift.Varied.InputFile: "%C_OptimizedEngineeredNov2017Review_old_uncert_binning_Horn1YShift.root"
+
+Horn2YShift: @local::DirectSyst_base
+Horn2YShift.Name: "Horn2YShift"
+Horn2YShift.Varied.InputFile: "%C_OptimizedEngineeredNov2017Review_old_uncert_binning_Horn2YShift.root"
+
+
+AlignmentTweaks: [@local::Horn1XShift, @local::Horn2XShift, @local::Horn1YShift, @local::Horn2YShift]
 # AlignmentTweaks: []
 
-DirectTweaks: [@sequence::FocussingTweaks, @sequence::AlignmentTweaks]
+DiscreteTweaks: [@sequence::FocussingTweaks, @sequence::AlignmentTweaks]
 
 PPFX: {
   Type: "Thrown"
@@ -46,12 +103,28 @@ PPFX: {
   NThrows: 100
 
   Nominal: {
-    InputFile: "%C_OptimizedEngineeredNov2017Review_uncert_binning_wppfx.root"
+    InputFile: "%C_OptimizedEngineeredNov2017Review_old_uncert_binning_wppfx.root"
     InputHistName: "LBNF_%S_flux_CV"
   }
 
-  InputFile: "%C_OptimizedEngineeredNov2017Review_uncert_binning_wppfx.root"
-  VariedHistName: "LBNF_%S_flux_univ_%i"
+  Varied: {
+    InputFile: "%C_OptimizedEngineeredNov2017Review_old_uncert_binning_wppfx.root"
+    InputHistName: "LBNF_%S_flux_univ_%i"
+  }
+
+  dump_diagnostics: true
+}
+
+POTCounting: {
+  Type: "Uniform"
+  Name: "POTCounting"
+
+  Uncertainty_pc: 2
+
+  Nominal: {
+    InputFile: "%C_OptimizedEngineeredNov2017Review_old_uncert_binning_wppfx.root"
+    InputHistName: "LBNF_%S_flux_CV"
+  }
 
   dump_diagnostics: true
 }
@@ -74,11 +147,11 @@ FluxUncertainty: {
   use_Spectra: true # use spectra, if not, use Eigen (very slow for anything larger than a few hundred columns)
   num_eigenvalues: 50 # Dump out the 'tweak' definitions for the top X most important eigen values
 
-  FluxSlicesDescriptor_ND_nu: @local::NominalOffAxisRange
+  # FluxSlicesDescriptor_ND_nu: @local::NominalOffAxisRange
   # FluxSlicesDescriptor_ND_nu: @local::ShortOffAxisRange
-  # FluxSlicesDescriptor_ND_nu: @local::OnAxisOnly
-  Species: @local::AllSpecies
-  # Species: [numu]
+  FluxSlicesDescriptor_ND_nu: @local::OnAxisOnly
+  # Species: @local::AllSpecies
+  Species: [numu]
   # Configurations: @local::AllConfigurations
   # Configurations: @local::numode_Configurations
   Configurations: [ND_nu]
@@ -88,8 +161,8 @@ FluxUncertainty: {
   # Species: @local::numuOnly
   # Configurations: @local::numode_Configurations
 
-  Tweaks: [@local::PPFX, @sequence::DirectTweaks]
-  # Tweaks: [@sequence::DirectTweaks]
+  Tweaks: [@local::PPFX, @sequence::DiscreteTweaks, @local::POTCounting]
+  # Tweaks: [@sequence::DiscreteTweaks]
 
 }
 
@@ -97,7 +170,7 @@ FluxUncertainty: {
 FluxUncertainty.FluxSlicesDescriptor_ND_nubar: @local::FluxUncertainty.FluxSlicesDescriptor_ND_nu
 
 
-FluxUncertainty.OutputFile: "FluxCovmatND_numu_numode_OffAxis.root"
+FluxUncertainty.OutputFile: "FluxCovmatND_numu_numode_OnAxis.root"
 FluxUncertainty.RecreateOutputFile: true
 FluxUncertainty.WriteMatrices: false # For a 6kx6k matrix, this will be 512mb
 FluxUncertainty.SaveCAFAnaFormat: true # Save output in the format expected by CAFAna
