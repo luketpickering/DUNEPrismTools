@@ -1,8 +1,8 @@
 # !/bin/bash
 
-dp_BuildFluxes -i "/pnfs/dune/persistent/users/picker24/nominal_5E8POT_wppfx/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/nu/dk2nulite/*.root" --fhicl build_FD_fluxes_ppfx_oldbin.fcl -o FD_nu_OptimizedEngineeredNov2017Review_old_uncert_binning_wppfx.root
-
-dp_BuildFluxes -i "/pnfs/dune/persistent/users/picker24/nominal_5E8POT_wppfx/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/nubar/dk2nulite/*.root" --fhicl build_FD_fluxes_ppfx_oldbin.fcl -o FD_nubar_OptimizedEngineeredNov2017Review_old_uncert_binning_wppfx.root
+# dp_BuildFluxes -i "/pnfs/dune/persistent/users/picker24/nominal_5E8POT_wppfx/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/nu/dk2nulite/*.root" --fhicl build_FD_fluxes_ppfx_oldbin.fcl -o FD_nu_OptimizedEngineeredNov2017Review_old_uncert_binning_wppfx.root
+#
+# dp_BuildFluxes -i "/pnfs/dune/persistent/users/picker24/nominal_5E8POT_wppfx/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/nubar/dk2nulite/*.root" --fhicl build_FD_fluxes_ppfx_oldbin.fcl -o FD_nubar_OptimizedEngineeredNov2017Review_old_uncert_binning_wppfx.root
 
 for i in nu nubar; do
   for j in p1; do

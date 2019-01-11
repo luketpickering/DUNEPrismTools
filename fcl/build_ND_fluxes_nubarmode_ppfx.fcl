@@ -16,7 +16,7 @@ make_extra_plots: false
 flux_window_height_m: 3
 # max_decay_parents
 
-flux_window_z_from_target_m: 574
+flux_window_z_from_target_m: 575
 
 # Whether each decay parent is used for each off-axis slice
 limit_decay_parent_use: false

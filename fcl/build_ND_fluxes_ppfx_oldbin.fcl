@@ -13,10 +13,10 @@ off_axis_step_type: position_m
 # Make predictions separated by parent hadron
 make_extra_plots: false
 
-flux_window_height_m: 22.6
+flux_window_height_m: 3
 # max_decay_parents
 
-flux_window_z_from_target_km: 1300
+flux_window_z_from_target_m: 575
 
 # Whether each decay parent is used for each off-axis slice
 limit_decay_parent_use: false
