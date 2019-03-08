@@ -10,8 +10,10 @@ LIFETIME_EXP="30m"
 DISK_EXP="1GB"
 MEM_EXP="2GB"
 FORCE_REMOVE="0"
-CONFIG_FCL_ND="build_ND_fluxes_oldbin.fcl"
-CONFIG_FCL_FD="build_FD_fluxes_oldbin.fcl"
+CONFIG_FCL_ND="DUMMY.fcl"
+CONFIG_FCL_FD="DUMMY.fcl"
+DO_ND="0"
+DO_FD="0"
 
 while [[ ${#} -gt 0 ]]; do
 
@@ -74,6 +76,7 @@ while [[ ${#} -gt 0 ]]; do
       fi
 
       CONFIG_FCL_ND="$2"
+      DO_ND="1"
       echo "[OPT]: Using ${CONFIG_FCL_ND} for ND fhicl."
       shift # past argument
       ;;
@@ -86,6 +89,7 @@ while [[ ${#} -gt 0 ]]; do
       fi
 
       CONFIG_FCL_FD="$2"
+      DO_FD="1"
       echo "[OPT]: Using ${CONFIG_FCL_FD} for FD fhicl."
       shift # past argument
       ;;
@@ -280,16 +284,14 @@ if [ ! -e ${DUNEPRISMTOOLSROOT}/bin/dp_BuildFluxes ]; then
   exit 1
 fi
 
-DO_ND="0"
 if [ -e ${DUNEPRISMTOOLSROOT}/fcl/${CONFIG_FCL_ND} ]; then
-  DO_ND="1"
   ND_PATH_APPEND=$(echo ${PNFS_PATH_APPEND} | sed "s/__DET__/ND/g")
+  echo "[INFO]: Doing ND."
 fi
 
-DO_FD="0"
 if [ -e ${DUNEPRISMTOOLSROOT}/fcl/${CONFIG_FCL_FD} ]; then
-  DO_FD="1"
   FD_PATH_APPEND=$(echo ${PNFS_PATH_APPEND} | sed "s/__DET__/FD/g")
+  echo "[INFO]: Doing fD."
 fi
 
 for DET in ND FD; do
@@ -336,16 +338,19 @@ done # End loop over det
 
 cp ${DUNEPRISMTOOLSROOT}/bin/dp_BuildFluxes .
 
-if [ ! -e ${DUNEPRISMTOOLSROOT}/fcl/${CONFIG_FCL} ]; then
-  echo "[ERROR]: Expected to find ${DUNEPRISMTOOLSROOT}/fcl/${CONFIG_FCL}"
-  exit 8
-fi
-
 if [ ${DO_ND} == "1" ]; then
+  if [ ! -e ${DUNEPRISMTOOLSROOT}/fcl/${CONFIG_FCL_ND} ]; then
+    echo "[ERROR]: Expected to find ${DUNEPRISMTOOLSROOT}/fcl/${CONFIG_FCL_ND}"
+    exit 8
+  fi
   cp ${DUNEPRISMTOOLSROOT}/fcl/${CONFIG_FCL_ND} ND_build_flux.fcl
 fi
 
 if [ ${DO_FD} == "1" ]; then
+  if [ ! -e ${DUNEPRISMTOOLSROOT}/fcl/${CONFIG_FCL_FD} ]; then
+    echo "[ERROR]: Expected to find ${DUNEPRISMTOOLSROOT}/fcl/${CONFIG_FCL_FD}"
+    exit 8
+  fi
   cp ${DUNEPRISMTOOLSROOT}/fcl/${CONFIG_FCL_FD} FD_build_flux.fcl
 fi
 
