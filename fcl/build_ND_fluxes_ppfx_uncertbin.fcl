@@ -3,10 +3,10 @@ nue_off_axis_binning: "-0.25_40.25:0.5"
 numubar_off_axis_binning: "-0.25_40.25:0.5"
 numu_off_axis_binning: "-0.25_40.25:0.5"
 
-nuebar_energy_binning: "0_20:2"
-nue_energy_binning: "0_20:2"
-numubar_energy_binning: "0_6:0.5,6_8:1,8_20:2"
-numu_energy_binning: "0_6:0.5,6_8:1,8_20:2"
+nuebar_energy_binning: "0_20:1"
+nue_energy_binning: "0_20:1"
+numubar_energy_binning: "0_6:0.25,6_8:0.5,8_20:1"
+numu_energy_binning: "0_6:0.25,6_8:0.5,8_20:1"
 
 off_axis_step_type: position_m
 

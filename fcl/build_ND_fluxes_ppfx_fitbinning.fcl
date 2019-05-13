@@ -1,14 +1,14 @@
-nuebar_off_axis_binning: "-0.25_40.25:0.5"
-nue_off_axis_binning: "-0.25_40.25:0.5"
-numubar_off_axis_binning: "-0.25_40.25:0.5"
-numu_off_axis_binning: "-0.25_40.25:0.5"
+nuebar_off_axis_binning: "-0.5_57.5:1"
+nue_off_axis_binning: "-0.5_57.5:1"
+numubar_off_axis_binning: "-0.5_57.5:1"
+numu_off_axis_binning: "-0.5_57.5:1"
 
-nuebar_energy_binning: "0_20:2"
-nue_energy_binning: "0_20:2"
-numubar_energy_binning: "0_6:0.5,6_8:1,8_20:2"
-numu_energy_binning: "0_6:0.5,6_8:1,8_20:2"
+nuebar_energy_binning: "0_10:0.1"
+nue_energy_binning: "0_10:0.1"
+numubar_energy_binning: "0_10:0.1"
+numu_energy_binning: "0_10:0.1"
 
-off_axis_step_type: position_m
+off_axis_step_type: mrad
 
 # Make predictions separated by parent hadron
 make_extra_plots: false
