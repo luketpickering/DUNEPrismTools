@@ -158,6 +158,7 @@ double detector_half_height = 0;
 bool ReUseParents = true;
 bool DK2NULite = false;
 bool ReadDK2NULitePPFX = false;
+bool ReadDK2NULitePPFXAllWeights = false;
 UInt_t NPPFX_Universes = 100;
 bool UseTHF = false;
 
@@ -302,7 +303,9 @@ void handleOpts(int argc, char const *argv[]) {
       ReUseParents = !ps.get<bool>("limit_decay_parent_use", false);
       OnlySpecies = ps.get<int>("only_nu_species_pdg", 0);
       DK2NULite = ps.get<bool>("use_dk2nu_lite", true);
-      ReadDK2NULitePPFX = ps.get<bool>("use_dk2nu_ppfx", true);
+      ReadDK2NULitePPFX = ps.get<bool>("use_dk2nu_ppfx", false);
+      ReadDK2NULitePPFXAllWeights =
+          ps.get<bool>("use_dk2nu_ppfx_allweights", false);
       NPPFX_Universes = ps.get<int>("number_ppfx_universes", 100);
       UseTHF = ps.get<bool>("use_THF", false);
 
@@ -370,7 +373,7 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
   std::cout << "Only using the first " << NNeutrinos << " events out of "
             << dk2nuRdr.GetEntries() << ", scaling POT to " << TotalPOT
             << std::endl;
-  std::cout << "Reding " << NNeutrinos << " Dk2Nu entries." << std::endl;
+  std::cout << "Reading " << NNeutrinos << " Dk2Nu entries." << std::endl;
 
   TFile *outfile = CheckOpenFile(outputFile.c_str(), "RECREATE");
 
@@ -391,7 +394,15 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
 
   std::vector<std::vector<std::vector<TH1 *>>> Hists;
   std::vector<std::vector<std::vector<TH2 *>>> Hists_2D;
-  size_t NPPFXU = (ReadDK2NULitePPFX ? NPPFX_Universes + 2 : 1);
+  size_t NPPFXU = 1;
+  if (ReadDK2NULitePPFX) {
+    if (ReadDK2NULitePPFXAllWeights) {
+      NPPFXU = (NPPFX_Universes * DK2NuReader::kNPPFXAllWeights) + 2;
+    } else {
+      NPPFXU = NPPFX_Universes + 2;
+    }
+  }
+
   bool use_PPFX = (NPPFXU > 1);
   Hists.resize(NPPFXU);
   Hists_2D.resize(NPPFXU);
@@ -408,15 +419,7 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
       Int_t NOffAxisBins = Int_t(OffAxisSteps[nuPDG_it].size()) - 1;
 
       if (use_PPFX) {
-        if (ppfx_univ_it == 0) {
-          hist_name << "_Nom";
-
-        } else if (ppfx_univ_it == 1) {
-          hist_name << "_CV";
-
-        } else {
-          hist_name << "_univ_" << (ppfx_univ_it - 2);
-        }
+        hist_name << GetPPFXHistName(ppfx_univ_it, NPPFX_Universes);
       }
 
       std::string hist_title = ";#it{E}_{#nu} (GeV);#Phi_{#nu} "
@@ -583,11 +586,7 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
 
         double ppfx_w = 1;
         if (use_PPFX) {
-          if (ppfx_univ_it == 1) {
-            ppfx_w = dk2nuRdr.ppfx_cvwgt;
-          } else if (ppfx_univ_it > 1) {
-            ppfx_w = dk2nuRdr.ppfx_vwgt_tot[ppfx_univ_it - 2];
-          }
+          ppfx_w = GetPPFXWeight(ppfx_univ_it, NPPFX_Universes, dk2nuRdr);
         }
 
         // AddBinContent with known bin fails to track errors, must fill each

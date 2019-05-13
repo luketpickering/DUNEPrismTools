@@ -1,6 +1,7 @@
 #include "GetUsage.hxx"
 #include "PhysicsUtility.hxx"
 #include "ROOTUtility.hxx"
+#include "dk2nu_TreeReader.hxx"
 
 #include "TFile.h"
 #include "TRegexp.h"
@@ -17,6 +18,8 @@
 std::vector<std::string> input_patterns;
 std::string outputfile = "";
 size_t NPPFX_Universes = 0;
+bool ReadPPFXAllWeights = false;
+bool LowMemoryMode = true;
 
 void SayUsage(char const *argv[]) {
   std::cout << "[USAGE]: " << argv[0] << GetUsageText(argv[0], "flux_tools")
@@ -32,6 +35,10 @@ void handleOpts(int argc, char const *argv[]) {
       outputfile = argv[++opt];
     } else if (std::string(argv[opt]) == "--NPPFXU") {
       NPPFX_Universes = str2T<UInt_t>(argv[++opt]);
+    } else if (std::string(argv[opt]) == "--ReadPPFXAllWeights") {
+      ReadPPFXAllWeights = true;
+    } else if (std::string(argv[opt]) == "--KeepAllInputHists") {
+      LowMemoryMode = false;
     } else if (std::string(argv[opt]) == "-?" ||
                std::string(argv[opt]) == "--help") {
       SayUsage(argv);
@@ -64,7 +71,16 @@ int main(int argc, char const *argv[]) {
 
   std::vector<int> NuPDGTargets = {-12, 12, -14, 14};
   std::map<int, std::vector<std::vector<TH1 *>>> InputHists;
-  size_t NPPFXU = (NPPFX_Universes ? NPPFX_Universes + 2 : 1);
+
+  size_t NPPFXU = 1;
+  if (NPPFX_Universes) {
+    if (ReadPPFXAllWeights) {
+      NPPFXU = (NPPFX_Universes * DK2NuReader::kNPPFXAllWeights) + 2;
+    } else {
+      NPPFXU = NPPFX_Universes + 2;
+    }
+  }
+
   bool use_PPFX = (NPPFXU > 1);
 
   size_t NFilesAdded = 0, NHistogramsAdded = 0;
@@ -126,15 +142,7 @@ int main(int argc, char const *argv[]) {
               hist_name << "LBNF_" << GetSpeciesName(nu_pdg) << "_flux";
 
               if (use_PPFX) {
-                if (ppfx_univ_it == 0) {
-                  hist_name << "_Nom";
-
-                } else if (ppfx_univ_it == 1) {
-                  hist_name << "_CV";
-
-                } else {
-                  hist_name << "_univ_" << (ppfx_univ_it - 2);
-                }
+                hist_name << GetPPFXHistName(ppfx_univ_it, NPPFX_Universes);
               }
 
               TH1 *ih = dynamic_cast<TH1 *>(ifl->Get(hist_name.str().c_str()));
@@ -142,9 +150,22 @@ int main(int argc, char const *argv[]) {
                 continue;
               }
 
-              InputHists[nu_pdg][ppfx_univ_it].push_back(
-                  static_cast<TH1 *>(ih->Clone()));
-              InputHists[nu_pdg][ppfx_univ_it].back()->SetDirectory(nullptr);
+              if (LowMemoryMode) {
+
+                if (!InputHists[nu_pdg][ppfx_univ_it].size()) {
+                  InputHists[nu_pdg][ppfx_univ_it].push_back(
+                      static_cast<TH1 *>(ih->Clone()));
+                  InputHists[nu_pdg][ppfx_univ_it].back()->SetDirectory(
+                      nullptr);
+                } else {
+                  InputHists[nu_pdg][ppfx_univ_it].back()->Add(ih);
+                }
+
+              } else {
+                InputHists[nu_pdg][ppfx_univ_it].push_back(
+                    static_cast<TH1 *>(ih->Clone()));
+                InputHists[nu_pdg][ppfx_univ_it].back()->SetDirectory(nullptr);
+              }
               NHistogramsAdded++;
             }
           }

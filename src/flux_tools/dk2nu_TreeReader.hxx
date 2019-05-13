@@ -12,6 +12,7 @@ struct DK2NuReader {
   static const Int_t kMaxnuray = 3;
   static const Int_t kMaxancestor = 13;
   static const Int_t kMaxtraj = 10;
+  static const Int_t kNPPFXAllWeights = 11;
 
   Int_t job;
   Int_t potnum;
@@ -99,6 +100,20 @@ struct DK2NuReader {
   UInt_t ppfx_NEntries;
   double ppfx_cvwgt;
   double *ppfx_vwgt_tot;
+
+  bool fUseAllPPFXBranches;
+  double *ppfx_vwgt_mipp_pi;
+  double *ppfx_vwgt_mipp_K;
+  double *ppfx_vwgt_abs;
+  double *ppfx_vwgt_att;
+  double *ppfx_vwgt_ttpCpi;
+  double *ppfx_vwgt_ttpCk;
+  double *ppfx_vwgt_ttnCpi;
+  double *ppfx_vwgt_ttpCnu;
+  double *ppfx_vwgt_ttnua;
+  double *ppfx_vwgt_ttmesinc;
+  double *ppfx_vwgt_oth;
+
   UInt_t ppfx_NUniverses;
 
   void AddPPFXFriend(std::string treeName, std::string inputFiles,
@@ -158,5 +173,9 @@ struct DKMetaReader {
 
   ~DKMetaReader();
 };
+
+std::string GetPPFXHistName(Int_t PPFXUniv, Int_t NPPFXUniv);
+
+double GetPPFXWeight(Int_t PPFXUniv, Int_t NPPFXUniv, DK2NuReader &dk2nuRdr);
 
 #endif

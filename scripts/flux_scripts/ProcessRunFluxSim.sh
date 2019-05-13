@@ -25,7 +25,7 @@ done
 #focussing
 for i in nu nubar; do
  for j in p1 m1; do
-   for k in WL HC DPR; do
+   for k in WL HC DPR TargetDensity BeamSigma BeamOffsetX BeamTheta BeamThetaPhi; do
 
     if [ -e /pnfs/dune/persistent/users/picker24/Focussing/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${k}${j}/${i} ]; then
       echo "[INFO]: Not regenerating /pnfs/dune/persistent/users/picker24/Focussing/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${k}${j}/${i}"

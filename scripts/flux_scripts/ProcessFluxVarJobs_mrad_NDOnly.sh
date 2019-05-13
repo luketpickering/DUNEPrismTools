@@ -3,7 +3,7 @@
 DET="ND"
 SUBDIR="old_uncert_binning_mrad"
 BINSUFFIX="_oldbin"
-FORCEOVERWRITE="true"
+FORCEOVERWRITE="false"
 
 EDISK="2GB"
 ETIME="2h"
@@ -32,7 +32,7 @@ done
 #With focussing
 for i in nu nubar; do
   for j in p1 m1; do
-    for k in WL HC DPR; do
+    for k in WL HC DPR TargetDensity; do
 
       if [ ! -e /pnfs/dune/persistent/users/picker24/Focussing/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${k}${j}/${i}/dk2nulite ]; then
         echo "[INFO]: No input directory, skipping."
@@ -57,7 +57,7 @@ done
 #Alignment
 for i in nu nubar; do
   for j in Horn1 Horn2; do
-    for k in X Y XNeg; do
+    for k in X Y XNeg X3mm XNeg3mm; do
 
       if [ ! -e /pnfs/dune/persistent/users/picker24/Alignment/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${j}${k}/${i}/dk2nulite ]; then
         echo "[INFO]: No input directory, skipping."
