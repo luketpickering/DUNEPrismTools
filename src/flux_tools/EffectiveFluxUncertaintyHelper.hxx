@@ -36,13 +36,28 @@ public:
   static int const kInvalidBin = std::numeric_limits<int>::max();
 
 private:
-  std::vector<std::vector<std::unique_ptr<TH2>>> NDTweaks;
+  int NDIs2D;
+  std::vector<std::vector<std::unique_ptr<TH1>>> NDTweaks;
   std::vector<std::vector<std::unique_ptr<TH1>>> FDTweaks;
 
 public:
   void Initialize(fhicl::ParameterSet const &);
 
   size_t GetNParameters() { return NDTweaks.size(); }
+  size_t GetNEnuBins(int nu_pdg, bool IsND = true, bool IsNuMode = true) {
+
+    int nucf = GetNuConfig(nu_pdg, IsND, IsNuMode);
+
+    if (nucf == kUnhandled) {
+      return 0;
+    }
+
+    if (nucf < kFD_numu_numode) {
+      return NDTweaks[0][nucf]->GetNbinsX();
+    } else {
+      return FDTweaks[0][nucf]->GetNbinsX();
+    }
+  }
 
   int GetNuConfig(int nu_pdg, bool IsND = true, bool IsNuMode = true);
 
@@ -54,9 +69,27 @@ public:
   int GetBin(int nu_pdg, double enu_GeV, double off_axix_pos_m,
              size_t param_id = 0, bool IsND = true, bool IsNuMode = true);
 
+  int GetFirstEnuBin(int nu_pdg, bool IsND = true, bool IsNuMode = true) {
+    int nucf = GetNuConfig(nu_pdg, IsND, IsNuMode);
+
+    if (nucf == kUnhandled) {
+      return 0;
+    }
+
+    if (nucf < kFD_numu_numode) {
+      if (NDIs2D == 1) {
+        return NDTweaks[0][nucf]->GetBin(1, 1);
+      } else {
+        return NDTweaks[0][nucf]->GetBin(1);
+      }
+    } else {
+      return FDTweaks[0][nucf]->GetBin(1);
+    }
+  }
+
   // This form does no checking other than for kUnhandled
   double GetFluxWeight(size_t param_id, double param_val, int bin,
-                                 int nu_config);
+                       int nu_config) const;
 
   double GetFluxWeight(size_t param_id, double param_val, double enu_GeV,
                        double off_axix_pos_m, int nu_pdg, bool IsND,

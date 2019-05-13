@@ -4,8 +4,11 @@
 
 void EffectiveFluxUncertaintyHelper::Initialize(fhicl::ParameterSet const &ps) {
 
+  NDIs2D = -1;
   NDTweaks.clear();
   FDTweaks.clear();
+
+  bool IsCAFAnaFormat = ps.get<bool>("IsCAFAnaFormat", false);
 
   size_t NParams = ps.get<size_t>("NEffectiveParametersToRead");
   std::string ND_detector_tag = ps.get<std::string>("ND_detector_tag", "");
@@ -21,14 +24,15 @@ void EffectiveFluxUncertaintyHelper::Initialize(fhicl::ParameterSet const &ps) {
       ps.get<std::string>("nuebar_species_tag", "");
 
   std::string input_file = ps.get<std::string>("InputFile");
-  std::string input_dir =
-      ps.get<std::string>("InputDir", "EffectiveFluxParameters");
+  std::string input_dir = ps.get<std::string>(
+      "InputDir", IsCAFAnaFormat ? "" : "EffectiveFluxParameters");
 
   for (size_t p_it = 0; p_it < NParams; ++p_it) {
     NDTweaks.emplace_back();
     FDTweaks.emplace_back();
     std::string input_dir_i = input_dir + (input_dir.size() ? "/" : "") +
-                              "param_" + std::to_string(p_it) + "/";
+                              (IsCAFAnaFormat ? "syst" : "param_") +
+                              std::to_string(p_it) + "/";
 
     size_t NHistsLoaded = 0;
     int nucf = kND_numu_numode;
@@ -42,29 +46,44 @@ void EffectiveFluxUncertaintyHelper::Initialize(fhicl::ParameterSet const &ps) {
           NDTweaks.back().emplace_back(nullptr);
           FDTweaks.back().emplace_back(nullptr);
 
+          std::string hname =
+              (IsCAFAnaFormat ? input_dir_i + location_tag + "_" + species_tag +
+                                    "_" + beam_mode_tag
+                              : input_dir_i + location_tag + "_" +
+                                    beam_mode_tag + "_" + species_tag);
+
           if (nucf < kFD_numu_numode) { // Is ND
             NDTweaks.back().back() =
-                GetHistogram_uptr<TH2>(input_file,
-                                       input_dir_i + location_tag + "_" +
-                                           beam_mode_tag + "_" + species_tag,
-                                       true);
+                GetHistogram_uptr<TH1>(input_file, hname, true);
+
+            if ((NDIs2D == -1) && NDTweaks.back().back()) {
+              NDIs2D = NDTweaks.back().back()->GetDimension() - 1;
+            }
 
             NHistsLoaded += bool(NDTweaks.back().back());
+            // if (!NDTweaks.back().back()) {
+            //   std::cout << "failed to read " << hname << std::endl;
+            // }
           } else {
             FDTweaks.back().back() =
-                GetHistogram_uptr<TH1>(input_file,
-                                       input_dir_i + location_tag + "_" +
-                                           beam_mode_tag + "_" + species_tag,
-                                       true);
+                GetHistogram_uptr<TH1>(input_file, hname, true);
 
             NHistsLoaded += bool(FDTweaks.back().back());
+            // if (!FDTweaks.back().back()) {
+            //   std::cout << "failed to read " << hname << std::endl;
+            // }
           }
           nucf += 1;
         }
       }
     }
-    std::cout << "[EffectiveFluxParameters]: Loaded " << NHistsLoaded
-              << " tweak histograms for parameter " << p_it << std::endl;
+    // std::cout << "[EffectiveFluxParameters]: Loaded " << NHistsLoaded
+    //           << " tweak histograms for parameter " << p_it << std::endl;
+
+    if (!NHistsLoaded) {
+      NDTweaks.pop_back();
+      FDTweaks.pop_back();
+    }
   }
 }
 int EffectiveFluxUncertaintyHelper::GetNuConfig(int nu_pdg, bool IsND,
@@ -120,13 +139,17 @@ int EffectiveFluxUncertaintyHelper::GetBin(int nu_pdg, double enu_GeV,
           (xbin == NDTweaks[param_id][nucf]->GetXaxis()->GetNbins() + 1)) {
         return kInvalidBin;
       }
-      Int_t ybin =
-          NDTweaks[param_id][nucf]->GetYaxis()->FindFixBin(off_axix_pos_m);
-      if ((ybin == 0) ||
-          (ybin == NDTweaks[param_id][nucf]->GetYaxis()->GetNbins() + 1)) {
-        return kInvalidBin;
+      if (NDIs2D == 1) {
+        Int_t ybin =
+            NDTweaks[param_id][nucf]->GetYaxis()->FindFixBin(off_axix_pos_m);
+        if ((ybin == 0) ||
+            (ybin == NDTweaks[param_id][nucf]->GetYaxis()->GetNbins() + 1)) {
+          return kInvalidBin;
+        }
+        return NDTweaks[param_id][nucf]->GetBin(xbin, ybin);
+      } else {
+        return NDTweaks[param_id][nucf]->GetBin(xbin);
       }
-      return NDTweaks[param_id][nucf]->GetBin(xbin, ybin);
     }
   } else {
     if (!FDTweaks[param_id][nucf]) {
@@ -144,7 +167,7 @@ int EffectiveFluxUncertaintyHelper::GetBin(int nu_pdg, double enu_GeV,
 
 double EffectiveFluxUncertaintyHelper::GetFluxWeight(size_t param_id,
                                                      double param_val, int bin,
-                                                     int nucf) {
+                                                     int nucf) const {
   if (nucf == kUnhandled) {
     return 1;
   }
