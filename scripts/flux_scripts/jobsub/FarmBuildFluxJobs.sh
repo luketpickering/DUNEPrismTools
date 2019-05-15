@@ -313,7 +313,7 @@ fi
 
 if [ -e ${DUNEPRISMTOOLSROOT}/fcl/${CONFIG_FCL_FD} ]; then
   FD_PATH_APPEND=$(echo ${PNFS_PATH_APPEND} | sed "s/__DET__/FD/g")
-  echo "[INFO]: Doing fD."
+  echo "[INFO]: Doing FD."
 fi
 
 for DET in ND FD; do
