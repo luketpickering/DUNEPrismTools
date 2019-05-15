@@ -8,7 +8,7 @@ SET(FLUX_APPS
   MakeLitedk2nu
   FluxSmusher
   FluxLinearSolver_Standalone
-  UndoPCAInPostFitCovmat
+  # UndoPCAInPostFitCovmat
 )
 
 include_directories(${INCDIRS})
