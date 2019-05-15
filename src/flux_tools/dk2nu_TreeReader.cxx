@@ -712,16 +712,6 @@ double GetPPFXWeight(Int_t PPFXUniv, Int_t NPPFXUniv, DK2NuReader &dk2nuRdr) {
   if (PPFXUniv == 0) {
     return 1;
   } else if (PPFXUniv == 1) {
-
-    double test = dk2nuRdr.ppfx_cvwgt_mipp_pi * dk2nuRdr.ppfx_cvwgt_mipp_K *
-                  dk2nuRdr.ppfx_cvwgt_abs * dk2nuRdr.ppfx_cvwgt_att *
-                  dk2nuRdr.ppfx_cvwgt_ttpCpi * dk2nuRdr.ppfx_cvwgt_ttpCk *
-                  dk2nuRdr.ppfx_cvwgt_ttnCpi * dk2nuRdr.ppfx_cvwgt_ttpCnu *
-                  dk2nuRdr.ppfx_cvwgt_ttnua * dk2nuRdr.ppfx_cvwgt_ttmesinc *
-                  dk2nuRdr.ppfx_cvwgt_oth;
-
-    assert(fabs(test - dk2nuRdr.ppfx_cvwgt) < 1E-5);
-
     return dk2nuRdr.ppfx_cvwgt;
   }
 
