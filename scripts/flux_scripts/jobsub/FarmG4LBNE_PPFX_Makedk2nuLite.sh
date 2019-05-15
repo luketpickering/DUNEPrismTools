@@ -6,6 +6,7 @@ LIFETIME_EXP="3h"
 DISK_EXP="1GB"
 MEM_EXP="1GB"
 USE_PPFX="0"
+USE_ALL_PPFX_WEIGHTS="0"
 MACRO=""
 NPROTONS="100000"
 
@@ -30,6 +31,11 @@ while [[ ${#} -gt 0 ]]; do
 
       USE_PPFX="1"
       echo "[OPT]: Attempting to run PPFX."
+      ;;
+
+      --Use-All-PPFX-Weights)
+      USE_ALL_PPFX_WEIGHTS="1"
+      echo "[OPT]: Attempting to keep all PPFX weight branches."
       ;;
 
       -m|--macro)
@@ -115,6 +121,7 @@ while [[ ${#} -gt 0 ]]; do
       echo -e "\t-m|--macro                 : g4lbnf macro to use in generation."
       echo -e "\t-p|--pnfs-path-append      : Path to append to output path: /pnfs/dune/persistent/users/${USER}/"
       echo -e "\t-P|--PPFX                  : Will run PPFX."
+      echo -e "\t--Use-All-PPFX-Weights     : Keep all hadron production weight branches separate, will increase disk space usage of output file by 5-10x."
       echo -e "\t-N|--number-of-jobs        : Number of flux jobs to run."
       echo -e "\t-n|--number-of-protons     : Number of POT to throw (Default: 100000)"
       echo -e "\t--expected-disk            : Expected disk usage to pass to jobsub. "
@@ -241,8 +248,8 @@ for dir in dk2nulite logs; do
   fi
 done
 
-echo "Submitting job: jobsub_submit --group=${EXPERIMENT} --jobid-output-only --resource-provides=usage_model=OPPORTUNISTIC --expected-lifetime=${LIFETIME_EXP} --disk=${DISK_EXP} -N ${NJOBSTORUN} --memory=${MEM_EXP} --cpu=1 --OS=SL6 --tar_file_name=dropbox://g4blne_makedk2nulite.tar.gz file://${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/RunG4LBNE_PPFX_Makedk2nuLite.sh ${MACRO_FILE_NAME} ${PNFS_PATH_APPEND} ${USE_PPFX}"
-JID=$(jobsub_submit --group=${EXPERIMENT} --jobid-output-only --resource-provides=usage_model=OPPORTUNISTIC --expected-lifetime=${LIFETIME_EXP} --disk=${DISK_EXP} -N ${NJOBSTORUN} --memory=${MEM_EXP} --cpu=1 --OS=SL6 --tar_file_name=dropbox://g4blne_makedk2nulite.tar.gz file://${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/RunG4LBNE_PPFX_Makedk2nuLite.sh ${MACRO_FILE_NAME} ${PNFS_PATH_APPEND} ${USE_PPFX})
+echo "Submitting job: jobsub_submit --group=${EXPERIMENT} --jobid-output-only --resource-provides=usage_model=OPPORTUNISTIC,OFFSITE --expected-lifetime=${LIFETIME_EXP} --disk=${DISK_EXP} -N ${NJOBSTORUN} --memory=${MEM_EXP} --cpu=1 --OS=SL6 --tar_file_name=dropbox://g4blne_makedk2nulite.tar.gz file://${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/RunG4LBNE_PPFX_Makedk2nuLite.sh ${MACRO_FILE_NAME} ${PNFS_PATH_APPEND} ${USE_PPFX} ${USE_ALL_PPFX_WEIGHTS}"
+JID=$(jobsub_submit --group=${EXPERIMENT} --jobid-output-only --resource-provides=usage_model=OPPORTUNISTIC,OFFSITE --expected-lifetime=${LIFETIME_EXP} --disk=${DISK_EXP} -N ${NJOBSTORUN} --memory=${MEM_EXP} --cpu=1 --OS=SL6 --tar_file_name=dropbox://g4blne_makedk2nulite.tar.gz file://${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/RunG4LBNE_PPFX_Makedk2nuLite.sh ${MACRO_FILE_NAME} ${PNFS_PATH_APPEND} ${USE_PPFX} ${USE_ALL_PPFX_WEIGHTS})
 
 
 
@@ -258,3 +265,7 @@ echo -e "#!/bin/sh\n source /cvmfs/fermilab.opensciencegrid.org/products/common/
 echo -e "#!/bin/sh\n source /cvmfs/fermilab.opensciencegrid.org/products/common/etc/setups.sh; setup jobsub_client; mkdir ${JID}_log; cd ${JID}_log; jobsub_fetchlog --user=${USER} --group=${EXPERIMENT} --jobid=${JID}; tar -zxvf *.tgz" > JID_${JID}.fetchlog.sh
 
 chmod +x JID_${JID}.q.sh JID_${JID}.rm.sh JID_${JID}.fetchlog.sh
+
+#to reduce job submission rate
+echo "Sleeping for 3 minutes..."
+sleep 2.5m

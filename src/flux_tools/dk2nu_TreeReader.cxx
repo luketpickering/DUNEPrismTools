@@ -153,6 +153,18 @@ void DK2NuReader::SetPPFXBranchAddresses(size_t NUniverses) {
     tree->SetBranchAddress("ppfx_vwgt_ttnua", ppfx_vwgt_ttnua);
     tree->SetBranchAddress("ppfx_vwgt_ttmesinc", ppfx_vwgt_ttmesinc);
     tree->SetBranchAddress("ppfx_vwgt_oth", ppfx_vwgt_oth);
+
+    tree->SetBranchAddress("ppfx_cvwgt_mipp_pi", &ppfx_cvwgt_mipp_pi);
+    tree->SetBranchAddress("ppfx_cvwgt_mipp_K", &ppfx_cvwgt_mipp_K);
+    tree->SetBranchAddress("ppfx_cvwgt_abs", &ppfx_cvwgt_abs);
+    tree->SetBranchAddress("ppfx_cvwgt_att", &ppfx_cvwgt_att);
+    tree->SetBranchAddress("ppfx_cvwgt_ttpCpi", &ppfx_cvwgt_ttpCpi);
+    tree->SetBranchAddress("ppfx_cvwgt_ttpCk", &ppfx_cvwgt_ttpCk);
+    tree->SetBranchAddress("ppfx_cvwgt_ttnCpi", &ppfx_cvwgt_ttnCpi);
+    tree->SetBranchAddress("ppfx_cvwgt_ttpCnu", &ppfx_cvwgt_ttpCnu);
+    tree->SetBranchAddress("ppfx_cvwgt_ttnua", &ppfx_cvwgt_ttnua);
+    tree->SetBranchAddress("ppfx_cvwgt_ttmesinc", &ppfx_cvwgt_ttmesinc);
+    tree->SetBranchAddress("ppfx_cvwgt_oth", &ppfx_cvwgt_oth);
   }
 }
 
@@ -216,7 +228,9 @@ void DK2NuReader::AddPPFXFriend(std::string treeName, std::string inputFiles,
   tree->SetBranchAddress("vwgt_tot", ppfx_vwgt_tot);
 
   if (CheckTTreeHasBranch(ppfx_tree, "vwgt_mipp_pi")) {
-    std::cout << "[INFO]: Input PPFX Friend tree has separate hadron production weight branches." << std::endl;
+    std::cout << "[INFO]: Input PPFX Friend tree has separate hadron "
+                 "production weight branches."
+              << std::endl;
 
     fUseAllPPFXBranches = true;
 
@@ -243,6 +257,18 @@ void DK2NuReader::AddPPFXFriend(std::string treeName, std::string inputFiles,
     tree->SetBranchAddress("vwgt_ttnua", ppfx_vwgt_ttnua);
     tree->SetBranchAddress("vwgt_ttmesinc", ppfx_vwgt_ttmesinc);
     tree->SetBranchAddress("vwgt_oth", ppfx_vwgt_oth);
+
+    tree->SetBranchAddress("cvwgt_mipp_pi", &ppfx_cvwgt_mipp_pi);
+    tree->SetBranchAddress("cvwgt_mipp_K", &ppfx_cvwgt_mipp_K);
+    tree->SetBranchAddress("cvwgt_abs", &ppfx_cvwgt_abs);
+    tree->SetBranchAddress("cvwgt_att", &ppfx_cvwgt_att);
+    tree->SetBranchAddress("cvwgt_ttpCpi", &ppfx_cvwgt_ttpCpi);
+    tree->SetBranchAddress("cvwgt_ttpCk", &ppfx_cvwgt_ttpCk);
+    tree->SetBranchAddress("cvwgt_ttnCpi", &ppfx_cvwgt_ttnCpi);
+    tree->SetBranchAddress("cvwgt_ttpCnu", &ppfx_cvwgt_ttpCnu);
+    tree->SetBranchAddress("cvwgt_ttnua", &ppfx_cvwgt_ttnua);
+    tree->SetBranchAddress("cvwgt_ttmesinc", &ppfx_cvwgt_ttmesinc);
+    tree->SetBranchAddress("cvwgt_oth", &ppfx_cvwgt_oth);
   }
 }
 
@@ -289,6 +315,18 @@ void DK2NuReader::WriteOutLiteTree(TTree *outtree) {
   outtree->Branch("decay_nimpwt", &_decay_nimpwt, "decay_nimpwt/D");
 
   Double_t _ppfx_cvwgt;
+  Double_t _ppfx_cvwgt_mipp_pi;
+  Double_t _ppfx_cvwgt_mipp_K;
+  Double_t _ppfx_cvwgt_abs;
+  Double_t _ppfx_cvwgt_att;
+  Double_t _ppfx_cvwgt_ttpCpi;
+  Double_t _ppfx_cvwgt_ttpCk;
+  Double_t _ppfx_cvwgt_ttnCpi;
+  Double_t _ppfx_cvwgt_ttpCnu;
+  Double_t _ppfx_cvwgt_ttnua;
+  Double_t _ppfx_cvwgt_ttmesinc;
+  Double_t _ppfx_cvwgt_oth;
+
   Double_t *_ppfx_vwgt_tot;
   TBranch *ppfx_vwgt_tot_branch;
 
@@ -326,6 +364,27 @@ void DK2NuReader::WriteOutLiteTree(TTree *outtree) {
                             .c_str());
 
     if (fUseAllPPFXBranches) {
+
+      outtree->Branch("ppfx_cvwgt_mipp_pi", &_ppfx_cvwgt_mipp_pi,
+                      "ppfx_cvwgt_mipp_pi/D");
+      outtree->Branch("ppfx_cvwgt_mipp_K", &_ppfx_cvwgt_mipp_K,
+                      "ppfx_cvwgt_mipp_K/D");
+      outtree->Branch("ppfx_cvwgt_abs", &_ppfx_cvwgt_abs, "ppfx_cvwgt_abs/D");
+      outtree->Branch("ppfx_cvwgt_att", &_ppfx_cvwgt_att, "ppfx_cvwgt_att/D");
+      outtree->Branch("ppfx_cvwgt_ttpCpi", &_ppfx_cvwgt_ttpCpi,
+                      "ppfx_cvwgt_ttpCpi/D");
+      outtree->Branch("ppfx_cvwgt_ttpCk", &_ppfx_cvwgt_ttpCk,
+                      "ppfx_cvwgt_ttpCk/D");
+      outtree->Branch("ppfx_cvwgt_ttnCpi", &_ppfx_cvwgt_ttnCpi,
+                      "ppfx_cvwgt_ttnCpi/D");
+      outtree->Branch("ppfx_cvwgt_ttpCnu", &_ppfx_cvwgt_ttpCnu,
+                      "ppfx_cvwgt_ttpCnu/D");
+      outtree->Branch("ppfx_cvwgt_ttnua", &_ppfx_cvwgt_ttnua,
+                      "ppfx_cvwgt_ttnua/D");
+      outtree->Branch("ppfx_cvwgt_ttmesinc", &_ppfx_cvwgt_ttmesinc,
+                      "ppfx_cvwgt_ttmesinc/D");
+      outtree->Branch("ppfx_cvwgt_oth", &_ppfx_cvwgt_oth, "ppfx_cvwgt_oth/D");
+
       _ppfx_vwgt_mipp_pi = new Double_t[ppfx_NUniverses];
       ppfx_vwgt_mipp_pi_branch =
           outtree->Branch("ppfx_vwgt_mipp_pi", _ppfx_vwgt_mipp_pi,
@@ -442,6 +501,18 @@ void DK2NuReader::WriteOutLiteTree(TTree *outtree) {
         std::copy_n(ppfx_vwgt_ttnua, ppfx_NUniverses, _ppfx_vwgt_ttnua);
         std::copy_n(ppfx_vwgt_ttmesinc, ppfx_NUniverses, _ppfx_vwgt_ttmesinc);
         std::copy_n(ppfx_vwgt_oth, ppfx_NUniverses, _ppfx_vwgt_oth);
+
+        _ppfx_cvwgt_mipp_pi = ppfx_cvwgt_mipp_pi;
+        _ppfx_cvwgt_mipp_K = ppfx_cvwgt_mipp_K;
+        _ppfx_cvwgt_abs = ppfx_cvwgt_abs;
+        _ppfx_cvwgt_att = ppfx_cvwgt_att;
+        _ppfx_cvwgt_ttpCpi = ppfx_cvwgt_ttpCpi;
+        _ppfx_cvwgt_ttpCk = ppfx_cvwgt_ttpCk;
+        _ppfx_cvwgt_ttnCpi = ppfx_cvwgt_ttnCpi;
+        _ppfx_cvwgt_ttpCnu = ppfx_cvwgt_ttpCnu;
+        _ppfx_cvwgt_ttnua = ppfx_cvwgt_ttnua;
+        _ppfx_cvwgt_ttmesinc = ppfx_cvwgt_ttmesinc;
+        _ppfx_cvwgt_oth = ppfx_cvwgt_oth;
       }
     }
 
@@ -606,7 +677,6 @@ void DKMetaReader::WriteOutLiteTree(TTree *outtree) {
 
 DKMetaReader::~DKMetaReader() { delete tree; }
 
-
 std::string GetPPFXHistName(Int_t PPFXUniv, Int_t NPPFXUniv) {
   if (PPFXUniv == 0) {
     return "_Nom";
@@ -628,11 +698,13 @@ std::string GetPPFXHistName(Int_t PPFXUniv, Int_t NPPFXUniv) {
   }
 
   std::string const cycle_names[] = {
-      "",       "_mipp_pi", "_mipp_K", "_abs",   "_att",      "_ttpCpi",
-      "_ttpCk", "_ttnCpi",  "_ttpCnu", "_ttnua", "_ttmesinc", "_oth"};
+      // "",       "_mipp_pi", "_mipp_K", "_abs",   "_att",      "_ttpCpi",
+      "",        "_abs",    "_att",   "_ttpCpi",   "_ttpCk",
+      "_ttnCpi", "_ttpCnu", "_ttnua", "_ttmesinc", "_oth"};
 
   std::stringstream ss("");
   ss << "_univ_" << univ << cycle_names[univ_cycle];
+
   return ss.str();
 }
 
@@ -640,6 +712,16 @@ double GetPPFXWeight(Int_t PPFXUniv, Int_t NPPFXUniv, DK2NuReader &dk2nuRdr) {
   if (PPFXUniv == 0) {
     return 1;
   } else if (PPFXUniv == 1) {
+
+    double test = dk2nuRdr.ppfx_cvwgt_mipp_pi * dk2nuRdr.ppfx_cvwgt_mipp_K *
+                  dk2nuRdr.ppfx_cvwgt_abs * dk2nuRdr.ppfx_cvwgt_att *
+                  dk2nuRdr.ppfx_cvwgt_ttpCpi * dk2nuRdr.ppfx_cvwgt_ttpCk *
+                  dk2nuRdr.ppfx_cvwgt_ttnCpi * dk2nuRdr.ppfx_cvwgt_ttpCnu *
+                  dk2nuRdr.ppfx_cvwgt_ttnua * dk2nuRdr.ppfx_cvwgt_ttmesinc *
+                  dk2nuRdr.ppfx_cvwgt_oth;
+
+    assert(fabs(test - dk2nuRdr.ppfx_cvwgt) < 1E-5);
+
     return dk2nuRdr.ppfx_cvwgt;
   }
 
@@ -652,40 +734,79 @@ double GetPPFXWeight(Int_t PPFXUniv, Int_t NPPFXUniv, DK2NuReader &dk2nuRdr) {
   case 0: {
     return dk2nuRdr.ppfx_vwgt_tot[univ];
   }
+  // case 1: {
+  //   return dk2nuRdr.ppfx_vwgt_mipp_pi[univ] *
+  //          (dk2nuRdr.ppfx_cvwgt / dk2nuRdr.ppfx_cvwgt_mipp_pi);
+  // }
+  // case 2: {
+  //   return dk2nuRdr.ppfx_vwgt_mipp_K[univ] *
+  //          (dk2nuRdr.ppfx_cvwgt / dk2nuRdr.ppfx_cvwgt_mipp_K);
+  // }
   case 1: {
-    return dk2nuRdr.ppfx_vwgt_mipp_pi[univ];
+    return dk2nuRdr.ppfx_vwgt_abs[univ] *
+           (dk2nuRdr.ppfx_cvwgt / dk2nuRdr.ppfx_cvwgt_abs);
   }
   case 2: {
-    return dk2nuRdr.ppfx_vwgt_mipp_K[univ];
+    return dk2nuRdr.ppfx_vwgt_att[univ] *
+           (dk2nuRdr.ppfx_cvwgt / dk2nuRdr.ppfx_cvwgt_att);
   }
   case 3: {
-    return dk2nuRdr.ppfx_vwgt_abs[univ];
+    return dk2nuRdr.ppfx_vwgt_ttpCpi[univ] *
+           (dk2nuRdr.ppfx_cvwgt / dk2nuRdr.ppfx_cvwgt_ttpCpi);
   }
   case 4: {
-    return dk2nuRdr.ppfx_vwgt_att[univ];
+    return dk2nuRdr.ppfx_vwgt_ttpCk[univ] *
+           (dk2nuRdr.ppfx_cvwgt / dk2nuRdr.ppfx_cvwgt_ttpCk);
   }
   case 5: {
-    return dk2nuRdr.ppfx_vwgt_ttpCpi[univ];
+    return dk2nuRdr.ppfx_vwgt_ttnCpi[univ] *
+           (dk2nuRdr.ppfx_cvwgt / dk2nuRdr.ppfx_cvwgt_ttnCpi);
   }
   case 6: {
-    return dk2nuRdr.ppfx_vwgt_ttpCk[univ];
+    return dk2nuRdr.ppfx_vwgt_ttpCnu[univ] *
+           (dk2nuRdr.ppfx_cvwgt / dk2nuRdr.ppfx_cvwgt_ttpCnu);
   }
   case 7: {
-    return dk2nuRdr.ppfx_vwgt_ttnCpi[univ];
+    return dk2nuRdr.ppfx_vwgt_ttnua[univ] *
+           (dk2nuRdr.ppfx_cvwgt / dk2nuRdr.ppfx_cvwgt_ttnua);
   }
   case 8: {
-    return dk2nuRdr.ppfx_vwgt_ttpCnu[univ];
+    return dk2nuRdr.ppfx_vwgt_ttmesinc[univ] *
+           (dk2nuRdr.ppfx_cvwgt / dk2nuRdr.ppfx_cvwgt_ttmesinc);
   }
   case 9: {
-    return dk2nuRdr.ppfx_vwgt_ttnua[univ];
+    return dk2nuRdr.ppfx_vwgt_oth[univ] *
+           (dk2nuRdr.ppfx_cvwgt / dk2nuRdr.ppfx_cvwgt_oth);
   }
-  case 10: {
-    return dk2nuRdr.ppfx_vwgt_ttmesinc[univ];
+  default: { throw; }
   }
-  case 11: {
-    return dk2nuRdr.ppfx_vwgt_oth[univ];
-  } default: {
-    throw;
-  }
-  }
+}
+
+void DumpPPFXWeights(Int_t PPFXUniv, DK2NuReader &dk2nuRdr) {
+  std::cout << "[INFO]: cvwgt[" << PPFXUniv << "] = " << dk2nuRdr.ppfx_cvwgt
+            << std::endl;
+  std::cout << "\tppfx_vwgt_tot[" << PPFXUniv
+            << "] = " << dk2nuRdr.ppfx_vwgt_tot[PPFXUniv] << std::endl;
+  std::cout << "\tppfx_vwgt_mipp_pi[" << PPFXUniv
+            << "] = " << dk2nuRdr.ppfx_vwgt_mipp_pi[PPFXUniv] << std::endl;
+  std::cout << "\tppfx_vwgt_mipp_K[" << PPFXUniv
+            << "] = " << dk2nuRdr.ppfx_vwgt_mipp_K[PPFXUniv] << std::endl;
+  std::cout << "\tppfx_vwgt_abs[" << PPFXUniv
+            << "] = " << dk2nuRdr.ppfx_vwgt_abs[PPFXUniv] << std::endl;
+  std::cout << "\tppfx_vwgt_att[" << PPFXUniv
+            << "] = " << dk2nuRdr.ppfx_vwgt_att[PPFXUniv] << std::endl;
+  std::cout << "\tppfx_vwgt_ttpCpi[" << PPFXUniv
+            << "] = " << dk2nuRdr.ppfx_vwgt_ttpCpi[PPFXUniv] << std::endl;
+  std::cout << "\tppfx_vwgt_ttpCk[" << PPFXUniv
+            << "] = " << dk2nuRdr.ppfx_vwgt_ttpCk[PPFXUniv] << std::endl;
+  std::cout << "\tppfx_vwgt_ttnCpi[" << PPFXUniv
+            << "] = " << dk2nuRdr.ppfx_vwgt_ttnCpi[PPFXUniv] << std::endl;
+  std::cout << "\tppfx_vwgt_ttpCnu[" << PPFXUniv
+            << "] = " << dk2nuRdr.ppfx_vwgt_ttpCnu[PPFXUniv] << std::endl;
+  std::cout << "\tppfx_vwgt_ttnua[" << PPFXUniv
+            << "] = " << dk2nuRdr.ppfx_vwgt_ttnua[PPFXUniv] << std::endl;
+  std::cout << "\tppfx_vwgt_ttmesinc[" << PPFXUniv
+            << "] = " << dk2nuRdr.ppfx_vwgt_ttmesinc[PPFXUniv] << std::endl;
+  std::cout << "\tppfx_vwgt_oth[" << PPFXUniv
+            << "] = " << dk2nuRdr.ppfx_vwgt_oth[PPFXUniv] << std::endl;
 }
