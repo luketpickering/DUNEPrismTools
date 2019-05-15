@@ -26,6 +26,12 @@ if [ ! -z ${3} ]; then
 fi
 echo "[INFO]: Using PPFX ? ${USE_PPFX}"
 
+USE_ALL_PPFX_WEIGHTS="0"
+if [ ! -z ${4} ]; then
+  USE_ALL_PPFX_WEIGHTS=${4}
+fi
+echo "[INFO]: Using all PPFX weights? ${USE_ALL_PPFX_WEIGHTS}"
+
 
 if [ -z ${INPUT_TAR_FILE} ]; then
   echo "[ERROR]: Expected to recieve an input file."
@@ -218,8 +224,13 @@ if [ "${USE_PPFX}" == "1" ]; then
   ldd Make_dk2nu_FriendTree
   echo "---------------"
 
-  echo "./Make_dk2nu_FriendTree ${G4LBNE_DK2NUFILE} ${PPFX_FRIENDFILE} ppfx.xml &> ppfx.${CLUSTER}.${PROCESS}.log @ $(date)"
-  ./Make_dk2nu_FriendTree ${G4LBNE_DK2NUFILE} ${PPFX_FRIENDFILE} ppfx.xml &> ppfx.${CLUSTER}.${PROCESS}.log
+  ALLWEIGHTSCMD=""
+  if [ "${USE_ALL_PPFX_WEIGHTS}" == "1" ]; then
+    ALLWEIGHTSCMD="AllWeights"
+  fi
+
+  echo "./Make_dk2nu_FriendTree ${G4LBNE_DK2NUFILE} ${PPFX_FRIENDFILE} ppfx.xml ${ALLWEIGHTSCMD} &> ppfx.${CLUSTER}.${PROCESS}.log @ $(date)"
+  ./Make_dk2nu_FriendTree ${G4LBNE_DK2NUFILE} ${PPFX_FRIENDFILE} ppfx.xml ${ALLWEIGHTSCMD} &> ppfx.${CLUSTER}.${PROCESS}.log
   echo "Finished @ $(date)"
 
   echo "pwd is $(pwd)"
