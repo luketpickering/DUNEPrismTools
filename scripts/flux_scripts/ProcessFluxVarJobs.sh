@@ -3,10 +3,10 @@
 PRED_DIR="uncertbin_onaxis"
 declare -A FD_FHICL_ARR
 declare -A ND_FHICL_ARR
-FD_FHICL_ARR["nu"]="-FF build_FD_fluxes_numode_uncertbin_onaxis.fcl"
-ND_FHICL_ARR["nu"]="-FN build_ND_fluxes_numode_uncertbin_onaxis.fcl"
-FD_FHICL_ARR["nubar"]="-FF build_FD_fluxes_nubarmode_uncertbin_onaxis.fcl"
-ND_FHICL_ARR["nubar"]="-FN build_ND_fluxes_nubarmode_uncertbin_onaxis.fcl"
+FD_FHICL_ARR["nu"]="-FF flux/build_FD_fluxes_numode_uncertbin_onaxis.fcl"
+ND_FHICL_ARR["nu"]="-FN flux/build_ND_fluxes_numode_uncertbin_onaxis.fcl"
+FD_FHICL_ARR["nubar"]="-FF flux/build_FD_fluxes_nubarmode_uncertbin_onaxis.fcl"
+ND_FHICL_ARR["nubar"]="-FN flux/build_ND_fluxes_nubarmode_uncertbin_onaxis.fcl"
 
 FORCEOVERWRITE="false"
 
