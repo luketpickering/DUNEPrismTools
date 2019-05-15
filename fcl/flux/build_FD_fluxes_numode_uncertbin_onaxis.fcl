@@ -1,0 +1,27 @@
+  #include "flux_binnings.fcl"
+  #include "flux_windows.fcl"
+
+binning: {
+  energy: @local::energy_binnings.coarse_uncert.nu
+}
+
+flux_window: @local::FD_OnAxis
+
+input: {
+  # max_decay_parents: -1
+  # limit_decay_parent_use: false
+  use_dk2nu_lite: true
+  # use_dk2nu_ppfx: false
+  # use_dk2nu_ppfx_allweights: false
+  # number_ppfx_universes: 0
+}
+
+output: {
+  # only_nu_species_pdg: 0
+  # separate_by_hadron_species: false
+  # make_divergence: false
+  # use_THF: false
+  # use_reciprocal_energy: false
+  # ignore_prediction_integral: false
+  # write_nu_ray_tree_to: "nowhere.root"
+}

@@ -261,6 +261,20 @@ struct Config {
       throw;
     }
 
+    if (flux_window_ps.has_key("width_m")) {
+      if (binning_ps.has_key("off_axis_binning_ps")) {
+        std::cout << "[ERROR]: Found flux_window.width_m but "
+                     "binning.off_axis was also specified."
+                  << std::endl;
+        throw;
+      }
+
+      double half_width_m = flux_window_ps.get<double>("width_m") / 2.0;
+      binning.off_axis = std::vector<std::vector<double>>(
+          NuPDGTargets.size(),
+          std::vector<double>{-half_width_m, half_width_m});
+    }
+
     fhicl::ParameterSet input_ps =
         ps.get<fhicl::ParameterSet>("input", fhicl::ParameterSet());
 

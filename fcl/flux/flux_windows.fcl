@@ -1,0 +1,18 @@
+BEGIN_PROLOG
+ND_OnAxis: {
+  height_m: 3
+  width_m: 6
+  z_from_target_m: 575
+}
+
+ND_OffAxis: {
+  height_m: 3
+  z_from_target_m: 575
+}
+
+FD_OnAxis: {
+  height_m: 22.6
+  width_m: 25.80
+  z_from_target_km: 1300
+}
+END_PROLOG

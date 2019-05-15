@@ -53,6 +53,8 @@ export DUNEPRISMTOOLS_VERSION="@DUNEPrismTools_VERSION_STRING@"
 if [ "@USE_FHICL@" == "TRUE" ]; then
   echo "[INFO]: Sourcing fhiclcpp environment"
   source ${DUNEPRISMTOOLSROOT}/fhiclcpp.setup.sh
+  add_to_FHICL_FILE_PATH ${DUNEPRISMTOOLSROOT}/fcl
+  add_to_FHICL_FILE_PATH ${DUNEPRISMTOOLSROOT}/fcl/flux
 fi
 
 add_to_PATH "${DUNEPRISMTOOLSROOT}/bin"

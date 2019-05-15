@@ -1,8 +1,12 @@
 # !/bin/bash
 
 PRED_DIR="uncertbin_onaxis"
-FD_FHICL="-FF build_FD_fluxes_uncertbin_onaxis.fcl"
-ND_FHICL="-FN build_ND_fluxes_uncertbin_onaxis.fcl"
+declare -A FD_FHICL_ARR
+declare -A ND_FHICL_ARR
+FD_FHICL_ARR["nu"]="-FF build_FD_fluxes_numode_uncertbin_onaxis.fcl"
+ND_FHICL_ARR["nu"]="-FN build_ND_fluxes_numode_uncertbin_onaxis.fcl"
+FD_FHICL_ARR["nubar"]="-FF build_FD_fluxes_nubarmode_uncertbin_onaxis.fcl"
+ND_FHICL_ARR["nubar"]="-FN build_ND_fluxes_nubarmode_uncertbin_onaxis.fcl"
 
 FORCEOVERWRITE="false"
 
@@ -27,6 +31,9 @@ ALIGN_DIR="Alignment"
 NINPUTSPERJOB="15"
 
 for NUMODE in nu nubar; do
+
+  FD_FHICL=${FD_FHICL_ARR[${NUMODE}]}
+  ND_FHICL=${ND_FHICL_ARR[${NUMODE}]}
 
   if [ "${DO_PPFX}" == "1" ]; then
     if [ ! -e /pnfs/dune/persistent/users/picker24/${PPFX_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${NUMODE}/dk2nulite ]; then
