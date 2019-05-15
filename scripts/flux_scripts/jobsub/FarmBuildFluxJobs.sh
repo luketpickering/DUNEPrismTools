@@ -365,7 +365,7 @@ if [ ${DO_ND} == "1" ]; then
     echo "[ERROR]: Expected to find ${DUNEPRISMTOOLSROOT}/fcl/${CONFIG_FCL_ND}"
     exit 8
   fi
-  cp ${DUNEPRISMTOOLSROOT}/fcl/${CONFIG_FCL_ND} ND_build_flux.fcl
+  fhicl-dump ${DUNEPRISMTOOLSROOT}/fcl/${CONFIG_FCL_ND} > ND_build_flux.fcl
 fi
 
 if [ ${DO_FD} == "1" ]; then
@@ -373,7 +373,7 @@ if [ ${DO_FD} == "1" ]; then
     echo "[ERROR]: Expected to find ${DUNEPRISMTOOLSROOT}/fcl/${CONFIG_FCL_FD}"
     exit 8
   fi
-  cp ${DUNEPRISMTOOLSROOT}/fcl/${CONFIG_FCL_FD} FD_build_flux.fcl
+  fhicl-dump ${DUNEPRISMTOOLSROOT}/fcl/${CONFIG_FCL_FD} > FD_build_flux.fcl
 fi
 
 tar -zcvf apps.${DUNEPRISMTOOLS_VERSION}.tar.gz dp_BuildFluxes inputs.list *build_flux.fcl
