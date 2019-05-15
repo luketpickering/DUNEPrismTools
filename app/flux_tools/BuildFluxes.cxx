@@ -282,7 +282,7 @@ struct Config {
     input.limit_decay_parent_use =
         input_ps.get<bool>("limit_decay_parent_use", false);
 
-    input_ps.get<bool>("use_dk2nu_lite", true);
+    input.use_dk2nu_lite = input_ps.get<bool>("use_dk2nu_lite", true);
 
     if (input.isdef_dk2nu_ppfx_) {
       input.use_dk2nu_ppfx = input_ps.get<bool>("use_dk2nu_ppfx", false);
