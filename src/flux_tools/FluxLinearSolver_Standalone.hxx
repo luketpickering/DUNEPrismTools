@@ -295,10 +295,10 @@ inline void FillHistFromEigenVector(TH1 *rh, Eigen::VectorXd const &vals,
                                     size_t bin_offset = 0) {
   Int_t dim = rh->GetDimension();
   if (dim == 1) {
-    size_t idx = 0;
-    std::cout << "Filling histogram with " << rh->GetXaxis()->GetNbins()
-              << " bins from vector with " << vals.rows() << " rows."
-              << std::endl;
+    int idx = 0;
+    // std::cout << "Filling histogram with " << rh->GetXaxis()->GetNbins()
+    //           << " bins from vector with " << vals.rows() << " rows."
+    //           << std::endl;
     for (Int_t x_it = bin_offset; x_it < rh->GetXaxis()->GetNbins(); ++x_it) {
       double v = (idx >= vals.rows()) ? 0 : vals(idx);
       rh->SetBinContent(x_it + 1, v);
@@ -387,6 +387,7 @@ public:
 
   Eigen::VectorXd last_solution;
 
+  std::unique_ptr<TH2> NDFluxes;
   std::unique_ptr<TH1> FDFlux_unosc;
   std::unique_ptr<TH1> FDFlux_osc;
 
@@ -405,17 +406,17 @@ public:
 
     if (NDFluxDescriptor.first.size() && NDFluxDescriptor.second.size()) {
 
-      std::unique_ptr<TH2> Flux2D =
+      NDFluxes =
           GetHistogram<TH2>(NDFluxDescriptor.first, NDFluxDescriptor.second);
 
-      if (!Flux2D) {
+      if (!NDFluxes) {
         std::cout << "[ERROR]: Found no input flux with name: \""
                   << NDFluxDescriptor.first << "\" in file: \""
                   << NDFluxDescriptor.second << "\"." << std::endl;
         throw;
       }
 
-      SetNDFluxes(Flux2D.get());
+      SetNDFluxes(NDFluxes.get());
 
     } // end ND setup
 
@@ -498,7 +499,7 @@ public:
     int OscFrom = (OscChannel.first / 2) + (OscChannel.first > 0 ? -5 : 5);
     int OscTo = (OscChannel.second / 2) + (OscChannel.second > 0 ? -5 : 5);
 
-    std::cout << "Osc from " << OscFrom << ", Osc to " << OscTo << std::endl;
+    // std::cout << "Osc from " << OscFrom << ", Osc to " << OscTo << std::endl;
 
     double LengthParam = cos((90.0 + DipAngle_degrees) * (asin(1) / 90.0));
 
@@ -822,6 +823,19 @@ public:
   Eigen::VectorXd Solve(double reg_param = 0) {
     double dum1, dum2;
     return Solve(reg_param, dum1, dum2);
+  }
+
+  TH1 *GetLastMatch() {
+    if (!last_solution.rows()) {
+      return nullptr;
+    }
+    TH1 *FDFlux_bf = static_cast<TH1 *>(FDFlux_osc->Clone("FDFlux_bf"));
+    FDFlux_bf->Reset();
+    FDFlux_bf->SetDirectory(nullptr);
+
+    Eigen::VectorXd bf = (FluxMatrix_Full * last_solution);
+    FillHistFromEigenVector(FDFlux_bf, bf, low_offset);
+    return FDFlux_bf;
   }
 
   void Write(TDirectory *td) {

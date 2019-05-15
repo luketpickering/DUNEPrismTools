@@ -123,6 +123,9 @@ double OscillationHelper::GetWeight(double ENu_GeV) {
               << std::endl;
     throw;
   }
+  if (IsOneOverE) {
+    ENu_GeV = 1.0 / ENu_GeV;
+  }
   bp.SetMNS(OscParams[0], OscParams[1], OscParams[2], OscParams[3],
             OscParams[4], OscParams[5], ENu_GeV, true, FromType);
   bp.DefinePath(LengthParam, 0);
@@ -132,7 +135,8 @@ double OscillationHelper::GetWeight(double ENu_GeV) {
 }
 void OscillationHelper::OscillateHistogram(std::unique_ptr<TH1D> &h) {
   for (Int_t bi_it = 1; bi_it < h->GetXaxis()->GetNbins() + 1; ++bi_it) {
-    double weight = GetWeight(h->GetXaxis()->GetBinCenter(bi_it));
+    double E = h->GetXaxis()->GetBinCenter(bi_it);
+    double weight = GetWeight(E);
     h->SetBinContent(bi_it, weight * h->GetBinContent(bi_it));
     h->SetBinError(bi_it, weight * h->GetBinError(bi_it));
   }

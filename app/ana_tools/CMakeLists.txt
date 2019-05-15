@@ -10,6 +10,9 @@ SET(ANA_APPS
   ProcessedCAFDiagnosticPlots
   ProcessedCAFDumpNominalEventRates
   ProcessedCAFPRISMPrediction
+  NDFDFluxRatioPlots
+  LinearCombinationUncertainties
+  gspl2root
 )
 
 include_directories(${INCDIRS})

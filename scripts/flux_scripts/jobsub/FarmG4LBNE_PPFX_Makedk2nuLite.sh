@@ -246,7 +246,7 @@ JID=$(jobsub_submit --group=${EXPERIMENT} --jobid-output-only --resource-provide
 
 
 
-JID=$(echo ${JID} | tr -d "\n" | tr -d " " | tr -d "\t")
+JID=$(echo ${JID} | tr -d "\n" | tr -d " " | tr -d "\t" | sed "s/\.0//g")
 
 echo "Submitted job with ID: ${JID}"
 

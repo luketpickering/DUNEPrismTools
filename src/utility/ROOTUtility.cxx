@@ -412,6 +412,8 @@ size_t FillHistFromstdvector(TH2 *rh, std::vector<double> const &vals,
       rh->SetBinContent(x_it + 1, y_it + 1, vals[offset]);
       if (error.size()) {
         rh->SetBinError(x_it + 1, y_it + 1, error[offset]);
+      } else {
+        rh->SetBinError(x_it + 1, y_it + 1, 0);
       }
       offset++;
     }
@@ -440,6 +442,8 @@ size_t FillHistFromstdvector(TH1 *rh, std::vector<double> const &vals,
       rh->SetBinContent(x_it + 1, vals[offset]);
       if (error.size()) {
         rh->SetBinError(x_it + 1, error[offset]);
+      } else {
+        rh->SetBinError(x_it + 1, 0);
       }
       offset++;
     }
@@ -466,6 +470,8 @@ size_t FillHistFromEigenVector(TH2 *rh, Eigen::VectorXd const &vals,
       rh->SetBinContent(x_it + 1, y_it + 1, vals(offset));
       if (error.size()) {
         rh->SetBinError(x_it + 1, y_it + 1, error(offset));
+      } else {
+        rh->SetBinError(x_it + 1, y_it + 1, 0);
       }
       offset++;
     }
@@ -495,6 +501,8 @@ size_t FillHistFromEigenVector(TH1 *rh, Eigen::VectorXd const &vals,
       rh->SetBinContent(x_it + 1, vals(offset));
       if (error.size()) {
         rh->SetBinError(x_it + 1, error(offset));
+      } else {
+        rh->SetBinError(x_it + 1, 0);
       }
       offset++;
     }
@@ -518,6 +526,17 @@ Eigen::MatrixXd GetEigenMatrix(TMatrixD const *rm) {
   for (Int_t ir = 0; ir < rm->GetNrows(); ++ir) {
     for (Int_t ic = 0; ic < rm->GetNcols(); ++ic) {
       em(ir, ic) = (*rm)[ir][ic];
+    }
+  }
+
+  return em;
+}
+Eigen::MatrixXd GetEigenMatrix(TH2 const *h) {
+  Eigen::MatrixXd em(h->GetNbinsX(), h->GetNbinsY());
+
+  for (Int_t ir = 0; ir < em.rows(); ++ir) {
+    for (Int_t ic = 0; ic < em.cols(); ++ic) {
+      em(ir, ic) = h->GetBinContent(ic + 1, ir + 1);
     }
   }
 

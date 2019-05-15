@@ -36,6 +36,10 @@ void VariationBuilder::BaseConfigure(fhicl::ParameterSet const &ps) {
   std::string NominalHistName_template =
       paramset.get<std::string>("Nominal.InputHistName");
 
+  NominalInputFile_template =
+      str_replace(NominalInputFile_template, "%N", Name);
+  NominalHistName_template = str_replace(NominalHistName_template, "%N", Name);
+
   for (std::string const &pred_config : Configurations) {
 
     std::string FluxSliceDescriptor = paramset.get<std::string>(
@@ -99,6 +103,9 @@ void ThrownVariations::Process() {
   std::string InputFile_template = VariedHist_ps.get<std::string>("InputFile");
   std::string VariedHistName_template =
       VariedHist_ps.get<std::string>("InputHistName");
+
+  InputFile_template = str_replace(InputFile_template, "%N", Name);
+  VariedHistName_template = str_replace(VariedHistName_template, "%N", Name);
 
   size_t NThrows = paramset.get<size_t>("NThrows");
   size_t NThrowSkip = paramset.get<size_t>("NThrowSkip", 0);
@@ -200,7 +207,7 @@ void ThrownVariations::Process() {
             << RelativeTweaks.front().size() << " covariance matrix."
             << std::endl;
 
-  CovarianceBuilder cb(RelativeTweaks);
+  CovarianceBuilder cb(RelativeTweaks, true);
 
   CovarianceComponent = cb.GetCovMatrix();
 
@@ -333,6 +340,8 @@ void ThrownVariations::Process() {
 void DiscreteVariations::Configure(fhicl::ParameterSet const &ps) {
   BaseConfigure(ps);
 
+  fEvalAtOne = ps.get<bool>("evaluate_interp_at_one_sigma", false);
+
   std::vector<std::pair<double, std::vector<double>>> DiscreteTweaks;
   std::vector<std::pair<double, std::vector<double>>> DiscreteErrors;
 
@@ -346,6 +355,9 @@ void DiscreteVariations::Configure(fhicl::ParameterSet const &ps) {
     std::string InputFile_template = tweak_ps.get<std::string>("InputFile");
     std::string VariedHistName_template =
         tweak_ps.get<std::string>("InputHistName");
+
+    InputFile_template = str_replace(InputFile_template, "%N", Name);
+    VariedHistName_template = str_replace(VariedHistName_template, "%N", Name);
 
     for (std::string const &pred_config : Configurations) {
 
@@ -433,14 +445,14 @@ void DiscreteVariations::Configure(fhicl::ParameterSet const &ps) {
     sig_vals.emplace_back(SigmaValue);
   }
 
-  size_t NSigs = DiscreteTweaks.size();
+  NDOF = DiscreteTweaks.size();
 
   std::vector<std::tuple<double, double, double>> xyevals;
 
   for (size_t fbin_i = 0; fbin_i < NominalPrediction.size(); ++fbin_i) {
     xyevals.clear();
 
-    for (size_t twk_i = 0; twk_i < NSigs; ++twk_i) {
+    for (size_t twk_i = 0; twk_i < NDOF; ++twk_i) {
       xyevals.emplace_back(DiscreteTweaks[twk_i].first,
                            DiscreteTweaks[twk_i].second[fbin_i],
                            DiscreteErrors[twk_i].second[fbin_i]);
@@ -453,7 +465,7 @@ void DiscreteVariations::Configure(fhicl::ParameterSet const &ps) {
       xyevals.emplace_back(
           0, 0, NominalPredictionError[fbin_i] / NominalPrediction[fbin_i]);
     } else {
-      for (size_t twk_i = 0; twk_i < NSigs; ++twk_i) {
+      for (size_t twk_i = 0; twk_i < NDOF; ++twk_i) {
         if (std::get<0>(xyevals[twk_i]) > 0) {
           xyevals.insert(
               xyevals.begin() + twk_i,
@@ -464,7 +476,7 @@ void DiscreteVariations::Configure(fhicl::ParameterSet const &ps) {
       }
     }
 
-    InterpolatedResponses.push_back(PolyResponse<5>(xyevals));
+    InterpolatedResponses.push_back(PolyResponse<2>(xyevals));
   }
 }
 
@@ -472,27 +484,28 @@ void DiscreteVariations::Process() {
 
   std::random_device r;
 
-  NDOF = 1;
-
   std::mt19937 RNEngine(r());
   std::normal_distribution<double> RNJesus(0, 1);
 
   size_t NBins = InterpolatedResponses.size();
 
-  size_t NThrows = paramset.get<size_t>("NThrows");
+  size_t NThrows = fEvalAtOne ? 1 : paramset.get<size_t>("NThrows");
   for (size_t t_it = 0; t_it < NThrows; ++t_it) {
     std::vector<double> thrw_pred(NBins);
-    double val = RNJesus(RNEngine);
+    double val = fEvalAtOne ? 1 : RNJesus(RNEngine);
 
 #pragma omp parallel for
     for (size_t fbin_i = 0; fbin_i < NBins; ++fbin_i) {
       thrw_pred[fbin_i] = InterpolatedResponses[fbin_i].eval(val);
+      if (fEvalAtOne) {
+        thrw_pred[fbin_i] -= InterpolatedResponses[fbin_i].eval(0);
+      }
     }
 
     RelativeTweaks.emplace_back(std::move(thrw_pred));
   }
 
-  CovarianceBuilder cb(RelativeTweaks);
+  CovarianceBuilder cb(RelativeTweaks, true);
 
   CovarianceComponent = cb.GetCovMatrix();
 
@@ -705,6 +718,9 @@ void DirectVariations::Configure(fhicl::ParameterSet const &ps) {
   std::string VariedHistName_template =
       paramset.get<std::string>("Varied.InputHistName");
 
+  InputFile_template = str_replace(InputFile_template, "%N", Name);
+  VariedHistName_template = str_replace(VariedHistName_template, "%N", Name);
+
   for (std::string const &pred_config : Configurations) {
 
     std::string FluxSliceDescriptor = paramset.get<std::string>(
@@ -773,7 +789,7 @@ void DirectVariations::Configure(fhicl::ParameterSet const &ps) {
 }
 
 void DirectVariations::Process() {
-  CovarianceBuilder cb(RelativeTweaks);
+  CovarianceBuilder cb(RelativeTweaks, true);
 
   CovarianceComponent = cb.GetCovMatrix();
 
@@ -911,7 +927,7 @@ void UniformVariations::Configure(fhicl::ParameterSet const &ps) {
 }
 
 void UniformVariations::Process() {
-  CovarianceBuilder cb(RelativeTweaks);
+  CovarianceBuilder cb(RelativeTweaks, true);
 
   CovarianceComponent = cb.GetCovMatrix();
 

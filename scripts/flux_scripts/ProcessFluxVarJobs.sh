@@ -1,86 +1,128 @@
 # !/bin/bash
 
-SUBDIR="uncert_binning"
-DET="FD"
-BINSUFFIX="${i}_mode"
+PRED_DIR="uncertbin_onaxis"
+FD_FHICL="-FF build_FD_fluxes_uncertbin_onaxis.fcl"
+ND_FHICL="-FN build_ND_fluxes_uncertbin_onaxis.fcl"
 
-if [ ${DET} == "FD" ]; then
-  EDISK="1GB"
-  ETIME="20m"
-elif  [ ${DET} == "ND" ]; then
-  EDISK="2GB"
-  ETIME="2h"
-else
-  echo "[ERROR]: Unknown detector \"${DET}\""
-  exit 1
-fi
+FORCEOVERWRITE="false"
 
-for i in nu nubar; do
+EDISK="4GB"
+ETIME_PPFX="6h"
+ETIME="2h"
 
-    if [ ! -e /pnfs/dune/persistent/users/picker24/nominal_5E8POT_wppfx/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${i}/dk2nulite ]; then
-      echo "[INFO]: No input directory for ${i} wppfx, skipping."
+DO_PPFX="1"
+NPPFXUNIVERSES="100"
+PPFX_DIR="nominal_5E8POT_wppfx"
+DO_PPFX_VARIATIONS="1"
+
+DO_PPFX_COMPONENT_VARIATIONS="0"
+PPFX_COMP_DIR="nominal_2.5E8POT_wallppfx"
+
+DO_FOCUS="1"
+FOCUS_DIR="Focussing"
+
+DO_ALIGN="1"
+ALIGN_DIR="Alignment"
+
+NINPUTSPERJOB="15"
+
+for NUMODE in nu nubar; do
+
+  if [ "${DO_PPFX}" == "1" ]; then
+    if [ ! -e /pnfs/dune/persistent/users/picker24/${PPFX_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${NUMODE}/dk2nulite ]; then
+      echo "[INFO]: No input directory for ${NUMODE} wppfx, skipping."
       continue
     fi
 
-    if [ -e /pnfs/dune/persistent/users/picker24/nominal_5E8POT_wppfx/DUNEPrismFluxes/${DET}_${i}/${SUBDIR} ]; then
-      echo "[INFO]: Already have ${i} wppfx not reprocessing."
+    if [ ${FORCEOVERWRITE} != "true" ] && [ -e /pnfs/dune/persistent/users/picker24/${PPFX_DIR}/DUNEPrismFluxes/ND_${NUMODE}/${PRED_DIR} ]; then
+      echo "[INFO]: Already have ${NUMODE} wppfx not reprocessing."
       continue
+    fi
+
+    PPFX_ARG=""
+    if [ "${DO_PPFX_VARIATIONS}" == "1" ]; then
+      PPFX_ARG="--NPPFXU ${NPPFXUNIVERSES}"
     fi
 
   ${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/FarmBuildFluxJobs.sh \
-     --expected-walltime ${ETIME} --expected-disk ${EDISK} \
-     --expected-mem 512MB -F build_${DET}_fluxes_ppfx${BINSUFFIX}.fcl \
-     -p nominal_5E8POT_wppfx/DUNEPrismFluxes/${DET}_${i}/${SUBDIR} \
-     -i /pnfs/dune/persistent/users/picker24/nominal_5E8POT_wppfx/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${i}/dk2nulite \
-     -n 20 -f
-done
+     --expected-walltime ${ETIME_PPFX} --expected-disk ${EDISK} \
+     --expected-mem 512MB ${FD_FHICL} ${ND_FHICL} \
+     -p ${PPFX_DIR}/DUNEPrismFluxes/__DET___${NUMODE}/${PRED_DIR} \
+     -i /pnfs/dune/persistent/users/picker24/${PPFX_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${NUMODE}/dk2nulite \
+     -n ${NINPUTSPERJOB} ${PPFX_ARG} -f
+  fi
 
-#With focussing
-for i in nu nubar; do
-  for j in p1 m1; do
-    for k in WL HC DPR; do
+  if [ "${DO_PPFX_COMPONENT_VARIATIONS}" == "1" ]; then
+    if [ ! -e /pnfs/dune/persistent/users/picker24/${PPFX_COMP_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${NUMODE}/dk2nulite ]; then
+      echo "[INFO]: No input directory for ${NUMODE} wppfx, skipping."
+      continue
+    fi
 
-      if [ ! -e /pnfs/dune/persistent/users/picker24/Focussing/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${k}${j}/${i}/dk2nulite ]; then
-        echo "[INFO]: No input directory, skipping."
-        continue
-      fi
+    if [ ${FORCEOVERWRITE} != "true" ] && [ -e /pnfs/dune/persistent/users/picker24/${PPFX_COMP_DIR}/DUNEPrismFluxes/ND_${NUMODE}/${PRED_DIR} ]; then
+      echo "[INFO]: Already have ${NUMODE} wppfx not reprocessing."
+      continue
+    fi
 
-      if [ -e /pnfs/dune/persistent/users/picker24/Focussing/DUNEPrismFluxes/${DET}_${i}/${k}${j}/${SUBDIR} ]; then
-        echo "[INFO]: Already have ${DET}_${i}/${k}${j} not reprocessing."
-        continue
-      fi
+    PPFX_ARG=""
+    if [ "${DO_PPFX_VARIATIONS}" == "1" ]; then
+      PPFX_ARG="--NPPFXU ${NPPFXUNIVERSES}"
+    fi
 
-      ${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/FarmBuildFluxJobs.sh \
-         --expected-walltime ${ETIME} --expected-disk ${EDISK} \
-         --expected-mem 512MB -F build_${DET}_fluxes${BINSUFFIX}.fcl \
-         -p Focussing/DUNEPrismFluxes/${DET}_${i}/${k}${j}/${SUBDIR} \
-         -i /pnfs/dune/persistent/users/picker24/Focussing/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${k}${j}/${i}/dk2nulite \
-         -n 20 -f
+  ${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/FarmBuildFluxJobs.sh \
+     --expected-walltime ${ETIME_PPFX} --expected-disk ${EDISK} \
+     --expected-mem 512MB ${FD_FHICL} ${ND_FHICL} \
+     -p ${PPFX_COMP_DIR}/DUNEPrismFluxes/__DET___${NUMODE}/${PRED_DIR} \
+     -i /pnfs/dune/persistent/users/picker24/${PPFX_COMP_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${NUMODE}/dk2nulite \
+     -n ${NINPUTSPERJOB} ${PPFX_ARG} -f
+  fi
+
+  #With focussing
+  if [ "${DO_FOCUS}" == "1" ]; then
+    for SIGSHIFT in p1 m1; do
+      for VARIATION in WL HC DPR TargetDensity BeamSigma BeamOffsetX BeamTheta BeamThetaPhi; do
+
+        if [ ! -e /pnfs/dune/persistent/users/picker24/${FOCUS_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${VARIATION}${SIGSHIFT}/${NUMODE}/dk2nulite ]; then
+          echo "[INFO]: No input directory, skipping."
+          continue
+        fi
+
+        if [ ${FORCEOVERWRITE} != "true" ] && [ -e /pnfs/dune/persistent/users/picker24/${FOCUS_DIR}/DUNEPrismFluxes/ND_${NUMODE}/${VARIATION}${SIGSHIFT}/${PRED_DIR} ]; then
+          echo "[INFO]: Already have ND_${NUMODE}/${VARIATION}${SIGSHIFT} not reprocessing."
+          continue
+        fi
+
+        ${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/FarmBuildFluxJobs.sh \
+           --expected-walltime ${ETIME} --expected-disk ${EDISK} \
+           --expected-mem 512MB ${FD_FHICL} ${ND_FHICL} \
+           -p ${FOCUS_DIR}/DUNEPrismFluxes/__DET___${NUMODE}/${VARIATION}${SIGSHIFT}/${PRED_DIR} \
+           -i /pnfs/dune/persistent/users/picker24/${FOCUS_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${VARIATION}${SIGSHIFT}/${NUMODE}/dk2nulite \
+           -n ${NINPUTSPERJOB} -f
+      done
     done
-  done
-done
+  fi
 
-#Alignment
-for i in nu nubar; do
-  for j in Horn1 Horn2; do
-    for k in X Y XNeg; do
+  #Alignment
+  if [ "${DO_ALIGN}" == "1" ]; then
+    for HORN in Horn1 Horn2; do
+      for VARIATION in X Y XNeg X3mm XNeg3mm; do
 
-      if [ ! -e /pnfs/dune/persistent/users/picker24/Alignment/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${j}${k}/${i}/dk2nulite ]; then
-        echo "[INFO]: No input directory, skipping."
-        continue
-      fi
+        if [ ! -e /pnfs/dune/persistent/users/picker24/${ALIGN_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${HORN}${VARIATION}/${NUMODE}/dk2nulite ]; then
+          echo "[INFO]: No input directory, skipping."
+          continue
+        fi
 
-      if [ -e /pnfs/dune/persistent/users/picker24/Alignment/DUNEPrismFluxes/${DET}_${i}/${j}${k}/${SUBDIR} ]; then
-        echo "[INFO]: Already have ${DET}_${i}/${k}${j} not reprocessing."
-        continue
-      fi
+        if [ ${FORCEOVERWRITE} != "true" ] && [ -e /pnfs/dune/persistent/users/picker24/${ALIGN_DIR}/DUNEPrismFluxes/ND_${NUMODE}/${HORN}${VARIATION}/${PRED_DIR} ]; then
+          echo "[INFO]: Already have ND_${NUMODE}/${VARIATION}${HORN} not reprocessing."
+          continue
+        fi
 
-      ${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/FarmBuildFluxJobs.sh \
-         --expected-walltime ${ETIME} --expected-disk ${EDISK} \
-         --expected-mem 512MB -F build_${DET}_fluxes${BINSUFFIX}.fcl \
-         -p Alignment/DUNEPrismFluxes/${DET}_${i}/${j}${k}/${SUBDIR} \
-         -i /pnfs/dune/persistent/users/picker24/Alignment/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${j}${k}/${i}/dk2nulite \
-         -n 20 -f
+        ${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/FarmBuildFluxJobs.sh \
+           --expected-walltime ${ETIME} --expected-disk ${EDISK} \
+           --expected-mem 512MB ${FD_FHICL} ${ND_FHICL} \
+           -p ${ALIGN_DIR}/DUNEPrismFluxes/__DET___${NUMODE}/${HORN}${VARIATION}/${PRED_DIR} \
+           -i /pnfs/dune/persistent/users/picker24/${ALIGN_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${HORN}${VARIATION}/${NUMODE}/dk2nulite \
+           -n ${NINPUTSPERJOB} -f
+      done
     done
-  done
+  fi
 done

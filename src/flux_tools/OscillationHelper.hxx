@@ -34,13 +34,15 @@ struct OscillationHelper {
 
   NuTypes GetNuType(int pdg);
 
+  bool IsOneOverE;
+
   void Setup(std::string const &FileWithConfTree);
   void Setup(double OscParams[6], double DipAngle_degrees = 5.8);
 #ifdef USE_FHICL
   void Setup(fhicl::ParameterSet const &);
 #endif
 
-  OscillationHelper() : IsSetUp(false){};
+  OscillationHelper() : IsSetUp(false), IsOneOverE(false){};
   OscillationHelper(OscillationHelper const &other) {
     DipAngle_degrees = other.DipAngle_degrees;
     std::copy_n(other.OscParams, 6, OscParams);
@@ -50,9 +52,11 @@ struct OscillationHelper {
     ToPDG = other.ToPDG;
     FromType = other.FromType;
     ToType = other.ToType;
+    IsOneOverE = other.IsOneOverE;
   }
 
   void SetOscillationChannel(int PDGFrom, int PDGTo);
+  void SetFluxIsOneOverE(bool b) { IsOneOverE = b; }
   double GetWeight(double ENu_GeV);
   void OscillateHistogram(std::unique_ptr<TH1D> &h);
 

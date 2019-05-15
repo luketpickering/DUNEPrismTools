@@ -20,6 +20,16 @@ OscillationParameters_PDG2018: {
   dcp: 4.335
 }
 
+OscillationParameters_NuFIT4: {
+  S2Th12: 0.31
+  S2Th13: 0.0224
+  S2Th23: 0.58
+
+  Dm2_21: 7.379E-5
+  Dm2_Atm: 2.53E-3
+  dcp: 3.752
+}
+
 Baseline_DUNE: {
   dip_angle: 5.8
 }
@@ -30,6 +40,11 @@ Oscillation_T2K2017_DUNE: {
 }
 
 Oscillation_PDG2018_DUNE: {
+  OscillationParameters: @local::OscillationParameters_PDG2018
+  Baseline: @local::Baseline_DUNE
+}
+
+Oscillation_NuFIT4_DUNE: {
   OscillationParameters: @local::OscillationParameters_PDG2018
   Baseline: @local::Baseline_DUNE
 }

@@ -153,6 +153,36 @@ int main(int argc, char const *argv[]) {
 
   Eigen::MatrixXd Tweaks = eh.GetEffectiveParameterVectors();
 
+  bool ForceEffectiveParametersPositiveOnAxis = flux_uncert_config.get<bool>(
+      "ForceEffectiveParametersPositiveOnAxis", false);
+  if (ForceEffectiveParametersPositiveOnAxis) {
+    // Only want to flip based on on-axis to preclude random noise at large OA
+    // angles.
+    size_t NBins = NominalHistogramSet.front()->GetNbinsX();
+
+    for (int ev_it = 0; ev_it < Tweaks.cols(); ++ev_it) {
+      double min = std::numeric_limits<double>::max();
+      double max = -std::numeric_limits<double>::max();
+
+      for (size_t bi_it = 0; bi_it < NBins; ++bi_it) {
+        double r = Tweaks(bi_it, ev_it);
+        min = std::min(r, min);
+        max = std::max(r, max);
+      }
+
+      // std::cout << "For ev " << ev_it << " searched " << NBins
+      //           << " bins, min = " << min << ", max = " << max
+      //           << (((max < 0) || (std::abs(min) > std::abs(max)))
+      //                   ? " flipping"
+      //                   : " not flipping.")
+      //           << std::endl;
+
+      if ((max < 0) || (std::abs(min) > std::abs(max))) {
+        Tweaks.col(ev_it) *= -1;
+      }
+    }
+  }
+
   if (oupF) {
 
     TH1D *Evs = new TH1D("eigenvalues", ";Eigen value index;Magnitude",
@@ -241,6 +271,29 @@ int main(int argc, char const *argv[]) {
             h.release();
           }
         }
+      }
+    }
+
+    size_t nrows = FullCovarianceMatrix.rows();
+    Eigen::VectorXd rtvar = FullCovarianceMatrix.diagonal().cwiseSqrt();
+
+    for (size_t i = 0; i < nrows; ++i) {
+      rtvar[i] = sqrt(FullCovarianceMatrix(i, i));
+    }
+    std::vector<std::unique_ptr<TH1>> std_dev_histograms =
+        CloneHistVector(NominalHistogramSet);
+
+    FillHistFromEigenVector(std_dev_histograms, rtvar);
+
+    TDirectory *e_d = oupF->mkdir("TotalError1D");
+    for (auto &h : std_dev_histograms) {
+      if (SaveTH1F) {
+        std::unique_ptr<TH1> h_f = THToF(h);
+        h_f->SetDirectory(e_d);
+        h_f.release();
+      } else {
+        h->SetDirectory(e_d);
+        h.release();
       }
     }
 

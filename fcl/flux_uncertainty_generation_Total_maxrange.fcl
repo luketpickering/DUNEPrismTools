@@ -1,0 +1,25 @@
+#include "flux_uncertainty_generation.fcl"
+
+FluxUncertainty: {
+  @table::FluxUncertaintyBase
+
+  FluxSlicesDescriptor_ND_nu: @local::WideOffAxisRange
+
+  Species: @local::AllSpecies
+  Configurations: @local::AllConfigurations
+
+  Tweaks: [
+    @local::PPFX,
+    @local::POTCounting,
+    @sequence::FocussingTweaks,
+    @sequence::AlignmentTweaks,
+    @sequence::BeamAlignmentTweaks
+  ]
+  WriteMatrices: false
+  SaveCAFAnaFormat: true
+}
+
+# Set off axis descriptor the same for nu and nubar beam modes
+FluxUncertainty.FluxSlicesDescriptor_ND_nubar: @local::FluxUncertainty.FluxSlicesDescriptor_ND_nu
+
+FluxUncertainty.OutputFile: "FluxErrors_40mOffAxis_Total_BothBeamModes_AllSpecies_CAFFormat.root"

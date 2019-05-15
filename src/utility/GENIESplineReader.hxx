@@ -4,9 +4,9 @@
 #include "TGraph.h"
 
 #include <fstream>
+#include <string>
 #include <utility>
 #include <vector>
-#include <string>
 
 class SSAX {
   bool EventOnAllTags;
@@ -20,7 +20,7 @@ class SSAX {
 
   size_t depth;
 
- public:
+public:
   SSAX();
 
   virtual ~SSAX();
@@ -37,7 +37,7 @@ class SSAX {
   void NotifyInterestingTags(std::vector<std::string> it);
   void NotifyEarlyExit();
 
- private:
+private:
   void ExpandBuf();
 
   void AddToBuf(char character);
@@ -64,12 +64,12 @@ class SSAX {
 
   void ClearBuf();
 
- public:
+public:
   void ParseFile(const char *filename);
 };
 
 class GENIESplineGetter : public SSAX {
- public:
+public:
   std::vector<std::vector<double>> EValues;
   std::vector<std::vector<double>> XSecValues;
 
@@ -109,6 +109,7 @@ struct GENIEXSecReader {
   ~GENIEXSecReader();
 
   GENIEXSecReader(std::string const &XSecInputsFile);
+  GENIEXSecReader(std::vector<std::pair<std::string, std::vector<std::string>>> const &components);
 
   void Read(std::string const &gxmlfile);
 

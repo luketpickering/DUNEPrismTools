@@ -17,21 +17,31 @@ if [ ! -e inputs.list ]; then
   exit 3
 fi
 
+PPFX_ARGS=""
+if [ ${1} != "0" ]; then
+  PPFX_ARGS="--PPFX --NPPFX-Universes ${1}"
+fi
+
+if [ ${2} == "--PPFX-Components" ]; then
+  PPFX_ARGS="${PPFX_ARGS} --PPFX-Components"
+  shift
+fi
+
 NFILES_TO_READ=1
-if [ ! -z ${1} ]; then
-  NFILES_TO_READ=${1}
+if [ ! -z ${2} ]; then
+  NFILES_TO_READ=${2}
 fi
 
 FIRST_PNFS_PATH_APPEND=""
-if [ ! -z ${2} ]; then
-  echo "[INFO]: Appending path to pnfs outdir: ${2}"
-  FIRST_PNFS_PATH_APPEND=${2}
+if [ ! -z ${3} ]; then
+  echo "[INFO]: Appending path to pnfs outdir: ${3}"
+  FIRST_PNFS_PATH_APPEND=${3}
 fi
 
 SECOND_PNFS_PATH_APPEND=""
-if [ ! -z ${3} ]; then
-  echo "[INFO]: Appending path to pnfs outdir: ${3}"
-  SECOND_PNFS_PATH_APPEND=${3}
+if [ ! -z ${4} ]; then
+  echo "[INFO]: Appending path to pnfs outdir: ${4}"
+  SECOND_PNFS_PATH_APPEND=${4}
 fi
 
 FIRST_FCL="ND_build_flux.fcl"
@@ -117,7 +127,7 @@ setup ifdhc v2_3_9
 ups active
 
 export IFDH_CP_UNLINK_ON_ERROR=1;
-export IFDH_CP_MAXRETRIES=1;
+export IFDH_CP_MAXRETRIES=2;
 # export IFDH_DEBUG=0;
 
 # check directories
@@ -219,8 +229,8 @@ for STAGE in FIRST SECOND; do
 
   echo "Building fluxes @ $(date)"
 
-  echo "./dp_BuildFluxes -i \"inputs/*dk2nu*root\" -o ${OUT_FILENAME} --fhicl ./${FLUX_FCL} &> dp_BuildFluxes.${CLUSTER}.${PROCESS}.log"
-  ./dp_BuildFluxes -i "inputs/*dk2nu*root" -o ${OUT_FILENAME} --fhicl ./${FLUX_FCL} &> dp_BuildFluxes.${CLUSTER}.${PROCESS}.log
+  echo "./dp_BuildFluxes -i \"inputs/*dk2nu*root\" -o ${OUT_FILENAME} --fhicl ./${FLUX_FCL} ${PPFX_ARGS} &> dp_BuildFluxes.${CLUSTER}.${PROCESS}.log"
+  ./dp_BuildFluxes -i "inputs/*dk2nu*root" -o ${OUT_FILENAME} --fhicl ./${FLUX_FCL} ${PPFX_ARGS} &> dp_BuildFluxes.${CLUSTER}.${PROCESS}.log
 
   echo "Finished."
 

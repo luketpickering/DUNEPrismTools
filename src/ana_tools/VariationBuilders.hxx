@@ -66,9 +66,11 @@ public:
 
 class DiscreteVariations : public VariationBuilder {
   std::vector<double> sig_vals;
-  std::vector<PolyResponse<5>> InterpolatedResponses;
+  std::vector<PolyResponse<2>> InterpolatedResponses;
 
   std::vector<std::vector<double>> diags_Errors; // only used for diagnostics
+
+  bool fEvalAtOne;
 public:
   DiscreteVariations() : VariationBuilder() {}
   void Configure(fhicl::ParameterSet const &);

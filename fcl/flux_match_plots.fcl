@@ -1,0 +1,31 @@
+#include "oscillations.fcl"
+
+Oscillation: @local::Oscillation_PDG2018_DUNE
+
+Input_ND_Flux: {
+  File: "Fluxes/ND_nu_OptimizedEngineeredNov2017Review_old_uncert_binning_wppfx.root"
+  Hist: "LBNF_numu_flux_Nom"
+}
+Input_FD_Flux: {
+  File: "Fluxes/FD_nu_OptimizedEngineeredNov2017Review_old_uncert_binning_wppfx.root"
+  Hist: "LBNF_numu_flux_Nom"
+}
+Uncertainties: {
+  Name: "Total"
+  NEffectiveParametersToRead: 50
+  ND_detector_tag: "ND"
+  FD_detector_tag: "FD"
+  nu_mode_beam_tag: "nu"
+  nubar_mode_beam_tag: "nubar"
+  numu_species_tag: "numu"
+  nue_species_tag: "nue"
+  numubar_species_tag: "numubar"
+  nuebar_species_tag: "nuebar"
+  InputFile: "FluxErrors_Total_OAmrad_NDFD_nu_numu.root"
+}
+
+NThrows: 10000
+
+OutputFile: "FluxMatchErrors.root"
+
+SaveThrows: true

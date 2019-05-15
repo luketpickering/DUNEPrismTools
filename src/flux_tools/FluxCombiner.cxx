@@ -21,9 +21,11 @@ GetCombinedFlux(fhicl::ParameterSet const &flux_descriptor,
   OscillationHelper oh;
 
   bool doosc = false;
+  bool xaxisis1overe = false;
   if (flux_descriptor.has_key("Oscillation")) {
     oh.Setup(flux_descriptor.get<fhicl::ParameterSet>("Oscillation"));
     doosc = true;
+    xaxisis1overe = flux_descriptor.get<bool>("FluxIsOneOverE", false);
   }
 
   for (fhicl::ParameterSet const &fs :
@@ -65,6 +67,7 @@ GetCombinedFlux(fhicl::ParameterSet const &flux_descriptor,
         components.emplace_back(
             static_cast<TH1D *>(h->Clone(ss.str().c_str())));
         components.back()->SetDirectory(nullptr);
+        oh.SetFluxIsOneOverE(xaxisis1overe);
         oh.OscillateHistogram(h);
       }
       if (!SummedFlux) {

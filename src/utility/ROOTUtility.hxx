@@ -405,6 +405,10 @@ FillHistFromEigenVector(std::vector<std::unique_ptr<THN>> &rhv,
 }
 
 Eigen::MatrixXd GetEigenMatrix(TMatrixD const *);
+inline Eigen::MatrixXd GetEigenMatrix(TMatrixD const &m) {
+  return GetEigenMatrix(&m);
+}
+Eigen::MatrixXd GetEigenMatrix(TH2 const *);
 Eigen::VectorXd GetEigenFlatVector(std::vector<double> const &);
 std::unique_ptr<TMatrixD> GetTMatrixD(Eigen::MatrixXd const &);
 #endif
@@ -430,6 +434,11 @@ GetPolyFitCoeffs(std::vector<double> const &xvals,
 
   std::array<double, n + 1> rtn;
   std::fill_n(rtn.begin(), n + 1, 0);
+  if (!r->IsValid()) {
+    std::cout << "[FIT FAILURE]: " << polstr
+              << " fit failed, returning empty result." << std::endl;
+    return rtn;
+  }
   for (size_t i = 0; i < (dof + 1); ++i) {
     rtn[i] = r->Parameter(i);
   }
@@ -458,6 +467,11 @@ GetPolyFitCoeffs(std::vector<std::pair<double, double>> const &xyvals,
 
   std::array<double, n + 1> rtn;
   std::fill_n(rtn.begin(), n + 1, 0);
+  if (!r->IsValid()) {
+    std::cout << "[FIT FAILURE]: " << polstr
+              << " fit failed, returning empty result." << std::endl;
+    return rtn;
+  }
   for (size_t i = 0; i < (dof + 1); ++i) {
     rtn[i] = r->Parameter(i);
   }
@@ -487,6 +501,13 @@ GetPolyFitCoeffs(std::vector<std::tuple<double, double, double>> const &xyevals,
 
   std::array<double, n + 1> rtn;
   std::fill_n(rtn.begin(), n + 1, 0);
+
+  if (!r->IsValid()) {
+    std::cout << "[FIT FAILURE]: " << polstr
+              << " fit failed, returning empty result." << std::endl;
+    return rtn;
+  }
+
   for (size_t i = 0; i < (dof + 1); ++i) {
     rtn[i] = r->Parameter(i);
   }
@@ -495,5 +516,16 @@ GetPolyFitCoeffs(std::vector<std::tuple<double, double, double>> const &xyevals,
 }
 
 std::unique_ptr<TH1> THToF(std::unique_ptr<TH1> &hin);
+
+inline double GetTH1RatioError(TH1 *num, TH1 *denom, Int_t bi_it) {
+  double num_v = num->GetBinContent(bi_it);
+  double num_e = num->GetBinError(bi_it);
+
+  double denom_v = denom->GetBinContent(bi_it);
+  double denom_e = denom->GetBinError(bi_it);
+
+  return ((num_v / denom_v) * sqrt(pow(num_e, 2) / pow(num_v, 2) +
+                                   pow(denom_e, 2) / pow(denom_v, 2)));
+}
 
 #endif

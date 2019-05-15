@@ -1,0 +1,16 @@
+#include "flux_uncertainty_generation.fcl"
+
+FluxUncertainty: {
+  @table::FluxUncertaintyBase
+
+  Species: @local::AllSpecies
+  # Species: [numu]
+  Configurations: @local::AllConfigurations
+  # Configurations: @local::numode_Configurations
+  # Configurations: [ND_nu, FD_nu]
+
+  Tweaks: [@local::PPFX, @sequence::PPFXComponentTweaks]
+
+}
+
+FluxUncertainty.OutputFile: "FluxErrors_OnAxis_PPFX_AllWeights.root"

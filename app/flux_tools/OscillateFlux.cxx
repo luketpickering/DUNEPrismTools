@@ -221,7 +221,7 @@ int main(int argc, char const *argv[]) {
     std::unique_ptr<TH1D> osc_flux = GetCombinedFlux(ps, comps);
 
     oupFile = ps.get<std::string>("OutputFile");
-    outputDir = ps.get<std::string>("OutputDir","");
+    outputDir = ps.get<std::string>("OutputDir", outputDir);
     oupHistName = ps.get<std::string>("OutputHistName", "osc");
     UPDATEOutputFile = ps.get<bool>("UpdateOutputFile", false);
 
@@ -240,6 +240,33 @@ int main(int argc, char const *argv[]) {
 
     osc_flux->SetName(oupHistName.c_str());
     osc_flux->SetDirectory(oupD);
+
+    OscillationHelper oh;
+    oh.Setup(ps.get<fhicl::ParameterSet>("Oscillation"));
+    oh.SetFluxIsOneOverE(ps.get<bool>("FluxIsOneOverE", false));
+    oh.SetOscillationChannel(nuPDGFrom, nuPDGTo);
+
+    TGraph *POsc = new TGraph();
+
+    POsc->Set(1E4 - 1);
+
+    double min = osc_flux->GetXaxis()->GetBinLowEdge(1);
+    double step =
+        (osc_flux->GetXaxis()->GetBinUpEdge(osc_flux->GetXaxis()->GetNbins()) -
+         osc_flux->GetXaxis()->GetBinLowEdge(1)) /
+        double(1E4);
+    for (size_t i = 1; i < 1E4; ++i) {
+      double enu = min + i * step;
+      double ow = oh.GetWeight(enu);
+      if (ow != ow) {
+        std::cout << "Bad osc weight for ENu: " << enu << std::endl;
+      }
+      POsc->SetPoint(i - 1, enu, ow);
+    }
+    if (!UPDATEOutputFile || outputDir.size()) {
+      POsc->Write("POsc");
+    }
+
     osc_flux.release();
 
     oupF->Write();

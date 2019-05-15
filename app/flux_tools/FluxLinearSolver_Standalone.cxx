@@ -11,7 +11,12 @@ int NEnuBinMerge = 0;
 int method = 1;
 
 double OutOfRangeChi2Factor = 0.1;
-double RegFactor = 1E-7;
+double RegFactor = 0xdeadbeef;
+
+double low = 0.6;
+double high = 3.5;
+
+std::string OARD = "0_32:0.5";
 
 void SayUsage(char const *argv[]) {
   std::cout << "Runlike: " << argv[0]
@@ -75,6 +80,12 @@ void handleOpts(int argc, char const *argv[]) {
       OutOfRangeChi2Factor = str2T<double>(argv[++opt]);
     } else if (std::string(argv[opt]) == "-RF") {
       RegFactor = str2T<double>(argv[++opt]);
+    } else if (std::string(argv[opt]) == "-L") {
+      low = str2T<double>(argv[++opt]);
+    } else if (std::string(argv[opt]) == "-H") {
+      high = str2T<double>(argv[++opt]);
+    } else if (std::string(argv[opt]) == "-OARD") {
+      OARD = argv[++opt];
     } else if ((std::string(argv[opt]) == "-?") ||
                (std::string(argv[opt]) == "--help")) {
       SayUsage(argv);
@@ -129,11 +140,11 @@ int main(int argc, char const *argv[]) {
   // Chi2 factor out of fit range
   p.OORFactor = OutOfRangeChi2Factor;
   p.FitBetweenFoundPeaks = false;
-  p.FitBetween = {0.5,4};
+  p.FitBetween = {low, high};
   p.MergeENuBins = NEnuBinMerge;
   p.MergeOAPBins = 0;
   // Use 0.5 m flux windows between -0.25 m and 32.5 m (65)
-  p.OffAxisRangesDescriptor = "0_32:0.5";
+  p.OffAxisRangesDescriptor = OARD;
 
   fls.Initialize(p, {NDFile, NDHist}, {FDFile, FDHist}, true);
 
@@ -145,51 +156,60 @@ int main(int argc, char const *argv[]) {
   // // Defaults to DUNE baseline;
   // fls.OscillateFDFlux(OscParameters, OscChannel);
 
-  size_t nsteps = 1000;
-  double start = -10;
-  double end = -6;
-  TGraph lcurve(nsteps);
-  TGraph kcurve(nsteps - 8);
-  double step = double(end - start) / double(nsteps);
+  if (RegFactor == 0xdeadbeef) { // do a scan
+    size_t nsteps = 50;
+    double start = -10;
+    double end = -6;
+    TGraph lcurve(nsteps);
+    TGraph kcurve(nsteps - 8);
+    double step = double(end - start) / double(nsteps);
 
-  std::vector<double> eta_hat, rho_hat;
-  for (size_t l_it = 0; l_it < nsteps; ++l_it) {
-    double reg_exp = start + double(l_it) * step;
-    // Passed parameter is regularization factor, should scan for the best one,
-    double soln_norm, res_norm;
-    fls.Solve(pow(10, reg_exp), res_norm, soln_norm);
+    std::vector<double> eta_hat, rho_hat;
+    for (size_t l_it = 0; l_it < nsteps; ++l_it) {
+      std::cout << "[INFO]: Reg step " << l_it << std::endl;
+      double reg_exp = start + double(l_it) * step;
+      // Passed parameter is regularization factor, should scan for the best
+      // one,
+      double soln_norm, res_norm;
+      fls.Solve(pow(10, reg_exp), res_norm, soln_norm);
 
-    eta_hat.push_back(log(soln_norm));
-    rho_hat.push_back(log(res_norm));
+      eta_hat.push_back(log(soln_norm));
+      rho_hat.push_back(log(res_norm));
 
-    lcurve.SetPoint(l_it, rho_hat.back() / 2.0, eta_hat.back() / 2.0);
-  }
-
-  double max_curv = -std::numeric_limits<double>::max();
-  double best_reg;
-  for (size_t l_it = 4; l_it < (nsteps - 4); ++l_it) {
-
-    double curv =
-        2.0 *
-        (deriv(&rho_hat[l_it], step) * second_deriv(&eta_hat[l_it], step) -
-         deriv(&eta_hat[l_it], step) * second_deriv(&rho_hat[l_it], step)) /
-        pow(pow(deriv(&rho_hat[l_it], step), 2) +
-                pow(deriv(&eta_hat[l_it], step), 2),
-            3 / 2);
-
-    kcurve.SetPoint(l_it - 4, start + double(l_it) * step, curv);
-
-    if (curv > max_curv) {
-      max_curv = curv;
-      best_reg = pow(10, start + double(l_it) * step);
+      lcurve.SetPoint(l_it, rho_hat.back() / 2.0, eta_hat.back() / 2.0);
     }
+
+    double max_curv = -std::numeric_limits<double>::max();
+    double best_reg;
+    for (size_t l_it = 4; l_it < (nsteps - 4); ++l_it) {
+
+      double curv =
+          2.0 *
+          (deriv(&rho_hat[l_it], step) * second_deriv(&eta_hat[l_it], step) -
+           deriv(&eta_hat[l_it], step) * second_deriv(&rho_hat[l_it], step)) /
+          pow(pow(deriv(&rho_hat[l_it], step), 2) +
+                  pow(deriv(&eta_hat[l_it], step), 2),
+              3 / 2);
+
+      kcurve.SetPoint(l_it - 4, start + double(l_it) * step, curv);
+
+      if (curv > max_curv) {
+        max_curv = curv;
+        best_reg = pow(10, start + double(l_it) * step);
+      }
+    }
+
+    fls.Solve(best_reg);
+
+    TFile *f = CheckOpenFile(OutputFile, "RECREATE");
+    fls.Write(f);
+    lcurve.Write("lcurve");
+    kcurve.Write("kcurve");
+    f->Write();
+  } else {
+    fls.Solve(RegFactor);
+    TFile *f = CheckOpenFile(OutputFile, "RECREATE");
+    fls.Write(f);
+    f->Write();
   }
-
-  fls.Solve(best_reg);
-
-  TFile *f = CheckOpenFile(OutputFile, "RECREATE");
-  fls.Write(f);
-  lcurve.Write("lcurve");
-  kcurve.Write("kcurve");
-  f->Write();
 }

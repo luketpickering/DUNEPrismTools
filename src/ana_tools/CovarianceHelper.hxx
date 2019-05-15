@@ -5,6 +5,8 @@
 
 #include "TMatrixD.h"
 
+#include "ROOTUtility.hxx"
+
 #include <memory>
 #include <random>
 #include <vector>
