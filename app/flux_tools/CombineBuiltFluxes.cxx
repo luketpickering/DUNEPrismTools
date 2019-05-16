@@ -16,7 +16,9 @@
 #include <vector>
 
 std::vector<std::string> input_patterns;
+bool append;
 std::string outputfile = "";
+std::string outputdirectory = "";
 size_t NPPFX_Universes = 0;
 bool ReadPPFXAllWeights = false;
 bool LowMemoryMode = true;
@@ -33,6 +35,12 @@ void handleOpts(int argc, char const *argv[]) {
       input_patterns.push_back(argv[++opt]);
     } else if (std::string(argv[opt]) == "-o") {
       outputfile = argv[++opt];
+      append = false;
+    } else if (std::string(argv[opt]) == "-a") {
+      outputfile = argv[++opt];
+      append = true;
+    } else if (std::string(argv[opt]) == "-D") {
+      outputdirectory = argv[++opt];
     } else if (std::string(argv[opt]) == "--NPPFXU") {
       NPPFX_Universes = str2T<UInt_t>(argv[++opt]);
     } else if (std::string(argv[opt]) == "--ReadPPFXAllWeights") {
@@ -64,7 +72,7 @@ int main(int argc, char const *argv[]) {
   }
 
   if (!outputfile.size()) {
-    std::cout << "[ERROR]: Expected to find an out file, -o" << std::endl;
+    std::cout << "[ERROR]: Expected to find an out file, -o/-a" << std::endl;
     SayUsage(argv);
     return 1;
   }
@@ -185,8 +193,11 @@ int main(int argc, char const *argv[]) {
   std::cout << "[INFO]: Added " << NFilesAdded << " files (" << NHistogramsAdded
             << " Histograms)." << std::endl;
 
-  TFile *ofl = CheckOpenFile(outputfile, "RECREATE");
-  ofl->cd();
+  TFile *ofl = CheckOpenFile(outputfile, append ? "UPDATE" : "RECREATE");
+  TDirectory *od = ofl;
+  if(outputdirectory.size()){
+    od = ofl->mkdir(outputdirectory.c_str());
+  }
 
   for (int nu_pdg : NuPDGTargets) {
     for (size_t ppfx_univ_it = 0; ppfx_univ_it < NPPFXU; ++ppfx_univ_it) {
@@ -198,7 +209,7 @@ int main(int argc, char const *argv[]) {
       if (InputHists[nu_pdg][ppfx_univ_it].size()) {
         InputHists[nu_pdg][ppfx_univ_it][0]->Scale(
             1.0 / double(InputHists[nu_pdg][ppfx_univ_it].size()));
-        InputHists[nu_pdg][ppfx_univ_it][0]->SetDirectory(ofl);
+        InputHists[nu_pdg][ppfx_univ_it][0]->SetDirectory(od);
       }
     }
   }

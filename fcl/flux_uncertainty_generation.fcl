@@ -1,8 +1,10 @@
 BEGIN_PROLOG
 
+InputFile: "Fluxes/DUNE_Flux_OnAxis_Nov2017Review_syst_shifts.root"
+
 Nominal_Prediction_Input: {
-  InputFile: "Fluxes/uncertbin_meters/%C_OptimizedEngineeredNov2017Review_uncertbin_meters_wppfx.root"
-  InputHistName: "LBNF_%S_flux_Nom"
+  InputFile: @local::InputFile
+  InputHistName: "%C_ppfx/LBNF_%S_flux_Nom"
 }
 
 DirectSyst_base: {
@@ -11,8 +13,7 @@ DirectSyst_base: {
   Nominal: @local::Nominal_Prediction_Input
 
   Varied: {
-    InputFile: "Fluxes/uncertbin_meters/%C_OptimizedEngineeredNov2017Review_uncertbin_meters_%N.root"
-    InputHistName: "LBNF_%S_flux"
+    InputFile: @local::InputFile
   }
 
   dump_diagnostics: false
@@ -45,13 +46,13 @@ HornCurrent.Name: "HornCurrent"
 HornCurrent.DiscreteTweaks: [
   {
     Value: 1
-    InputFile: "Fluxes/uncertbin_meters/%C_OptimizedEngineeredNov2017Review_uncertbin_meters_HCp1.root"
-    InputHistName: "LBNF_%S_flux"
+    InputFile: @local::InputFile
+    InputHistName: "%C_HC_p1/LBNF_%S_flux"
   },
   {
     Value: -1
-    InputFile: "Fluxes/uncertbin_meters/%C_OptimizedEngineeredNov2017Review_uncertbin_meters_HCm1.root"
-    InputHistName: "LBNF_%S_flux"
+    InputFile: @local::InputFile
+    InputHistName: "%C_HC_m1/LBNF_%S_flux"
   }
 ]
 
@@ -60,13 +61,13 @@ TargetDensity.Name: "TargetDensity"
 TargetDensity.DiscreteTweaks: [
   {
     Value: 1
-    InputFile: "Fluxes/uncertbin_meters/%C_OptimizedEngineeredNov2017Review_uncertbin_meters_TargetDensityp1.root"
-    InputHistName: "LBNF_%S_flux"
+    InputFile: @local::InputFile
+    InputHistName: "%C_TargetDensity_p1/LBNF_%S_flux"
   },
   {
     Value: -1
-    InputFile: "Fluxes/uncertbin_meters/%C_OptimizedEngineeredNov2017Review_uncertbin_meters_TargetDensitym1.root"
-    InputHistName: "LBNF_%S_flux"
+    InputFile: @local::InputFile
+    InputHistName: "%C_TargetDensity_m1/LBNF_%S_flux"
   }
 ]
 
@@ -77,23 +78,23 @@ Horn1XShift.Name: "Horn1XShift"
 Horn1XShift.DiscreteTweaks: [
   {
     Value: 6
-    InputFile: "Fluxes/uncertbin_meters/%C_OptimizedEngineeredNov2017Review_uncertbin_meters_Horn1X3mmShift.root"
-    InputHistName: "LBNF_%S_flux"
+    InputFile: @local::InputFile
+    InputHistName: "%C_Horn1_X3mmShift/LBNF_%S_flux"
   },
   {
     Value: 1
-    InputFile: "Fluxes/uncertbin_meters/%C_OptimizedEngineeredNov2017Review_uncertbin_meters_Horn1XShift.root"
-    InputHistName: "LBNF_%S_flux"
+    InputFile: @local::InputFile
+    InputHistName: "%C_Horn1_XShift/LBNF_%S_flux"
   },
   {
     Value: -1
-    InputFile: "Fluxes/uncertbin_meters/%C_OptimizedEngineeredNov2017Review_uncertbin_meters_Horn1XNegShift.root"
-    InputHistName: "LBNF_%S_flux"
+    InputFile: @local::InputFile
+    InputHistName: "%C_Horn1_XNegShift/LBNF_%S_flux"
   },
   {
     Value: -6
-    InputFile: "Fluxes/uncertbin_meters/%C_OptimizedEngineeredNov2017Review_uncertbin_meters_Horn1XNeg3mmShift.root"
-    InputHistName: "LBNF_%S_flux"
+    InputFile: @local::InputFile
+    InputHistName: "%C_Horn1_XNeg3mmShift/LBNF_%S_flux"
   }
 ]
 
@@ -102,43 +103,47 @@ Horn2XShift.Name: "Horn2XShift"
 Horn2XShift.DiscreteTweaks: [
   {
     Value: 1
-    InputFile: "Fluxes/uncertbin_meters/%C_OptimizedEngineeredNov2017Review_uncertbin_meters_Horn2XShift.root"
-    InputHistName: "LBNF_%S_flux"
+    InputFile: @local::InputFile
+    InputHistName: "%C_Horn1_XShift/LBNF_%S_flux"
   },
   {
     Value: -1
-    InputFile: "Fluxes/uncertbin_meters/%C_OptimizedEngineeredNov2017Review_uncertbin_meters_Horn2XNegShift.root"
-    InputHistName: "LBNF_%S_flux"
+    InputFile: @local::InputFile
+    InputHistName: "%C_Horn1_XNegShift/LBNF_%S_flux"
   }
 ]
 
 Horn1YShift: @local::DirectSyst_base
 Horn1YShift.Name: "Horn1YShift"
+Horn1YShift.Varied.InputHistName: "%C_Horn1_YShift/LBNF_%S_flux"
 
 Horn2YShift: @local::DirectSyst_base
 Horn2YShift.Name: "Horn2YShift"
+Horn2YShift.Varied.InputHistName: "%C_Horn2_YShift/LBNF_%S_flux"
 
 AlignmentTweaks: [@local::Horn1XShift, @local::Horn2XShift, @local::Horn1YShift, @local::Horn2YShift]
 # AlignmentTweaks: []
 
 BeamTheta: @local::DirectSyst_base
 BeamTheta.Name: "BeamThetap1"
+Horn2YShift.Varied.InputHistName: "%C_BeamTheta_p1/LBNF_%S_flux"
 
 BeamThetaPhi: @local::DirectSyst_base
 BeamThetaPhi.Name: "BeamThetaPhip1"
+Horn2YShift.Varied.InputHistName: "%C_BeamThetaPhi_p1/LBNF_%S_flux"
 
 BeamSigma: @local::DiscreteSyst_base
 BeamSigma.Name: "BeamSigma"
 BeamSigma.DiscreteTweaks: [
   {
     Value: 1
-    InputFile: "Fluxes/uncertbin_meters/%C_OptimizedEngineeredNov2017Review_uncertbin_meters_BeamSigmap1.root"
-    InputHistName: "LBNF_%S_flux"
+    InputFile: @local::InputFile
+    InputHistName: "%C_BeamSigma_p1/LBNF_%S_flux"
   },
   {
     Value: -1
-    InputFile: "Fluxes/uncertbin_meters/%C_OptimizedEngineeredNov2017Review_uncertbin_meters_BeamSigmam1.root"
-    InputHistName: "LBNF_%S_flux"
+    InputFile: @local::InputFile
+    InputHistName: "%C_BeamSigma_m1/LBNF_%S_flux"
   }
 ]
 
@@ -147,13 +152,13 @@ BeamOffsetX.Name: "BeamOffsetX"
 BeamOffsetX.DiscreteTweaks: [
   {
     Value: 1
-    InputFile: "Fluxes/uncertbin_meters/%C_OptimizedEngineeredNov2017Review_uncertbin_meters_BeamOffsetXp1.root"
-    InputHistName: "LBNF_%S_flux"
+    InputFile: @local::InputFile
+    InputHistName: "%C_BeamOffsetX_p1/LBNF_%S_flux"
   },
   {
     Value: -1
-    InputFile: "Fluxes/uncertbin_meters/%C_OptimizedEngineeredNov2017Review_uncertbin_meters_BeamOffsetXm1.root"
-    InputHistName: "LBNF_%S_flux"
+    InputFile: @local::InputFile
+    InputHistName: "%C_BeamOffsetX_m1/LBNF_%S_flux"
   }
 ]
 
@@ -168,13 +173,13 @@ PPFX: {
   NThrows: 100
 
   Nominal: {
-    InputFile: "Fluxes/uncertbin_meters/%C_OptimizedEngineeredNov2017Review_uncertbin_meters_wppfx.root"
-    InputHistName: "LBNF_%S_flux_CV"
+    InputFile: @local::InputFile
+    InputHistName: "%C_ppfx/LBNF_%S_flux_CV"
   }
 
   Varied: {
-    InputFile: "Fluxes/uncertbin_meters/%C_OptimizedEngineeredNov2017Review_uncertbin_meters_wppfx.root"
-    InputHistName: "LBNF_%S_flux_univ_%i"
+    InputFile: @local::InputFile
+    InputHistName: "%C_ppfx/LBNF_%S_flux_univ_%i"
   }
 
   dump_diagnostics: true
@@ -182,52 +187,50 @@ PPFX: {
 }
 
 PPFX_mipp_pi: @local::PPFX
-PPFX_mipp_pi.Nominal.InputFile: "Fluxes/allppfx_onaxis/%C_OptimizedEngineeredNov2017Review_uncertbin_onaxis_wallppfx.root"
-PPFX_mipp_pi.Varied.InputFile: "Fluxes/allppfx_onaxis/%C_OptimizedEngineeredNov2017Review_uncertbin_onaxis_wallppfx.root"
 PPFX_mipp_pi.dump_diagnostics: true
 
 PPFX_mipp_pi.Name: "PPFX_mipp_pi"
-PPFX_mipp_pi.Varied.InputHistName: "LBNF_%S_flux_univ_%i_mipp_pi"
+PPFX_mipp_pi.Varied.InputHistName: "%C_ppfx_allw/LBNF_%S_flux_univ_%i_mipp_pi"
 
 PPFX_mipp_K: @local::PPFX_mipp_pi
 PPFX_mipp_K.Name: "PPFX_mipp_K"
-PPFX_mipp_K.Varied.InputHistName: "LBNF_%S_flux_univ_%i_mipp_K"
+PPFX_mipp_K.Varied.InputHistName: "%C_ppfx_allw/LBNF_%S_flux_univ_%i_mipp_K"
 
 PPFX_abs: @local::PPFX_mipp_pi
 PPFX_abs.Name: "PPFX_abs"
-PPFX_abs.Varied.InputHistName: "LBNF_%S_flux_univ_%i_abs"
+PPFX_abs.Varied.InputHistName: "%C_ppfx_allw/LBNF_%S_flux_univ_%i_abs"
 
 PPFX_att: @local::PPFX_mipp_pi
 PPFX_att.Name: "PPFX_att"
-PPFX_att.Varied.InputHistName: "LBNF_%S_flux_univ_%i_att"
+PPFX_att.Varied.InputHistName: "%C_ppfx_allw/LBNF_%S_flux_univ_%i_att"
 
 PPFX_ttpCpi: @local::PPFX_mipp_pi
 PPFX_ttpCpi.Name: "PPFX_ttpCpi"
-PPFX_ttpCpi.Varied.InputHistName: "LBNF_%S_flux_univ_%i_ttpCpi"
+PPFX_ttpCpi.Varied.InputHistName: "%C_ppfx_allw/LBNF_%S_flux_univ_%i_ttpCpi"
 
 PPFX_ttpCk: @local::PPFX_mipp_pi
 PPFX_ttpCk.Name: "PPFX_ttpCk"
-PPFX_ttpCk.Varied.InputHistName: "LBNF_%S_flux_univ_%i_ttpCk"
+PPFX_ttpCk.Varied.InputHistName: "%C_ppfx_allw/LBNF_%S_flux_univ_%i_ttpCk"
 
 PPFX_ttnCpi: @local::PPFX_mipp_pi
 PPFX_ttnCpi.Name: "PPFX_ttnCpi"
-PPFX_ttnCpi.Varied.InputHistName: "LBNF_%S_flux_univ_%i_ttnCpi"
+PPFX_ttnCpi.Varied.InputHistName: "%C_ppfx_allw/LBNF_%S_flux_univ_%i_ttnCpi"
 
 PPFX_ttpCnu: @local::PPFX_mipp_pi
 PPFX_ttpCnu.Name: "PPFX_ttpCnu"
-PPFX_ttpCnu.Varied.InputHistName: "LBNF_%S_flux_univ_%i_ttpCnu"
+PPFX_ttpCnu.Varied.InputHistName: "%C_ppfx_allw/LBNF_%S_flux_univ_%i_ttpCnu"
 
 PPFX_ttnua: @local::PPFX_mipp_pi
 PPFX_ttnua.Name: "PPFX_ttnua"
-PPFX_ttnua.Varied.InputHistName: "LBNF_%S_flux_univ_%i_ttnua"
+PPFX_ttnua.Varied.InputHistName: "%C_ppfx_allw/LBNF_%S_flux_univ_%i_ttnua"
 
 PPFX_ttmesinc: @local::PPFX_mipp_pi
 PPFX_ttmesinc.Name: "PPFX_ttmesinc"
-PPFX_ttmesinc.Varied.InputHistName: "LBNF_%S_flux_univ_%i_ttmesinc"
+PPFX_ttmesinc.Varied.InputHistName: "%C_ppfx_allw/LBNF_%S_flux_univ_%i_ttmesinc"
 
 PPFX_oth: @local::PPFX_mipp_pi
 PPFX_oth.Name: "PPFX_oth"
-PPFX_oth.Varied.InputHistName: "LBNF_%S_flux_univ_%i_oth"
+PPFX_oth.Varied.InputHistName: "%C_ppfx_allw/LBNF_%S_flux_univ_%i_oth"
 
 PPFXComponentTweaks: [
   @local::PPFX_mipp_pi,
