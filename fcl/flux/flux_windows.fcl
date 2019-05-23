@@ -3,11 +3,15 @@ ND_OnAxis: {
   height_m: 3
   width_m: 6
   z_from_target_m: 575
+  #ND FV
+  z_limits_cm: {50,350}
 }
 
 ND_OffAxis: {
   height_m: 3
   z_from_target_m: 575
+  #ND FV
+  z_limits_cm: {50,350}
 }
 
 FD_OnAxis: {

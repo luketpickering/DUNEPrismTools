@@ -166,6 +166,8 @@ struct Config {
   struct Flux_Window {
     double detector_half_height_cm;
     double z_from_target_cm;
+    std::pair<double, double> z_limits_cm;
+    double z_rel_min_cm, z_extent_cm;
   };
   Flux_Window flux_window;
 
@@ -274,6 +276,14 @@ struct Config {
           NuPDGTargets.size(),
           std::vector<double>{-half_width_m, half_width_m});
     }
+
+    // Default to using a plane rather than a volume
+    flux_window.z_limits_cm =
+        flux_window_ps.get<std::pair<double, double>>("z_limits_cm", {0, 0});
+
+    flux_window.z_rel_min_cm = flux_window.z_limits_cm.first;
+    flux_window.z_extent_cm =
+        flux_window.z_limits_cm.second - flux_window.z_limits_cm.first;
 
     fhicl::ParameterSet input_ps =
         ps.get<fhicl::ParameterSet>("input", fhicl::ParameterSet());
@@ -384,10 +394,14 @@ GetRandomFluxWindowPosition(TRandom3 &rnjesus,
                           : (oasteps[FluxWindow + 1] - oasteps[FluxWindow])) /
       2.0;
 
+  double zpos_cm = config.flux_window.z_from_target_cm +
+                   config.flux_window.z_rel_min_cm +
+                   config.flux_window.z_extent_cm * rnjesus.Uniform();
+
   TVector3 rndDetPos(0,
                      (2.0 * rnjesus.Uniform() - 1.0) *
                          config.flux_window.detector_half_height_cm,
-                     config.flux_window.z_from_target_cm);
+                     zpos_cm);
 
   double RandomOffAxisPos =
       OffAxisCenter + (2.0 * rnjesus.Uniform() - 1.0) * OffAxisHalfRange;
