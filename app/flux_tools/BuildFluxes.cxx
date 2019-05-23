@@ -288,7 +288,8 @@ struct Config {
     fhicl::ParameterSet input_ps =
         ps.get<fhicl::ParameterSet>("input", fhicl::ParameterSet());
 
-    input.max_decay_parents = input_ps.get<int>("max_decay_parents", -1);
+    input.max_decay_parents = input_ps.get<size_t>(
+        "max_decay_parents", std::numeric_limits<size_t>::max());
     input.limit_decay_parent_use =
         input_ps.get<bool>("limit_decay_parent_use", false);
 
@@ -442,10 +443,8 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
     nuray_tree->Branch("flux_ray_theta", &nuray_theta);
   }
 
-  size_t NDecayParents = (config.input.max_decay_parents == -1)
-                             ? dk2nuRdr.GetEntries()
-                             : std::min(config.input.max_decay_parents,
-                                        size_t(dk2nuRdr.GetEntries()));
+  size_t NDecayParents =
+      std::min(config.input.max_decay_parents, size_t(dk2nuRdr.GetEntries()));
 
   TotalPOT = TotalPOT * (double(NDecayParents) / double(dk2nuRdr.GetEntries()));
   std::cout << "Only using the first " << NDecayParents << " events out of "
