@@ -3,7 +3,7 @@
 
 binning: {
   energy: @local::energy_binnings.coarse_uncert.nubar
-  off_axis_binnings: @local::half_meter
+  off_axis_binnings: @local::off_axis_binnings.half_meter
 }
 
 flux_window: @local::ND_OffAxis
