@@ -9,6 +9,7 @@ USE_PPFX="0"
 USE_ALL_PPFX_WEIGHTS="0"
 MACRO=""
 NPROTONS="100000"
+JOBNAME="RunG4LBNE_PPFX_Makedk2nuLite"
 
 while [[ ${#} -gt 0 ]]; do
 
@@ -74,6 +75,18 @@ while [[ ${#} -gt 0 ]]; do
       shift # past argument
       ;;
 
+      --jobname)
+
+      if [[ ${#} -lt 2 ]]; then
+        echo "[ERROR]: ${1} expected a value."
+        exit 1
+      fi
+
+      JOBNAME="$2"
+      echo "[OPT]: Naming job \"${JOBNAME}\"."
+      shift # past argument
+      ;;
+
       --expected-walltime)
 
       if [[ ${#} -lt 2 ]]; then
@@ -124,6 +137,7 @@ while [[ ${#} -gt 0 ]]; do
       echo -e "\t--Use-All-PPFX-Weights     : Keep all hadron production weight branches separate, will increase disk space usage of output file by 5-10x."
       echo -e "\t-N|--number-of-jobs        : Number of flux jobs to run."
       echo -e "\t-n|--number-of-protons     : Number of POT to throw (Default: 100000)"
+      echo -e "\t--jobname                  : Rename the submitted script to make job identification simpler."
       echo -e "\t--expected-disk            : Expected disk usage to pass to jobsub. "
       echo -e "\t--expected-mem             : Expected mem usage to pass to jobsub."
       echo -e "\t--expected-walltime        : Expected disk usage to pass to jobsub."
@@ -133,7 +147,7 @@ while [[ ${#} -gt 0 ]]; do
 
       *)
               # unknown option
-      echo "Unknown option $1"
+      echo "[ERROR]: Unknown option $1"
       exit 1
       ;;
   esac
@@ -248,8 +262,17 @@ for dir in dk2nulite logs; do
   fi
 done
 
-echo "Submitting job: jobsub_submit --group=${EXPERIMENT} --jobid-output-only --resource-provides=usage_model=OPPORTUNISTIC,OFFSITE --expected-lifetime=${LIFETIME_EXP} --disk=${DISK_EXP} -N ${NJOBSTORUN} --memory=${MEM_EXP} --cpu=1 --OS=SL6 --tar_file_name=dropbox://g4blne_makedk2nulite.tar.gz file://${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/RunG4LBNE_PPFX_Makedk2nuLite.sh ${MACRO_FILE_NAME} ${PNFS_PATH_APPEND} ${USE_PPFX} ${USE_ALL_PPFX_WEIGHTS}"
-JID=$(jobsub_submit --group=${EXPERIMENT} --jobid-output-only --resource-provides=usage_model=OPPORTUNISTIC,OFFSITE --expected-lifetime=${LIFETIME_EXP} --disk=${DISK_EXP} -N ${NJOBSTORUN} --memory=${MEM_EXP} --cpu=1 --OS=SL6 --tar_file_name=dropbox://g4blne_makedk2nulite.tar.gz file://${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/RunG4LBNE_PPFX_Makedk2nuLite.sh ${MACRO_FILE_NAME} ${PNFS_PATH_APPEND} ${USE_PPFX} ${USE_ALL_PPFX_WEIGHTS})
+cp ${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/RunG4LBNE_PPFX_Makedk2nuLite.sh ./${JOBNAME}.sh
+
+JOBSCRIPT=$(readlink -f ./${JOBNAME}.sh)
+
+if [ -z ${JOBSCRIPT} ] || [ ! -e ${JOBSCRIPT} ]; then
+  echo "[ERROR]: No such file \"${JOBSCRIPT}\". Cannot proceed"
+  exit 1
+fi
+
+echo "Submitting job: jobsub_submit --group=${EXPERIMENT} --jobid-output-only --resource-provides=usage_model=OPPORTUNISTIC,OFFSITE --expected-lifetime=${LIFETIME_EXP} --disk=${DISK_EXP} -N ${NJOBSTORUN} --memory=${MEM_EXP} --cpu=1 --OS=SL6 --tar_file_name=dropbox://g4blne_makedk2nulite.tar.gz file://${JOBSCRIPT} ${MACRO_FILE_NAME} ${PNFS_PATH_APPEND} ${USE_PPFX} ${USE_ALL_PPFX_WEIGHTS}"
+JID=$(jobsub_submit --group=${EXPERIMENT} --jobid-output-only --resource-provides=usage_model=OPPORTUNISTIC,OFFSITE --expected-lifetime=${LIFETIME_EXP} --disk=${DISK_EXP} -N ${NJOBSTORUN} --memory=${MEM_EXP} --cpu=1 --OS=SL6 --tar_file_name=dropbox://g4blne_makedk2nulite.tar.gz file://${JOBSCRIPT} ${MACRO_FILE_NAME} ${PNFS_PATH_APPEND} ${USE_PPFX} ${USE_ALL_PPFX_WEIGHTS})
 
 
 

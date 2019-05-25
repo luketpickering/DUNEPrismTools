@@ -2,11 +2,10 @@
   #include "flux_windows.fcl"
 
 binning: {
-  energy: @local::energy_binnings.coarse_uncert.nubar
-  off_axis: @local::off_axis_binnings.half_meter
+  energy: @local::energy_binnings.fine_uniform.nu
 }
 
-flux_window: @local::ND_OffAxis
+flux_window: @local::ND_OnAxis
 
 input: {
   # max_decay_parents: -1

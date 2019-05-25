@@ -1,34 +1,52 @@
 # !/bin/bash
 
-PRED_DIR="uncertbin_onaxis"
+# PRED_DIR="finebin"
+PRED_DIR="uncertbin"
 declare -A FD_FHICL_ARR
 declare -A ND_FHICL_ARR
-FD_FHICL_ARR["nu"]="-FF flux/build_FD_fluxes_numode_uncertbin_onaxis.fcl"
-ND_FHICL_ARR["nu"]="-FN flux/build_ND_fluxes_numode_uncertbin_onaxis.fcl"
-FD_FHICL_ARR["nubar"]="-FF flux/build_FD_fluxes_nubarmode_uncertbin_onaxis.fcl"
-ND_FHICL_ARR["nubar"]="-FN flux/build_ND_fluxes_nubarmode_uncertbin_onaxis.fcl"
+FD_FHICL_ARR["nu"]="-FF flux/build_FD_fluxes_numode_${PRED_DIR}_onaxis.fcl"
+ND_FHICL_ARR["nu"]="-FN flux/build_ND_fluxes_numode_${PRED_DIR}_offaxis.fcl"
+FD_FHICL_ARR["nubar"]="-FF flux/build_FD_fluxes_nubarmode_${PRED_DIR}_onaxis.fcl"
+ND_FHICL_ARR["nubar"]="-FN flux/build_ND_fluxes_nubarmode_${PRED_DIR}_offaxis.fcl"
 
-FORCEOVERWRITE="false"
+FORCEOVERWRITE="true"
 
+#finebin
+# EDISK="4GB"
+# EDISK_PPFX_COMP="6GB"
+# ETIME_PPFX="4h"
+# ETIME_PPFX_COMP="10h"
+# ETIME="2h"
+# EMEM="512MB"
+# EMEM_PPFX="1GB"
+# EMEM_PPFX_COMP="2GB"
+
+#coarsebin
 EDISK="4GB"
-ETIME_PPFX="6h"
+EDISK_PPFX_COMP="8GB"
+ETIME_PPFX="2h"
+ETIME_PPFX_COMP="12h"
 ETIME="2h"
+EMEM="512MB"
+EMEM_PPFX="1GB"
+EMEM_PPFX_COMP="2GB"
 
-DO_PPFX="1"
+DO_PPFX="0"
 NPPFXUNIVERSES="100"
 PPFX_DIR="nominal_5E8POT_wppfx"
 DO_PPFX_VARIATIONS="1"
 
-DO_PPFX_COMPONENT_VARIATIONS="0"
+DO_PPFX_COMPONENT_VARIATIONS="1"
 PPFX_COMP_DIR="nominal_2.5E8POT_wallppfx"
 
-DO_FOCUS="1"
+DO_FOCUS="0"
 FOCUS_DIR="Focussing"
 
-DO_ALIGN="1"
+DO_ALIGN="0"
 ALIGN_DIR="Alignment"
 
 NINPUTSPERJOB="15"
+NMAXJOBS="1000"
 
 for NUMODE in nu nubar; do
 
@@ -53,10 +71,10 @@ for NUMODE in nu nubar; do
 
   ${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/FarmBuildFluxJobs.sh \
      --expected-walltime ${ETIME_PPFX} --expected-disk ${EDISK} \
-     --expected-mem 512MB ${FD_FHICL} ${ND_FHICL} \
+     --expected-mem ${EMEM_PPFX} ${FD_FHICL} ${ND_FHICL} \
      -p ${PPFX_DIR}/DUNEPrismFluxes/__DET___${NUMODE}/${PRED_DIR} \
      -i /pnfs/dune/persistent/users/picker24/${PPFX_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${NUMODE}/dk2nulite \
-     -n ${NINPUTSPERJOB} ${PPFX_ARG} -f
+     -n ${NINPUTSPERJOB} --N-max-jobs ${NMAXJOBS} ${PPFX_ARG} -f
   fi
 
   if [ "${DO_PPFX_COMPONENT_VARIATIONS}" == "1" ]; then
@@ -72,15 +90,15 @@ for NUMODE in nu nubar; do
 
     PPFX_ARG=""
     if [ "${DO_PPFX_VARIATIONS}" == "1" ]; then
-      PPFX_ARG="--NPPFXU ${NPPFXUNIVERSES}"
+      PPFX_ARG="--NPPFXU ${NPPFXUNIVERSES} --PPFX-Components"
     fi
 
   ${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/FarmBuildFluxJobs.sh \
-     --expected-walltime ${ETIME_PPFX} --expected-disk ${EDISK} \
-     --expected-mem 512MB ${FD_FHICL} ${ND_FHICL} \
+     --expected-walltime ${ETIME_PPFX_COMP} --expected-disk ${EDISK_PPFX_COMP} \
+     --expected-mem ${EMEM_PPFX_COMP} ${FD_FHICL} ${ND_FHICL} \
      -p ${PPFX_COMP_DIR}/DUNEPrismFluxes/__DET___${NUMODE}/${PRED_DIR} \
      -i /pnfs/dune/persistent/users/picker24/${PPFX_COMP_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${NUMODE}/dk2nulite \
-     -n ${NINPUTSPERJOB} ${PPFX_ARG} -f
+     -n ${NINPUTSPERJOB} --N-max-jobs ${NMAXJOBS} ${PPFX_ARG} -f
   fi
 
   #With focussing
@@ -100,10 +118,10 @@ for NUMODE in nu nubar; do
 
         ${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/FarmBuildFluxJobs.sh \
            --expected-walltime ${ETIME} --expected-disk ${EDISK} \
-           --expected-mem 512MB ${FD_FHICL} ${ND_FHICL} \
+           --expected-mem ${EMEM} ${FD_FHICL} ${ND_FHICL} \
            -p ${FOCUS_DIR}/DUNEPrismFluxes/__DET___${NUMODE}/${VARIATION}${SIGSHIFT}/${PRED_DIR} \
            -i /pnfs/dune/persistent/users/picker24/${FOCUS_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${VARIATION}${SIGSHIFT}/${NUMODE}/dk2nulite \
-           -n ${NINPUTSPERJOB} -f
+           -n ${NINPUTSPERJOB} --N-max-jobs ${NMAXJOBS} -f
       done
     done
   fi
@@ -125,10 +143,10 @@ for NUMODE in nu nubar; do
 
         ${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/FarmBuildFluxJobs.sh \
            --expected-walltime ${ETIME} --expected-disk ${EDISK} \
-           --expected-mem 512MB ${FD_FHICL} ${ND_FHICL} \
+           --expected-mem ${EMEM} ${FD_FHICL} ${ND_FHICL} \
            -p ${ALIGN_DIR}/DUNEPrismFluxes/__DET___${NUMODE}/${HORN}${VARIATION}/${PRED_DIR} \
            -i /pnfs/dune/persistent/users/picker24/${ALIGN_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${HORN}${VARIATION}/${NUMODE}/dk2nulite \
-           -n ${NINPUTSPERJOB} -f
+           -n ${NINPUTSPERJOB} --N-max-jobs ${NMAXJOBS} -f
       done
     done
   fi

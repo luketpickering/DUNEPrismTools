@@ -2,7 +2,7 @@
   #include "flux_windows.fcl"
 
 binning: {
-  energy: @local::energy_binnings.coarse_uncert.nubar
+  energy: @local::energy_binnings.fine_uniform.nu
   off_axis: @local::off_axis_binnings.half_meter
 }
 

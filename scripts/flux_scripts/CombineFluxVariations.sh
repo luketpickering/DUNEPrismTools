@@ -1,8 +1,8 @@
 #!/bin/bash
 
-# IDIR="old_uncert_binning_mrad"
-# IDIR="old_uncert_binning"
-IDIR="uncertbin_meters"
+IDIR="finebin"
+
+OUTPUT_FILE_NAME="DUNE_Flux_OffAxis_Nov2017Review_syst_shifts_fine.root"
 
 DO_PPFX="1"
 DO_FOCUS="1"
@@ -12,12 +12,14 @@ for DET in "ND" "FD"; do
   for i in nu nubar; do
 
     if [ "${DO_PPFX}" == "1" ]; then
-      if [ ! -e ${DET}_${i}_OptimizedEngineeredNov2017Review_${IDIR}_wppfx.root ]; then
-        dp_CombineBuiltFluxes  \
-          -i "/pnfs/dune/persistent/users/picker24/nominal_5E8POT_wppfx/DUNEPrismFluxes/${DET}_${i}/${IDIR}/flux/Fluxes.*.root" \
-          --NPPFXU 100 \
-          -o ${DET}_${i}_OptimizedEngineeredNov2017Review_${IDIR}_wppfx.root
-      fi
+
+      dp_CombineBuiltFluxes  \
+        -i "/pnfs/dune/persistent/users/picker24/nominal_5E8POT_wppfx/DUNEPrismFluxes/${DET}_${i}/${IDIR}/flux/Fluxes.*.root" \
+        -i "/pnfs/dune/persistent/users/picker24/nominal_5E8POT_wppfx_2/DUNEPrismFluxes/${DET}_${i}/${IDIR}/flux/Fluxes.*.root" \
+        --NPPFXU 100 \
+        -a ${OUTPUT_FILE_NAME} \
+        -D ${DET}_${i}_ppfx
+
     fi
 
     if [ "${DO_FOCUS}" == "1" ]; then
@@ -29,13 +31,11 @@ for DET in "ND" "FD"; do
             continue;
           fi
 
-          if [ -e ${DET}_${i}_OptimizedEngineeredNov2017Review_${IDIR}_${k}${j}.root ]; then
-            continue;
-          fi
-
         dp_CombineBuiltFluxes  \
           -i "/pnfs/dune/persistent/users/picker24/Focussing/DUNEPrismFluxes/${DET}_${i}/${k}${j}/${IDIR}/flux/Fluxes.*.root" \
-          -o ${DET}_${i}_OptimizedEngineeredNov2017Review_${IDIR}_${k}${j}.root
+          -i "/pnfs/dune/persistent/users/picker24/Focussing_2/DUNEPrismFluxes/${DET}_${i}/${k}${j}/${IDIR}/flux/Fluxes.*.root" \
+          -a ${OUTPUT_FILE_NAME} \
+          -D ${DET}_${i}_${k}_${j}
 
         done
       done
@@ -49,13 +49,11 @@ for DET in "ND" "FD"; do
             continue;
           fi
 
-          if [ -e ${DET}_${i}_OptimizedEngineeredNov2017Review_${IDIR}_${j}${k}Shift.root ]; then
-            continue;
-          fi
-
           dp_CombineBuiltFluxes  \
             -i "/pnfs/dune/persistent/users/picker24/Alignment/DUNEPrismFluxes/${DET}_${i}/${j}${k}/${IDIR}/flux/Fluxes.*.root" \
-            -o ${DET}_${i}_OptimizedEngineeredNov2017Review_${IDIR}_${j}${k}Shift.root
+            -i "/pnfs/dune/persistent/users/picker24/Alignment_2/DUNEPrismFluxes/${DET}_${i}/${j}${k}/${IDIR}/flux/Fluxes.*.root" \
+            -a ${OUTPUT_FILE_NAME} \
+            -D ${DET}_${i}_${j}_${k}Shift
 
         done
       done

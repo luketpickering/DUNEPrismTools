@@ -79,6 +79,7 @@ int main(int argc, char const *argv[]) {
 
   std::vector<int> NuPDGTargets = {-12, 12, -14, 14};
   std::map<int, std::vector<std::vector<TH1 *>>> InputHists;
+  std::map<int, std::vector<size_t>> NInputHists;
 
   size_t NPPFXU = 1;
   if (NPPFX_Universes) {
@@ -95,6 +96,7 @@ int main(int argc, char const *argv[]) {
 
   for (int nu_pdg : NuPDGTargets) {
     InputHists[nu_pdg].resize(NPPFXU);
+    NInputHists[nu_pdg].resize(NPPFXU);
   }
 
   for (size_t ip_it = 0; ip_it < input_patterns.size(); ++ip_it) {
@@ -165,8 +167,10 @@ int main(int argc, char const *argv[]) {
                       static_cast<TH1 *>(ih->Clone()));
                   InputHists[nu_pdg][ppfx_univ_it].back()->SetDirectory(
                       nullptr);
+                  NInputHists[nu_pdg][ppfx_univ_it] = 1;
                 } else {
                   InputHists[nu_pdg][ppfx_univ_it].back()->Add(ih);
+                  NInputHists[nu_pdg][ppfx_univ_it]++;
                 }
 
               } else {
@@ -195,7 +199,7 @@ int main(int argc, char const *argv[]) {
 
   TFile *ofl = CheckOpenFile(outputfile, append ? "UPDATE" : "RECREATE");
   TDirectory *od = ofl;
-  if(outputdirectory.size()){
+  if (outputdirectory.size()) {
     od = ofl->mkdir(outputdirectory.c_str());
   }
 
@@ -207,9 +211,15 @@ int main(int argc, char const *argv[]) {
             InputHists[nu_pdg][ppfx_univ_it][hist_it]);
       }
       if (InputHists[nu_pdg][ppfx_univ_it].size()) {
-        InputHists[nu_pdg][ppfx_univ_it][0]->Scale(
-            1.0 / double(InputHists[nu_pdg][ppfx_univ_it].size()));
-        InputHists[nu_pdg][ppfx_univ_it][0]->SetDirectory(od);
+        if (LowMemoryMode) {
+          InputHists[nu_pdg][ppfx_univ_it][0]->Scale(
+              1.0 / double(NInputHists[nu_pdg][ppfx_univ_it]));
+          InputHists[nu_pdg][ppfx_univ_it][0]->SetDirectory(od);
+        } else {
+          InputHists[nu_pdg][ppfx_univ_it][0]->Scale(
+              1.0 / double(InputHists[nu_pdg][ppfx_univ_it].size()));
+          InputHists[nu_pdg][ppfx_univ_it][0]->SetDirectory(od);
+        }
       }
     }
   }
