@@ -4,6 +4,8 @@ project(DUNEPrismTools)
 
 include(ExternalProject)
 
+set (CMAKE_CXX_STANDARD 14)
+
 set (DUNEPrismTools_VERSION_MAJOR 0)
 set (DUNEPrismTools_VERSION_MINOR 3)
 set (DUNEPrismTools_VERSION_REVISION 0)
