@@ -143,6 +143,7 @@ BuildRangesList(std::string const &str) {
 
 inline TFile *CheckOpenFile(std::string const &fname, char const *opts = "") {
   TFile *inpF = new TFile(fname.c_str(), opts);
+  std::cout << "wow" << std::endl;
   if (!inpF || !inpF->IsOpen()) {
     std::cout << "[ERROR]: Couldn't open input file: " << fname << std::endl;
     exit(1);
@@ -267,7 +268,7 @@ inline int FindTH1Peaks(TH1 const *flux, int &left, int &right, int n) {
   temp->SetDirectory(nullptr);
   temp->Smooth(10);
 
-  double threshold = (temp->Integral()) / (5 * (temp->GetNbinsX()));
+  double threshold = 0.1*(temp->GetMaximum());
 
   int nfound = 0;
   double content[3] = {0};
