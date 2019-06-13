@@ -283,13 +283,13 @@ inline int FindTH1Peaks(TH1 const *flux, int &left, int &right, int n) {
     }
   }
   
-  double threshold = 0.1*(temp->GetMaximum());
+  double threshold = 0.1*(smoothed->GetMaximum());
 
   int nfound = 0;
   double content[3] = {0};
 
-  for (int bin_ind = temp->GetNbinsX(); bin_ind > 0 && nfound < n; bin_ind--) {
-    content[2] = temp->GetBinContent(bin_ind - 1);
+  for (int bin_ind = smoothed->GetNbinsX(); bin_ind > 0 && nfound < n; bin_ind--) {
+    content[2] = smoothed->GetBinContent(bin_ind - 1);
     if ((content[0] < content[1]) && (content[1] > content[2]) &&
         (content[1] > threshold)) {
       if (nfound == 0) {
