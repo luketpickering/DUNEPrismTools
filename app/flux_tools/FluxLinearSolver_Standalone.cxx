@@ -13,6 +13,7 @@ int method = 1;
 double OutOfRangeChi2Factor = 0.1;
 double RegFactor = 0xdeadbeef;
 
+bool FitBetweenFoundPeaks = false;
 double low = 0.6;
 double high = 3.5;
 
@@ -80,6 +81,8 @@ void handleOpts(int argc, char const *argv[]) {
       OutOfRangeChi2Factor = str2T<double>(argv[++opt]);
     } else if (std::string(argv[opt]) == "-RF") {
       RegFactor = str2T<double>(argv[++opt]);
+    } else if (std::string(argv[opt]) == "-P") {
+      FitBetweenFoundPeaks = true;
     } else if (std::string(argv[opt]) == "-L") {
       low = str2T<double>(argv[++opt]);
     } else if (std::string(argv[opt]) == "-H") {
@@ -139,7 +142,7 @@ int main(int argc, char const *argv[]) {
 
   // Chi2 factor out of fit range
   p.OORFactor = OutOfRangeChi2Factor;
-  p.FitBetweenFoundPeaks = false;
+  p.FitBetweenFoundPeaks = FitBetweenFoundPeaks;
   p.FitBetween = {low, high};
   p.MergeENuBins = NEnuBinMerge;
   p.MergeOAPBins = 0;
