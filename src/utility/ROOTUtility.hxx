@@ -20,10 +20,13 @@
 #include "Eigen/Core"
 #endif
 
+#include "fhiclcpp/ParameterSet.h"
+
 #include <cstdio>
 #include <iostream>
 #include <limits>
 #include <memory>
+#include <numeric>
 #include <string>
 #include <vector>
 
@@ -132,7 +135,7 @@ GetHistogram_uptr(TFile *f, std::string const &fhname, bool no_throw = false) {
     }
     std::cout << "[ERROR]: Couldn't get TH: " << fhname
               << " from input file: " << f->GetName() << std::endl;
-    exit(1);
+    throw;
   }
 
   std::unique_ptr<TH> inpH =

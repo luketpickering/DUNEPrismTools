@@ -12,6 +12,10 @@ if(DEFINED USE_FHICL AND USE_FHICL)
     -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
     -DSETUPFILENAME=fhiclcpp.setup.sh)
 
+  LIST(APPEND INCDIRS ${PROJECT_BINARY_DIR}/Ext/src/fhiclcpp-simple/)
+  #This is hideous
+  LIST(APPEND INCDIRS ${PROJECT_BINARY_DIR}/Ext/src/fhiclcpp-simple-build/linedoc/src/linedoc/)
+
   LIST(APPEND EXTRA_CXX_FLAGS -DUSE_FHICL)
 
   ####### fhicl files

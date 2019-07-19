@@ -16,8 +16,6 @@ SET(ANA_APPS
 )
 
 include_directories(${INCDIRS})
-# Requried for fhiclcpp
-include_directories(${CMAKE_INSTALL_PREFIX}/include)
 
 foreach(appname ${ANA_APPS})
 

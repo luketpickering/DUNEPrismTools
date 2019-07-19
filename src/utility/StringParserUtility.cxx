@@ -25,7 +25,7 @@ std::vector<double> BuildDoubleList(std::string const &str) {
   }
   return rtn;
 }
-std::vector<double> ParseDoubleListDescriptor(std::string const &str){
+std::vector<double> ParseDoubleListDescriptor(std::string const &str) {
   std::vector<std::string> splitDescriptors =
       ParseToVect<std::string>(str, ",");
   std::vector<double> list;
@@ -35,21 +35,16 @@ std::vector<double> ParseDoubleListDescriptor(std::string const &str){
   return list;
 }
 
-std::vector<double> BuildBinEdges(std::string const &str){
-  std::vector<double> varbins = ParseDoubleListDescriptor(str);
-
+std::vector<double> SanitizeBinEdges(std::vector<double> varbins) {
   for (size_t bin_it = 1; bin_it < varbins.size(); ++bin_it) {
     if (varbins[bin_it] == varbins[bin_it - 1]) {
-      std::cout << "[INFO]: Removing duplciate bin low edge " << bin_it
-                << " low edge: " << varbins[bin_it] << std::endl;
       varbins.erase(varbins.begin() + bin_it);
     }
   }
 
   for (size_t bin_it = 1; bin_it < varbins.size(); ++bin_it) {
     if (varbins[bin_it] < varbins[bin_it - 1]) {
-      std::cout << "[ERROR]: Bin " << bin_it
-                << " low edge: " << varbins[bin_it]
+      std::cout << "[ERROR]: Bin " << bin_it << " low edge: " << varbins[bin_it]
                 << " is smaller than bin " << (bin_it - 1)
                 << " low edge: " << varbins[bin_it - 1] << std::endl;
       throw;
@@ -58,28 +53,30 @@ std::vector<double> BuildBinEdges(std::string const &str){
   return varbins;
 }
 
-std::vector< std::pair<double,double> > BuildRangesList(std::string const &str){
-  std::vector<std::string> listDescriptor =
-      ParseToVect<std::string>(str, ",");
-  std::vector< std::pair<double,double> > RangesList;
+std::vector<double> BuildBinEdges(std::string const &str) {
+  return SanitizeBinEdges(ParseDoubleListDescriptor(str));
+}
+
+std::vector<std::pair<double, double>> BuildRangesList(std::string const &str) {
+  std::vector<std::string> listDescriptor = ParseToVect<std::string>(str, ",");
+  std::vector<std::pair<double, double>> RangesList;
 
   for (size_t l_it = 0; l_it < listDescriptor.size(); ++l_it) {
-    //If this includes a range to build
+    // If this includes a range to build
     if (listDescriptor[l_it].find("_") != std::string::npos) {
       std::vector<std::string> rangeDescriptor =
           ParseToVect<std::string>(listDescriptor[l_it], ":");
 
       if (rangeDescriptor.size() != 2) {
-        std::cout << "[ERROR]: Range descriptor: \"" << str
-                  << "\" contained bad descriptor: \""
-                  << listDescriptor[l_it]
-                  << "\", expected <RangeCenterLow>_<RangeCenterHigh>:<RangeWidths>."
-                  << std::endl;
+        std::cout
+            << "[ERROR]: Range descriptor: \"" << str
+            << "\" contained bad descriptor: \"" << listDescriptor[l_it]
+            << "\", expected <RangeCenterLow>_<RangeCenterHigh>:<RangeWidths>."
+            << std::endl;
         exit(0);
       }
 
-      std::vector<double> rangeCenters =
-          BuildDoubleList(listDescriptor[l_it]);
+      std::vector<double> rangeCenters = BuildDoubleList(listDescriptor[l_it]);
       double width = str2T<double>(rangeDescriptor[1]);
 
       for (size_t sp_it = 0; sp_it < rangeCenters.size(); ++sp_it) {
@@ -93,8 +90,7 @@ std::vector< std::pair<double,double> > BuildRangesList(std::string const &str){
           ParseToVect<double>(listDescriptor[l_it], ":");
       if (rangeDescriptor.size() != 2) {
         std::cout << "[ERROR]: Range descriptor: \"" << str
-                  << "\" contained bad descriptor: \""
-                  << listDescriptor[l_it]
+                  << "\" contained bad descriptor: \"" << listDescriptor[l_it]
                   << "\", expected <RangeCenter>:<RangeWidth>." << std::endl;
         exit(0);
       }
@@ -104,17 +100,13 @@ std::vector< std::pair<double,double> > BuildRangesList(std::string const &str){
     }
   }
 
-  for (size_t range_it = 1; range_it < RangesList.size();
-       ++range_it) {
-    if ((RangesList[range_it - 1].second -
-         RangesList[range_it].first) > 1E-5) {
-      std::cout << "[ERROR]: Range #" << range_it
-                << " = {" << RangesList[range_it].first
-                << " -- " << RangesList[range_it].second
-                << "}, but #" << (range_it - 1) << " = {"
-                << RangesList[range_it - 1].first << " -- "
-                << RangesList[range_it - 1].second << "}."
-                << std::endl;
+  for (size_t range_it = 1; range_it < RangesList.size(); ++range_it) {
+    if ((RangesList[range_it - 1].second - RangesList[range_it].first) > 1E-5) {
+      std::cout << "[ERROR]: Range #" << range_it << " = {"
+                << RangesList[range_it].first << " -- "
+                << RangesList[range_it].second << "}, but #" << (range_it - 1)
+                << " = {" << RangesList[range_it - 1].first << " -- "
+                << RangesList[range_it - 1].second << "}." << std::endl;
       exit(1);
     }
   }

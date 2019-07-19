@@ -14,9 +14,6 @@ endif()
 include_directories(${INCDIRS})
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
 
-# Requried for fhiclcpp
-include_directories(${CMAKE_INSTALL_PREFIX}/include)
-
 install(TARGETS DUNE-PRISM_FluxTools DESTINATION lib)
 
 target_link_libraries(DUNE-PRISM_FluxTools ${ROOT_LIBS})

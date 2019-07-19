@@ -1,6 +1,6 @@
 BEGIN_PROLOG
 
-InputFile: "Fluxes/DUNE_Flux_OnAxis_Nov2017Review_syst_shifts.root"
+InputFile: "Fluxes/DUNE_Flux_OffAxis_Nov2017Review_syst_shifts.root"
 
 Nominal_Prediction_Input: {
   InputFile: @local::InputFile
@@ -37,9 +37,11 @@ DiscreteSyst_base: {
 
 DecayPipeRadius: @local::DirectSyst_base
 DecayPipeRadius.Name: "DPRp1"
+DecayPipeRadius.Varied.InputHistName: "%C_DPR_p1/LBNF_%S_flux"
 
 WaterLayer: @local::DirectSyst_base
 WaterLayer.Name: "WLp1"
+WaterLayer.Varied.InputHistName: "%C_WL_p1/LBNF_%S_flux"
 
 HornCurrent: @local::DiscreteSyst_base
 HornCurrent.Name: "HornCurrent"
@@ -126,11 +128,11 @@ AlignmentTweaks: [@local::Horn1XShift, @local::Horn2XShift, @local::Horn1YShift,
 
 BeamTheta: @local::DirectSyst_base
 BeamTheta.Name: "BeamThetap1"
-Horn2YShift.Varied.InputHistName: "%C_BeamTheta_p1/LBNF_%S_flux"
+BeamTheta.Varied.InputHistName: "%C_BeamTheta_p1/LBNF_%S_flux"
 
 BeamThetaPhi: @local::DirectSyst_base
 BeamThetaPhi.Name: "BeamThetaPhip1"
-Horn2YShift.Varied.InputHistName: "%C_BeamThetaPhi_p1/LBNF_%S_flux"
+BeamThetaPhi.Varied.InputHistName: "%C_BeamThetaPhi_p1/LBNF_%S_flux"
 
 BeamSigma: @local::DiscreteSyst_base
 BeamSigma.Name: "BeamSigma"
@@ -182,12 +184,12 @@ PPFX: {
     InputHistName: "%C_ppfx/LBNF_%S_flux_univ_%i"
   }
 
-  dump_diagnostics: true
+  dump_diagnostics: false
   dump_matrices: false
 }
 
 PPFX_mipp_pi: @local::PPFX
-PPFX_mipp_pi.dump_diagnostics: true
+PPFX_mipp_pi.dump_diagnostics: false
 
 PPFX_mipp_pi.Name: "PPFX_mipp_pi"
 PPFX_mipp_pi.Varied.InputHistName: "%C_ppfx_allw/LBNF_%S_flux_univ_%i_mipp_pi"
@@ -271,6 +273,7 @@ NominalOffAxisRange_1mWindow: "0.25_32.25:1"
 ShortOffAxisRange: "0_2.25:0.5"
 MediumOffAxisRange: "0_19.25:0.5"
 OnAxisOnly: "0_0:0.5"
+OnAxisOnly_7m: "1.25_1.25:3"
 OffAxisOnly: "10_10:0.5"
 
 OnAxisOnly_mrad: "0_0:1"

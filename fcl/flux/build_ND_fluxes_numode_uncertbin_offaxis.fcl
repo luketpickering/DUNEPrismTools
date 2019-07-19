@@ -2,8 +2,7 @@
   #include "flux_windows.fcl"
 
 binning: {
-  energy: @local::energy_binnings.coarse_uncert.nu
-  off_axis: @local::off_axis_binnings.half_meter
+  @table::jagged_binning_defs.uncert.nu
 }
 
 flux_window: @local::ND_OffAxis

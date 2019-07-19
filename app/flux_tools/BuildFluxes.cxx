@@ -1,8 +1,11 @@
 #include "dk2nu_TreeReader.hxx"
 
 #include "GetUsage.hxx"
+#include "HistogramBuilder.hxx"
 #include "PhysicsUtility.hxx"
 #include "ROOTUtility.hxx"
+
+#include "TH2Jagged.h"
 
 #include "TChain.h"
 #include "TFile.h"
@@ -156,9 +159,9 @@ std::vector<std::string> NuPDGTargetNames = {"nuebar", "nue", "numubar",
 struct Config {
 
   struct Binning {
-    std::vector<std::vector<double>> energy;
+    std::vector<fhicl::ParameterSet> energy;
+    std::vector<bool> is_off_axis;
     std::vector<std::vector<double>> off_axis;
-    std::vector<std::vector<double>> divergence;
     OffAxisStepUnits off_axis_type;
   };
   Binning binning;
@@ -190,7 +193,6 @@ struct Config {
     int only_nu_species_pdg;
 
     bool separate_by_hadron_species;
-    bool make_divergence;
     bool use_THF;
     bool use_reciprocal_energy;
     bool ignore_prediction_integral;
@@ -215,20 +217,24 @@ struct Config {
     fhicl::ParameterSet binning_ps =
         ps.get<fhicl::ParameterSet>("binning", fhicl::ParameterSet());
 
-    fhicl::ParameterSet off_axis_binning_ps =
-        binning_ps.get<fhicl::ParameterSet>("off_axis", fhicl::ParameterSet());
-    fhicl::ParameterSet energy_binning_ps =
-        binning_ps.get<fhicl::ParameterSet>("energy", fhicl::ParameterSet());
-
     for (std::string const &nuname : NuPDGTargetNames) {
-      binning.off_axis.push_back(
-          BuildBinEdges(off_axis_binning_ps.get<std::string>(nuname, "0_0:1")));
-      binning.energy.push_back(BuildBinEdges(
-          energy_binning_ps.get<std::string>(nuname, "0_20:0.2")));
+
+      fhicl::ParameterSet def;
+      def.put<std::string>("off_axis", "0_0:1");
+      def.put<std::string>("energy", "0_20:0.2");
+
+      binning.energy.push_back(
+          binning_ps.get<fhicl::ParameterSet>(nuname, def));
+
+      bool has_off_axis = (binning.energy.back().get<std::string>(
+                               "off_axis", "0_0:1") != "0_0:1");
+      bool is_jagged = binning.energy.back().has_key("xattr");
+
+      binning.is_off_axis.push_back(has_off_axis || is_jagged);
     }
 
     std::string off_axis_step =
-        off_axis_binning_ps.get<std::string>("type", "position_m");
+        binning_ps.get<std::string>("type", "position_m");
     if (off_axis_step == "mrad") {
       binning.off_axis_type = kmrad;
     } else if (off_axis_step == "degrees") {
@@ -264,17 +270,19 @@ struct Config {
     }
 
     if (flux_window_ps.has_key("width_m")) {
-      if (binning_ps.has_key("off_axis_binning_ps")) {
-        std::cout << "[ERROR]: Found flux_window.width_m but "
-                     "binning.off_axis was also specified."
-                  << std::endl;
-        throw;
-      }
 
       double half_width_m = flux_window_ps.get<double>("width_m") / 2.0;
-      binning.off_axis = std::vector<std::vector<double>>(
-          NuPDGTargets.size(),
-          std::vector<double>{-half_width_m, half_width_m});
+      for (size_t nu_it = 0; nu_it < NuPDGTargetNames.size(); ++nu_it) {
+        if (binning.is_off_axis[nu_it]) {
+          std::cout << "[ERROR]: Found flux_window.width_m but "
+                       "an off axis binning was provided for nu species: "
+                    << NuPDGTargetNames[nu_it] << std::endl;
+          throw;
+        }
+        std::stringstream ss("");
+        ss << -half_width_m << "," << half_width_m;
+        binning.energy[nu_it].put<std::string>("off_axis", ss.str());
+      }
     }
 
     // Default to using a plane rather than a volume
@@ -314,7 +322,6 @@ struct Config {
     output.only_nu_species_pdg = output_ps.get<int>("only_nu_species_pdg", 0);
     output.separate_by_hadron_species =
         output_ps.get<bool>("separate_by_hadron_species", false);
-    output.make_divergence = output_ps.get<bool>("make_divergence", false);
     output.use_THF = output_ps.get<bool>("use_THF", false);
     output.use_reciprocal_energy =
         output_ps.get<bool>("use_reciprocal_energy", false);
@@ -322,16 +329,6 @@ struct Config {
         output_ps.get<bool>("ignore_prediction_integral", false);
     output.write_nu_ray_tree_to =
         output_ps.get<std::string>("write_nu_ray_tree_to", "");
-
-    if (output.make_divergence) {
-      fhicl::ParameterSet divergence_binning_ps =
-          binning_ps.get<fhicl::ParameterSet>("divergence");
-
-      for (std::string const &nuname : NuPDGTargetNames) {
-        binning.divergence.push_back(BuildBinEdges(
-            divergence_binning_ps.get<std::string>(nuname, "0_40:1")));
-      }
-    }
   }
 };
 
@@ -466,22 +463,12 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
     }
     size_t idx = std::distance(NuPDGTargets.begin(), pdg_it);
     config.binning.energy =
-        std::vector<std::vector<double>>{config.binning.energy[idx]};
-    config.binning.off_axis =
-        std::vector<std::vector<double>>{config.binning.off_axis[idx]};
-    if (config.output.make_divergence) {
-      config.binning.divergence =
-          std::vector<std::vector<double>>{config.binning.divergence[idx]};
-    }
+        std::vector<fhicl::ParameterSet>{config.binning.energy[idx]};
     NuPDGTargets = std::vector<int>{NuPDGTargets[idx]};
   }
 
   std::vector<std::vector<std::vector<TH1 *>>> Hists;
   std::vector<std::vector<std::vector<TH2 *>>> Hists_2D;
-
-  std::vector<std::vector<std::vector<TH1 *>>> DivHists;
-  std::vector<std::vector<std::vector<TH2 *>>> DivHists_2D;
-  std::vector<std::vector<std::vector<TH3 *>>> DivHists_3D;
 
   size_t NPPFXU = 1;
   if (config.input.use_dk2nu_ppfx) {
@@ -497,28 +484,16 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
   Hists.resize(NPPFXU);
   Hists_2D.resize(NPPFXU);
 
-  if (config.output.make_divergence) {
-    DivHists.resize(NPPFXU);
-    DivHists_2D.resize(NPPFXU);
-    DivHists_3D.resize(NPPFXU);
-  }
-
   for (size_t ppfx_univ_it = 0; ppfx_univ_it < NPPFXU; ++ppfx_univ_it) {
 
     Hists[ppfx_univ_it].resize(NuPDGTargets.size());
     Hists_2D[ppfx_univ_it].resize(NuPDGTargets.size());
 
-    if (config.output.make_divergence) {
-      DivHists[ppfx_univ_it].resize(NuPDGTargets.size());
-      DivHists_2D[ppfx_univ_it].resize(NuPDGTargets.size());
-      DivHists_3D[ppfx_univ_it].resize(NuPDGTargets.size());
-    }
-
     for (size_t nuPDG_it = 0; nuPDG_it < NuPDGTargets.size(); ++nuPDG_it) {
       std::stringstream hist_name("");
       hist_name << "LBNF_" << GetSpeciesName(NuPDGTargets[nuPDG_it]) << "_flux";
 
-      Int_t NOffAxisBins = Int_t(config.binning.off_axis[nuPDG_it].size()) - 1;
+      Int_t IsOffAxis = config.binning.is_off_axis[nuPDG_it];
 
       if (use_PPFX) {
         hist_name << GetPPFXHistName(ppfx_univ_it,
@@ -539,7 +514,7 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
                 "(mrad);#Phi_{#nu} (cm^{-2} per POT per 1 GeV^{-1})"
               : ";#it{E}_{#nu} (GeV);Incoming Neutrino #theta "
                 "(mrad);#Phi_{#nu} (cm^{-2} per POT per 1 GeV)";
-      if (NOffAxisBins > 1) {
+      if (IsOffAxis) {
         switch (config.binning.off_axis_type) {
         case kPostion_m: {
           hist_title = config.output.use_reciprocal_energy
@@ -589,7 +564,9 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
         }
       }
 
-      for (std::string parent_suffix : {"", "pi", "k", "k0", "mu"}) {
+      std::vector<std::string> parent_suffixes = {"", "pi", "k", "k0", "mu"};
+      for (size_t ps_it = 0; ps_it < parent_suffixes.size(); ++ps_it) {
+        std::string parent_suffix = parent_suffixes[ps_it];
         if (parent_suffix.size()) {
           if (!config.output.separate_by_hadron_species) {
             continue;
@@ -597,88 +574,43 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
           parent_suffix = std::string("_") + parent_suffix;
         }
 
-        if (config.output.use_THF) {
-          Hists[ppfx_univ_it][nuPDG_it].push_back(
-              (NOffAxisBins < 2)
-                  ? new TH1F((hist_name.str() + parent_suffix).c_str(),
-                             hist_title.c_str(),
-                             (config.binning.energy[nuPDG_it].size() - 1),
-                             config.binning.energy[nuPDG_it].data())
-                  : static_cast<TH1 *>(
-                        new TH2F((hist_name.str() + parent_suffix).c_str(),
-                                 hist_title.c_str(),
-                                 (config.binning.energy[nuPDG_it].size() - 1),
-                                 config.binning.energy[nuPDG_it].data(),
-                                 (config.binning.off_axis[nuPDG_it].size() - 1),
-                                 config.binning.off_axis[nuPDG_it].data())));
-
-          if (config.output.make_divergence) {
-            DivHists[ppfx_univ_it][nuPDG_it].push_back(
-                (NOffAxisBins < 2)
-                    ? static_cast<TH1 *>(new TH2F(
-                          (div_hist_name + parent_suffix).c_str(),
-                          div_hist_title.c_str(),
-                          (config.binning.energy[nuPDG_it].size() - 1),
-                          config.binning.energy[nuPDG_it].data(),
-                          (config.binning.divergence[nuPDG_it].size() - 1),
-                          config.binning.divergence[nuPDG_it].data()))
-                    : static_cast<TH1 *>(new TH3F(
-                          (div_hist_name + parent_suffix).c_str(),
-                          div_hist_title.c_str(),
-                          (config.binning.energy[nuPDG_it].size() - 1),
-                          config.binning.energy[nuPDG_it].data(),
-                          (config.binning.divergence[nuPDG_it].size() - 1),
-                          config.binning.divergence[nuPDG_it].data(),
-                          (config.binning.off_axis[nuPDG_it].size() - 1),
-                          config.binning.off_axis[nuPDG_it].data())));
+        if (!ppfx_univ_it) {
+          if (config.output.use_THF) {
+            Hists[ppfx_univ_it][nuPDG_it].push_back(
+                BuildHistogram<float>(config.binning.energy[nuPDG_it],
+                                      hist_name.str() + parent_suffix,
+                                      hist_title, "energy", "off_axis"));
+          } else {
+            Hists[ppfx_univ_it][nuPDG_it].push_back(
+                BuildHistogram<double>(config.binning.energy[nuPDG_it],
+                                       hist_name.str() + parent_suffix,
+                                       hist_title, "energy", "off_axis"));
           }
-        } else {
+        } else { // We can just clone if we already have one for this species.
           Hists[ppfx_univ_it][nuPDG_it].push_back(
-              (NOffAxisBins < 2)
-                  ? new TH1D((hist_name.str() + parent_suffix).c_str(),
-                             hist_title.c_str(),
-                             (config.binning.energy[nuPDG_it].size() - 1),
-                             config.binning.energy[nuPDG_it].data())
-                  : static_cast<TH1 *>(
-                        new TH2D((hist_name.str() + parent_suffix).c_str(),
-                                 hist_title.c_str(),
-                                 (config.binning.energy[nuPDG_it].size() - 1),
-                                 config.binning.energy[nuPDG_it].data(),
-                                 (config.binning.off_axis[nuPDG_it].size() - 1),
-                                 config.binning.off_axis[nuPDG_it].data())));
-
-          if (config.output.make_divergence) {
-            DivHists[ppfx_univ_it][nuPDG_it].push_back(
-                (NOffAxisBins < 2)
-                    ? static_cast<TH1 *>(new TH2F(
-                          (div_hist_name + parent_suffix).c_str(),
-                          div_hist_title.c_str(),
-                          (config.binning.energy[nuPDG_it].size() - 1),
-                          config.binning.energy[nuPDG_it].data(),
-                          (config.binning.divergence[nuPDG_it].size() - 1),
-                          config.binning.divergence[nuPDG_it].data()))
-                    : static_cast<TH1 *>(new TH3F(
-                          (div_hist_name + parent_suffix).c_str(),
-                          div_hist_title.c_str(),
-                          (config.binning.energy[nuPDG_it].size() - 1),
-                          config.binning.energy[nuPDG_it].data(),
-                          (config.binning.divergence[nuPDG_it].size() - 1),
-                          config.binning.divergence[nuPDG_it].data(),
-                          (config.binning.off_axis[nuPDG_it].size() - 1),
-                          config.binning.off_axis[nuPDG_it].data())));
-          }
+              static_cast<TH1 *>(Hists[0][nuPDG_it][ps_it]->Clone(
+                  (hist_name.str() + parent_suffix).c_str())));
         }
 
-        if (NOffAxisBins > 1) {
+        if (IsOffAxis) {
           Hists_2D[ppfx_univ_it][nuPDG_it].push_back(
               static_cast<TH2 *>(Hists[ppfx_univ_it][nuPDG_it].back()));
-          if (config.output.make_divergence) {
-            DivHists_3D[ppfx_univ_it][nuPDG_it].push_back(
-                static_cast<TH3 *>(DivHists[ppfx_univ_it][nuPDG_it].back()));
+
+          if (!ppfx_univ_it && !ps_it) { // Set up the binning vector
+            TAxis const *OAxisAxis =
+                Hists_2D[ppfx_univ_it][nuPDG_it].back()->GetYaxis();
+            config.binning.off_axis.push_back({});
+            for (Int_t bi_it = 1; bi_it < OAxisAxis->GetNbins() + 1; ++bi_it) {
+              config.binning.off_axis.back().push_back(
+                  OAxisAxis->GetBinLowEdge(bi_it));
+            }
+            config.binning.off_axis.back().push_back(
+                OAxisAxis->GetBinUpEdge(OAxisAxis->GetNbins()));
           }
-        } else if (config.output.make_divergence) {
-          DivHists_2D[ppfx_univ_it][nuPDG_it].push_back(
-              static_cast<TH2 *>(DivHists[ppfx_univ_it][nuPDG_it].back()));
+        } else if (!ppfx_univ_it && !ps_it) {
+          config.binning.off_axis.push_back({
+              0,
+          });
         }
       }
     }
@@ -702,11 +634,12 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
         std::distance(NuPDGTargets.begin(),
                       std::find(NuPDGTargets.begin(), NuPDGTargets.end(),
                                 dk2nuRdr.decay_ntype));
-    Int_t NOffAxisBins = Int_t(config.binning.off_axis[nuPDG_it].size()) - 1;
+    Int_t NOffAxisBins = Int_t(config.binning.off_axis[nuPDG_it].size() - 1);
 
     nuray_weights.clear();
     nuray_energy.clear();
     nuray_theta.clear();
+    // Set up space for ray wegihts
     if (config.output.only_nu_species_pdg &&
         (config.output.only_nu_species_pdg != dk2nuRdr.decay_ntype)) {
       if (nuray_tree) {
@@ -831,29 +764,6 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
           }
         }
 
-        if (config.output.make_divergence) {
-          if (NOffAxisBins > 1) {
-            DivHists_3D[ppfx_univ_it][nuPDG_it][0]->Fill(
-                std::get<0>(nuStats), std::get<1>(nuStats) * 1.0E3,
-                det_point.first, w * ppfx_w);
-          } else {
-            DivHists_2D[ppfx_univ_it][nuPDG_it][0]->Fill(
-                std::get<0>(nuStats), std::get<1>(nuStats) * 1.0E3, w * ppfx_w);
-          }
-
-          if (config.output.separate_by_hadron_species) {
-            if (NOffAxisBins > 1) {
-              DivHists_3D[ppfx_univ_it][nuPDG_it][extra_hist_index]->Fill(
-                  std::get<0>(nuStats), std::get<1>(nuStats) * 1.0E3,
-                  det_point.first, w * ppfx_w);
-            } else {
-              DivHists_2D[ppfx_univ_it][nuPDG_it][extra_hist_index]->Fill(
-                  std::get<0>(nuStats), std::get<1>(nuStats) * 1.0E3,
-                  w * ppfx_w);
-            }
-          }
-        }
-
       } // End loop over PPFX universes
 
       // If we aren't re-using the parents then we have placed this neutrino
@@ -899,81 +809,50 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
              hist_index < (config.output.separate_by_hadron_species ? 5 : 1);
              ++hist_index) {
           TH2 *hist = univ_hists[hist_index];
-          for (Int_t xbin_it = 0; xbin_it < hist->GetXaxis()->GetNbins();
-               ++xbin_it) {
-            double scale = 1E-4 / hist->GetXaxis()->GetBinWidth(xbin_it + 1);
-            for (Int_t ybin_it = 0; ybin_it < hist->GetYaxis()->GetNbins();
-                 ++ybin_it) {
+          hist->Scale(1E-4, "width");
+          // To accomodate TH2Jagged it is easier to scale by cell area and then
+          // loop through Y and scale up by y;
+          for (Int_t ybin_it = 0; ybin_it < hist->GetYaxis()->GetNbins();
+               ++ybin_it) {
+            double ybw = hist->GetYaxis()->GetBinWidth(ybin_it + 1);
 
-              double bc = hist->GetBinContent(xbin_it + 1, ybin_it + 1);
-              double be = hist->GetBinError(xbin_it + 1, ybin_it + 1);
-              hist->SetBinContent(xbin_it + 1, ybin_it + 1, bc * scale);
-              hist->SetBinError(xbin_it + 1, ybin_it + 1, be * scale);
-            } // Loop over y bins
-          }   // Loop over x bins
-        }     // Loop over decay parents
+            TAxis const *xax;
+            if (config.output.use_THF) {
+              xax = (dynamic_cast<TH2JaggedF *>(hist))
+                        ? dynamic_cast<TH2JaggedF *>(hist)->GetNonUniformAxis(
+                              ybin_it + 1)
+                        : hist->GetYaxis();
+            } else {
+              xax = (dynamic_cast<TH2JaggedD *>(hist))
+                        ? dynamic_cast<TH2JaggedD *>(hist)->GetNonUniformAxis(
+                              ybin_it + 1)
+                        : hist->GetYaxis();
+            }
 
-        if (config.output.make_divergence) {
-          std::vector<TH3 *> &div_univ_hists =
-              DivHists_3D[ppfx_univ_it][nuPDG_it];
+            for (Int_t xbin_it = 0; xbin_it < xax->GetNbins(); ++xbin_it) {
 
-          for (size_t hist_index = 0;
-               hist_index < (config.output.separate_by_hadron_species ? 5 : 1);
-               ++hist_index) {
-            TH3 *hist = div_univ_hists[hist_index];
-            for (Int_t xbin_it = 0; xbin_it < hist->GetXaxis()->GetNbins();
-                 ++xbin_it) {
-              double scale = 1E-4 / hist->GetXaxis()->GetBinWidth(xbin_it + 1);
-              for (Int_t ybin_it = 0; ybin_it < hist->GetYaxis()->GetNbins();
-                   ++ybin_it) {
-                for (Int_t zbin_it = 0; zbin_it < hist->GetZaxis()->GetNbins();
-                     ++zbin_it) {
+              Int_t gbin = hist->GetBin(xbin_it + 1, ybin_it + 1);
 
-                  double bc = hist->GetBinContent(xbin_it + 1, ybin_it + 1,
-                                                  zbin_it + 1);
-                  double be =
-                      hist->GetBinError(xbin_it + 1, ybin_it + 1, zbin_it + 1);
-                  hist->SetBinContent(xbin_it + 1, ybin_it + 1, zbin_it + 1,
-                                      bc * scale);
-                  hist->SetBinError(xbin_it + 1, ybin_it + 1, zbin_it + 1,
-                                    be * scale);
-                }
-              } // Loop over y bins
-            }   // Loop over x bins
-          }     // Loop over decay parents
-        }
-
-      } // Loop over universes
+              double bc = hist->GetBinContent(gbin);
+              double be = hist->GetBinError(gbin);
+              hist->SetBinContent(gbin, bc * ybw);
+              hist->SetBinError(gbin, be * ybw);
+            } // Loop over x bins
+          }   // Loop over y bins
+          outfile->WriteTObject(
+              Hists[ppfx_univ_it][nuPDG_it][hist_index],
+              Hists[ppfx_univ_it][nuPDG_it][hist_index]->GetName());
+        } // Loop over decay parents
+      }   // Loop over universes
     } else {
       for (size_t ppfx_univ_it = 0; ppfx_univ_it < NPPFXU; ++ppfx_univ_it) {
         for (size_t hist_index = 0;
              hist_index < (config.output.separate_by_hadron_species ? 5 : 1);
              ++hist_index) {
           Hists[ppfx_univ_it][nuPDG_it][hist_index]->Scale(1E-4, "width");
-
-          if (config.output.make_divergence) {
-            for (size_t hist_index = 0;
-                 hist_index <
-                 (config.output.separate_by_hadron_species ? 5 : 1);
-                 ++hist_index) {
-              TH2 *hist = DivHists_2D[ppfx_univ_it][nuPDG_it][hist_index];
-
-              for (Int_t xbin_it = 0; xbin_it < hist->GetXaxis()->GetNbins();
-                   ++xbin_it) {
-                double scale =
-                    1E-4 / hist->GetXaxis()->GetBinWidth(xbin_it + 1);
-                for (Int_t ybin_it = 0; ybin_it < hist->GetYaxis()->GetNbins();
-                     ++ybin_it) {
-
-                  double bc = hist->GetBinContent(xbin_it + 1, ybin_it + 1);
-                  double be = hist->GetBinError(xbin_it + 1, ybin_it + 1);
-                  hist->SetBinContent(xbin_it + 1, ybin_it + 1, bc * scale);
-                  hist->SetBinError(xbin_it + 1, ybin_it + 1, be * scale);
-
-                } // Loop over y bins
-              }   // Loop over x bins
-            }     // Loop over decay parents
-          }       // End if (config.output.make_divergence)
+          outfile->WriteTObject(
+              Hists[ppfx_univ_it][nuPDG_it][hist_index],
+              Hists[ppfx_univ_it][nuPDG_it][hist_index]->GetName());
         }
       }
     }

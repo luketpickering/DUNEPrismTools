@@ -12,8 +12,6 @@ SET(FLUX_APPS
 )
 
 include_directories(${INCDIRS})
-# Requried for fhiclcpp
-include_directories(${CMAKE_INSTALL_PREFIX}/include)
 
 foreach(appname ${FLUX_APPS})
 
@@ -23,6 +21,7 @@ foreach(appname ${FLUX_APPS})
   target_link_libraries(dp_${appname} ${ROOT_LIBS})
 
   add_dependencies(dp_${appname} spectra)
+  add_dependencies(dp_${appname} TH2Jagged_ext)
 
   if(NOT "${CMAKE_LINK_FLAGS}" STREQUAL "")
     set_target_properties(dp_${appname} PROPERTIES LINK_FLAGS ${CMAKE_LINK_FLAGS})

@@ -90,6 +90,9 @@ std::vector<double> BuildDoubleList(std::string const &str);
 std::vector<double> ParseDoubleListDescriptor(std::string const &str);
 // Converts "1_5:2,5_10:1,15" into a vector containing: 1,3,5,6,7,8,9,10,15
 std::vector<double> BuildBinEdges(std::string const &str);
+// Takes 1,1,1,2,3,4,5,5,6 to 1,2,3,4,5,6 and throws on 1,2,1,3 (bins must be in
+// increasing order)
+std::vector<double> SanitizeBinEdges(std::vector<double> varbins);
 std::vector<std::pair<double, double>> BuildRangesList(std::string const &str);
 void chomp(std::string &str);
 

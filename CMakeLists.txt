@@ -60,8 +60,11 @@ include(${CMAKE_SOURCE_DIR}/cmake/Prob3++Setup.cmake)
 ###############################  fhiclcpp  #####################################
 include(${CMAKE_SOURCE_DIR}/cmake/fhiclcppSetup.cmake)
 
-###############################  fhiclcpp  #####################################
+##########################  eigen and spectra  #################################
 include(${CMAKE_SOURCE_DIR}/cmake/eigenSetup.cmake)
+
+#################################  TH2Jagged  #################################
+include(${CMAKE_SOURCE_DIR}/cmake/TH2JaggedSetup.cmake)
 
 ################################## COMPILER ####################################
 LIST(APPEND EXTRA_CXX_FLAGS -fopenmp)
