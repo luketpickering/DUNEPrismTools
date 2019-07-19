@@ -39,6 +39,7 @@ if [ -z ${INPUT_TAR_FILE} ]; then
 fi
 
 APPS="g4lbnf dp_MakeLitedk2nu"
+DPLIBS="libTH2Jagged.so"
 if [ "${USE_PPFX}" == "1" ]; then
   APPS="g4lbnf Make_dk2nu_FriendTree dp_MakeLitedk2nu"
 fi
@@ -47,6 +48,12 @@ for app in ${APPS}; do
   if [ ! -e ${app} ]; then
     echo "[ERROR]: Couldn't find expected ${app}"
     exit 2
+  fi
+done
+for lib in ${DPLIBS}; do
+  if [ ! -e ${lib} ]; then
+    echo "[ERROR]: Couldn't find expected DUNEPrismTools dependency: ${lib}"
+    exit 3
   fi
 done
 
@@ -116,7 +123,7 @@ if [ -z ${GRID_USER} ]; then
   exit 9
 fi
 
-mv ${APPS} ${G4LBNE_LIBS} ${G4LBNE_INPUTS} setups ${BEAM_MACRO} $_CONDOR_SCRATCH_DIR/
+mv ${APPS} ${DPLIBS} ${G4LBNE_LIBS} ${G4LBNE_INPUTS} setups ${BEAM_MACRO} $_CONDOR_SCRATCH_DIR/
 
 if [ "${USE_PPFX}" == "1" ]; then
   mv ${PPFX_LIBS} ppfx.xml $_CONDOR_SCRATCH_DIR/

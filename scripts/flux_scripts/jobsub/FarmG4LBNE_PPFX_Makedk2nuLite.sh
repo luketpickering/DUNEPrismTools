@@ -210,6 +210,7 @@ mkdir setups
 cp ${G4LBNE_DIR}/setups/setup_g4lbne_cvmfs.sh setups/setup.sh
 cp -r ${G4LBNE_DIR}/{g4lbnf,libmyVersion.so,libg4lbnfDict.so,g4lbnfCint_rdict.pcm,locations,gdml} ./
 cp ${DUNEPRISMTOOLSROOT}/bin/dp_MakeLitedk2nu ./
+cp ${DUNEPRISMTOOLSROOT}/lib/libTH2Jagged.so ./
 
 if [ "${USE_PPFX}" == "1"  ]; then
   mkdir ppfx
@@ -224,7 +225,7 @@ if [ "${USE_PPFX}" == "1"  ]; then
     setups/setup.sh \
     g4lbnf libmyVersion.so libg4lbnfDict.so g4lbnfCint_rdict.pcm \
     locations/* gdml/* \
-    dp_MakeLitedk2nu \
+    dp_MakeLitedk2nu libTH2Jagged.so \
     Make_dk2nu_FriendTree \
     libppfx.so \
     ppfx/* ppfx.xml
@@ -234,7 +235,7 @@ else
     setups/setup.sh \
     g4lbnf libmyVersion.so libg4lbnfDict.so g4lbnfCint_rdict.pcm \
     locations/* gdml/* \
-    dp_MakeLitedk2nu
+    dp_MakeLitedk2nu libTH2Jagged.so
 fi
 
 mv g4blne_makedk2nulite.tar.gz ../
