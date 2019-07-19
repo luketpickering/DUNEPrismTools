@@ -262,18 +262,34 @@ MergeSplitTH2(std::unique_ptr<TH2> &t2, bool AlongY,
 
 inline int FindTH1Peaks(TH1 const *flux, int &left, int &right, int n) {
 
-  std::unique_ptr<TH1D> temp = std::unique_ptr<TH1D>(
-      static_cast<TH1D *>(flux->Clone("peakfindingtemp")));
-  temp->SetDirectory(nullptr);
-  temp->Smooth(10);
+  int windowSize = 5;
+  int fringeSize = windowSize/2;
 
-  double threshold = (temp->Integral()) / (5 * (temp->GetNbinsX()));
+  std::unique_ptr<TH1D> smoothed = std::unique_ptr<TH1D>(
+      static_cast<TH1D *>(flux->Clone("peakfindingtemp")));
+  smoothed->SetDirectory(nullptr);
+
+  for ( int bin_ind = 0; bin_ind < flux->GetNbinsX(); bin_ind++ ) {
+    if ( bin_ind < fringeSize ) {
+      smoothed -> SetBinContent(bin_ind, 0);
+    } else if ( bin_ind > flux->GetNbinsX() - fringeSize ) {
+      smoothed -> SetBinContent(bin_ind, 0);
+    } else {
+      double sum = 0;
+      for ( int window_bin = bin_ind - fringeSize; window_bin < bin_ind + fringeSize; window_bin++ ) {
+	sum += flux->GetBinContent(window_bin);
+      }
+      smoothed->SetBinContent(bin_ind, sum/float(windowSize));
+    }
+  }
+  
+  double threshold = 0.1*(smoothed->GetMaximum());
 
   int nfound = 0;
   double content[3] = {0};
 
-  for (int bin_ind = temp->GetNbinsX(); bin_ind > 0 && nfound < n; bin_ind--) {
-    content[2] = temp->GetBinContent(bin_ind - 1);
+  for (int bin_ind = smoothed->GetNbinsX(); bin_ind > 0 && nfound < n; bin_ind--) {
+    content[2] = smoothed->GetBinContent(bin_ind - 1);
     if ((content[0] < content[1]) && (content[1] > content[2]) &&
         (content[1] > threshold)) {
       if (nfound == 0) {
