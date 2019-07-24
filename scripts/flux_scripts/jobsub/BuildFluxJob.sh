@@ -107,7 +107,7 @@ if [ -z ${GRID_USER} ]; then
   exit 9
 fi
 
-cp dp_BuildFluxes $_CONDOR_SCRATCH_DIR/
+cp dp_BuildFluxes libTH2Jagged.so $_CONDOR_SCRATCH_DIR/
 cp *build_flux.fcl $_CONDOR_SCRATCH_DIR/
 
 cd $_CONDOR_SCRATCH_DIR

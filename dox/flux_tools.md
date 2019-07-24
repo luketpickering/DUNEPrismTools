@@ -29,37 +29,16 @@ the usage text to not reflect the current state of each executable's CLI.
 
     -o output.root                : File to write fluxes to.                
 
-    -m 0_1:0.5[,2,3]              : Flux window binning to calculate in mrads.
-
-    -d 0_1:0.5[,2,3]              : Flux window binning to calculate in degrees.
-
-    -x 0_1:0.5[,2,3]              : Flux window binning to calculate in lateral
-                                    offset (m).
-
-    -e                            : Build fluxes for specific neutrino decay
-                                    parents.                                
-
-    -b <NBins>,<Low>,<High>       : Use uniform binning for flux histograms.
-
-    -vb 0_1:0.5[,2,3]             : Use variable binning specified by bin edges
-                                    and step ranges.                        
-
-    -h <Height=0>                 : Height of flux plane (cm).
-
-    -n <NMaxNeutrinos>            : Only loop over -n neutrinos.    
-
-    -z <ZDist>                    : Z distance of flux plane from target (cm).
-
-    -P                            : Only use each decaying parent once.       
-    -S <species PDG>              : Only fill information for neutrinos of a
-                                    given species.
-    -L                            : Expect dk2nulite inputs.
     --PPFX                        : Expects to be able to read PPFX weight
                                     branches from input dk2nu files (note, only
                                     dk2nulite files will likely have these
                                     branches.)
     --NPPFXU <int>                : The number of PPFX universes, defaults to
                                     100.
+    --PPFX-Components             : Expect separate weights for each component of the PPFX weights.
+    --only-pdg                    : Only build histograms for a single neutrino species.
+    --determine-binning           : Do not build histograms, instead optimize energy binning for a single species, use with --only-pdg.
+    --fhicl                       : Main configuration file.
     -?                            : Display this message.
 ```
 

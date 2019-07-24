@@ -5,6 +5,7 @@ add_library(DUNE-PRISM_Utility
   ROOTUtility.cxx
   StringParserUtility.cxx
   PhysicsUtility.cxx
+  HistogramBuilder.cxx
 )
 
 include_directories(${INCDIRS})

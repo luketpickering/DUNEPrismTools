@@ -23,10 +23,12 @@
 #include "fhiclcpp/ParameterSet.h"
 
 #include <cstdio>
+#include <fstream>
 #include <iostream>
 #include <limits>
 #include <memory>
 #include <numeric>
+#include <regex>
 #include <string>
 #include <vector>
 
@@ -38,10 +40,33 @@ inline TChain *OpenTChainWithFileList(std::string const &tname,
   TChain *chain = new TChain(tname.c_str());
   std::vector<std::string> fs = ParseToVect<std::string>(flist, ",");
   NFiles = 0;
+  std::regex listpattern(".*\\.list");
   for (std::string const &fdesc : fs) {
-    std::cout << "[INFO]: Reading TChain(" << tname
-              << ") files from descriptor: " << fdesc << std::endl;
-    NFiles += chain->Add(fdesc.c_str());
+
+    if (std::regex_match(fdesc, listpattern)) {
+
+      std::ifstream listfile(fdesc);
+
+      if (!listfile.is_open()) {
+        std::cout << "[WARN]: Tried to open input list file: " << fdesc
+                  << " but failed." << std::endl;
+        abort();
+      }
+      std::cout << "[INFO]: Reading TChain(" << tname
+                << ") files from file: " << fdesc << std::endl;
+      std::string line;
+      while (std::getline(listfile, line)) {
+        if (line.size() && (line[0] != '#')) {
+          std::cout << "[INFO]: Adding file: " << line << " to TChain(" << tname
+                    << ")." << std::endl;
+          NFiles += chain->Add(line.c_str());
+        }
+      }
+    } else {
+      std::cout << "[INFO]: Reading TChain(" << tname
+                << ") files from descriptor: " << fdesc << std::endl;
+      NFiles += chain->Add(fdesc.c_str());
+    }
   }
   if (!NFiles || !chain->GetEntries()) {
     std::cout << "[WARN]: Failed to add any files or entries to TChain ("

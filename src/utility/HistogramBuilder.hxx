@@ -4,6 +4,8 @@
 
 #include "ROOTUtility.hxx"
 
+std::vector<Double_t> ParseJaggedUniformAxis(fhicl::ParameterSet const &ps);
+
 /// Builds a TH2Jagged from a supplied fhicl::ParameterSet
 ///
 /// Format for the Parameter set:
@@ -27,57 +29,30 @@
 template <class TH2T>
 inline TH2Jagged<TH2T> *BuildJagged(fhicl::ParameterSet const &ps) {
   bool xisunform = ps.get<bool>("xisuniform", true);
-  std::string const &xattr = ps.get<std::string>("xattr");
-  std::string const &yattr = ps.get<std::string>("yattr");
+  std::string const &uattr = ps.get<std::string>(xisunform ? "xattr" : "yattr");
+  std::string const &nuattr =
+      ps.get<std::string>(xisunform ? "yattr" : "xattr");
 
   std::vector<fhicl::ParameterSet> const &binning =
       ps.get<std::vector<fhicl::ParameterSet>>("binning");
 
-  std::vector<std::vector<Double_t>> XBinnings;
-  std::vector<std::vector<Double_t>> YBinnings;
+  std::vector<std::vector<Double_t>> UBinnings;
+  std::vector<std::vector<Double_t>> NUBinnings;
 
   for (fhicl::ParameterSet const &NUSlice : binning) {
-    XBinnings.push_back(BuildBinEdges(NUSlice.get<std::string>(xattr)));
-    YBinnings.push_back(BuildBinEdges(NUSlice.get<std::string>(yattr)));
+    UBinnings.push_back(BuildBinEdges(NUSlice.get<std::string>(uattr)));
+    NUBinnings.push_back(BuildBinEdges(NUSlice.get<std::string>(nuattr)));
   }
 
-  std::vector<std::vector<Double_t>> *UBinnings =
-      xisunform ? &XBinnings : &YBinnings;
-
-  size_t NumUBinEdges =
-      std::accumulate(UBinnings->begin(), UBinnings->end(), 0,
-                      [](size_t sum, std::vector<Double_t> const &v) -> size_t {
-                        return sum + v.size();
-                      });
-
-  std::vector<Double_t> UBinEdges;
-  for (std::vector<Double_t> const &ub : *UBinnings) {
-    AppendVect(UBinEdges, ub);
-  }
-  UBinEdges = SanitizeBinEdges(UBinEdges);
-
-  // Expect to have taken the last bin off every slice as a duplicate of the
-  // first bin of the next slice, except the last slice
-  if (UBinEdges.size() != (NumUBinEdges - (UBinnings->size() - 1))) {
-    std::cout << "[ERROR]: Expected uniform binning to have "
-              << (NumUBinEdges - (UBinnings->size() - 1))
-              << " edges, but found " << UBinEdges.size()
-              << " make sure when specifying your jagged binning that the "
-                 "uniform axis bin edges are contiuous and correctly ordered."
-              << std::endl;
-    throw;
-  }
-
-  std::vector<std::vector<Double_t>> *NUBinnings =
-      xisunform ? &YBinnings : &XBinnings;
+  std::vector<Double_t> UBinEdges = ParseJaggedUniformAxis(ps);
 
   // Stack NU binnings
   std::vector<Int_t> NUNBins;
   std::vector<std::vector<Double_t>> NUBinEdges;
-  for (size_t sit = 0; sit < UBinnings->size(); ++sit) {
-    for (size_t uit = 0; uit < (UBinnings->at(sit).size() - 1); ++uit) {
-      NUNBins.push_back(NUBinnings->at(sit).size() - 1);
-      NUBinEdges.push_back(NUBinnings->at(sit));
+  for (size_t sit = 0; sit < UBinnings.size(); ++sit) {
+    for (size_t uit = 0; uit < (UBinnings.at(sit).size() - 1); ++uit) {
+      NUNBins.push_back(NUBinnings.at(sit).size() - 1);
+      NUBinEdges.push_back(NUBinnings.at(sit));
     }
   }
 
@@ -114,7 +89,7 @@ inline TH1 *BuildHistogram(fhicl::ParameterSet const &ps,
                            TDirectory *dir = nullptr) {
   if (ps.has_key("xattr")) {
 
-    TH1 *j = BuildJagged<typename hist_types<ST>::TH2T>(ps);
+    TH1 *j = BuildJagged<ST>(ps);
     j->SetName(Name.c_str());
     j->SetTitle(Title.c_str());
     return j;
@@ -158,3 +133,9 @@ inline TH1 *BuildHistogram(fhicl::ParameterSet const &ps,
             << std::endl;
   throw;
 }
+
+std::vector<TAxis> DetermineOptimalNonUniformBinning(
+    TAxis const &UniformAxis,
+    std::vector<std::tuple<double, double, double>> const &data,
+    size_t NPerBin = 10000 /*1% poisson error*/, double minNU = 0xd34db33f,
+    double maxNU = 0xd34db33f, double minNuBinWidth = 0);
