@@ -4,20 +4,20 @@ jagged_binning_defs: {
   binning_dummy: {
     nu: {
       numu: {
-        energy: "0_10:1"
-        off_axis: "0_40:2.5"
+        energy: "0_20:2"
+        off_axis: "-3_39:6"
       }
       numubar: {
-        energy: "0_10:1"
-        off_axis: "0_40:2.5"
+        energy: "0_20:2"
+        off_axis: "-3_39:6"
       }
       nue: {
-        energy: "0_10:1"
-        off_axis: "0_40:2.5"
+        energy: "0_20:2"
+        off_axis: "-3_39:6"
       }
       nuebar: {
-        energy: "0_10:1"
-        off_axis: "0_40:2.5"
+        energy: "0_20:2"
+        off_axis: "-3_39:6"
       }
 
       off_axis_type: position_m
@@ -25,20 +25,20 @@ jagged_binning_defs: {
 
     nubar: {
       numu: {
-        energy: "0_10:1"
-        off_axis: "0_40:2.5"
+        energy: "0_20:2"
+        off_axis: "-3_39:6"
       }
       numubar: {
-        energy: "0_10:1"
-        off_axis: "0_40:2.5"
+        energy: "0_20:2"
+        off_axis: "-3_39:6"
       }
       nue: {
-        energy: "0_10:1"
-        off_axis: "0_40:2.5"
+        energy: "0_20:2"
+        off_axis: "-3_39:6"
       }
       nuebar: {
-        energy: "0_10:1"
-        off_axis: "0_40:2.5"
+        energy: "0_20:2"
+        off_axis: "-3_39:6"
       }
 
       off_axis_type: position_m
@@ -118,6 +118,122 @@ jagged_binning_defs: {
       }
 
       off_axis_type: position_m
+    }
+  }
+}
+
+jagged_binning_defs.coarse_uncert: {
+  uncert: {
+    nu: {
+      numu: {
+        yattr: "OA_m"
+        xattr: "E_GeV"
+        # energy binning is non-uniform
+        xisuniform: false
+
+        binning: [
+          {
+              OA_m: "-3_3:6"
+          },
+        ]
+      }
+      numubar: {
+        yattr: "OA_m"
+        xattr: "E_GeV"
+        # energy binning is non-uniform
+        xisuniform: false
+
+        #include "nu.numubar.optbin.fcl"
+      }
+      nue: {
+        yattr: "OA_m"
+        xattr: "E_GeV"
+        # energy binning is non-uniform
+        xisuniform: false
+
+        #include "nu.nue.optbin.fcl"
+      }
+      nuebar: {
+        yattr: "OA_m"
+        xattr: "E_GeV"
+        # energy binning is non-uniform
+        xisuniform: false
+
+        #include "nu.nuebar.optbin.fcl"
+      }
+
+      off_axis_type: position_m
+    }
+
+    nubar: {
+      numu: {
+        yattr: "OA_m"
+        xattr: "E_GeV"
+        # energy binning is non-uniform
+        xisuniform: false
+
+        #include "nubar.numu.optbin.fcl"
+      }
+      numubar: {
+        yattr: "OA_m"
+        xattr: "E_GeV"
+        # energy binning is non-uniform
+        xisuniform: false
+
+        #include "nubar.numubar.optbin.fcl"
+      }
+      nue: {
+        yattr: "OA_m"
+        xattr: "E_GeV"
+        # energy binning is non-uniform
+        xisuniform: false
+
+        #include "nubar.nue.optbin.fcl"
+      }
+      nuebar: {
+        yattr: "OA_m"
+        xattr: "E_GeV"
+        # energy binning is non-uniform
+        xisuniform: false
+
+        #include "nubar.nuebar.optbin.fcl"
+      }
+
+      off_axis_type: position_m
+    }
+  }
+}
+
+FD_defs: {
+  uncert: {
+    nu: {
+      numu: {
+        energy: @local::jagged_binning_defs.uncert.nu.numu.binning[0].E_GeV
+      }
+      numubar: {
+        energy: @local::jagged_binning_defs.uncert.nu.numubar.binning[0].E_GeV
+      }
+      nue: {
+        energy: @local::jagged_binning_defs.uncert.nu.nue.binning[0].E_GeV
+      }
+      nuebar: {
+        energy: @local::jagged_binning_defs.uncert.nu.nuebar.binning[0].E_GeV
+      }
+    }
+
+    nubar: {
+      numu: {
+        energy: @local::jagged_binning_defs.uncert.nubar.numu.binning[0].E_GeV
+      }
+      numubar: {
+        energy: @local::jagged_binning_defs.uncert.nubar.numubar.binning[0].E_GeV
+      }
+      nue: {
+        energy: @local::jagged_binning_defs.uncert.nubar.nue.binning[0].E_GeV
+      }
+      nuebar: {
+        energy: @local::jagged_binning_defs.uncert.nubar.nuebar.binning[0].E_GeV
+      }
     }
   }
 }
