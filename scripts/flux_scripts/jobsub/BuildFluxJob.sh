@@ -168,15 +168,10 @@ for STAGE in FIRST SECOND; do
 
 done
 
-mkdir inputs
-cd inputs
-
-echo "Copying inputs @ $(date)"
+echo "Writing inputs.list @ $(date)"
+rm inputs.list; touch inputs.list
 
 for FP_IT in ${INPUT_FILE_PATHS[@]}; do
-  FN=${FP_IT##*/}
-  echo "[INFO]: File ${FP_IT} => ${FN}"
-
   echo "ifdh ls ${FP_IT}"
   ifdh ls ${FP_IT}
 
@@ -185,19 +180,13 @@ for FP_IT in ${INPUT_FILE_PATHS[@]}; do
     exit 12
   fi
 
-  echo "[FILE: ${FP_IT}]: ifdh cp $IFDH_OPTION ${FP_IT} ${FN}"
-  ifdh cp $IFDH_OPTION ${FP_IT} ${FN}
-
-  if [ $? -ne 0 ]; then
-    echo "Unable to copy input file: \"${FP_IT}\". Does it exist?"
-    exit 13
-  fi
+  XROOTFN=$( echo ${FP_IT} | sed "s|/pnfs/dune|root://fndca1.fnal.gov:1094/pnfs/fnal.gov/usr/dune|g" )
+  echo "[INFO]: File ${FP_IT} => ${XROOTFN}"
+  echo ${XROOTFN} >> inputs.list
 done
 
-cd ../
-
-echo "---ls inputs---"
-ls  -lah inputs
+echo "---cat inputs---"
+cat inputs.list
 echo "---------------"
 
 echo "------ls-------"
@@ -229,8 +218,8 @@ for STAGE in FIRST SECOND; do
 
   echo "Building fluxes @ $(date)"
 
-  echo "./dp_BuildFluxes -i \"inputs/*dk2nu*root\" -o ${OUT_FILENAME} --fhicl ./${FLUX_FCL} ${PPFX_ARGS} &> dp_BuildFluxes.${CLUSTER}.${PROCESS}.log"
-  ./dp_BuildFluxes -i "inputs/*dk2nu*root" -o ${OUT_FILENAME} --fhicl ./${FLUX_FCL} ${PPFX_ARGS} &> dp_BuildFluxes.${CLUSTER}.${PROCESS}.log
+  echo "./dp_BuildFluxes -i inputs.list -o ${OUT_FILENAME} --fhicl ./${FLUX_FCL} ${PPFX_ARGS} &> dp_BuildFluxes.${CLUSTER}.${PROCESS}.log"
+  ./dp_BuildFluxes -i inputs.list -o ${OUT_FILENAME} --fhicl ./${FLUX_FCL} ${PPFX_ARGS} &> dp_BuildFluxes.${CLUSTER}.${PROCESS}.log
 
   echo "Finished."
 

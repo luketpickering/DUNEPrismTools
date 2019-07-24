@@ -5,19 +5,19 @@ jagged_binning_defs: {
     nu: {
       numu: {
         energy: "0_10:1"
-        off_axis: "-0.25_40.25:0.5"
+        off_axis: "0_40:2.5"
       }
       numubar: {
         energy: "0_10:1"
-        off_axis: "-0.25_40.25:0.5"
+        off_axis: "0_40:2.5"
       }
       nue: {
         energy: "0_10:1"
-        off_axis: "-0.25_40.25:0.5"
+        off_axis: "0_40:2.5"
       }
       nuebar: {
         energy: "0_10:1"
-        off_axis: "-0.25_40.25:0.5"
+        off_axis: "0_40:2.5"
       }
 
       off_axis_type: position_m
@@ -26,19 +26,19 @@ jagged_binning_defs: {
     nubar: {
       numu: {
         energy: "0_10:1"
-        off_axis: "-0.25_40.25:0.5"
+        off_axis: "0_40:2.5"
       }
       numubar: {
         energy: "0_10:1"
-        off_axis: "-0.25_40.25:0.5"
+        off_axis: "0_40:2.5"
       }
       nue: {
         energy: "0_10:1"
-        off_axis: "-0.25_40.25:0.5"
+        off_axis: "0_40:2.5"
       }
       nuebar: {
         energy: "0_10:1"
-        off_axis: "-0.25_40.25:0.5"
+        off_axis: "0_40:2.5"
       }
 
       off_axis_type: position_m
