@@ -42,12 +42,12 @@ std::vector<Double_t> ParseJaggedUniformAxis(fhicl::ParameterSet const &ps) {
 
 std::vector<TAxis> DetermineOptimalNonUniformBinning(
     TAxis const &UniformAxis,
-    std::vector<std::tuple<double, double, double>> const &data, size_t NPerBin,
+    std::vector<std::tuple<float, float, double>> const &data, size_t NPerBin,
     double minNU, double maxNU, double minNuBinWidth) {
-  std::vector<std::vector<std::pair<double, double>>> sorted_NUdata;
+  std::vector<std::vector<std::pair<float, double>>> sorted_NUdata;
   sorted_NUdata.resize(UniformAxis.GetNbins());
 
-  for (std::tuple<double, double, double> const &p : data) {
+  for (std::tuple<float, float, double> const &p : data) {
     size_t Bin = UniformAxis.FindFixBin(std::get<0>(p));
 
     if ((Bin == 0) || (Bin > sorted_NUdata.size())) {
@@ -59,11 +59,11 @@ std::vector<TAxis> DetermineOptimalNonUniformBinning(
   }
 
   std::vector<TAxis> axes;
-  for (std::vector<std::pair<double, double>> &NUrow : sorted_NUdata) {
+  for (std::vector<std::pair<float, double>> &NUrow : sorted_NUdata) {
     std::stable_sort(
         NUrow.begin(), NUrow.end(),
-        [](std::pair<double, double> const &l,
-           std::pair<double, double> const &r) { return l.first < r.first; });
+        [](std::pair<float, double> const &l,
+           std::pair<float, double> const &r) { return l.first < r.first; });
 
     std::vector<double> BinEdges;
     BinEdges.push_back((minNU == 0xd34db33f) ? NUrow.front().first : minNU);
@@ -72,7 +72,7 @@ std::vector<TAxis> DetermineOptimalNonUniformBinning(
     double sumw2 = 0;
     // poisson error limit requested
     double fracerrlim = sqrt(double(NPerBin)) / double(NPerBin);
-    for (std::pair<double, double> const &nu : NUrow) {
+    for (std::pair<float, double> const &nu : NUrow) {
       if (nu.first > maxNU) {
         break;
       }

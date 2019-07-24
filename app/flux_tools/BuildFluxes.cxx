@@ -699,7 +699,7 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
     NNuPDGTargets.push_back(0);
   }
 
-  std::vector<std::tuple<double, double, double>> binning_opt_points;
+  std::vector<std::tuple<float, float, double>> binning_opt_points;
 
   size_t updateStep = (NDecayParents / 10) ? NDecayParents / 10 : 1;
   for (size_t nu_it = 0; nu_it < NDecayParents; ++nu_it) {
@@ -758,7 +758,8 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
           GetNuWeight(dk2nuRdr, det_point.second);
 
       if (determine_binning) {
-        binning_opt_points.emplace_back(det_point.first, std::get<0>(nuStats),
+        binning_opt_points.emplace_back(float(det_point.first),
+                                        float(std::get<0>(nuStats)),
                                         std::get<2>(nuStats) * wF);
         continue;
       }
