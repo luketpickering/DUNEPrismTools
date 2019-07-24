@@ -50,6 +50,11 @@ std::tuple<double, double, double> GetNuWeight(DK2NuReader &dk2nuRdr,
                  (DetPoint[1] - dk2nuRdr.decay_vy),
                  (DetPoint[2] - dk2nuRdr.decay_vz));
 
+  if (!std::isnormal(nuRay.Mag())) {
+    std::cout << "[ERROR]: Abnormal nuray, something is up." << std::endl;
+    abort();
+  }
+
   double parent_4mom_Gamma = parent_4mom.Gamma();
   double emrat =
       1.0 / (parent_4mom_Gamma *
@@ -145,8 +150,9 @@ std::tuple<double, double, double> GetNuWeight(DK2NuReader &dk2nuRdr,
   }
 
   if (!std::isnormal(nu_energy) || !std::isnormal(nu_wght)) {
-    std::cout << "[ERROR]: Calculated bad nustats." << std::endl;
-    exit(1);
+    std::cout << "[ERROR]: Calculated bad nustats (E = " << nu_energy
+              << ",  W = " << nu_wght << ")." << std::endl;
+    abort();
   }
   return std::make_tuple(nu_energy, nuRay.Theta(), nu_wght);
 }
@@ -161,8 +167,15 @@ struct Config {
   struct Binning {
     std::vector<fhicl::ParameterSet> energy;
     std::vector<bool> is_off_axis;
+    std::vector<bool> is_jagged;
     std::vector<std::vector<double>> off_axis;
     OffAxisStepUnits off_axis_type;
+    std::string determine_binning_file;
+    bool isdef_determine_binning_file_;
+    size_t determine_binning_N;
+    bool isdef_determine_binning_N_;
+    double determine_binning_width;
+    bool isdef_determine_binning_width_;
   };
   Binning binning;
 
@@ -191,6 +204,7 @@ struct Config {
 
   struct Output {
     int only_nu_species_pdg;
+    bool isdef_only_nu_species_pdg_;
 
     bool separate_by_hadron_species;
     bool use_THF;
@@ -210,6 +224,16 @@ struct Config {
     input.isdef_dk2nu_ppfx_allweights_ = true;
     input.number_ppfx_universes = 0;
     input.isdef_number_ppfx_universes_ = true;
+
+    output.only_nu_species_pdg = 0;
+    output.isdef_only_nu_species_pdg_ = true;
+
+    binning.determine_binning_file = "";
+    binning.isdef_determine_binning_file_ = true;
+    binning.determine_binning_N = 1000;
+    binning.isdef_determine_binning_N_ = true;
+    binning.determine_binning_width = 0.025;
+    binning.isdef_determine_binning_width_ = true;
   }
 
   void SetFromFHiCL(fhicl::ParameterSet const &ps) {
@@ -217,7 +241,24 @@ struct Config {
     fhicl::ParameterSet binning_ps =
         ps.get<fhicl::ParameterSet>("binning", fhicl::ParameterSet());
 
-    for (std::string const &nuname : NuPDGTargetNames) {
+    if (!binning.isdef_determine_binning_file_) {
+      binning.determine_binning_file =
+          binning_ps.get<std::string>("optimized_binning_file", "");
+    }
+    if (!binning.isdef_determine_binning_N_) {
+      binning.determine_binning_N =
+          binning_ps.get<size_t>("optimized_binning_N", 1000);
+    }
+    if (!binning.isdef_determine_binning_width_) {
+      binning.determine_binning_width =
+          binning_ps.get<double>("optimized_binning_min_width", 0.25);
+    }
+
+    binning.off_axis.resize(NuPDGTargetNames.size());
+    std::fill_n(std::back_inserter(binning.is_off_axis), 4, false);
+    std::fill_n(std::back_inserter(binning.is_jagged), 4, false);
+    for (size_t nu_it = 0; nu_it < NuPDGTargetNames.size(); ++nu_it) {
+      std::string const &nuname = NuPDGTargetNames[nu_it];
 
       fhicl::ParameterSet def;
       def.put<std::string>("off_axis", "0_0:1");
@@ -230,7 +271,19 @@ struct Config {
                                "off_axis", "0_0:1") != "0_0:1");
       bool is_jagged = binning.energy.back().has_key("xattr");
 
-      binning.is_off_axis.push_back(has_off_axis || is_jagged);
+      if (has_off_axis || is_jagged) {
+        binning.is_off_axis[nu_it] = true;
+        if (has_off_axis) {
+          binning.off_axis[nu_it] =
+              BuildBinEdges(binning.energy.back().get<std::string>("off_axis"));
+        } else { // IsJagged
+          binning.is_jagged[nu_it] = true;
+          binning.off_axis[nu_it] =
+              ParseJaggedUniformAxis(binning.energy.back());
+        }
+      } else {
+        binning.off_axis[nu_it] = std::vector<double>{-2.5, 2.5};
+      }
     }
 
     std::string off_axis_step =
@@ -274,14 +327,22 @@ struct Config {
       double half_width_m = flux_window_ps.get<double>("width_m") / 2.0;
       for (size_t nu_it = 0; nu_it < NuPDGTargetNames.size(); ++nu_it) {
         if (binning.is_off_axis[nu_it]) {
-          std::cout << "[ERROR]: Found flux_window.width_m but "
+          std::cout << "[WARN]: Found flux_window.width_m but "
                        "an off axis binning was provided for nu species: "
-                    << NuPDGTargetNames[nu_it] << std::endl;
-          throw;
+                    << NuPDGTargetNames[nu_it]
+                    << ", the window width will be ignored." << std::endl;
+        } else {
+          binning.off_axis[nu_it] =
+              std::vector<double>{-half_width_m, half_width_m};
         }
-        std::stringstream ss("");
-        ss << -half_width_m << "," << half_width_m;
-        binning.energy[nu_it].put<std::string>("off_axis", ss.str());
+      }
+    }
+    for (size_t nu_it = 0; nu_it < NuPDGTargetNames.size(); ++nu_it) {
+      if (!binning.off_axis[nu_it].size()) {
+        std::cout << "[ERROR]: No off axis binning or window width found for "
+                     "species: "
+                  << NuPDGTargetNames[nu_it] << std::endl;
+        throw;
       }
     }
 
@@ -319,7 +380,10 @@ struct Config {
     fhicl::ParameterSet output_ps =
         ps.get<fhicl::ParameterSet>("output", fhicl::ParameterSet());
 
-    output.only_nu_species_pdg = output_ps.get<int>("only_nu_species_pdg", 0);
+    if (output.isdef_only_nu_species_pdg_) {
+      output.only_nu_species_pdg = output_ps.get<int>("only_nu_species_pdg", 0);
+    }
+
     output.separate_by_hadron_species =
         output_ps.get<bool>("separate_by_hadron_species", false);
     output.use_THF = output_ps.get<bool>("use_THF", false);
@@ -359,6 +423,18 @@ void handleOpts(int argc, char const *argv[]) {
     } else if (std::string(argv[opt]) == "--NPPFX-Universes") {
       config.input.number_ppfx_universes = str2T<size_t>(argv[++opt]);
       config.input.isdef_number_ppfx_universes_ = false;
+    } else if (std::string(argv[opt]) == "--only-pdg") {
+      config.output.only_nu_species_pdg = str2T<int>(argv[++opt]);
+      config.output.isdef_only_nu_species_pdg_ = false;
+    } else if (std::string(argv[opt]) == "--optimized-binning-file") {
+      config.binning.determine_binning_file = argv[++opt];
+      config.binning.isdef_determine_binning_file_ = false;
+    } else if (std::string(argv[opt]) == "--optimized-binning-N") {
+      config.binning.determine_binning_N = str2T<size_t>(argv[++opt]);
+      config.binning.isdef_determine_binning_N_ = false;
+    } else if (std::string(argv[opt]) == "--optimized-binning-min-width") {
+      config.binning.determine_binning_width = str2T<double>(argv[++opt]);
+      config.binning.isdef_determine_binning_width_ = false;
     } else if (std::string(argv[opt]) == "--fhicl") {
       config.SetFromFHiCL(fhicl::make_ParameterSet(argv[++opt]));
       got_fhicl_config = true;
@@ -380,17 +456,9 @@ void handleOpts(int argc, char const *argv[]) {
 constexpr double rad2deg = 90.0 / asin(1);
 
 std::pair<double, TVector3>
-GetRandomFluxWindowPosition(TRandom3 &rnjesus,
-                            std::vector<double> const &oasteps,
-                            Int_t FluxWindow = -1) {
-  double OffAxisCenter =
-      ((FluxWindow == -1) ? (oasteps.back() + oasteps.front())
-                          : (oasteps[FluxWindow + 1] + oasteps[FluxWindow])) /
-      2.0;
-  double OffAxisHalfRange =
-      ((FluxWindow == -1) ? (oasteps.back() - oasteps.front())
-                          : (oasteps[FluxWindow + 1] - oasteps[FluxWindow])) /
-      2.0;
+GetRandomFluxWindowPosition(TRandom3 &rnjesus, double win_min, double win_max) {
+  double OffAxisCenter = (win_max + win_min) / 2.0;
+  double OffAxisHalfRange = (win_max - win_min) / 2.0;
 
   double zpos_cm = config.flux_window.z_from_target_cm +
                    config.flux_window.z_rel_min_cm +
@@ -421,6 +489,11 @@ GetRandomFluxWindowPosition(TRandom3 &rnjesus,
   }
   }
 
+  if (!std::isnormal(rndDetPos.Mag())) {
+    std::cout << "[ERROR]: Abnormal det pos, something is up." << std::endl;
+    abort();
+  }
+
   return std::make_pair(RandomOffAxisPos, rndDetPos);
 }
 
@@ -449,7 +522,12 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
             << std::endl;
   std::cout << "Reading " << NDecayParents << " Dk2Nu entries." << std::endl;
 
-  TFile *outfile = CheckOpenFile(config.output.output_filename, "RECREATE");
+  bool determine_binning = config.binning.determine_binning_file.size();
+
+  TFile *outfile = nullptr;
+  if (!determine_binning) {
+    outfile = CheckOpenFile(config.output.output_filename, "RECREATE");
+  }
 
   if (config.output.only_nu_species_pdg) {
     std::vector<int>::iterator pdg_it =
@@ -464,7 +542,18 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
     size_t idx = std::distance(NuPDGTargets.begin(), pdg_it);
     config.binning.energy =
         std::vector<fhicl::ParameterSet>{config.binning.energy[idx]};
+    config.binning.is_off_axis =
+        std::vector<bool>{config.binning.is_off_axis[idx]};
+    config.binning.off_axis =
+        std::vector<std::vector<double>>{config.binning.off_axis[idx]};
+
     NuPDGTargets = std::vector<int>{NuPDGTargets[idx]};
+  } else if (determine_binning) {
+    std::cout << "[ERROR]: When determining binning, expect only single "
+                 "neutrino species, please specify output.only_nu_species_pdg "
+                 "= <pdg> in configuration."
+              << std::endl;
+    abort();
   }
 
   std::vector<std::vector<std::vector<TH1 *>>> Hists;
@@ -481,6 +570,10 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
     }
   }
   bool use_PPFX = (NPPFXU > 1);
+  if (determine_binning) {
+    NPPFXU = 1;
+  }
+
   Hists.resize(NPPFXU);
   Hists_2D.resize(NPPFXU);
 
@@ -595,22 +688,6 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
         if (IsOffAxis) {
           Hists_2D[ppfx_univ_it][nuPDG_it].push_back(
               static_cast<TH2 *>(Hists[ppfx_univ_it][nuPDG_it].back()));
-
-          if (!ppfx_univ_it && !ps_it) { // Set up the binning vector
-            TAxis const *OAxisAxis =
-                Hists_2D[ppfx_univ_it][nuPDG_it].back()->GetYaxis();
-            config.binning.off_axis.push_back({});
-            for (Int_t bi_it = 1; bi_it < OAxisAxis->GetNbins() + 1; ++bi_it) {
-              config.binning.off_axis.back().push_back(
-                  OAxisAxis->GetBinLowEdge(bi_it));
-            }
-            config.binning.off_axis.back().push_back(
-                OAxisAxis->GetBinUpEdge(OAxisAxis->GetNbins()));
-          }
-        } else if (!ppfx_univ_it && !ps_it) {
-          config.binning.off_axis.push_back({
-              0,
-          });
         }
       }
     }
@@ -621,6 +698,8 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
     (void)i;
     NNuPDGTargets.push_back(0);
   }
+
+  std::vector<std::tuple<double, double, double>> binning_opt_points;
 
   size_t updateStep = (NDecayParents / 10) ? NDecayParents / 10 : 1;
   for (size_t nu_it = 0; nu_it < NDecayParents; ++nu_it) {
@@ -634,7 +713,9 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
         std::distance(NuPDGTargets.begin(),
                       std::find(NuPDGTargets.begin(), NuPDGTargets.end(),
                                 dk2nuRdr.decay_ntype));
+
     Int_t NOffAxisBins = Int_t(config.binning.off_axis[nuPDG_it].size() - 1);
+    Int_t IsOffAxis = config.binning.is_off_axis[nuPDG_it];
 
     nuray_weights.clear();
     nuray_energy.clear();
@@ -643,20 +724,13 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
     if (config.output.only_nu_species_pdg &&
         (config.output.only_nu_species_pdg != dk2nuRdr.decay_ntype)) {
       if (nuray_tree) {
-        for (Int_t ang_it = 0; (!NOffAxisBins) || (ang_it < NOffAxisBins);
-             ++ang_it) {
+        for (Int_t ang_it = 0; ang_it < NOffAxisBins; ++ang_it) {
           nuray_weights.push_back(0);
           nuray_energy.push_back(0);
           nuray_theta.push_back(0);
           // If we aren't re-using the parents then we have placed this neutrino
           // randomly in the 2D range and should now move to the next one.
           if (config.input.limit_decay_parent_use) {
-            break;
-          }
-
-          // If we only have a single position, then we must use this to break
-          // out of the loop.
-          if (!NOffAxisBins) {
             break;
           }
         }
@@ -667,19 +741,27 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
 
     double wF = (dk2nuRdr.decay_nimpwt / TMath::Pi()) * (1.0 / TotalPOT);
 
-    // If there are no off axis bins, then we want to just build flux on-axis,
-    // this loop needs to happen once.
-    for (Int_t ang_it = 0; (!NOffAxisBins) || (ang_it < NOffAxisBins);
-         ++ang_it) {
+    for (Int_t ang_it = 0; ang_it < NOffAxisBins; ++ang_it) {
 
       // If we are not re-using the decay parents, then this is placed randomly
       // over the whole off-axis range.
-      std::pair<double, TVector3> det_point = GetRandomFluxWindowPosition(
-          rnjesus, config.binning.off_axis[nuPDG_it],
-          !config.input.limit_decay_parent_use ? ang_it : -1);
+      double win_min = config.input.limit_decay_parent_use
+                           ? config.binning.off_axis[nuPDG_it].front()
+                           : config.binning.off_axis[nuPDG_it][ang_it];
+      double win_max = config.input.limit_decay_parent_use
+                           ? config.binning.off_axis[nuPDG_it].back()
+                           : config.binning.off_axis[nuPDG_it][ang_it + 1];
+      std::pair<double, TVector3> det_point =
+          GetRandomFluxWindowPosition(rnjesus, win_min, win_max);
 
       std::tuple<double, double, double> nuStats =
           GetNuWeight(dk2nuRdr, det_point.second);
+
+      if (determine_binning) {
+        binning_opt_points.emplace_back(det_point.first, std::get<0>(nuStats),
+                                        std::get<2>(nuStats) * wF);
+        continue;
+      }
 
       if (config.output.use_reciprocal_energy) {
         std::get<0>(nuStats) = 1.0 / std::get<0>(nuStats);
@@ -733,10 +815,14 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
         }
       }
 
-      if ((ang_it == 0) || config.input.limit_decay_parent_use) {
+      if (ang_it == 0) {
         NNuPDGTargets[nuPDG_it]++;
       }
 
+      Int_t JagBin = config.binning.is_jagged[nuPDG_it]
+                         ? Hists_2D[0][nuPDG_it][0]->FindFixBin(
+                               std::get<0>(nuStats), det_point.first)
+                         : 0; // Haven't checked
       for (size_t ppfx_univ_it = 0; ppfx_univ_it < NPPFXU; ++ppfx_univ_it) {
 
         double ppfx_w = 1;
@@ -747,17 +833,44 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
 
         // AddBinContent with known bin fails to track errors, must fill each
         // time.
-        if (NOffAxisBins > 1) {
-          Hists_2D[ppfx_univ_it][nuPDG_it][0]->Fill(
-              std::get<0>(nuStats), det_point.first, w * ppfx_w);
+        if (IsOffAxis) {
+          if (config.binning.is_jagged[nuPDG_it]) { // but with TH2Jagged we can
+                                                    // fill a known bin and keep
+                                                    // the stats correct
+            if (config.output.use_THF) {
+              static_cast<TH2JaggedF *>(Hists_2D[ppfx_univ_it][nuPDG_it][0])
+                  ->FillKnownBin(JagBin, w * ppfx_w);
+            } else {
+              static_cast<TH2JaggedD *>(Hists_2D[ppfx_univ_it][nuPDG_it][0])
+                  ->FillKnownBin(JagBin, w * ppfx_w);
+            }
+          } else {
+            Hists_2D[ppfx_univ_it][nuPDG_it][0]->Fill(
+                std::get<0>(nuStats), det_point.first, w * ppfx_w);
+          }
         } else {
           Hists[ppfx_univ_it][nuPDG_it][0]->Fill(std::get<0>(nuStats),
                                                  w * ppfx_w);
         }
         if (config.output.separate_by_hadron_species) {
-          if (NOffAxisBins > 1) {
-            Hists_2D[ppfx_univ_it][nuPDG_it][extra_hist_index]->Fill(
-                std::get<0>(nuStats), det_point.first, w * ppfx_w);
+          if (IsOffAxis) {
+            if (config.binning
+                    .is_jagged[nuPDG_it]) { // but with TH2Jagged we
+                                            // can fill a known bin and
+                                            // keep the stats correct
+              if (config.output.use_THF) {
+                static_cast<TH2JaggedF *>(
+                    Hists_2D[ppfx_univ_it][nuPDG_it][extra_hist_index])
+                    ->FillKnownBin(JagBin, w * ppfx_w);
+              } else {
+                static_cast<TH2JaggedD *>(
+                    Hists_2D[ppfx_univ_it][nuPDG_it][extra_hist_index])
+                    ->FillKnownBin(JagBin, w * ppfx_w);
+              }
+            } else {
+              Hists_2D[ppfx_univ_it][nuPDG_it][extra_hist_index]->Fill(
+                  std::get<0>(nuStats), det_point.first, w * ppfx_w);
+            }
           } else {
             Hists[ppfx_univ_it][nuPDG_it][extra_hist_index]->Fill(
                 std::get<0>(nuStats), w * ppfx_w);
@@ -772,11 +885,6 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
         break;
       }
 
-      // If we only have a single position, then we must use this to break out
-      // of the loop.
-      if (!NOffAxisBins) {
-        break;
-      }
       nuray_weights.push_back(w);
       nuray_energy.push_back(std::get<0>(nuStats));
       nuray_theta.push_back(std::get<1>(nuStats) * 1E3);
@@ -786,6 +894,31 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
       nuray_tree->Fill();
     }
   } // End loop over decay parents
+
+  if (determine_binning) {
+    std::vector<TAxis> axes = DetermineOptimalNonUniformBinning(
+        TAxis(config.binning.off_axis[0].size() - 1,
+              config.binning.off_axis[0].data()),
+        binning_opt_points, config.binning.determine_binning_N, 0, 20,
+        config.binning.determine_binning_width);
+
+    std::ofstream fo(config.binning.determine_binning_file.c_str());
+
+    fo << "binning: [ " << std::endl;
+    for (size_t ax_it = 0; ax_it < axes.size(); ++ax_it) {
+      fo << "  {\n  OA_m: \"" << config.binning.off_axis[0][ax_it] << ", "
+         << config.binning.off_axis[0][ax_it + 1] << "\"" << std::endl;
+      fo << "  E_GeV: \"";
+      for (Int_t b_it = 0; b_it < axes[ax_it].GetNbins(); ++b_it) {
+        fo << axes[ax_it].GetBinLowEdge(b_it + 1) << ",";
+      }
+      fo << axes[ax_it].GetBinUpEdge(axes[ax_it].GetNbins()) << "\" },"
+         << std::endl;
+    }
+    fo << "  ]" << std::endl;
+
+    return;
+  }
 
   for (size_t nuPDG_it = 0; nuPDG_it < NuPDGTargets.size(); ++nuPDG_it) {
     std::cout << "[INFO]: Found " << NNuPDGTargets[nuPDG_it]
@@ -800,9 +933,9 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
       }
     }
 
-    Int_t NOffAxisBins = Int_t(config.binning.off_axis[nuPDG_it].size()) - 1;
+    Int_t IsOffAxis = config.binning.is_off_axis[nuPDG_it];
     // Scale to /cm^2 and per GeV (xbin width)
-    if (NOffAxisBins > 1) {
+    if (IsOffAxis) {
       for (size_t ppfx_univ_it = 0; ppfx_univ_it < NPPFXU; ++ppfx_univ_it) {
         std::vector<TH2 *> &univ_hists = Hists_2D[ppfx_univ_it][nuPDG_it];
         for (size_t hist_index = 0;
@@ -818,15 +951,15 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
 
             TAxis const *xax;
             if (config.output.use_THF) {
-              xax = (dynamic_cast<TH2JaggedF *>(hist))
+              xax = config.binning.is_jagged[nuPDG_it]
                         ? dynamic_cast<TH2JaggedF *>(hist)->GetNonUniformAxis(
                               ybin_it + 1)
-                        : hist->GetYaxis();
+                        : hist->GetXaxis();
             } else {
-              xax = (dynamic_cast<TH2JaggedD *>(hist))
+              xax = config.binning.is_jagged[nuPDG_it]
                         ? dynamic_cast<TH2JaggedD *>(hist)->GetNonUniformAxis(
                               ybin_it + 1)
-                        : hist->GetYaxis();
+                        : hist->GetXaxis();
             }
 
             for (Int_t xbin_it = 0; xbin_it < xax->GetNbins(); ++xbin_it) {

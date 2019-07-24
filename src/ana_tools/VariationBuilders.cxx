@@ -2,6 +2,8 @@
 
 #include "CovarianceHelper.hxx"
 
+#include "TH2Jagged.h"
+
 const char *show_classification(double x) {
   switch (std::fpclassify(x)) {
   case FP_INFINITE:
@@ -45,6 +47,8 @@ void VariationBuilder::BaseConfigure(fhicl::ParameterSet const &ps) {
     std::string FluxSliceDescriptor = paramset.get<std::string>(
         std::string("FluxSlicesDescriptor_") + pred_config, "");
 
+    bool IsJagged = paramset.get<bool>(pred_config + "_IsJagged", true);
+
     std::string NominalInputFile_conf =
         str_replace(NominalInputFile_template, "%C", pred_config);
     std::string NominalHistName_conf =
@@ -57,7 +61,15 @@ void VariationBuilder::BaseConfigure(fhicl::ParameterSet const &ps) {
       std::string NominalHistName =
           str_replace(NominalHistName_conf, "%S", species);
 
-      if (FluxSliceDescriptor.size()) {
+      if (IsJagged) {
+        std::unique_ptr<TH2JaggedD> flux2D =
+            GetHistogram_uptr<TH2JaggedD>(NominalInputFile, NominalHistName);
+        Mergestdvector(NominalPrediction, Getstdvector(flux2D.get()));
+        Mergestdvector(NominalPredictionError, Getstdvectorerror(flux2D.get()));
+
+        flux2D->SetName((Name + "_Nom").c_str());
+        NominalHistogramSet.push_back(std::move(flux2D));
+      } else if (FluxSliceDescriptor.size()) {
         std::vector<std::pair<double, double>> XRanges =
             BuildRangesList(FluxSliceDescriptor);
         std::unique_ptr<TH2D> flux2D =
@@ -74,7 +86,6 @@ void VariationBuilder::BaseConfigure(fhicl::ParameterSet const &ps) {
         } else if (nom_hists.size()) {
           NominalHistogramSet.push_back(std::move(nom_hists.front()));
         }
-
       } else {
         std::unique_ptr<TH1> nom_hist =
             GetHistogram_uptr<TH1>(NominalInputFile, NominalHistName);
@@ -129,6 +140,8 @@ void ThrownVariations::Process() {
       std::string FluxSliceDescriptor = paramset.get<std::string>(
           std::string("FluxSlicesDescriptor_") + pred_config, "");
 
+      bool IsJagged = paramset.get<bool>(pred_config + "_IsJagged", true);
+
       std::string InputFile_i_c = str_replace(InputFile_i, "%C", pred_config);
       std::string VariedHistName_i_c =
           str_replace(VariedHistName_i, "%C", pred_config);
@@ -139,6 +152,11 @@ void ThrownVariations::Process() {
         std::string VariedHistName =
             str_replace(VariedHistName_i_c, "%S", species);
 
+        if (IsJagged) {
+          std::unique_ptr<TH2JaggedD> flux2D =
+              GetHistogram_uptr<TH2JaggedD>(InputFile, VariedHistName);
+          Mergestdvector(flux_pred_i, Getstdvector(flux2D.get()));
+        }
         if (FluxSliceDescriptor.size()) {
           std::vector<std::pair<double, double>> XRanges =
               BuildRangesList(FluxSliceDescriptor);
@@ -364,6 +382,8 @@ void DiscreteVariations::Configure(fhicl::ParameterSet const &ps) {
       std::string FluxSliceDescriptor = paramset.get<std::string>(
           std::string("FluxSlicesDescriptor_") + pred_config, "");
 
+      bool IsJagged = paramset.get<bool>(pred_config + "_IsJagged", true);
+
       std::string InputFile_tw_c =
           str_replace(InputFile_template, "%C", pred_config);
       std::string VariedHistName_tw_c =
@@ -375,7 +395,12 @@ void DiscreteVariations::Configure(fhicl::ParameterSet const &ps) {
         std::string VariedHistName =
             str_replace(VariedHistName_tw_c, "%S", species);
 
-        if (FluxSliceDescriptor.size()) {
+        if (IsJagged) {
+          std::unique_ptr<TH2JaggedD> flux2D =
+              GetHistogram_uptr<TH2JaggedD>(InputFile, VariedHistName);
+          Mergestdvector(pred_twk, Getstdvector(flux2D.get()));
+          Mergestdvector(pred_error, Getstdvectorerror(flux2D.get()));
+        } else if (FluxSliceDescriptor.size()) { // 2D Uniform
           std::vector<std::pair<double, double>> XRanges =
               BuildRangesList(FluxSliceDescriptor);
 
@@ -385,7 +410,8 @@ void DiscreteVariations::Configure(fhicl::ParameterSet const &ps) {
           auto const &split = MergeSplitTH2D(flux2D, true, XRanges);
           Mergestdvector(pred_twk, Getstdvector(split));
           Mergestdvector(pred_error, Getstdvectorerror(split));
-        } else {
+
+        } else { // 1D
           std::unique_ptr<TH1> var_hist =
               GetHistogram_uptr<TH1>(InputFile, VariedHistName);
 
@@ -726,6 +752,8 @@ void DirectVariations::Configure(fhicl::ParameterSet const &ps) {
     std::string FluxSliceDescriptor = paramset.get<std::string>(
         std::string("FluxSlicesDescriptor_") + pred_config, "");
 
+    bool IsJagged = paramset.get<bool>(pred_config + "_IsJagged", true);
+
     std::string InputFile_tw_c =
         str_replace(InputFile_template, "%C", pred_config);
 
@@ -738,7 +766,12 @@ void DirectVariations::Configure(fhicl::ParameterSet const &ps) {
       std::string VariedHistName =
           str_replace(VariedHistName_tw_c, "%S", species);
 
-      if (FluxSliceDescriptor.size()) {
+      if (IsJagged) {
+        std::unique_ptr<TH2JaggedD> flux2D =
+            GetHistogram_uptr<TH2JaggedD>(InputFile, VariedHistName);
+        Mergestdvector(pred_twk, Getstdvector(flux2D.get()));
+
+      } else if (FluxSliceDescriptor.size()) {
         std::vector<std::pair<double, double>> XRanges =
             BuildRangesList(FluxSliceDescriptor);
 

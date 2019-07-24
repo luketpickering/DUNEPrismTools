@@ -1,5 +1,7 @@
 #include "ROOTUtility.hxx"
 
+#include "TH2Jagged.h"
+
 #include "TGraph.h"
 #include "TObjArray.h"
 
@@ -319,18 +321,29 @@ void FindTH1Peaks(TH1D const *flux, int &left, int &right, int n) {
 std::vector<double> Getstdvector(TH2 const *rh) {
   std::vector<double> ev;
 
-  for (Int_t y_it = 0; y_it < rh->GetYaxis()->GetNbins(); ++y_it) {
-    for (Int_t x_it = 0; x_it < rh->GetXaxis()->GetNbins(); ++x_it) {
-#ifdef DEBUG_GETFLATVECTOR
-      if (rh->GetBinContent(x_it + 1, y_it + 1) &&
-          !std::isnormal(rh->GetBinContent(x_it + 1, y_it + 1))) {
-        std::cout << "[ERROR]: Got bad bin entry at (" << x_it << ", " << y_it
-                  << ") = " << rh->GetBinContent(x_it + 1, y_it + 1)
-                  << std::endl;
-        throw;
+  TH2JaggedD const *hjag;
+  if ((hjag = dynamic_cast<TH2JaggedD const *>(rh))) {
+    for (Int_t bin_it = 0; bin_it < (hjag->GetNbins() + 2); ++bin_it) {
+      if (hjag->IsFlowBin(bin_it)) {
+        continue;
       }
+      ev.push_back(hjag->GetBinContent(bin_it));
+    }
+  } else {
+
+    for (Int_t y_it = 0; y_it < rh->GetYaxis()->GetNbins(); ++y_it) {
+      for (Int_t x_it = 0; x_it < rh->GetXaxis()->GetNbins(); ++x_it) {
+#ifdef DEBUG_GETFLATVECTOR
+        if (rh->GetBinContent(x_it + 1, y_it + 1) &&
+            !std::isnormal(rh->GetBinContent(x_it + 1, y_it + 1))) {
+          std::cout << "[ERROR]: Got bad bin entry at (" << x_it << ", " << y_it
+                    << ") = " << rh->GetBinContent(x_it + 1, y_it + 1)
+                    << std::endl;
+          throw;
+        }
 #endif
-      ev.push_back(rh->GetBinContent(x_it + 1, y_it + 1));
+        ev.push_back(rh->GetBinContent(x_it + 1, y_it + 1));
+      }
     }
   }
 
@@ -364,17 +377,28 @@ std::vector<double> Getstdvector(TH1 const *rh) {
 std::vector<double> Getstdvectorerror(TH2 const *rh) {
   std::vector<double> ev;
 
-  for (Int_t y_it = 0; y_it < rh->GetYaxis()->GetNbins(); ++y_it) {
-    for (Int_t x_it = 0; x_it < rh->GetXaxis()->GetNbins(); ++x_it) {
-#ifdef DEBUG_GETFLATVECTOR
-      if (rh->GetBinContent(x_it + 1, y_it + 1) &&
-          !std::isnormal(rh->GetBinError(x_it + 1, y_it + 1))) {
-        std::cout << "[ERROR]: Got bad bin entry at (" << x_it << ", " << y_it
-                  << ") = " << rh->GetBinError(x_it + 1, y_it + 1) << std::endl;
-        throw;
+  TH2JaggedD const *hjag;
+  if ((hjag = dynamic_cast<TH2JaggedD const *>(rh))) {
+    for (Int_t bin_it = 0; bin_it < (hjag->GetNbins() + 2); ++bin_it) {
+      if (hjag->IsFlowBin(bin_it)) {
+        continue;
       }
+      ev.push_back(hjag->GetBinError(bin_it));
+    }
+  } else {
+    for (Int_t y_it = 0; y_it < rh->GetYaxis()->GetNbins(); ++y_it) {
+      for (Int_t x_it = 0; x_it < rh->GetXaxis()->GetNbins(); ++x_it) {
+#ifdef DEBUG_GETFLATVECTOR
+        if (rh->GetBinContent(x_it + 1, y_it + 1) &&
+            !std::isnormal(rh->GetBinError(x_it + 1, y_it + 1))) {
+          std::cout << "[ERROR]: Got bad bin entry at (" << x_it << ", " << y_it
+                    << ") = " << rh->GetBinError(x_it + 1, y_it + 1)
+                    << std::endl;
+          throw;
+        }
 #endif
-      ev.push_back(rh->GetBinError(x_it + 1, y_it + 1));
+        ev.push_back(rh->GetBinError(x_it + 1, y_it + 1));
+      }
     }
   }
 
@@ -407,30 +431,51 @@ std::vector<double> Getstdvectorerror(TH1 const *rh) {
 
 size_t FillHistFromstdvector(TH2 *rh, std::vector<double> const &vals,
                              size_t offset, std::vector<double> const &error) {
-  for (Int_t y_it = 0; y_it < rh->GetYaxis()->GetNbins(); ++y_it) {
-    for (Int_t x_it = 0; x_it < rh->GetXaxis()->GetNbins(); ++x_it) {
-      rh->SetBinContent(x_it + 1, y_it + 1, vals[offset]);
+
+  TH2JaggedD *hjag;
+  if ((hjag = dynamic_cast<TH2JaggedD *>(rh))) {
+    // I know this flattens all bins
+    hjag->Reset();
+
+    for (Int_t bin_it = 0; bin_it < (hjag->GetNbins() + 2); ++bin_it) {
+      if (hjag->IsFlowBin(bin_it)) {
+        continue;
+      }
+      hjag->SetBinContent(bin_it, vals[offset]);
       if (error.size()) {
-        rh->SetBinError(x_it + 1, y_it + 1, error[offset]);
+        hjag->SetBinError(bin_it, error[offset]);
       } else {
-        rh->SetBinError(x_it + 1, y_it + 1, 0);
+        hjag->SetBinError(bin_it, 0);
       }
       offset++;
     }
-    // Reset flow bins
-    rh->SetBinContent(0, y_it + 1, 0);
-    rh->SetBinError(0, y_it + 1, 0);
-    rh->SetBinContent(rh->GetXaxis()->GetNbins() + 1, y_it + 1, 0);
-    rh->SetBinError(rh->GetXaxis()->GetNbins() + 1, y_it + 1, 0);
-  }
+  } else {
 
-  for (Int_t x_it = 0; x_it < rh->GetXaxis()->GetNbins() + 2; ++x_it) {
-    // Reset flow bins
-    rh->SetBinContent(x_it, 0, 0);
-    rh->SetBinError(x_it, 0, 0);
+    for (Int_t y_it = 0; y_it < rh->GetYaxis()->GetNbins(); ++y_it) {
+      for (Int_t x_it = 0; x_it < rh->GetXaxis()->GetNbins(); ++x_it) {
+        rh->SetBinContent(x_it + 1, y_it + 1, vals[offset]);
+        if (error.size()) {
+          rh->SetBinError(x_it + 1, y_it + 1, error[offset]);
+        } else {
+          rh->SetBinError(x_it + 1, y_it + 1, 0);
+        }
+        offset++;
+      }
+      // Reset flow bins
+      rh->SetBinContent(0, y_it + 1, 0);
+      rh->SetBinError(0, y_it + 1, 0);
+      rh->SetBinContent(rh->GetXaxis()->GetNbins() + 1, y_it + 1, 0);
+      rh->SetBinError(rh->GetXaxis()->GetNbins() + 1, y_it + 1, 0);
+    }
 
-    rh->SetBinContent(x_it, rh->GetYaxis()->GetNbins() + 1, 0);
-    rh->SetBinError(x_it, rh->GetYaxis()->GetNbins() + 1, 0);
+    for (Int_t x_it = 0; x_it < rh->GetXaxis()->GetNbins() + 2; ++x_it) {
+      // Reset flow bins
+      rh->SetBinContent(x_it, 0, 0);
+      rh->SetBinError(x_it, 0, 0);
+
+      rh->SetBinContent(x_it, rh->GetYaxis()->GetNbins() + 1, 0);
+      rh->SetBinError(x_it, rh->GetYaxis()->GetNbins() + 1, 0);
+    }
   }
   return offset;
 }
@@ -465,30 +510,50 @@ size_t FillHistFromstdvector(TH1 *rh, std::vector<double> const &vals,
 
 size_t FillHistFromEigenVector(TH2 *rh, Eigen::VectorXd const &vals,
                                size_t offset, Eigen::VectorXd const &error) {
-  for (Int_t y_it = 0; y_it < rh->GetYaxis()->GetNbins(); ++y_it) {
-    for (Int_t x_it = 0; x_it < rh->GetXaxis()->GetNbins(); ++x_it) {
-      rh->SetBinContent(x_it + 1, y_it + 1, vals(offset));
+
+  TH2JaggedD *hjag;
+  if ((hjag = dynamic_cast<TH2JaggedD *>(rh))) {
+    // I know this flattens all bins
+    hjag->Reset();
+
+    for (Int_t bin_it = 0; bin_it < (hjag->GetNbins() + 2); ++bin_it) {
+      if (hjag->IsFlowBin(bin_it)) {
+        continue;
+      }
+      hjag->SetBinContent(bin_it, vals(offset));
       if (error.size()) {
-        rh->SetBinError(x_it + 1, y_it + 1, error(offset));
+        hjag->SetBinError(bin_it, error(offset));
       } else {
-        rh->SetBinError(x_it + 1, y_it + 1, 0);
+        hjag->SetBinError(bin_it, 0);
       }
       offset++;
     }
-    // Reset flow bins
-    rh->SetBinContent(0, y_it + 1, 0);
-    rh->SetBinError(0, y_it + 1, 0);
-    rh->SetBinContent(rh->GetXaxis()->GetNbins() + 1, y_it + 1, 0);
-    rh->SetBinError(rh->GetXaxis()->GetNbins() + 1, y_it + 1, 0);
-  }
+  } else {
+    for (Int_t y_it = 0; y_it < rh->GetYaxis()->GetNbins(); ++y_it) {
+      for (Int_t x_it = 0; x_it < rh->GetXaxis()->GetNbins(); ++x_it) {
+        rh->SetBinContent(x_it + 1, y_it + 1, vals(offset));
+        if (error.size()) {
+          rh->SetBinError(x_it + 1, y_it + 1, error(offset));
+        } else {
+          rh->SetBinError(x_it + 1, y_it + 1, 0);
+        }
+        offset++;
+      }
+      // Reset flow bins
+      rh->SetBinContent(0, y_it + 1, 0);
+      rh->SetBinError(0, y_it + 1, 0);
+      rh->SetBinContent(rh->GetXaxis()->GetNbins() + 1, y_it + 1, 0);
+      rh->SetBinError(rh->GetXaxis()->GetNbins() + 1, y_it + 1, 0);
+    }
 
-  for (Int_t x_it = 0; x_it < rh->GetXaxis()->GetNbins() + 2; ++x_it) {
-    // Reset flow bins
-    rh->SetBinContent(x_it, 0, 0);
-    rh->SetBinError(x_it, 0, 0);
+    for (Int_t x_it = 0; x_it < rh->GetXaxis()->GetNbins() + 2; ++x_it) {
+      // Reset flow bins
+      rh->SetBinContent(x_it, 0, 0);
+      rh->SetBinError(x_it, 0, 0);
 
-    rh->SetBinContent(x_it, rh->GetYaxis()->GetNbins() + 1, 0);
-    rh->SetBinError(x_it, rh->GetYaxis()->GetNbins() + 1, 0);
+      rh->SetBinContent(x_it, rh->GetYaxis()->GetNbins() + 1, 0);
+      rh->SetBinError(x_it, rh->GetYaxis()->GetNbins() + 1, 0);
+    }
   }
   return offset;
 }
@@ -625,7 +690,12 @@ std::unique_ptr<TH1> THToF(std::unique_ptr<TH1> &hin) {
   if (hin->GetDimension() == 1) {
     return TH1ToF(dynamic_cast<TH1 *>(hin.get()));
   } else if (hin->GetDimension() == 2) {
-    return TH2ToF(dynamic_cast<TH2 *>(hin.get()));
+    TH2JaggedD const *hjag;
+    if ((hjag = dynamic_cast<TH2JaggedD const *>(hin.get()))) {
+      return std::unique_ptr<TH1>(ToTHJaggedF(dynamic_cast<TH2JaggedD const *>(hin.get())));
+    } else {
+      return TH2ToF(dynamic_cast<TH2 *>(hin.get()));
+    }
   }
   throw;
 }
