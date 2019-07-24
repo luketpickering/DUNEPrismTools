@@ -53,7 +53,7 @@ jagged_binning_defs: {
         # energy binning is non-uniform
         xisuniform: false
 
-        # include "nu.numu.optbin.fcl"
+        #include "nu.numu.optbin.fcl"
       }
       numubar: {
         yattr: "OA_m"
@@ -61,7 +61,7 @@ jagged_binning_defs: {
         # energy binning is non-uniform
         xisuniform: false
 
-        # include "nu.numubar.optbin.fcl"
+        #include "nu.numubar.optbin.fcl"
       }
       nue: {
         yattr: "OA_m"
@@ -69,7 +69,7 @@ jagged_binning_defs: {
         # energy binning is non-uniform
         xisuniform: false
 
-        # include "nu.nue.optbin.fcl"
+        #include "nu.nue.optbin.fcl"
       }
       nuebar: {
         yattr: "OA_m"
@@ -77,7 +77,7 @@ jagged_binning_defs: {
         # energy binning is non-uniform
         xisuniform: false
 
-        # include "nu.nuebar.optbin.fcl"
+        #include "nu.nuebar.optbin.fcl"
       }
 
       off_axis_type: position_m
@@ -90,7 +90,7 @@ jagged_binning_defs: {
         # energy binning is non-uniform
         xisuniform: false
 
-        # include "nubar.numu.optbin.fcl"
+        #include "nubar.numu.optbin.fcl"
       }
       numubar: {
         yattr: "OA_m"
@@ -98,7 +98,7 @@ jagged_binning_defs: {
         # energy binning is non-uniform
         xisuniform: false
 
-        # include "nubar.numubar.optbin.fcl"
+        #include "nubar.numubar.optbin.fcl"
       }
       nue: {
         yattr: "OA_m"
@@ -106,7 +106,7 @@ jagged_binning_defs: {
         # energy binning is non-uniform
         xisuniform: false
 
-        # include "nubar.nue.optbin.fcl"
+        #include "nubar.nue.optbin.fcl"
       }
       nuebar: {
         yattr: "OA_m"
@@ -114,7 +114,7 @@ jagged_binning_defs: {
         # energy binning is non-uniform
         xisuniform: false
 
-        # include "nubar.nuebar.optbin.fcl"
+        #include "nubar.nuebar.optbin.fcl"
       }
 
       off_axis_type: position_m

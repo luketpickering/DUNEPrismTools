@@ -176,6 +176,8 @@ struct Config {
     bool isdef_determine_binning_N_;
     double determine_binning_width;
     bool isdef_determine_binning_width_;
+    double determine_binning_max_width;
+    bool isdef_determine_binning_max_width_;
   };
   Binning binning;
 
@@ -234,6 +236,8 @@ struct Config {
     binning.isdef_determine_binning_N_ = true;
     binning.determine_binning_width = 0.025;
     binning.isdef_determine_binning_width_ = true;
+    binning.determine_binning_max_width = 2;
+    binning.isdef_determine_binning_max_width_ = true;
   }
 
   void SetFromFHiCL(fhicl::ParameterSet const &ps) {
@@ -252,6 +256,10 @@ struct Config {
     if (!binning.isdef_determine_binning_width_) {
       binning.determine_binning_width =
           binning_ps.get<double>("optimized_binning_min_width", 0.25);
+    }
+    if (!binning.isdef_determine_binning_max_width_) {
+      binning.determine_binning_max_width =
+          binning_ps.get<double>("optimized_binning_max_width", 2);
     }
 
     binning.off_axis.resize(NuPDGTargetNames.size());
@@ -435,6 +443,9 @@ void handleOpts(int argc, char const *argv[]) {
     } else if (std::string(argv[opt]) == "--optimized-binning-min-width") {
       config.binning.determine_binning_width = str2T<double>(argv[++opt]);
       config.binning.isdef_determine_binning_width_ = false;
+    } else if (std::string(argv[opt]) == "--optimized-binning-max-width") {
+      config.binning.determine_binning_max_width = str2T<double>(argv[++opt]);
+      config.binning.isdef_determine_binning_max_width_ = false;
     } else if (std::string(argv[opt]) == "--fhicl") {
       config.SetFromFHiCL(fhicl::make_ParameterSet(argv[++opt]));
       got_fhicl_config = true;
@@ -574,10 +585,12 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
     NPPFXU = 1;
   }
 
-  Hists.resize(NPPFXU);
-  Hists_2D.resize(NPPFXU);
+  if (!determine_binning) {
+    Hists.resize(NPPFXU);
+    Hists_2D.resize(NPPFXU);
+  }
 
-  for (size_t ppfx_univ_it = 0; ppfx_univ_it < NPPFXU; ++ppfx_univ_it) {
+  for (size_t ppfx_univ_it = 0; (!determine_binning) && (ppfx_univ_it < NPPFXU); ++ppfx_univ_it) {
 
     Hists[ppfx_univ_it].resize(NuPDGTargets.size());
     Hists_2D[ppfx_univ_it].resize(NuPDGTargets.size());
@@ -901,7 +914,8 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
         TAxis(config.binning.off_axis[0].size() - 1,
               config.binning.off_axis[0].data()),
         binning_opt_points, config.binning.determine_binning_N, 0, 20,
-        config.binning.determine_binning_width);
+        config.binning.determine_binning_width,
+        config.binning.determine_binning_max_width);
 
     std::ofstream fo(config.binning.determine_binning_file.c_str());
 

@@ -43,7 +43,7 @@ std::vector<Double_t> ParseJaggedUniformAxis(fhicl::ParameterSet const &ps) {
 std::vector<TAxis> DetermineOptimalNonUniformBinning(
     TAxis const &UniformAxis,
     std::vector<std::tuple<float, float, double>> const &data, size_t NPerBin,
-    double minNU, double maxNU, double minNuBinWidth) {
+    double minNU, double maxNU, double minNuBinWidth, double maxNuBinWidth) {
   std::vector<std::vector<std::pair<float, double>>> sorted_NUdata;
   sorted_NUdata.resize(UniformAxis.GetNbins());
 
@@ -80,6 +80,15 @@ std::vector<TAxis> DetermineOptimalNonUniformBinning(
         continue;
       }
 
+      if ((nu.first - BinEdges.back()) > maxNuBinWidth) {
+        while ((BinEdges.back() + maxNuBinWidth) < nu.first) {
+          BinEdges.push_back(BinEdges.back() + maxNuBinWidth);
+        }
+
+        bin_content = 0;
+        sumw2 = 0;
+      }
+
       bin_content += nu.second;
       sumw2 += pow(nu.second, 2);
 
@@ -87,7 +96,6 @@ std::vector<TAxis> DetermineOptimalNonUniformBinning(
         double dist = ceil((nu.first - BinEdges.back()) / minNuBinWidth);
 
         BinEdges.push_back(BinEdges.back() + (dist * minNuBinWidth));
-
         bin_content = 0;
         sumw2 = 0;
       }

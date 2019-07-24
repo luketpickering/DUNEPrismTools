@@ -2,7 +2,7 @@
   #include "flux_windows.fcl"
 
 binning: {
-  @table::jagged_binning_defs.binning_dummy.nubar
+  @table::jagged_binning_defs.uncert.nubar
 }
 
 flux_window: @local::ND_OffAxis

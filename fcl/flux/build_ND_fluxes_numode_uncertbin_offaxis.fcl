@@ -2,7 +2,7 @@
   #include "flux_windows.fcl"
 
 binning: {
-  @table::jagged_binning_defs.binning_dummy.nu
+  @table::jagged_binning_defs.uncert.nu
 }
 
 flux_window: @local::ND_OffAxis
@@ -10,7 +10,7 @@ flux_window: @local::ND_OffAxis
 input: {
   # max_decay_parents: -1
   # limit_decay_parent_use: false
-  # use_dk2nu_lite: true
+  use_dk2nu_lite: true
   # use_dk2nu_ppfx: true
   # use_dk2nu_ppfx_allweights: true
   # number_ppfx_universes: 100

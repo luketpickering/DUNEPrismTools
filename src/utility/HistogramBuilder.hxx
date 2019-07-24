@@ -138,4 +138,4 @@ std::vector<TAxis> DetermineOptimalNonUniformBinning(
     TAxis const &UniformAxis,
     std::vector<std::tuple<float, float, double>> const &data,
     size_t NPerBin = 10000 /*1% poisson error*/, double minNU = 0xd34db33f,
-    double maxNU = 0xd34db33f, double minNuBinWidth = 0);
+    double maxNU = 0xd34db33f, double minNuBinWidth = 0, double maxNuBinWidth = std::numeric_limits<double>::max());
