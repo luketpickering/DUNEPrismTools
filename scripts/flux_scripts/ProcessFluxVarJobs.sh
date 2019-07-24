@@ -45,8 +45,8 @@ FOCUS_DIR="Focussing"
 DO_ALIGN="0"
 ALIGN_DIR="Alignment"
 
-NINPUTSPERJOB="15"
-NMAXJOBS="1000"
+NINPUTSPERJOB="1"
+NMAXJOBS="1"
 
 for NUMODE in nu nubar; do
 

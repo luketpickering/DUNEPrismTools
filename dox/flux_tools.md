@@ -47,7 +47,9 @@ the usage text to not reflect the current state of each executable's CLI.
 ```
     -i <Input search pattern>  : Search pattern to find input files. Can be
                                  specified multiple times.
-    -o <Output file name>      : File to write combined output to.
+    -o <Output file name>      : File to write combined output to (RECREATE).
+    -a <Output file name>      : File to write combined output to (UPDATE).
+    -D <Output dir name>       : Sub directory to write combined output to.
     --NPPFXU <int>             : The number of PPFX universes. Defaults to 0.
     -?                         : Display this message.
 ```

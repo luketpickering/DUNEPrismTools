@@ -155,8 +155,9 @@ ls ${G4LIB}
 echo "---------------"
 
 
-export IFDH_CP_UNLINK_ON_ERROR=1;
-export IFDH_CP_MAXRETRIES=1;
+export IFDH_CP_UNLINK_ON_ERROR=1
+export IFDH_CP_MAXRETRIES=1
+export IFDH_DEBUG=1
 
 ifdh ls ${PNFS_OUTDIR}/dk2nulite
 
