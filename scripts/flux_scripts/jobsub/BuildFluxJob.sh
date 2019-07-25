@@ -88,8 +88,8 @@ INPUT_FILE_PATHS=( $( cat inputs.list | head -${LAST_READ_LN} | tail -${NFILES_T
 NINPUT_FILES_FOUND=${#INPUT_FILE_PATHS[@]}
 
 echo "[INFO]: cat inputs.list | head -${LN} | tail -${NFILES_TO_READ}"
-echo "[INFO]: INPUT_FILE_PATHS: ${INPUT_FILE_PATHS[@]}"
-echo "[INFO]: NINPUT_FILES_FOUND: ${NINPUT_FILES_FOUND}"
+# echo "[INFO]: INPUT_FILE_PATHS: ${INPUT_FILE_PATHS[@]}"
+# echo "[INFO]: NINPUT_FILES_FOUND: ${NINPUT_FILES_FOUND}"
 
 if [ -z ${NINPUT_FILES_FOUND} ]; then
   echo "[ERROR]: Found no input files with: cat inputs.list | head -${LN} | tail -${NFILES_TO_READ}"
