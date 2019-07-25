@@ -389,7 +389,7 @@ if [ ${DO_FD} == "1" ]; then
   fhicl-dump ${DUNEPRISMTOOLSROOT}/fcl/${CONFIG_FCL_FD} > FD_build_flux.fcl
 fi
 
-tar -zcvf apps.${DUNEPRISMTOOLS_VERSION}.tar.gz dp_BuildFluxes libTH2Jagged.so inputs.list *build_flux.fcl
+tar -zcvf apps.${DUNEPRISMTOOLS_VERSION}.tar.gz dp_BuildFluxes *.so *.pcm inputs.list *build_flux.fcl
 
 echo "jobsub_submit --group=${EXPERIMENT} --jobid-output-only --resource-provides=usage_model=OPPORTUNISTIC,OFFSITE --expected-lifetime=${LIFETIME_EXP} --disk=${DISK_EXP} -N ${NJOBSTORUN} --memory=${MEM_EXP} --cpu=1 --OS=SL6 --tar_file_name=dropbox://apps.${DUNEPRISMTOOLS_VERSION}.tar.gz file://${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/BuildFluxJob.sh ${NPPFXU} ${USE_PPFX_COMPONENTS} --only-pdg ${ONLY_PDG} ${NPERJOB} ${ND_PATH_APPEND} ${FD_PATH_APPEND}"
 JID=$(jobsub_submit --group=${EXPERIMENT} --jobid-output-only --resource-provides=usage_model=OPPORTUNISTIC,OFFSITE --expected-lifetime=${LIFETIME_EXP} --disk=${DISK_EXP} -N ${NJOBSTORUN} --memory=${MEM_EXP} --cpu=1 --OS=SL6 --tar_file_name=dropbox://apps.${DUNEPRISMTOOLS_VERSION}.tar.gz file://${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/BuildFluxJob.sh ${NPPFXU} ${USE_PPFX_COMPONENTS} --only-pdg ${ONLY_PDG} ${NPERJOB} ${ND_PATH_APPEND} ${FD_PATH_APPEND})
