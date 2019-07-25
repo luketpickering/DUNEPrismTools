@@ -228,10 +228,6 @@ source /cvmfs/fermilab.opensciencegrid.org/products/common/etc/setups.sh
 setup jobsub_client
 setup ifdhc
 
-kx509
-voms-proxy-init -rfc -noregen -voms dune:/dune/Role=Analysis
-voms-proxy-info --all
-
 if [ -e sub_tmp ]; then rm -r sub_tmp; fi
 
 mkdir sub_tmp
