@@ -720,56 +720,69 @@ double GetPPFXWeight(Int_t PPFXUniv, Int_t NPPFXUniv, DK2NuReader &dk2nuRdr) {
   int univ_cycle = PPFXUniv / NPPFXUniv;
   int univ = PPFXUniv % NPPFXUniv;
 
+  double W = 0;
+
   switch (univ_cycle) {
   case 0: {
-    return dk2nuRdr.ppfx_vwgt_tot[univ];
+    W = dk2nuRdr.ppfx_vwgt_tot[univ];
   }
   // case 1: {
-  //   return dk2nuRdr.ppfx_vwgt_mipp_pi[univ] *
+  //   W = dk2nuRdr.ppfx_vwgt_mipp_pi[univ] *
   //          (dk2nuRdr.ppfx_cvwgt / dk2nuRdr.ppfx_cvwgt_mipp_pi);
   // }
   // case 2: {
-  //   return dk2nuRdr.ppfx_vwgt_mipp_K[univ] *
+  //   W = dk2nuRdr.ppfx_vwgt_mipp_K[univ] *
   //          (dk2nuRdr.ppfx_cvwgt / dk2nuRdr.ppfx_cvwgt_mipp_K);
   // }
   case 1: {
-    return dk2nuRdr.ppfx_vwgt_abs[univ] *
-           (dk2nuRdr.ppfx_cvwgt / dk2nuRdr.ppfx_cvwgt_abs);
+    W = dk2nuRdr.ppfx_vwgt_abs[univ] *
+        (dk2nuRdr.ppfx_cvwgt / dk2nuRdr.ppfx_cvwgt_abs);
+    break;
   }
   case 2: {
-    return dk2nuRdr.ppfx_vwgt_att[univ] *
-           (dk2nuRdr.ppfx_cvwgt / dk2nuRdr.ppfx_cvwgt_att);
+    W = dk2nuRdr.ppfx_vwgt_att[univ] *
+        (dk2nuRdr.ppfx_cvwgt / dk2nuRdr.ppfx_cvwgt_att);
+    break;
   }
   case 3: {
-    return dk2nuRdr.ppfx_vwgt_ttpCpi[univ] *
-           (dk2nuRdr.ppfx_cvwgt / dk2nuRdr.ppfx_cvwgt_ttpCpi);
+    W = dk2nuRdr.ppfx_vwgt_ttpCpi[univ] *
+        (dk2nuRdr.ppfx_cvwgt / dk2nuRdr.ppfx_cvwgt_ttpCpi);
+    break;
   }
   case 4: {
-    return dk2nuRdr.ppfx_vwgt_ttpCk[univ] *
-           (dk2nuRdr.ppfx_cvwgt / dk2nuRdr.ppfx_cvwgt_ttpCk);
+    W = dk2nuRdr.ppfx_vwgt_ttpCk[univ] *
+        (dk2nuRdr.ppfx_cvwgt / dk2nuRdr.ppfx_cvwgt_ttpCk);
+    break;
   }
   case 5: {
-    return dk2nuRdr.ppfx_vwgt_ttnCpi[univ] *
-           (dk2nuRdr.ppfx_cvwgt / dk2nuRdr.ppfx_cvwgt_ttnCpi);
+    W = dk2nuRdr.ppfx_vwgt_ttnCpi[univ] *
+        (dk2nuRdr.ppfx_cvwgt / dk2nuRdr.ppfx_cvwgt_ttnCpi);
+    break;
   }
   case 6: {
-    return dk2nuRdr.ppfx_vwgt_ttpCnu[univ] *
-           (dk2nuRdr.ppfx_cvwgt / dk2nuRdr.ppfx_cvwgt_ttpCnu);
+    W = dk2nuRdr.ppfx_vwgt_ttpCnu[univ] *
+        (dk2nuRdr.ppfx_cvwgt / dk2nuRdr.ppfx_cvwgt_ttpCnu);
+    break;
   }
   case 7: {
-    return dk2nuRdr.ppfx_vwgt_ttnua[univ] *
-           (dk2nuRdr.ppfx_cvwgt / dk2nuRdr.ppfx_cvwgt_ttnua);
+    W = dk2nuRdr.ppfx_vwgt_ttnua[univ] *
+        (dk2nuRdr.ppfx_cvwgt / dk2nuRdr.ppfx_cvwgt_ttnua);
+    break;
   }
   case 8: {
-    return dk2nuRdr.ppfx_vwgt_ttmesinc[univ] *
-           (dk2nuRdr.ppfx_cvwgt / dk2nuRdr.ppfx_cvwgt_ttmesinc);
+    W = dk2nuRdr.ppfx_vwgt_ttmesinc[univ] *
+        (dk2nuRdr.ppfx_cvwgt / dk2nuRdr.ppfx_cvwgt_ttmesinc);
+    break;
   }
   case 9: {
-    return dk2nuRdr.ppfx_vwgt_oth[univ] *
-           (dk2nuRdr.ppfx_cvwgt / dk2nuRdr.ppfx_cvwgt_oth);
+    W = dk2nuRdr.ppfx_vwgt_oth[univ] *
+        (dk2nuRdr.ppfx_cvwgt / dk2nuRdr.ppfx_cvwgt_oth);
+    break;
   }
   default: { throw; }
   }
+
+  return std::isnormal(W) ? W : 0;
 }
 
 void DumpPPFXWeights(Int_t PPFXUniv, DK2NuReader &dk2nuRdr) {
