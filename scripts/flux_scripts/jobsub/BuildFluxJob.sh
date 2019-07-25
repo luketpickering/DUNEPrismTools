@@ -132,7 +132,7 @@ voms-proxy-info --all
 
 source /cvmfs/dune.opensciencegrid.org/products/dune/setup_dune.sh
 
-setup root v6_10_08b -q e15:nu:prof
+setup root v6_10_04d -q debug:e14:nu
 setup ifdhc
 
 ups active
@@ -183,13 +183,13 @@ echo "Writing inputs.list @ $(date)"
 rm -f inputs.list; touch inputs.list
 
 for FP_IT in ${INPUT_FILE_PATHS[@]}; do
-  echo "ifdh ls ${FP_IT}"
-  ifdh ls ${FP_IT}
-
-  if [ $? -ne 0 ]; then
-    echo "Unable to read input file: \"${FP_IT}\". Does it exist?"
-    exit 12
-  fi
+  # echo "ifdh ls ${FP_IT}"
+  # ifdh ls ${FP_IT}
+  #
+  # if [ $? -ne 0 ]; then
+  #   echo "Unable to read input file: \"${FP_IT}\". Does it exist?"
+  #   exit 12
+  # fi
 
   XROOTFN=$( echo ${FP_IT} | sed "s|/pnfs/dune|root://fndca1.fnal.gov:1094/pnfs/fnal.gov/usr/dune|g" )
   echo "[INFO]: File ${FP_IT} => ${XROOTFN}"

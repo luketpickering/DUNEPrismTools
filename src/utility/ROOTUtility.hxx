@@ -57,8 +57,6 @@ inline TChain *OpenTChainWithFileList(std::string const &tname,
       std::string line;
       while (std::getline(listfile, line)) {
         if (line.size() && (line[0] != '#')) {
-          std::cout << "[INFO]: Adding file: " << line << " to TChain(" << tname
-                    << ")." << std::endl;
           NFiles += chain->Add(line.c_str());
         }
       }

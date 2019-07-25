@@ -47,7 +47,7 @@ void VariationBuilder::BaseConfigure(fhicl::ParameterSet const &ps) {
     std::string FluxSliceDescriptor = paramset.get<std::string>(
         std::string("FluxSlicesDescriptor_") + pred_config, "");
 
-    bool IsJagged = paramset.get<bool>(pred_config + "_IsJagged", true);
+    bool IsJagged = paramset.get<bool>(pred_config + "_IsJagged", false);
 
     std::string NominalInputFile_conf =
         str_replace(NominalInputFile_template, "%C", pred_config);
@@ -140,7 +140,7 @@ void ThrownVariations::Process() {
       std::string FluxSliceDescriptor = paramset.get<std::string>(
           std::string("FluxSlicesDescriptor_") + pred_config, "");
 
-      bool IsJagged = paramset.get<bool>(pred_config + "_IsJagged", true);
+      bool IsJagged = paramset.get<bool>(pred_config + "_IsJagged", false);
 
       std::string InputFile_i_c = str_replace(InputFile_i, "%C", pred_config);
       std::string VariedHistName_i_c =
@@ -382,7 +382,7 @@ void DiscreteVariations::Configure(fhicl::ParameterSet const &ps) {
       std::string FluxSliceDescriptor = paramset.get<std::string>(
           std::string("FluxSlicesDescriptor_") + pred_config, "");
 
-      bool IsJagged = paramset.get<bool>(pred_config + "_IsJagged", true);
+      bool IsJagged = paramset.get<bool>(pred_config + "_IsJagged", false);
 
       std::string InputFile_tw_c =
           str_replace(InputFile_template, "%C", pred_config);
@@ -752,7 +752,7 @@ void DirectVariations::Configure(fhicl::ParameterSet const &ps) {
     std::string FluxSliceDescriptor = paramset.get<std::string>(
         std::string("FluxSlicesDescriptor_") + pred_config, "");
 
-    bool IsJagged = paramset.get<bool>(pred_config + "_IsJagged", true);
+    bool IsJagged = paramset.get<bool>(pred_config + "_IsJagged", false);
 
     std::string InputFile_tw_c =
         str_replace(InputFile_template, "%C", pred_config);
