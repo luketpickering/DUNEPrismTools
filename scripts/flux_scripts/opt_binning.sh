@@ -1,8 +1,8 @@
 #!/bin/bash
 NFILES=100
-NEVEQuiv_RS=50000
-NEVEQuiv_WS=25000
-NEVEQuiv_NUE=10000
+NEVEQuiv_RS=25000
+NEVEQuiv_WS=10000
+NEVEQuiv_NUE=2500
 NUSTUB=/pnfs/dune/persistent/users/picker24/nominal_5E8POT_wppfx/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/nu/dk2nulite
 NUBARSTUB=/pnfs/dune/persistent/users/picker24/nominal_5E8POT_wppfx/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/nubar/dk2nulite
 
@@ -37,8 +37,8 @@ for hc in nu nubar; do
           --only-pdg ${PDG} \
           --optimized-binning-file ${hc}.${NAME}.optbin.fcl \
           --optimized-binning-N ${NEVEQuiv} \
-          --optimized-binning-min-width 0.025 \
-          --optimized-binning-max-width 15.0; then 
+          --optimized-binning-min-width 0.05 \
+          --optimized-binning-max-width 10.0; then 
       exit 1 
     fi
 
