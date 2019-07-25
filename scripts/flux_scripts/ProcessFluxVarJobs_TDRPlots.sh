@@ -91,7 +91,8 @@ for NUMODE in ${BEAM_MODES}; do
        -n ${NINPUTSPERJOB_PPFX} --N-max-jobs ${NMAXJOBS} ${PPFX_ARG}\
        --only-pdg ${PDG_ONLY_PPFX[${NUMODE}]} -f
     NJOBS=$(( NJOBS + NMAXJOBS ))
-    if [ ${NJOBS} >= ${NTOTALJOBS} ]; then
+    echo "[INFO]: Done ${NJOBS}."
+    if [ "${NJOBS}" -ge "${NTOTALJOBS}" ]; then
       echo "[INFO]: Stopping after ${NJOBS} JOBS"
       exit
     fi
@@ -122,7 +123,8 @@ for NUMODE in ${BEAM_MODES}; do
        --only-pdg ${PDG_ONLY_PPFX_COMP[${NUMODE}]} -f
 
     NJOBS=$(( NJOBS + NMAXJOBS ))
-    if [ ${NJOBS} >= ${NTOTALJOBS} ]; then
+    echo "[INFO]: Done ${NJOBS}."
+    if [ "${NJOBS}" -ge "${NTOTALJOBS}" ]; then
       echo "[INFO]: Stopping after ${NJOBS} JOBS"
       exit
     fi
@@ -152,7 +154,8 @@ for NUMODE in ${BEAM_MODES}; do
            --only-pdg ${PDG_ONLY[${NUMODE}]} -f
 
         NJOBS=$(( NJOBS + NMAXJOBS ))
-        if [ ${NJOBS} >= ${NTOTALJOBS} ]; then
+        echo "[INFO]: Done ${NJOBS}."
+        if [ "${NJOBS}" -ge "${NTOTALJOBS}" ]; then
           echo "[INFO]: Stopping after ${NJOBS} JOBS"
           exit
         fi
@@ -184,7 +187,8 @@ for NUMODE in ${BEAM_MODES}; do
            --only-pdg ${PDG_ONLY[${NUMODE}]} -f
 
         NJOBS=$(( NJOBS + NMAXJOBS ))
-        if [ ${NJOBS} >= ${NTOTALJOBS} ]; then
+        echo "[INFO]: Done ${NJOBS}."
+        if [ "${NJOBS}" -ge "${NTOTALJOBS}" ]; then
           echo "[INFO]: Stopping after ${NJOBS} JOBS"
           exit
         fi

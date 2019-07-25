@@ -342,11 +342,11 @@ for DET in ND FD; do
   GET_PATH_APPEND=${DET}_PATH_APPEND
   DET_PATH_APPEND=${!GET_PATH_APPEND}
 
-  ifdh ls /pnfs/dune/persistent/users/${USER}/${DET_PATH_APPEND}/flux
+  ifdh ls /pnfs/dune/persistent/users/${USER}/${DET_PATH_APPEND}/flux &> /dev/null
 
   if [ $? -ne 0 ]; then
     mkdir -p /pnfs/dune/persistent/users/${USER}/${DET_PATH_APPEND}/flux
-    ifdh ls /pnfs/dune/persistent/users/${USER}/${DET_PATH_APPEND}/flux
+    ifdh ls /pnfs/dune/persistent/users/${USER}/${DET_PATH_APPEND}/flux &> /dev/null
     if [ $? -ne 0 ]; then
       echo "Unable to make /pnfs/dune/persistent/users/${USER}/${DET_PATH_APPEND}/flux."
       exit 7
@@ -357,11 +357,11 @@ for DET in ND FD; do
     mkdir -p /pnfs/dune/persistent/users/${USER}/${DET_PATH_APPEND}/flux
   fi
 
-  ifdh ls /pnfs/dune/persistent/users/${USER}/${DET_PATH_APPEND}/logs
+  ifdh ls /pnfs/dune/persistent/users/${USER}/${DET_PATH_APPEND}/logs &> /dev/null
 
   if [ $? -ne 0 ]; then
     mkdir -p /pnfs/dune/persistent/users/${USER}/${DET_PATH_APPEND}/logs
-    ifdh ls /pnfs/dune/persistent/users/${USER}/${DET_PATH_APPEND}/logs
+    ifdh ls /pnfs/dune/persistent/users/${USER}/${DET_PATH_APPEND}/logs &> /dev/null
     if [ $? -ne 0 ]; then
       echo "Unable to make /pnfs/dune/persistent/users/${USER}/${DET_PATH_APPEND}/logs."
       exit 7

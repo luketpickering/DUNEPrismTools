@@ -120,6 +120,9 @@ cp *build_flux.fcl $_CONDOR_SCRATCH_DIR/
 
 cd $_CONDOR_SCRATCH_DIR
 
+export LD_LIBRARY_PATH="$(readlink -f ./):${LD_LIBRARY_PATH}"
+echo "LD_LIBRARY_PATH=${LD_LIBRARY_PATH}"
+
 echo "pwd is $(pwd)"
 echo "------ls-------"
 ls
@@ -160,14 +163,14 @@ for STAGE in FIRST SECOND; do
   PNFS_OUTDIR=/pnfs/dune/persistent/users/${GRID_USER}/${PNFS_PATH_APPEND}
   echo "Output dir for stage: ${STAGE} is ${PNFS_OUTDIR}"
 
-  ifdh ls ${PNFS_OUTDIR}/flux
+  ifdh ls ${PNFS_OUTDIR}/flux &> /dev/null
 
   if [ $? -ne 0 ]; then
     echo "Unable to read ${PNFS_OUTDIR}/flux. Make sure that you have created this directory and given it group write permission (chmod g+w ${PNFS_OUTDIR})."
     exit 10
   fi
 
-  ifdh ls ${PNFS_OUTDIR}/logs
+  ifdh ls ${PNFS_OUTDIR}/logs &> /dev/null
 
   if [ $? -ne 0 ]; then
     echo "Unable to read ${PNFS_OUTDIR}/logs. Make sure that you have created this directory and given it group write permission (chmod g+w ${PNFS_OUTDIR})."
@@ -177,7 +180,7 @@ for STAGE in FIRST SECOND; do
 done
 
 echo "Writing inputs.list @ $(date)"
-rm inputs.list; touch inputs.list
+rm -f inputs.list; touch inputs.list
 
 for FP_IT in ${INPUT_FILE_PATHS[@]}; do
   echo "ifdh ls ${FP_IT}"
