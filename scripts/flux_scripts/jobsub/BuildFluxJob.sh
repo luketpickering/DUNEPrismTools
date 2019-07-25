@@ -132,7 +132,7 @@ voms-proxy-info --all
 
 source /cvmfs/dune.opensciencegrid.org/products/dune/setup_dune.sh
 
-setup root v6_10_04d -q debug:e14:nu
+setup root v6_10_08b -q e15:nu:prof
 setup ifdhc
 
 ups active
