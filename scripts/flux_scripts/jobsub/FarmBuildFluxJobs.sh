@@ -14,6 +14,7 @@ CONFIG_FCL_ND="DUMMY.fcl"
 CONFIG_FCL_FD="DUMMY.fcl"
 DO_ND="0"
 DO_FD="0"
+ONLY_PDG="0"
 
 NPPFXU="0"
 USE_PPFX_COMPONENTS=""
@@ -138,6 +139,18 @@ while [[ ${#} -gt 0 ]]; do
       echo "[OPT]: Building PPFX component tweak predictions"
       ;;
 
+      --only-pdg)
+
+      if [[ ${#} -lt 2 ]]; then
+        echo "[ERROR]: ${1} expected a value."
+        exit 1
+      fi
+
+      ONLY_PDG="$2"
+      echo "[OPT]: Only building predictions for nu_pdg=\"${ONLY_PDG}\"."
+      shift # past argument
+      ;;
+
       -f|--force-remove)
 
       FORCE_REMOVE="1"
@@ -192,6 +205,7 @@ while [[ ${#} -gt 0 ]]; do
       echo -e "\t-FD|--fhicl-FD             : Flux calculation configuration file for FD."
       echo -e "\t--NPPFXU <#ppfx universes> : Number of PPFX universes to use."
       echo -e "\t--PPFX-Components          : Build predictions for each PPFX universe for each reweight group."
+      echo -e "\t--only-pdg                 : Only build predictions for specified neutrino species."
       echo -e "\t-f|--force-remove          : If output directories already exist, force remove them."
       echo -e "\t--expected-disk            : Expected disk usage to pass to jobsub -- approx 100MB* the value passed to -\'n\' (default: 1GB)"
       echo -e "\t--expected-mem             : Expected mem usage to pass to jobsub -- Scales with the number of detector stops in the xml passed to \'--r\' (default: 2GB)"
@@ -215,6 +229,7 @@ setup jobsub_client
 setup ifdhc
 
 kx509
+voms-proxy-init -rfc -noregen -voms dune:/dune/Role=Analysis
 voms-proxy-info --all
 
 if [ -e sub_tmp ]; then rm -r sub_tmp; fi
@@ -379,8 +394,8 @@ fi
 
 tar -zcvf apps.${DUNEPRISMTOOLS_VERSION}.tar.gz dp_BuildFluxes libTH2Jagged.so inputs.list *build_flux.fcl
 
-echo "jobsub_submit --group=${EXPERIMENT} --jobid-output-only --resource-provides=usage_model=OPPORTUNISTIC,OFFSITE --expected-lifetime=${LIFETIME_EXP} --disk=${DISK_EXP} -N ${NJOBSTORUN} --memory=${MEM_EXP} --cpu=1 --OS=SL6 --tar_file_name=dropbox://apps.${DUNEPRISMTOOLS_VERSION}.tar.gz file://${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/BuildFluxJob.sh ${NPPFXU} ${USE_PPFX_COMPONENTS} ${NPERJOB} ${ND_PATH_APPEND} ${FD_PATH_APPEND}"
-JID=$(jobsub_submit --group=${EXPERIMENT} --jobid-output-only --resource-provides=usage_model=OPPORTUNISTIC,OFFSITE --expected-lifetime=${LIFETIME_EXP} --disk=${DISK_EXP} -N ${NJOBSTORUN} --memory=${MEM_EXP} --cpu=1 --OS=SL6 --tar_file_name=dropbox://apps.${DUNEPRISMTOOLS_VERSION}.tar.gz file://${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/BuildFluxJob.sh ${NPPFXU} ${USE_PPFX_COMPONENTS} ${NPERJOB} ${ND_PATH_APPEND} ${FD_PATH_APPEND})
+echo "jobsub_submit --group=${EXPERIMENT} --jobid-output-only --resource-provides=usage_model=OPPORTUNISTIC,OFFSITE --expected-lifetime=${LIFETIME_EXP} --disk=${DISK_EXP} -N ${NJOBSTORUN} --memory=${MEM_EXP} --cpu=1 --OS=SL6 --tar_file_name=dropbox://apps.${DUNEPRISMTOOLS_VERSION}.tar.gz file://${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/BuildFluxJob.sh ${NPPFXU} ${USE_PPFX_COMPONENTS} --only-pdg ${ONLY_PDG} ${NPERJOB} ${ND_PATH_APPEND} ${FD_PATH_APPEND}"
+JID=$(jobsub_submit --group=${EXPERIMENT} --jobid-output-only --resource-provides=usage_model=OPPORTUNISTIC,OFFSITE --expected-lifetime=${LIFETIME_EXP} --disk=${DISK_EXP} -N ${NJOBSTORUN} --memory=${MEM_EXP} --cpu=1 --OS=SL6 --tar_file_name=dropbox://apps.${DUNEPRISMTOOLS_VERSION}.tar.gz file://${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/BuildFluxJob.sh ${NPPFXU} ${USE_PPFX_COMPONENTS} --only-pdg ${ONLY_PDG} ${NPERJOB} ${ND_PATH_APPEND} ${FD_PATH_APPEND})
 
 JID=$(echo ${JID} | tr -d "\n" | tr -d " " | tr -d "\t" | sed "s/\.0//g")
 

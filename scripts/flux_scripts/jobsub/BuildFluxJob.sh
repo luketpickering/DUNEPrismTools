@@ -27,6 +27,14 @@ if [ ${2} == "--PPFX-Components" ]; then
   shift
 fi
 
+PDGARGS=""
+if [ ${2} == "--only-pdg" ]; then
+  PDGARGS="--only-pdg ${3}"
+  #Shift both off the end
+  shift
+  shift
+fi
+
 NFILES_TO_READ=1
 if [ ! -z ${2} ]; then
   NFILES_TO_READ=${2}
@@ -122,7 +130,7 @@ voms-proxy-info --all
 source /cvmfs/dune.opensciencegrid.org/products/dune/setup_dune.sh
 
 setup root v6_10_08b -q e15:nu:prof
-setup ifdhc v2_3_9
+setup ifdhc
 
 ups active
 
@@ -218,8 +226,8 @@ for STAGE in FIRST SECOND; do
 
   echo "Building fluxes @ $(date)"
 
-  echo "./dp_BuildFluxes -i inputs.list -o ${OUT_FILENAME} --fhicl ./${FLUX_FCL} ${PPFX_ARGS} &> dp_BuildFluxes.${CLUSTER}.${PROCESS}.log"
-  ./dp_BuildFluxes -i inputs.list -o ${OUT_FILENAME} --fhicl ./${FLUX_FCL} ${PPFX_ARGS} &> dp_BuildFluxes.${CLUSTER}.${PROCESS}.log
+  echo "./dp_BuildFluxes -i inputs.list -o ${OUT_FILENAME} --fhicl ./${FLUX_FCL} ${PPFX_ARGS} ${PDGARGS} &> dp_BuildFluxes.${CLUSTER}.${PROCESS}.log"
+  ./dp_BuildFluxes -i inputs.list -o ${OUT_FILENAME} --fhicl ./${FLUX_FCL} ${PPFX_ARGS} ${PDGARGS} &> dp_BuildFluxes.${CLUSTER}.${PROCESS}.log
 
   echo "Finished."
 

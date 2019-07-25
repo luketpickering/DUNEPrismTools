@@ -2,7 +2,7 @@
   #include "flux_windows.fcl"
 
 binning: {
-  energy: @local::energy_binnings.coarse_uncert.nubar
+  @table::FD_defs.uncert.nubar
 }
 
 flux_window: @local::FD_OnAxis
