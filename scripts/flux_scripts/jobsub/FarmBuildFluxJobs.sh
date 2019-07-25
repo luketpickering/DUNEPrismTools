@@ -370,7 +370,8 @@ for DET in ND FD; do
 done # End loop over det
 
 cp ${DUNEPRISMTOOLSROOT}/bin/dp_BuildFluxes .
-cp ${DUNEPRISMTOOLSROOT}/lib/libTH2Jagged.so ./
+cp ${DUNEPRISMTOOLSROOT}/lib/*.so ./
+cp ${DUNEPRISMTOOLSROOT}/lib/*.pcm ./
 
 if [ ${DO_ND} == "1" ]; then
   if [ ! -e ${DUNEPRISMTOOLSROOT}/fcl/${CONFIG_FCL_ND} ]; then
