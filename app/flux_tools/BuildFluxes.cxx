@@ -1051,5 +1051,5 @@ int main(int argc, char const *argv[]) {
 
   std::cout << "Total POT: " << TotalPOT << std::endl;
   AllInOneGo(*dk2nuRdr, TotalPOT);
-  dk2nuRdr.DumpMaxWeights();
+  dk2nuRdr->DumpMaxWeights();
 }
