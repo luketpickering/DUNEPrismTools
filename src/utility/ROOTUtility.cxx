@@ -508,6 +508,9 @@ size_t FillHistFromstdvector(TH1 *rh, std::vector<double> const &vals,
 
 #ifdef USE_EIGEN
 
+//Guard against not normals
+template <typename T> T gnn(T const &x) { return std::isnormal(x) ? x : 0; }
+
 size_t FillHistFromEigenVector(TH2 *rh, Eigen::VectorXd const &vals,
                                size_t offset, Eigen::VectorXd const &error) {
 
@@ -520,9 +523,9 @@ size_t FillHistFromEigenVector(TH2 *rh, Eigen::VectorXd const &vals,
       if (hjag->IsFlowBin(bin_it)) {
         continue;
       }
-      hjag->SetBinContent(bin_it, vals(offset));
+      hjag->SetBinContent(bin_it, gnn(vals(offset)));
       if (error.size()) {
-        hjag->SetBinError(bin_it, error(offset));
+        hjag->SetBinError(bin_it, gnn(error(offset)));
       } else {
         hjag->SetBinError(bin_it, 0);
       }
@@ -531,9 +534,9 @@ size_t FillHistFromEigenVector(TH2 *rh, Eigen::VectorXd const &vals,
   } else {
     for (Int_t y_it = 0; y_it < rh->GetYaxis()->GetNbins(); ++y_it) {
       for (Int_t x_it = 0; x_it < rh->GetXaxis()->GetNbins(); ++x_it) {
-        rh->SetBinContent(x_it + 1, y_it + 1, vals(offset));
+        rh->SetBinContent(x_it + 1, y_it + 1, gnn(vals(offset)));
         if (error.size()) {
-          rh->SetBinError(x_it + 1, y_it + 1, error(offset));
+          rh->SetBinError(x_it + 1, y_it + 1, gnn(error(offset)));
         } else {
           rh->SetBinError(x_it + 1, y_it + 1, 0);
         }
@@ -563,9 +566,9 @@ size_t FillHistFromEigenVector(TH1 *rh, Eigen::VectorXd const &vals,
   Int_t dim = rh->GetDimension();
   if (dim == 1) {
     for (Int_t x_it = 0; x_it < rh->GetXaxis()->GetNbins(); ++x_it) {
-      rh->SetBinContent(x_it + 1, vals(offset));
+      rh->SetBinContent(x_it + 1, gnn(vals(offset)));
       if (error.size()) {
-        rh->SetBinError(x_it + 1, error(offset));
+        rh->SetBinError(x_it + 1, gnn(error(offset)));
       } else {
         rh->SetBinError(x_it + 1, 0);
       }
@@ -692,7 +695,8 @@ std::unique_ptr<TH1> THToF(std::unique_ptr<TH1> &hin) {
   } else if (hin->GetDimension() == 2) {
     TH2JaggedD const *hjag;
     if ((hjag = dynamic_cast<TH2JaggedD const *>(hin.get()))) {
-      return std::unique_ptr<TH1>(ToTHJaggedF(dynamic_cast<TH2JaggedD const *>(hin.get())));
+      return std::unique_ptr<TH1>(
+          ToTHJaggedF(dynamic_cast<TH2JaggedD const *>(hin.get())));
     } else {
       return TH2ToF(dynamic_cast<TH2 *>(hin.get()));
     }

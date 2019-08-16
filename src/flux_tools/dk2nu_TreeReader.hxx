@@ -126,6 +126,22 @@ struct DK2NuReader {
   double ppfx_cvwgt_ttmesinc;
   double ppfx_cvwgt_oth;
 
+
+  double ppfx_maxweight;
+  double ppfx_mipp_pi_maxweight;
+  double ppfx_mipp_K_maxweight;
+  double ppfx_abs_maxweight;
+  double ppfx_att_maxweight;
+  double ppfx_ttpCpi_maxweight;
+  double ppfx_ttpCk_maxweight;
+  double ppfx_ttnCpi_maxweight;
+  double ppfx_ttpCnu_maxweight;
+  double ppfx_ttnua_maxweight;
+  double ppfx_ttmesinc_maxweight;
+  double ppfx_oth_maxweight;
+
+  void DumpMaxWeights();
+
   UInt_t ppfx_NUniverses;
 
   void AddPPFXFriend(std::string treeName, std::string inputFiles,

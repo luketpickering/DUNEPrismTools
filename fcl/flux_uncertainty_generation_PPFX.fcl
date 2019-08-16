@@ -9,10 +9,10 @@ FluxUncertainty: {
   # FD guys are 1D so don't need off axis binning descriptors
 
   Species: @local::AllSpecies
-  Species: [numu]
+  # Species: [numu]
 
   Configurations: @local::AllConfigurations
-  Configurations: [ND_nu, FD_nu]
+  # Configurations: [ND_nu, FD_nu]
 
   Tweaks: [@local::PPFX]
 

@@ -3,6 +3,8 @@
 
 #include "TH2.h"
 
+#include "TH2Jagged.h"
+
 #include "fhiclcpp/ParameterSet.h"
 
 #include <limits>
@@ -44,7 +46,8 @@ public:
   void Initialize(fhicl::ParameterSet const &);
 
   size_t GetNParameters() { return NDTweaks.size(); }
-  size_t GetNEnuBins(int nu_pdg, bool IsND = true, bool IsNuMode = true) {
+  size_t GetNEnuBins(int nu_pdg, double off_axix_pos_m = 0, bool IsND = true,
+                     bool IsNuMode = true) {
 
     int nucf = GetNuConfig(nu_pdg, IsND, IsNuMode);
 
@@ -53,7 +56,14 @@ public:
     }
 
     if (nucf < kFD_numu_numode) {
-      return NDTweaks[0][nucf]->GetNbinsX();
+
+      TH2JaggedF *jag;
+      if ((jag = dynamic_cast<TH2JaggedF *>(NDTweaks[0][nucf].get()))) {
+        throw "This cannot be used for TH2Jagged inputs";
+
+      } else {
+        return NDTweaks[0][nucf]->GetNbinsX();
+      }
     } else {
       return FDTweaks[0][nucf]->GetNbinsX();
     }
@@ -78,7 +88,12 @@ public:
 
     if (nucf < kFD_numu_numode) {
       if (NDIs2D == 1) {
-        return NDTweaks[0][nucf]->GetBin(1, 1);
+        TH2JaggedF *jag;
+        if ((jag = dynamic_cast<TH2JaggedF *>(NDTweaks[0][nucf].get()))) {
+          throw "This cannot be used for TH2Jagged inputs";
+        } else {
+          return NDTweaks[0][nucf]->GetBin(1, 1);
+        }
       } else {
         return NDTweaks[0][nucf]->GetBin(1);
       }

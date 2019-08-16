@@ -134,21 +134,27 @@ int EffectiveFluxUncertaintyHelper::GetBin(int nu_pdg, double enu_GeV,
     if (!NDTweaks[param_id][nucf]) {
       return kInvalidBin;
     } else {
-      Int_t xbin = NDTweaks[param_id][nucf]->GetXaxis()->FindFixBin(enu_GeV);
-      if ((xbin == 0) ||
-          (xbin == NDTweaks[param_id][nucf]->GetXaxis()->GetNbins() + 1)) {
-        return kInvalidBin;
-      }
-      if (NDIs2D == 1) {
-        Int_t ybin =
-            NDTweaks[param_id][nucf]->GetYaxis()->FindFixBin(off_axix_pos_m);
-        if ((ybin == 0) ||
-            (ybin == NDTweaks[param_id][nucf]->GetYaxis()->GetNbins() + 1)) {
+      TH2JaggedF *jag;
+      if ((jag = dynamic_cast<TH2JaggedF *>(NDTweaks[param_id][nucf].get()))) {
+        Int_t gbin = jag->FindFixBin(enu_GeV, off_axix_pos_m);
+        return jag->IsFlowBin(gbin) ? kInvalidBin : gbin;
+      } else {
+        Int_t xbin = NDTweaks[param_id][nucf]->GetXaxis()->FindFixBin(enu_GeV);
+        if ((xbin == 0) ||
+            (xbin == NDTweaks[param_id][nucf]->GetXaxis()->GetNbins() + 1)) {
           return kInvalidBin;
         }
-        return NDTweaks[param_id][nucf]->GetBin(xbin, ybin);
-      } else {
-        return NDTweaks[param_id][nucf]->GetBin(xbin);
+        if (NDIs2D == 1) {
+          Int_t ybin =
+              NDTweaks[param_id][nucf]->GetYaxis()->FindFixBin(off_axix_pos_m);
+          if ((ybin == 0) ||
+              (ybin == NDTweaks[param_id][nucf]->GetYaxis()->GetNbins() + 1)) {
+            return kInvalidBin;
+          }
+          return NDTweaks[param_id][nucf]->GetBin(xbin, ybin);
+        } else {
+          return NDTweaks[param_id][nucf]->GetBin(xbin);
+        }
       }
     }
   } else {

@@ -95,6 +95,11 @@ int main(int argc, char const *argv[]) {
       std::string FD_NominalHist =
           str_replace(FD_NominalHist_Template, "%S", species_config);
 
+      ND_NominalHist =
+          str_replace(ND_NominalHist, "%C", std::string("ND_") + beam_config);
+      FD_NominalHist =
+          str_replace(FD_NominalHist, "%C", std::string("FD_") + beam_config);
+
       std::unique_ptr<TH2> NDHist_nom_2D =
           GetHistogram_uptr<TH2>(ND_NominalFile, ND_NominalHist);
 
@@ -111,6 +116,9 @@ int main(int argc, char const *argv[]) {
         Int_t OABin = NDHist_nom_2D->GetYaxis()->FindFixBin(OAPos);
         if ((OABin == 0) ||
             (OABin == (NDHist_nom_2D->GetYaxis()->GetNbins() + 1))) {
+          std::cout << "Couldn't find y bin for oa pos = " << OAPos
+                    << std::endl;
+          throw;
           continue;
         }
         OffAxisPositions.push_back(OAPos);
@@ -326,12 +334,20 @@ int main(int argc, char const *argv[]) {
                                eph.GetBin(nu_pdg, enu, 0, 0, false, IsNuMode));
         }
 
+        std::vector<size_t> OANBins;
+        // Using the 1D projections means we don't have to take care over jagged
+        // TH2s
+        for (size_t OA_it = 0; OA_it < OffAxisBins.size(); ++OA_it) {
+          OANBins.push_back(OffAxis_Noms[OA_it]->GetXaxis()->GetNbins());
+        }
+
         // oa bin, enu bin
         std::vector<std::vector<int>> EPH_OABins;
         for (size_t OA_it = 0; OA_it < OffAxisBins.size(); ++OA_it) {
           EPH_OABins.emplace_back();
-          for (size_t bi_it = 0; bi_it < NBins; ++bi_it) {
-            double enu = NDHist_nom->GetXaxis()->GetBinCenter(bi_it + 1);
+          for (size_t bi_it = 0; bi_it < OANBins[OA_it]; ++bi_it) {
+            double enu =
+                OffAxis_Noms[OA_it]->GetXaxis()->GetBinCenter(bi_it + 1);
             EPH_OABins.back().emplace_back(eph.GetBin(
                 nu_pdg, enu, OffAxisPositions[OA_it], 0, true, IsNuMode));
           }
@@ -357,7 +373,7 @@ int main(int argc, char const *argv[]) {
           RelativeTweaks_FD.emplace_back(NBins, 1);
           RelativeTweaks_Ratio.emplace_back(NBins, 1);
           for (size_t OA_it = 0; OA_it < OffAxisBins.size(); ++OA_it) {
-            RelativeTweaks_ND_OA[OA_it].emplace_back(NBins, 1);
+            RelativeTweaks_ND_OA[OA_it].emplace_back(OANBins[OA_it], 1);
           }
 
           std::vector<double> pvals(eph.GetNParameters());
@@ -371,57 +387,49 @@ int main(int argc, char const *argv[]) {
 
               double NDWeight = eph.GetFluxWeight(
                   p_it, pvals[p_it], EPHBins[bi_it].first, NuConfig_ND);
-              // if (!bi_it) {
-              //   std::cout << "\t\t--Excursion for ND bin 0, parameter " <<
-              //   p_it
-              //             << " = " << NDWeight << "\n";
-              // }
               double FDWeight = eph.GetFluxWeight(
                   p_it, pvals[p_it], EPHBins[bi_it].second, NuConfig_FD);
+
               RelativeTweaks_ND.back()[bi_it] *= NDWeight;
               RelativeTweaks_FD.back()[bi_it] *= FDWeight;
               RelativeTweaks_Ratio.back()[bi_it] *= (NDWeight / FDWeight);
-
-              for (size_t OA_it = 0; OA_it < OffAxisBins.size(); ++OA_it) {
-                RelativeTweaks_ND_OA[OA_it].back()[bi_it] *= eph.GetFluxWeight(
-                    p_it, pvals[p_it], EPH_OABins[OA_it][bi_it], NuConfig_ND);
-              }
             }
 
             RelativeTweaks_ND.back()[bi_it] -= 1;
             RelativeTweaks_FD.back()[bi_it] -= 1;
             RelativeTweaks_Ratio.back()[bi_it] -= 1;
-            for (size_t OA_it = 0; OA_it < OffAxisBins.size(); ++OA_it) {
+          }
+
+          for (size_t OA_it = 0; OA_it < OffAxisBins.size(); ++OA_it) {
+#pragma omp parallel for
+            for (size_t bi_it = 0; bi_it < OANBins[OA_it]; ++bi_it) {
+              for (size_t p_it = 0; p_it < pvals.size(); ++p_it) {
+                RelativeTweaks_ND_OA[OA_it].back()[bi_it] *= eph.GetFluxWeight(
+                    p_it, pvals[p_it], EPH_OABins[OA_it][bi_it], NuConfig_ND);
+              }
               RelativeTweaks_ND_OA[OA_it].back()[bi_it] -= 1;
             }
           }
-
-          // if (!t_it) {
-          //   std::cout << "\t\t--Throw 0 relative vector [";
-          //   for (size_t bi_it = 0; bi_it < NBins; ++bi_it) {
-          //     std::cout << RelativeTweaks_ND.back()[bi_it]
-          //               << (((bi_it + 1) == NBins) ? " ]" : ", ");
-          //   }
-          //   std::cout << std::endl;
-          // }
         }
 
         CovarianceBuilder cb_ND(RelativeTweaks_ND, true);
         CovarianceBuilder cb_FD(RelativeTweaks_FD, true);
         CovarianceBuilder cb_Ratio(RelativeTweaks_Ratio, true);
 
+        std::string HistNameStub = "LBNF_" + species_config + "_flux";
+
         std::unique_ptr<TH1> NDHist_rel(dynamic_cast<TH1 *>(
-            NDHist_nom->Clone((ND_NominalHist + "_ND_relative").c_str())));
+            NDHist_nom->Clone((HistNameStub + "_ND_relative").c_str())));
         FillHistFromEigenVector(NDHist_rel.get(), cb_ND.GetStdDevVector());
         NDHist_rel->SetDirectory(var_dir);
 
         std::unique_ptr<TH1> FDHist_rel(dynamic_cast<TH1 *>(
-            FDHist_nom->Clone((FD_NominalHist + "_FD_relative").c_str())));
+            FDHist_nom->Clone((HistNameStub + "_FD_relative").c_str())));
         FillHistFromEigenVector(FDHist_rel.get(), cb_FD.GetStdDevVector());
         FDHist_rel->SetDirectory(var_dir);
 
         std::unique_ptr<TH1> RatioHist_rel(dynamic_cast<TH1 *>(
-            RatioHist_nom->Clone((ND_NominalHist + "_ND_FD_Ratio").c_str())));
+            RatioHist_nom->Clone((HistNameStub + "_ND_FD_Ratio").c_str())));
         FillHistFromEigenVector(RatioHist_rel.get(),
                                 cb_Ratio.GetStdDevVector());
         RatioHist_rel->SetDirectory(var_dir);
@@ -431,7 +439,7 @@ int main(int argc, char const *argv[]) {
 
           std::unique_ptr<TH1> OA_rel(
               dynamic_cast<TH1 *>(OffAxis_Noms[OA_it]->Clone(
-                  (ND_NominalHist + "_ND_OA" +
+                  (HistNameStub + "_ND_OA" +
                    std::to_string(OffAxisPositions[OA_it]) + "_relative")
                       .c_str())));
           FillHistFromEigenVector(OA_rel.get(), cb_OA.GetStdDevVector());
@@ -452,8 +460,8 @@ int main(int argc, char const *argv[]) {
       for (size_t OA_it = 0; OA_it < OffAxisBins.size(); ++OA_it) {
         OffAxis_Noms[OA_it].release();
       }
-    }
-  }
+    } // end species
+  }   // end beam modes
 
   oupFile->Write();
   oupFile->Close();

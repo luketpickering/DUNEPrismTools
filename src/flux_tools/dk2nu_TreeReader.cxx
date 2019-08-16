@@ -559,6 +559,19 @@ DK2NuReader::~DK2NuReader() {
   }
 }
 
+void DK2NuReader::DumpMaxWeights() {
+  std::cout << "\tppfx_maxweight: " << ppfx_maxweight
+            << "\n\tppfx_abs_maxweight: " << ppfx_abs_maxweight
+            << "\n\tppfx_att_maxweight: " << ppfx_att_maxweight
+            << "\n\tppfx_ttpCpi_maxweight: " << ppfx_ttpCpi_maxweight
+            << "\n\tppfx_ttpCk_maxweight: " << ppfx_ttpCk_maxweight
+            << "\n\tppfx_ttnCpi_maxweight: " << ppfx_ttnCpi_maxweight
+            << "\n\tppfx_ttpCnu_maxweight: " << ppfx_ttpCnu_maxweight
+            << "\n\tppfx_ttnua_maxweight: " << ppfx_ttnua_maxweight
+            << "\n\tppfx_ttmesinc_maxweight: " << ppfx_ttmesinc_maxweight
+            << "\n\tppfx_oth_maxweight: " << ppfx_oth_maxweight << std::endl;
+}
+
 DKMetaReader::DKMetaReader(std::string treeName, std::string inputFiles,
                            bool DK2NULite)
 /*: beamsim(0),
@@ -712,6 +725,8 @@ double GetPPFXWeight(Int_t PPFXUniv, Int_t NPPFXUniv, DK2NuReader &dk2nuRdr) {
   if (PPFXUniv == 0) {
     return 1;
   } else if (PPFXUniv == 1) {
+    dk2nuRdr.ppfx_maxweight =
+        std::max(dk2nuRdr.ppfx_maxweight, dk2nuRdr.ppfx_cvwgt);
     return dk2nuRdr.ppfx_cvwgt;
   }
 
@@ -725,58 +740,65 @@ double GetPPFXWeight(Int_t PPFXUniv, Int_t NPPFXUniv, DK2NuReader &dk2nuRdr) {
   switch (univ_cycle) {
   case 0: {
     W = dk2nuRdr.ppfx_vwgt_tot[univ];
+    dk2nuRdr.ppfx_maxweight = std::max(dk2nuRdr.ppfx_maxweight, W);
+    break;
   }
-  // case 1: {
-  //   W = dk2nuRdr.ppfx_vwgt_mipp_pi[univ] *
-  //          (dk2nuRdr.ppfx_cvwgt / dk2nuRdr.ppfx_cvwgt_mipp_pi);
-  // }
-  // case 2: {
-  //   W = dk2nuRdr.ppfx_vwgt_mipp_K[univ] *
-  //          (dk2nuRdr.ppfx_cvwgt / dk2nuRdr.ppfx_cvwgt_mipp_K);
-  // }
   case 1: {
     W = dk2nuRdr.ppfx_vwgt_abs[univ] *
         (dk2nuRdr.ppfx_cvwgt / dk2nuRdr.ppfx_cvwgt_abs);
+    dk2nuRdr.ppfx_abs_maxweight = std::max(dk2nuRdr.ppfx_abs_maxweight, W);
     break;
   }
   case 2: {
     W = dk2nuRdr.ppfx_vwgt_att[univ] *
         (dk2nuRdr.ppfx_cvwgt / dk2nuRdr.ppfx_cvwgt_att);
+    dk2nuRdr.ppfx_att_maxweight = std::max(dk2nuRdr.ppfx_att_maxweight, W);
     break;
   }
   case 3: {
     W = dk2nuRdr.ppfx_vwgt_ttpCpi[univ] *
         (dk2nuRdr.ppfx_cvwgt / dk2nuRdr.ppfx_cvwgt_ttpCpi);
+    dk2nuRdr.ppfx_ttpCpi_maxweight =
+        std::max(dk2nuRdr.ppfx_ttpCpi_maxweight, W);
     break;
   }
   case 4: {
     W = dk2nuRdr.ppfx_vwgt_ttpCk[univ] *
         (dk2nuRdr.ppfx_cvwgt / dk2nuRdr.ppfx_cvwgt_ttpCk);
+    dk2nuRdr.ppfx_ttpCk_maxweight = std::max(dk2nuRdr.ppfx_ttpCk_maxweight, W);
     break;
   }
   case 5: {
     W = dk2nuRdr.ppfx_vwgt_ttnCpi[univ] *
         (dk2nuRdr.ppfx_cvwgt / dk2nuRdr.ppfx_cvwgt_ttnCpi);
+    dk2nuRdr.ppfx_ttnCpi_maxweight =
+        std::max(dk2nuRdr.ppfx_ttnCpi_maxweight, W);
     break;
   }
   case 6: {
     W = dk2nuRdr.ppfx_vwgt_ttpCnu[univ] *
         (dk2nuRdr.ppfx_cvwgt / dk2nuRdr.ppfx_cvwgt_ttpCnu);
+    dk2nuRdr.ppfx_ttpCnu_maxweight =
+        std::max(dk2nuRdr.ppfx_ttpCnu_maxweight, W);
     break;
   }
   case 7: {
     W = dk2nuRdr.ppfx_vwgt_ttnua[univ] *
         (dk2nuRdr.ppfx_cvwgt / dk2nuRdr.ppfx_cvwgt_ttnua);
+    dk2nuRdr.ppfx_ttnua_maxweight = std::max(dk2nuRdr.ppfx_ttnua_maxweight, W);
     break;
   }
   case 8: {
     W = dk2nuRdr.ppfx_vwgt_ttmesinc[univ] *
         (dk2nuRdr.ppfx_cvwgt / dk2nuRdr.ppfx_cvwgt_ttmesinc);
+    dk2nuRdr.ppfx_ttmesinc_maxweight =
+        std::max(dk2nuRdr.ppfx_ttmesinc_maxweight, W);
     break;
   }
   case 9: {
     W = dk2nuRdr.ppfx_vwgt_oth[univ] *
         (dk2nuRdr.ppfx_cvwgt / dk2nuRdr.ppfx_cvwgt_oth);
+    dk2nuRdr.ppfx_oth_maxweight = std::max(dk2nuRdr.ppfx_oth_maxweight, W);
     break;
   }
   default: { throw; }

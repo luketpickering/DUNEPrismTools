@@ -3,14 +3,17 @@ BeamModes: ["nu", "nubar"]
 Species: ["numu", "numubar","nue","nuebar"]
 # Species: ["numu"]
 
+InputFile: "Fluxes/DUNE_Flux_OffAxis_Nov2017Review_syst_shifts.root"
+
+
 Nominal: {
-  NDFileName: "Fluxes/uncertbin_meters/%C_OptimizedEngineeredNov2017Review_uncertbin_meters_wppfx.root"
-  NDHistName: "LBNF_%S_flux_Nom"
-  FDFileName: "Fluxes/uncertbin_meters/%C_OptimizedEngineeredNov2017Review_uncertbin_meters_wppfx.root"
-  FDHistName: "LBNF_%S_flux_Nom"
+  NDFileName: @local::InputFile
+  NDHistName: "%C_ppfx/LBNF_%S_flux_Nom"
+  FDFileName: @local::InputFile
+  FDHistName: "%C_ppfx/LBNF_%S_flux_Nom"
 }
 
-OffAxisPositions: [1, 10, 15, 20, 25, 30] # meter off axis
+OffAxisPositions: [6,12,18,24,30] # meter off axis
 
 # Varied: [{
 #   Name: "HCp1"
@@ -130,5 +133,86 @@ EffectiveVariations[5]: {
   Name: "POT"
   InputFile: "FluxErrors_UncertPoints_POT.root"
 }
+
+EffectiveVariations[6]: {
+  @table::EffectiveVariations[0]
+  Name: "WaterLayer"
+  InputFile: "FluxErrors_UncertPoints_WaterLayer.root"
+}
+
+EffectiveVariations[7]: {
+  @table::EffectiveVariations[0]
+  Name: "HornCurrent"
+  NEffectiveParametersToRead: 1
+  InputFile: "FluxErrors_UncertPoints_HornCurrent.root"
+}
+
+EffectiveVariations[8]: {
+  @table::EffectiveVariations[0]
+  Name: "TargetDensity"
+  NEffectiveParametersToRead: 1
+  InputFile: "FluxErrors_UncertPoints_TargetDensity.root"
+}
+
+EffectiveVariations[9]: {
+  @table::EffectiveVariations[0]
+  Name: "Horn1XShift"
+  NEffectiveParametersToRead: 1
+  InputFile: "FluxErrors_UncertPoints_Horn1XShift.root"
+}
+
+EffectiveVariations[10]: {
+  @table::EffectiveVariations[0]
+  Name: "Horn2XShift"
+  NEffectiveParametersToRead: 1
+  InputFile: "FluxErrors_UncertPoints_Horn2XShift.root"
+}
+
+EffectiveVariations[11]: {
+  @table::EffectiveVariations[0]
+  Name: "Horn1YShift"
+  NEffectiveParametersToRead: 1
+  InputFile: "FluxErrors_UncertPoints_Horn1YShift.root"
+}
+
+EffectiveVariations[12]: {
+  @table::EffectiveVariations[0]
+  Name: "Horn2YShift"
+  NEffectiveParametersToRead: 1
+  InputFile: "FluxErrors_UncertPoints_Horn2YShift.root"
+}
+
+EffectiveVariations[13]: {
+  @table::EffectiveVariations[0]
+  Name: "BeamTheta"
+  InputFile: "FluxErrors_UncertPoints_BeamTheta.root"
+}
+
+EffectiveVariations[14]: {
+  @table::EffectiveVariations[0]
+  Name: "BeamThetaPhi"
+  InputFile: "FluxErrors_UncertPoints_BeamThetaPhi.root"
+}
+
+EffectiveVariations[15]: {
+  @table::EffectiveVariations[0]
+  Name: "BeamSigma"
+  NEffectiveParametersToRead: 1
+  InputFile: "FluxErrors_UncertPoints_BeamSigma.root"
+}
+
+EffectiveVariations[16]: {
+  @table::EffectiveVariations[0]
+  Name: "BeamOffsetX"
+  NEffectiveParametersToRead: 1
+  InputFile: "FluxErrors_UncertPoints_BeamOffsetX.root"
+}
+
+EffectiveVariations[17]: {
+  @table::EffectiveVariations[0]
+  Name: "DecayPipeRadius"
+  InputFile: "FluxErrors_UncertPoints_DecayPipeRadius.root"
+}
+
 
 OutputFile: "FluxRatios.root"

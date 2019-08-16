@@ -3,11 +3,12 @@
 FluxUncertainty: {
   @table::FluxUncertaintyBase
 
-  # FluxSlicesDescriptor_ND_nu: @local::MediumOffAxisRange
-  # FluxSlicesDescriptor_ND_nu: @local::NominalOffAxisRange_1mWindow
-  # FluxSlicesDescriptor_ND_nu: @local::ShortOffAxisRange
-  FluxSlicesDescriptor_ND_nu: @local::UncertPlotStops_meters
-  # FluxSlicesDescriptor_ND_nu: @local::OffAxisOnly
+  # ND guys should be jagged
+  ND_nu_IsJagged: true
+  ND_nubar_IsJagged: true
+  # FD guys are 1D so don't need off axis binning descriptors
+
+
   Species: @local::AllSpecies
   # Species: [numu]
   Configurations: @local::AllConfigurations
@@ -17,8 +18,5 @@ FluxUncertainty: {
   Tweaks: [@sequence::FocussingTweaks]
 
 }
-
-# Set off axis descriptor the same for nu and nubar beam modes
-FluxUncertainty.FluxSlicesDescriptor_ND_nubar: @local::FluxUncertainty.FluxSlicesDescriptor_ND_nu
 
 FluxUncertainty.OutputFile: "FluxErrors_UncertPoints_Focus.root"

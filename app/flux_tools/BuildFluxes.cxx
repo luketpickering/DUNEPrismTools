@@ -199,6 +199,7 @@ struct Config {
     bool isdef_dk2nu_ppfx_allweights_;
     size_t number_ppfx_universes;
     bool isdef_number_ppfx_universes_;
+    double ppfx_weightcap;
 
     std::string input_descriptor;
   };
@@ -384,6 +385,8 @@ struct Config {
       input.number_ppfx_universes =
           input_ps.get<size_t>("number_ppfx_universes", 100);
     }
+
+    input.ppfx_weightcap = input_ps.get<double>("ppfx_weightcap", 10);
 
     fhicl::ParameterSet output_ps =
         ps.get<fhicl::ParameterSet>("output", fhicl::ParameterSet());
@@ -590,7 +593,8 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
     Hists_2D.resize(NPPFXU);
   }
 
-  for (size_t ppfx_univ_it = 0; (!determine_binning) && (ppfx_univ_it < NPPFXU); ++ppfx_univ_it) {
+  for (size_t ppfx_univ_it = 0; (!determine_binning) && (ppfx_univ_it < NPPFXU);
+       ++ppfx_univ_it) {
 
     Hists[ppfx_univ_it].resize(NuPDGTargets.size());
     Hists_2D[ppfx_univ_it].resize(NuPDGTargets.size());
@@ -843,6 +847,7 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
         if (use_PPFX) {
           ppfx_w = GetPPFXWeight(ppfx_univ_it,
                                  config.input.number_ppfx_universes, dk2nuRdr);
+          ppfx_w = std::min(ppfx_w, config.input.ppfx_weightcap);
         }
 
         // AddBinContent with known bin fails to track errors, must fill each
