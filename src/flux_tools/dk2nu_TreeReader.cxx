@@ -21,6 +21,19 @@ DK2NuReader::DK2NuReader(std::string treeName, std::string inputFiles,
   std::cout << "[DK2NuReader]: Loaded TChain: " << NFiles << " files and "
             << NEntries << " entries." << std::endl;
   GetEntry(0);
+
+  ppfx_maxweight = 0;
+  ppfx_mipp_pi_maxweight = 0;
+  ppfx_mipp_K_maxweight = 0;
+  ppfx_abs_maxweight = 0;
+  ppfx_att_maxweight = 0;
+  ppfx_ttpCpi_maxweight = 0;
+  ppfx_ttpCk_maxweight = 0;
+  ppfx_ttnCpi_maxweight = 0;
+  ppfx_ttpCnu_maxweight = 0;
+  ppfx_ttnua_maxweight = 0;
+  ppfx_ttmesinc_maxweight = 0;
+  ppfx_oth_maxweight = 0;
 }
 
 void DK2NuReader::SetBranchAddresses(bool DK2NULite) {
@@ -746,7 +759,10 @@ double GetPPFXWeight(Int_t PPFXUniv, Int_t NPPFXUniv, DK2NuReader &dk2nuRdr) {
   case 1: {
     W = dk2nuRdr.ppfx_vwgt_abs[univ] *
         (dk2nuRdr.ppfx_cvwgt / dk2nuRdr.ppfx_cvwgt_abs);
-    dk2nuRdr.ppfx_abs_maxweight = std::max(dk2nuRdr.ppfx_abs_maxweight, W);
+    if (W > dk2nuRdr.ppfx_abs_maxweight) {
+      std::cout << "Found bigger abs weight = " << W << " = " <<  dk2nuRdr.ppfx_vwgt_abs[univ] << " * " << dk2nuRdr.ppfx_cvwgt << " / " << dk2nuRdr.ppfx_cvwgt_abs << std::endl;
+      dk2nuRdr.ppfx_abs_maxweight = std::max(dk2nuRdr.ppfx_abs_maxweight, W);
+    }
     break;
   }
   case 2: {
