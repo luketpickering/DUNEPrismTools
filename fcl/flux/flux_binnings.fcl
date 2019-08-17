@@ -120,6 +120,81 @@ jagged_binning_defs: {
       off_axis_type: position_m
     }
   }
+  hand_uncert: {
+    nu: {
+      numu: {
+        yattr: "OA_m"
+        xattr: "E_GeV"
+        # energy binning is non-uniform
+        xisuniform: false
+
+        #include "right_sign.numu.handbin.fcl"
+      }
+      numubar: {
+        yattr: "OA_m"
+        xattr: "E_GeV"
+        # energy binning is non-uniform
+        xisuniform: false
+
+        #include "wrong_sign.numu.handbin.fcl"
+      }
+      nue: {
+        yattr: "OA_m"
+        xattr: "E_GeV"
+        # energy binning is non-uniform
+        xisuniform: false
+
+        #include "nue_like.handbin.fcl"
+      }
+      nuebar: {
+        yattr: "OA_m"
+        xattr: "E_GeV"
+        # energy binning is non-uniform
+        xisuniform: false
+
+        #include "nue_like.handbin.fcl"
+      }
+
+      off_axis_type: position_m
+    }
+
+    nubar: {
+      numu: {
+        yattr: "OA_m"
+        xattr: "E_GeV"
+        # energy binning is non-uniform
+        xisuniform: false
+
+        #include "wrong_sign.numu.handbin.fcl"
+      }
+      numubar: {
+        yattr: "OA_m"
+        xattr: "E_GeV"
+        # energy binning is non-uniform
+        xisuniform: false
+
+        #include "right_sign.numu.handbin.fcl"
+      }
+      nue: {
+        yattr: "OA_m"
+        xattr: "E_GeV"
+        # energy binning is non-uniform
+        xisuniform: false
+
+        #include "nue_like.handbin.fcl"
+      }
+      nuebar: {
+        yattr: "OA_m"
+        xattr: "E_GeV"
+        # energy binning is non-uniform
+        xisuniform: false
+
+        #include "nue_like.handbin.fcl"
+      }
+
+      off_axis_type: position_m
+    }
+  }
 }
 
 #Use the on axis binning for the far det
@@ -152,6 +227,38 @@ FD_defs: {
       }
       nuebar: {
         energy: @local::jagged_binning_defs.uncert.nubar.nuebar.binning[0].E_GeV
+      }
+    }
+  }
+
+  hand_uncert: {
+    nu: {
+      numu: {
+        energy: @local::jagged_binning_defs.hand_uncert.nu.numu.binning[0].E_GeV
+      }
+      numubar: {
+        energy: @local::jagged_binning_defs.hand_uncert.nu.numubar.binning[0].E_GeV
+      }
+      nue: {
+        energy: @local::jagged_binning_defs.hand_uncert.nu.nue.binning[0].E_GeV
+      }
+      nuebar: {
+        energy: @local::jagged_binning_defs.hand_uncert.nu.nuebar.binning[0].E_GeV
+      }
+    }
+
+    nubar: {
+      numu: {
+        energy: @local::jagged_binning_defs.hand_uncert.nubar.numu.binning[0].E_GeV
+      }
+      numubar: {
+        energy: @local::jagged_binning_defs.hand_uncert.nubar.numubar.binning[0].E_GeV
+      }
+      nue: {
+        energy: @local::jagged_binning_defs.hand_uncert.nubar.nue.binning[0].E_GeV
+      }
+      nuebar: {
+        energy: @local::jagged_binning_defs.hand_uncert.nubar.nuebar.binning[0].E_GeV
       }
     }
   }

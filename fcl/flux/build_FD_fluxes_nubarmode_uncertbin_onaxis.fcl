@@ -2,7 +2,7 @@
   #include "flux_windows.fcl"
 
 binning: {
-  @table::FD_defs.uncert.nubar
+  @table::FD_defs.hand_uncert.nubar
 }
 
 flux_window: @local::FD_OnAxis
@@ -14,6 +14,7 @@ input: {
   # use_dk2nu_ppfx: false
   # use_dk2nu_ppfx_allweights: false
   # number_ppfx_universes: 0
+  ppfx_weightcap: 200
 }
 
 output: {
