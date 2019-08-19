@@ -62,13 +62,26 @@ void VariationBuilder::BaseConfigure(fhicl::ParameterSet const &ps) {
           str_replace(NominalHistName_conf, "%S", species);
 
       if (IsJagged) {
+        size_t OneOABin = paramset.get<size_t>(
+            pred_config + "_OffAxisBin", std::numeric_limits<size_t>::max());
         std::unique_ptr<TH2JaggedD> flux2D =
             GetHistogram_uptr<TH2JaggedD>(NominalInputFile, NominalHistName);
-        Mergestdvector(NominalPrediction, Getstdvector(flux2D.get()));
-        Mergestdvector(NominalPredictionError, Getstdvectorerror(flux2D.get()));
+        if (OneOABin != std::numeric_limits<size_t>::max()) {
+          std::unique_ptr<TH1> nom_hist(
+              flux2D->ProjectionX((Name + "_Nom").c_str(), OneOABin, OneOABin));
+          Mergestdvector(NominalPrediction, Getstdvector(nom_hist.get()));
+          Mergestdvector(NominalPredictionError,
+                         Getstdvectorerror(nom_hist.get()));
+          nom_hist->SetName((Name + "_Nom").c_str());
+          NominalHistogramSet.push_back(std::move(nom_hist));
+        } else {
+          Mergestdvector(NominalPrediction, Getstdvector(flux2D.get()));
+          Mergestdvector(NominalPredictionError,
+                         Getstdvectorerror(flux2D.get()));
 
-        flux2D->SetName((Name + "_Nom").c_str());
-        NominalHistogramSet.push_back(std::move(flux2D));
+          flux2D->SetName((Name + "_Nom").c_str());
+          NominalHistogramSet.push_back(std::move(flux2D));
+        }
       } else if (FluxSliceDescriptor.size()) {
         std::vector<std::pair<double, double>> XRanges =
             BuildRangesList(FluxSliceDescriptor);
@@ -153,11 +166,18 @@ void ThrownVariations::Process() {
             str_replace(VariedHistName_i_c, "%S", species);
 
         if (IsJagged) {
+          size_t OneOABin = paramset.get<size_t>(
+              pred_config + "_OffAxisBin", std::numeric_limits<size_t>::max());
           std::unique_ptr<TH2JaggedD> flux2D =
               GetHistogram_uptr<TH2JaggedD>(InputFile, VariedHistName);
-          Mergestdvector(flux_pred_i, Getstdvector(flux2D.get()));
-        }
-        if (FluxSliceDescriptor.size()) {
+          if (OneOABin != std::numeric_limits<size_t>::max()) {
+            std::unique_ptr<TH1> var_hist(flux2D->ProjectionX(
+                (Name + "_var").c_str(), OneOABin, OneOABin));
+            Mergestdvector(flux_pred_i, Getstdvector(var_hist.get()));
+          } else {
+            Mergestdvector(flux_pred_i, Getstdvector(flux2D.get()));
+          }
+        } else if (FluxSliceDescriptor.size()) {
           std::vector<std::pair<double, double>> XRanges =
               BuildRangesList(FluxSliceDescriptor);
 
@@ -396,10 +416,19 @@ void DiscreteVariations::Configure(fhicl::ParameterSet const &ps) {
             str_replace(VariedHistName_tw_c, "%S", species);
 
         if (IsJagged) {
+          size_t OneOABin = paramset.get<size_t>(
+              pred_config + "_OffAxisBin", std::numeric_limits<size_t>::max());
           std::unique_ptr<TH2JaggedD> flux2D =
               GetHistogram_uptr<TH2JaggedD>(InputFile, VariedHistName);
-          Mergestdvector(pred_twk, Getstdvector(flux2D.get()));
-          Mergestdvector(pred_error, Getstdvectorerror(flux2D.get()));
+          if (OneOABin != std::numeric_limits<size_t>::max()) {
+            std::unique_ptr<TH1> var_hist(flux2D->ProjectionX(
+                (Name + "_var").c_str(), OneOABin, OneOABin));
+            Mergestdvector(pred_twk, Getstdvector(var_hist.get()));
+            Mergestdvector(pred_error, Getstdvectorerror(var_hist.get()));
+          } else {
+            Mergestdvector(pred_twk, Getstdvector(flux2D.get()));
+            Mergestdvector(pred_error, Getstdvectorerror(flux2D.get()));
+          }
         } else if (FluxSliceDescriptor.size()) { // 2D Uniform
           std::vector<std::pair<double, double>> XRanges =
               BuildRangesList(FluxSliceDescriptor);
@@ -767,9 +796,17 @@ void DirectVariations::Configure(fhicl::ParameterSet const &ps) {
           str_replace(VariedHistName_tw_c, "%S", species);
 
       if (IsJagged) {
+        size_t OneOABin = paramset.get<size_t>(
+            pred_config + "_OffAxisBin", std::numeric_limits<size_t>::max());
         std::unique_ptr<TH2JaggedD> flux2D =
             GetHistogram_uptr<TH2JaggedD>(InputFile, VariedHistName);
-        Mergestdvector(pred_twk, Getstdvector(flux2D.get()));
+        if (OneOABin != std::numeric_limits<size_t>::max()) {
+          std::unique_ptr<TH1> var_hist(
+              flux2D->ProjectionX((Name + "_var").c_str(), OneOABin, OneOABin));
+          Mergestdvector(pred_twk, Getstdvector(var_hist.get()));
+        } else {
+          Mergestdvector(pred_twk, Getstdvector(flux2D.get()));
+        }
 
       } else if (FluxSliceDescriptor.size()) {
         std::vector<std::pair<double, double>> XRanges =

@@ -83,6 +83,15 @@ int main(int argc, char const *argv[]) {
   std::vector<std::string> Configurations =
       flux_uncert_config.get<std::vector<std::string>>("Configurations");
 
+  bool ND_nu_IsJagged = flux_uncert_config.get<bool>("ND_nu_IsJagged", false);
+  bool ND_nubar_IsJagged =
+      flux_uncert_config.get<bool>("ND_nubar_IsJagged", false);
+
+  size_t ND_nu_OffAxisBin = flux_uncert_config.get<size_t>(
+      "ND_nu_OffAxisBin", std::numeric_limits<size_t>::max());
+  size_t ND_nubar_OffAxisBin = flux_uncert_config.get<size_t>(
+      "ND_nubar_OffAxisBin", std::numeric_limits<size_t>::max());
+
   std::vector<std::unique_ptr<TH1>> NominalHistogramSet;
 
   bool CovMatInitialized = false;
@@ -98,6 +107,10 @@ int main(int argc, char const *argv[]) {
     }
     twk_ps.put("Species", Species);
     twk_ps.put("Configurations", Configurations);
+    twk_ps.put("ND_nu_IsJagged", ND_nu_IsJagged);
+    twk_ps.put("ND_nubar_IsJagged", ND_nubar_IsJagged);
+    twk_ps.put("ND_nu_OffAxisBin", ND_nu_OffAxisBin);
+    twk_ps.put("ND_nubar_OffAxisBin", ND_nubar_OffAxisBin);
     std::unique_ptr<VariationBuilder> varb = GetVariationBuilder(twk_ps);
 
     if (oupF) {

@@ -15,77 +15,6 @@ Nominal: {
 
 OffAxisPositions: [6,12,18,24,30] # meter off axis
 
-# Varied: [{
-#   Name: "HCp1"
-#   NDFileName: "Fluxes/%C_OptimizedEngineeredNov2017Review_old_uncert_binning_%N.root"
-#   NDHistName: "LBNF_%S_flux"
-#   FDFileName: "Fluxes/%C_OptimizedEngineeredNov2017Review_old_uncert_binning_%N.root"
-#   FDHistName: "LBNF_%S_flux"
-# }]
-#
-# Varied[1]: {
-#   @table::Varied[0]
-#   Name: "HCm1"
-# }
-#
-# Varied[2]: {
-#   @table::Varied[0]
-#   Name: "WLp1"
-# }
-#
-# Varied[3]: {
-#   @table::Varied[0]
-#   Name: "DPRp1"
-# }
-#
-# Varied[4]: {
-#   @table::Varied[0]
-#   Name: "Horn1XShift"
-# }
-#
-# Varied[5]: {
-#   @table::Varied[0]
-#   Name: "Horn1YShift"
-# }
-#
-# Varied[6]: {
-#   IsRelative: true
-#   Name: "param_0"
-#   NDFileName: "FluxErrors_OnAxis_PPFX.root"
-#   NDHistName: "EffectiveFluxParameters/%N/%C_%S"
-#   FDFileName: "FluxErrors_OnAxis_PPFX.root"
-#   FDHistName: "EffectiveFluxParameters/%N/%C_%S"
-# }
-# Varied[7]: {
-#   @table::Varied[6]
-#   Name: "param_1"
-# }
-# Varied[8]: {
-#   @table::Varied[6]
-#   Name: "param_2"
-# }
-# Varied[9]: {
-#   @table::Varied[6]
-#   Name: "param_3"
-# }
-# Varied[10]: {
-#   @table::Varied[6]
-#   Name: "param_4"
-# }
-# Varied[11]: {
-#   @table::Varied[6]
-#   Name: "param_5"
-# }
-#
-# Varied[12]: {
-#   Name: "POTCounting"
-#   IsRelative: true
-#   NDFileName: "FluxErrors_OnAxis_POT.root"
-#   NDHistName: "EffectiveFluxParameters/param_0/%C_%S"
-#   FDFileName: "FluxErrors_OnAxis_POT.root"
-#   FDHistName: "EffectiveFluxParameters/param_0/%C_%S"
-# }
-
 EffectiveVariations: [
   {
     NThrows: 10000
@@ -112,26 +41,26 @@ EffectiveVariations[1]: {
 EffectiveVariations[2]: {
   @table::EffectiveVariations[0]
   Name: "Focussing"
-  InputFile: "FluxErrors_UncertPoints_Focus.root"
+  InputFile: "FluxErrors_UncertPoints_FocussingTweaks.root"
 }
 
 EffectiveVariations[3]: {
   @table::EffectiveVariations[0]
   Name: "Alignment"
-  InputFile: "FluxErrors_UncertPoints_Align.root"
+  InputFile: "FluxErrors_UncertPoints_AlignmentTweaks.root"
 }
 
 EffectiveVariations[4]: {
   @table::EffectiveVariations[0]
   Name: "BeamAlign"
-  InputFile: "FluxErrors_UncertPoints_BeamAlign.root"
+  InputFile: "FluxErrors_UncertPoints_BeamAlignmentTweaks.root"
 }
 
 EffectiveVariations[5]: {
   NThrows: 1
   @table::EffectiveVariations[0]
   Name: "POT"
-  InputFile: "FluxErrors_UncertPoints_POT.root"
+  InputFile: "FluxErrors_UncertPoints_POTCounting.root"
 }
 
 EffectiveVariations[6]: {
