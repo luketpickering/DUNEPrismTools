@@ -14,7 +14,7 @@ input: {
   # use_dk2nu_ppfx: false
   # use_dk2nu_ppfx_allweights: false
   # number_ppfx_universes: 0
-  weightcap: 10
+  ppfx_weightcap: 10
 }
 
 output: {

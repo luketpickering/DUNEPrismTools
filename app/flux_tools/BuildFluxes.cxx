@@ -199,7 +199,7 @@ struct Config {
     bool isdef_dk2nu_ppfx_allweights_;
     size_t number_ppfx_universes;
     bool isdef_number_ppfx_universes_;
-    double weightcap;
+    double ppfx_weightcap;
 
     std::string input_descriptor;
   };
@@ -386,7 +386,7 @@ struct Config {
           input_ps.get<size_t>("number_ppfx_universes", 100);
     }
 
-    input.weightcap = input_ps.get<double>("weightcap", 10);
+    input.ppfx_weightcap = input_ps.get<double>("ppfx_weightcap", 10);
 
     fhicl::ParameterSet output_ps =
         ps.get<fhicl::ParameterSet>("output", fhicl::ParameterSet());
@@ -851,21 +851,13 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
 
         double ppfx_w = 1;
         if (use_PPFX) {
-          ppfx_w = GetPPFXWeight(ppfx_univ_it,
-                                 config.input.number_ppfx_universes, dk2nuRdr);
+          ppfx_w = std::min(config.input.ppfx_weightcap,
+                            GetPPFXWeight(ppfx_univ_it,
+                                          config.input.number_ppfx_universes,
+                                          dk2nuRdr));
         }
 
-        if ((w * ppfx_w) > largest_w) {
-          largest_w = (w * ppfx_w);
-          std::cout << "[INFO]: New largest weight = " << largest_w << " = ("
-                    << w << "*" << ppfx_w
-                    << "), for nuray: [E: " << std::get<0>(nuStats)
-                    << ", X: " << det_point.second[0]
-                    << ", Y: " << det_point.second[1]
-                    << ", Z: " << det_point.second[2] << "]." << std::endl;
-        }
-
-        double tw = std::min(w * ppfx_w, config.input.weightcap);
+        double tw = w * ppfx_w;
 
         // AddBinContent with known bin fails to track errors, must fill each
         // time.
