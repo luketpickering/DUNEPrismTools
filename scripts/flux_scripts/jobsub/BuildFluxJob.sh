@@ -66,9 +66,9 @@ fi
 
 echo "[INFO]: Reading ${NFILES_TO_READ} files."
 
-echo "[INFO]: JobID ${CLUSTER}, ArrayID ${PROCESS}"
+echo "[INFO]: JobID ${JOBSUBPARENTJOBID}, ArrayID ${JOBSUBJOBSECTION}"
 
-(( ZERO_INDEX_LN = ${PROCESS} * ${NFILES_TO_READ} ))
+(( ZERO_INDEX_LN = ${JOBSUBJOBSECTION} * ${NFILES_TO_READ} ))
 
 (( LN = ${ZERO_INDEX_LN} + 1 ))
 (( LAST_READ_LN = ${LN} + (${NFILES_TO_READ} - 1) ))
@@ -88,8 +88,6 @@ INPUT_FILE_PATHS=( $( cat inputs.list | head -${LAST_READ_LN} | tail -${NFILES_T
 NINPUT_FILES_FOUND=${#INPUT_FILE_PATHS[@]}
 
 echo "[INFO]: cat inputs.list | head -${LN} | tail -${NFILES_TO_READ}"
-# echo "[INFO]: INPUT_FILE_PATHS: ${INPUT_FILE_PATHS[@]}"
-# echo "[INFO]: NINPUT_FILES_FOUND: ${NINPUT_FILES_FOUND}"
 
 if [ -z ${NINPUT_FILES_FOUND} ]; then
   echo "[ERROR]: Found no input files with: cat inputs.list | head -${LN} | tail -${NFILES_TO_READ}"
@@ -223,14 +221,14 @@ for STAGE in FIRST SECOND; do
 
   FLUX_FCL=${DET}_build_flux.fcl
 
-  OUT_FILENAME=Fluxes.${DET}.${CLUSTER}.${PROCESS}.root
+  OUT_FILENAME=Fluxes.${DET}.${JOBSUBPARENTJOBID}.${JOBSUBJOBSECTION}.root
 
   echo "[INFO]: Writing output to: ${OUT_FILENAME} "
 
   echo "Building fluxes @ $(date)"
 
-  echo "./dp_BuildFluxes -i inputs.list -o ${OUT_FILENAME} --fhicl ./${FLUX_FCL} ${PPFX_ARGS} ${PDGARGS} &> dp_BuildFluxes.${CLUSTER}.${PROCESS}.log"
-  ./dp_BuildFluxes -i inputs.list -o ${OUT_FILENAME} --fhicl ./${FLUX_FCL} ${PPFX_ARGS} ${PDGARGS} &> dp_BuildFluxes.${CLUSTER}.${PROCESS}.log
+  echo "./dp_BuildFluxes -i inputs.list -o ${OUT_FILENAME} --fhicl ./${FLUX_FCL} ${PPFX_ARGS} ${PDGARGS} &> dp_BuildFluxes.${JOBSUBPARENTJOBID}.${JOBSUBJOBSECTION}.log"
+  ./dp_BuildFluxes -i inputs.list -o ${OUT_FILENAME} --fhicl ./${FLUX_FCL} ${PPFX_ARGS} ${PDGARGS} &> dp_BuildFluxes.${JOBSUBPARENTJOBID}.${JOBSUBJOBSECTION}.log
 
   echo "Finished."
 
@@ -245,8 +243,8 @@ for STAGE in FIRST SECOND; do
 
   echo "Copying output @ $(date)"
 
-  echo "ifdh cp -D $IFDH_OPTION dp_BuildFluxes.${CLUSTER}.${PROCESS}.log ${PNFS_OUTDIR}/logs/"
-  ifdh cp -D $IFDH_OPTION dp_BuildFluxes.${CLUSTER}.${PROCESS}.log ${PNFS_OUTDIR}/logs/
+  echo "ifdh cp -D $IFDH_OPTION dp_BuildFluxes.${JOBSUBPARENTJOBID}.${JOBSUBJOBSECTION}.log ${PNFS_OUTDIR}/logs/"
+  ifdh cp -D $IFDH_OPTION dp_BuildFluxes.${JOBSUBPARENTJOBID}.${JOBSUBJOBSECTION}.log ${PNFS_OUTDIR}/logs/
 
   if [ ! -e ${OUT_FILENAME} ]; then
     echo "[ERROR]: Failed to produce expected output file."

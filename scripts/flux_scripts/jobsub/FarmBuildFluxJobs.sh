@@ -15,6 +15,7 @@ CONFIG_FCL_FD="DUMMY.fcl"
 DO_ND="0"
 DO_FD="0"
 ONLY_PDG="0"
+MAXCONCURRENT="0"
 
 NPPFXU="0"
 USE_PPFX_COMPONENTS=""
@@ -69,6 +70,18 @@ while [[ ${#} -gt 0 ]]; do
 
       NPERJOB="$2"
       echo "[OPT]: Each job will handle \"${NPERJOB}\" input files."
+      shift # past argument
+      ;;
+
+      --maxConcurrent)
+
+      if [[ ${#} -lt 2 ]]; then
+        echo "[ERROR]: ${1} expected a value."
+        exit 1
+      fi
+
+      MAXCONCURRENT="$2"
+      echo "[OPT]: Each job can run \"${MAXCONCURRENT}\" simultaneously."
       shift # past argument
       ;;
 
@@ -200,6 +213,7 @@ while [[ ${#} -gt 0 ]]; do
       echo -e "\t-i|--dk2nu-input-directory : Input directory to search for dk2nu.root files"
       echo -e "\t-I|--dk2nu-input-file-list : Newline separated list of files to use as input. Must be located on dcache."
       echo -e "\t-n|--n-per-job             : Number of files to run per job. (default: 10)"
+      echo -e "\t--maxConcurrent            : Limits number of concurrently running jobs to mitigate resource hammering."
       echo -e "\t-s|--n-files-skip          : Number of files to to skip before building jobs. (default: 10)"
       echo -e "\t-FN|--fhicl-ND             : Flux calculation configuration file for ND."
       echo -e "\t-FD|--fhicl-FD             : Flux calculation configuration file for FD."
@@ -392,10 +406,17 @@ fi
 
 tar -zcvf apps.${DUNEPRISMTOOLS_VERSION}.tar.gz dp_BuildFluxes *.so *.pcm *.h inputs.list *build_flux.fcl
 
-echo "jobsub_submit --group=${EXPERIMENT} --jobid-output-only --resource-provides=usage_model=OPPORTUNISTIC,OFFSITE --expected-lifetime=${LIFETIME_EXP} --disk=${DISK_EXP} -N ${NJOBSTORUN} --memory=${MEM_EXP} --cpu=1 --OS=SL6 --tar_file_name=dropbox://apps.${DUNEPRISMTOOLS_VERSION}.tar.gz file://${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/BuildFluxJob.sh ${NPPFXU} ${USE_PPFX_COMPONENTS} --only-pdg ${ONLY_PDG} ${NPERJOB} ${ND_PATH_APPEND} ${FD_PATH_APPEND}"
-JID=$(jobsub_submit --group=${EXPERIMENT} --jobid-output-only --resource-provides=usage_model=OPPORTUNISTIC,OFFSITE --expected-lifetime=${LIFETIME_EXP} --disk=${DISK_EXP} -N ${NJOBSTORUN} --memory=${MEM_EXP} --cpu=1 --OS=SL6 --tar_file_name=dropbox://apps.${DUNEPRISMTOOLS_VERSION}.tar.gz file://${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/BuildFluxJob.sh ${NPPFXU} ${USE_PPFX_COMPONENTS} --only-pdg ${ONLY_PDG} ${NPERJOB} ${ND_PATH_APPEND} ${FD_PATH_APPEND})
+UMODEL=OPPORTUNISTIC,ONSITE
 
-JID=$(echo ${JID} | tr -d "\n" | tr -d " " | tr -d "\t")
+if [ ${MAXCONCURRENT} == "0" ]; then
+  echo "Setting MAXCONCURRENT=${NJOBSTORUN} as no limit was passed."
+  MAXCONCURRENT=${NJOBSTORUN}
+fi
+
+echo "jobsub_submit --group=${EXPERIMENT} --jobid-output-only --resource-provides=usage_model=${UMODEL} --expected-lifetime=${LIFETIME_EXP} --disk=${DISK_EXP} -N ${NJOBSTORUN} --maxConcurrent=${MAXCONCURRENT} --memory=${MEM_EXP} --cpu=1 --OS=SL6 --tar_file_name=dropbox://apps.${DUNEPRISMTOOLS_VERSION}.tar.gz file://${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/BuildFluxJob.sh ${NPPFXU} ${USE_PPFX_COMPONENTS} --only-pdg ${ONLY_PDG} ${NPERJOB} ${ND_PATH_APPEND} ${FD_PATH_APPEND}"
+JID=$(jobsub_submit --group=${EXPERIMENT} --jobid-output-only --resource-provides=usage_model=${UMODEL} --expected-lifetime=${LIFETIME_EXP} --disk=${DISK_EXP} -N ${NJOBSTORUN} --maxConcurrent=${MAXCONCURRENT} --memory=${MEM_EXP} --cpu=1 --OS=SL6 --tar_file_name=dropbox://apps.${DUNEPRISMTOOLS_VERSION}.tar.gz file://${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/BuildFluxJob.sh ${NPPFXU} ${USE_PPFX_COMPONENTS} --only-pdg ${ONLY_PDG} ${NPERJOB} ${ND_PATH_APPEND} ${FD_PATH_APPEND})
+
+JID=$(echo ${JID} | tr -d "\n" | tr -d " " | tr -d "\t" | sed "s/\.[0-9]*@/@/g")
 
 cd ../
 rm -rf sub_tmp
@@ -405,3 +426,6 @@ echo -e "#!/bin/sh\n source /cvmfs/fermilab.opensciencegrid.org/products/common/
 echo -e "#!/bin/sh\n source /cvmfs/fermilab.opensciencegrid.org/products/common/etc/setups.sh; setup jobsub_client; mkdir ${JID}_log; cd ${JID}_log; jobsub_fetchlog --user=${USER} --group=${EXPERIMENT} --jobid=${JID}; tar -zxvf *.tgz" > JID_${JID}.fetchlog.sh
 
 chmod +x JID_${JID}.q.sh JID_${JID}.rm.sh JID_${JID}.fetchlog.sh
+
+echo "Sleeping for $(( (${NJOBSTORUN} * 60) / 1000 )) s"...
+sleep $(( (${NJOBSTORUN} * 60) / 1000 ))
