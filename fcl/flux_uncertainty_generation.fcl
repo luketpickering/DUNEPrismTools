@@ -16,7 +16,7 @@ DirectSyst_base: {
     InputFile: @local::InputFile
   }
 
-  dump_diagnostics: false
+  dump_diagnostics: true
   dump_matrices: false
 }
 
