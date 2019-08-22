@@ -2,7 +2,7 @@
   #include "flux_windows.fcl"
 
 binning: {
-  @table::FD_defs.uncert.nu
+  @table::FD_defs.hand_uncert.nu
 }
 
 flux_window: @local::FD_OnAxis
