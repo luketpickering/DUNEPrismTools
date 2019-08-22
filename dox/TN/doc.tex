@@ -18,6 +18,22 @@
 
 \abstract{This Technical note describes an update of the DUNE flux  prediction prior uncertainties. It is meant to be read in the context of previous notes \cite{} and \cite{}. The two significant additions in this analysis are the inclusion of a range of near detector predictions off axis for use in DUNE-PRISM studies and the description of ready-to-use flux uncertainty tools based on an eigenvalue decomposition of the total flux matrix.}
 
+\section{TODO}
+
+\begin{itemize}
+\item TODO: Can add nubar-mode hadron production breakdown
+
+\item TODO: Can add off axis position predictions for all error breakdowns
+
+\item TODO: Add bin edges in text form.
+
+\item TODO: Describe spectra/brute force eigenvalue/vector determination
+
+\item TODO: Add plots of top X eigen vectors across beam mode, detector, species, energy bins and off axis position.
+
+\item TODO: Add description of supplied tools
+\end{itemize}
+
 \section{Flux Predictions}
 
 All flux predictions in this document were produced using \texttt{g4lbne v3r5p4}, \texttt{GEANT 4.10.3p3}, and where applicable a slightly modified version of \texttt{PPFX vX}\footnote{No physics modifications were made so these results should be exactly reproducible}. The predictions were based upon the macro \texttt{OptimizedEngineeredNov17.mac}, which was modified where neccessary to move beamline components or alter running conditions.
@@ -72,9 +88,13 @@ The final type is one where a larger number of samples are taken from a higher d
 
 As a primary driver for this re-analysis was the inclusion of an error analysis for off axis positions at the near detector site, the energy binning needs to be treated somewhat carefully. This is for two main reasons, firstly, if the energy or off axis binnings are too fine, then the number of bins becomes large and standard analysis techniques to use flux constraints become impractical (matrix inversion and decomposition). Secondly, at further off axis positions, the flux peaks at a much lower energy than on axis ($0.6$ GeV vs. $\sim 2.3$ GeV), this means that if an error analysis is performed with a uniform energy binning as a function of off axis angle, then MC statistical noise at far off axis positions and higher energies can dominate and produce problematic results.
 
-As a result, the analysis was performed using a custom histogram class, \texttt{TH2Jagged}, which subclasses the \texttt{TH2} from \texttt{ROOT}. It allows for 2D rectangular histogram with one axis defined as a function of the other axis. In this case, the energy binning is a function of the off-axis angle binning. As using custom classes is somewhat fiddly, the final output will not rely on the analyzer having access to this class. There are three binnings used in this analysis: one for the 'right sign' muon neutrino ($\nu_{\mu}$ in $\nu$-mode and $\bar{\nu}_{\mu}$ in $\bar{\nu}$-mode) , one for the 'wrong sign' muon neutrino ($\bar{\nu}_{\mu}$ in $\nu$-mode and $\nu_{\mu}$ in $\bar{\nu}$-mode), and a third for all electron-type neutrinos (which constitute $\sim 1\% $ of the total flux in any configuration). The binning definitions can be seen in Figs.
+As a result, the analysis was performed using a custom histogram class, \texttt{TH2Jagged}, which subclasses the \texttt{TH2} from \texttt{ROOT}. It allows for 2D rectangular histogram with one axis defined as a function of the other axis. In this case, the energy binning is a function of the off-axis angle binning. As using custom classes is somewhat fiddly, the final output will not rely on the analyzer having access to this class. There are three binnings used in this analysis: one for the 'right sign' muon neutrino ($\nu_{\mu}$ in $\nu$-mode and $\bar{\nu}_{\mu}$ in $\bar{\nu}$-mode) , one for the 'wrong sign' muon neutrino ($\bar{\nu}_{\mu}$ in $\nu$-mode and $\nu_{\mu}$ in $\bar{\nu}$-mode), and a third for all electron-type neutrinos (which constitute $\sim 1\% $ of the total flux in any configuration). The binning definitions can be seen in Fig~\ref{fig:binning}.
 
-%Binning definitions
+\begin{figure}
+  \includegraphics[width=\textwidth]{plots/Binning}
+  \caption{The species, off axis, and energy binning that was used in this analysis.}
+  \label{fig:binning}
+\end{figure}
 
 \section{Uncertainties Used}
 \label{sec:uncertainties_used}
@@ -113,22 +133,292 @@ The following subsections present the bin-by-bin fractional uncertainties for ea
 It should be noted that all plots shown in this section were produced using the eigenvalue decompositions of the relevant component error matricies, \textit{i.e.} the tools presented in \S~\ref{sec:analyzer_usage} were exercised to do this analysis.
 
 \subsection{Hadron production}
+
+Weights are all calculated relative to the CV tune, the variations used should be applicable for DUNE, but it isn't clear that the CV tune is, the relative errors can be used with the nominal prediction.
+When running PPFX, very large universe weights were seen, for this analysis they were capped at 10. Could re-assess this restriction in the future.
+
+\begin{figure}
+  \includegraphics[width=\textwidth]{plots/fracerrs/numode_numu_PPFX}
+  \caption{}
+  \label{fig:ppfx_nu_numu}
+\end{figure}
+
 \subsection{Focussing}
+
+\begin{figure}
+  \includegraphics[width=\textwidth]{plots/fracerrs/numode_numu_Focussing}
+  \caption{}
+  \label{fig:foc_nu_numu}
+\end{figure}
+
+\begin{figure}
+  \includegraphics[width=\textwidth]{plots/fracerrs/numode_numubar_Focussing}
+  \caption{}
+  \label{fig:foc_nu_numubar}
+\end{figure}
+
+\begin{figure}
+  \includegraphics[width=\textwidth]{plots/fracerrs/numode_nue_Focussing}
+  \caption{}
+  \label{fig:foc_nu_nue}
+\end{figure}
+
+\begin{figure}
+  \includegraphics[width=\textwidth]{plots/fracerrs/numode_nuebar_Focussing}
+  \caption{}
+  \label{fig:foc_nu_nuebar}
+\end{figure}
+
+\begin{figure}
+  \includegraphics[width=\textwidth]{plots/fracerrs/nubarmode_numu_Focussing}
+  \caption{}
+  \label{fig:foc_nubar_numu}
+\end{figure}
+
+\begin{figure}
+  \includegraphics[width=\textwidth]{plots/fracerrs/nubarmode_numubar_Focussing}
+  \caption{}
+  \label{fig:foc_nubar_numubar}
+\end{figure}
+
+\begin{figure}
+  \includegraphics[width=\textwidth]{plots/fracerrs/nubarmode_nue_Focussing}
+  \caption{}
+  \label{fig:foc_nubar_nue}
+\end{figure}
+
+\begin{figure}
+  \includegraphics[width=\textwidth]{plots/fracerrs/nubarmode_nuebar_Focussing}
+  \caption{}
+  \label{fig:foc_nubar_nuebar}
+\end{figure}
+
 \subsection{Horn Alignment}
+
+
+\begin{figure}
+  \includegraphics[width=\textwidth]{plots/fracerrs/numode_numu_HornAlignment}
+  \caption{}
+  \label{fig:hornalign_nu_numu}
+\end{figure}
+
+\begin{figure}
+  \includegraphics[width=\textwidth]{plots/fracerrs/numode_numubar_HornAlignment}
+  \caption{}
+  \label{fig:hornalign_nu_numubar}
+\end{figure}
+
+\begin{figure}
+  \includegraphics[width=\textwidth]{plots/fracerrs/numode_nue_HornAlignment}
+  \caption{}
+  \label{fig:hornalign_nu_nue}
+\end{figure}
+
+\begin{figure}
+  \includegraphics[width=\textwidth]{plots/fracerrs/numode_nuebar_HornAlignment}
+  \caption{}
+  \label{fig:hornalign_nu_nuebar}
+\end{figure}
+
+\begin{figure}
+  \includegraphics[width=\textwidth]{plots/fracerrs/nubarmode_numu_HornAlignment}
+  \caption{}
+  \label{fig:hornalign_nubar_numu}
+\end{figure}
+
+\begin{figure}
+  \includegraphics[width=\textwidth]{plots/fracerrs/nubarmode_numubar_HornAlignment}
+  \caption{}
+  \label{fig:hornalign_nubar_numubar}
+\end{figure}
+
+\begin{figure}
+  \includegraphics[width=\textwidth]{plots/fracerrs/nubarmode_nue_HornAlignment}
+  \caption{}
+  \label{fig:hornalign_nubar_nue}
+\end{figure}
+
+\begin{figure}
+  \includegraphics[width=\textwidth]{plots/fracerrs/nubarmode_nuebar_HornAlignment}
+  \caption{}
+  \label{fig:beamalign_nubar_nuebar}
+\end{figure}
+
 \subsection{Beam Alignment}
+
+\begin{figure}
+  \includegraphics[width=\textwidth]{plots/fracerrs/numode_numu_BeamAlignment}
+  \caption{}
+  \label{fig:beamalign_nu_numu}
+\end{figure}
+
+\begin{figure}
+  \includegraphics[width=\textwidth]{plots/fracerrs/numode_numubar_BeamAlignment}
+  \caption{}
+  \label{fig:beamalign_nu_numubar}
+\end{figure}
+
+\begin{figure}
+  \includegraphics[width=\textwidth]{plots/fracerrs/numode_nue_BeamAlignment}
+  \caption{}
+  \label{fig:beamalign_nu_nue}
+\end{figure}
+
+\begin{figure}
+  \includegraphics[width=\textwidth]{plots/fracerrs/numode_nuebar_BeamAlignment}
+  \caption{}
+  \label{fig:beamalign_nu_nuebar}
+\end{figure}
+
+\begin{figure}
+  \includegraphics[width=\textwidth]{plots/fracerrs/nubarmode_numu_BeamAlignment}
+  \caption{}
+  \label{fig:beamalign_nubar_numu}
+\end{figure}
+
+\begin{figure}
+  \includegraphics[width=\textwidth]{plots/fracerrs/nubarmode_numubar_BeamAlignment}
+  \caption{}
+  \label{fig:beamalign_nubar_numubar}
+\end{figure}
+
+\begin{figure}
+  \includegraphics[width=\textwidth]{plots/fracerrs/nubarmode_nue_BeamAlignment}
+  \caption{}
+  \label{fig:beamalign_nubar_nue}
+\end{figure}
+
+\begin{figure}
+  \includegraphics[width=\textwidth]{plots/fracerrs/nubarmode_nuebar_BeamAlignment}
+  \caption{}
+  \label{fig:beamalign_nubar_nuebar}
+\end{figure}
+
 \subsection{Grouped}
 
-\subsection{Analyzer Usage}
+\begin{figure}
+  \includegraphics[width=\textwidth]{plots/fracerrs/numode_numu_ErrType}
+  \caption{}
+  \label{fig:grp_nu_numu}
+\end{figure}
+
+\begin{figure}
+  \includegraphics[width=\textwidth]{plots/fracerrs/numode_numubar_ErrType}
+  \caption{}
+  \label{fig:grp_nu_numubar}
+\end{figure}
+
+\begin{figure}
+  \includegraphics[width=\textwidth]{plots/fracerrs/numode_nue_ErrType}
+  \caption{}
+  \label{fig:grp_nu_nue}
+\end{figure}
+
+\begin{figure}
+  \includegraphics[width=\textwidth]{plots/fracerrs/numode_nuebar_ErrType}
+  \caption{}
+  \label{fig:grp_nu_nuebar}
+\end{figure}
+
+\begin{figure}
+  \includegraphics[width=\textwidth]{plots/fracerrs/nubarmode_numu_ErrType}
+  \caption{}
+  \label{fig:grp_nubar_numu}
+\end{figure}
+
+\begin{figure}
+  \includegraphics[width=\textwidth]{plots/fracerrs/nubarmode_numubar_ErrType}
+  \caption{}
+  \label{fig:grp_nubar_numubar}
+\end{figure}
+
+\begin{figure}
+  \includegraphics[width=\textwidth]{plots/fracerrs/nubarmode_nue_ErrType}
+  \caption{}
+  \label{fig:grp_nubar_nue}
+\end{figure}
+
+\begin{figure}
+  \includegraphics[width=\textwidth]{plots/fracerrs/nubarmode_nuebar_ErrType}
+  \caption{}
+  \label{fig:grp_nubar_nuebar}
+\end{figure}
+
+\subsection{Grouped off axis}
+
+\begin{figure}
+  \includegraphics[width=\textwidth]{plots/fracerrs/numode_numu_ErrType_OffAxis}
+  \caption{}
+  \label{fig:grp_nu_numu_offaxis}
+\end{figure}
+
+\begin{figure}
+  \includegraphics[width=\textwidth]{plots/fracerrs/numode_numubar_ErrType_OffAxis}
+  \caption{}
+  \label{fig:grp_nu_numubar_offaxis}
+\end{figure}
+
+\begin{figure}
+  \includegraphics[width=\textwidth]{plots/fracerrs/numode_nue_ErrType_OffAxis}
+  \caption{}
+  \label{fig:grp_nu_nue_offaxis}
+\end{figure}
+
+\begin{figure}
+  \includegraphics[width=\textwidth]{plots/fracerrs/numode_nuebar_ErrType_OffAxis}
+  \caption{}
+  \label{fig:grp_nu_nuebar_offaxis}
+\end{figure}
+
+\begin{figure}
+  \includegraphics[width=\textwidth]{plots/fracerrs/nubarmode_numu_ErrType_OffAxis}
+  \caption{}
+  \label{fig:grp_nubar_numu_offaxis}
+\end{figure}
+
+\begin{figure}
+  \includegraphics[width=\textwidth]{plots/fracerrs/nubarmode_numubar_ErrType_OffAxis}
+  \caption{}
+  \label{fig:grp_nubar_numubar_offaxis}
+\end{figure}
+
+\begin{figure}
+  \includegraphics[width=\textwidth]{plots/fracerrs/nubarmode_nue_ErrType_OffAxis}
+  \caption{}
+  \label{fig:grp_nubar_nue_offaxis}
+\end{figure}
+
+\begin{figure}
+  \includegraphics[width=\textwidth]{plots/fracerrs/nubarmode_nuebar_ErrType_OffAxis}
+  \caption{}
+  \label{fig:grp_nubar_nuebar_offaxis}
+\end{figure}
+
+
+\section{Analyzer Usage}
 \label{sec:analyzer_usage}
 
 The error matrix constructed from the variations described in \S~\ref{sec:uncertainties_used} can be incorporated into analyses in a number of ways. There are two common ways. Firstly, each beam mode, species, energy bin in which the uncertainties are calculate introduces a nuisance parameter to the analysis. The value of these nuisance parameters control the relative probability (weight) for events produced by true neutrinos that fall within the corresponding bin. The matrix can then be used to form a penalty term like,
-\[\textrm{pen}(\left(\textbf{p}\right)=\textbf{p}\mathbf{C}^{-1}\textbf{p}^\mathrm{T},\]
-where, $\textbf{p}$ is the vector of nuisance parameter values and $\mathbf{C}$, is the total error matrix. The nature of beamline uncertainties results in constraints that are often strongly correlated across beam modes, neutrino species, and energy bins. As a result, this method can prove problematic for gradient descent minimization. This method neccessarily introduces one parameter per beam mode, neutrino species, and energy bin, this number cannot be reduced without losing granularity. For finely binned uncertainties as a function of off axis angle, this number can be prohibitively large, $\mathcal{O}\left(1000)$.
+\[\chi^{2}_\textrm{pen}\left(\textbf{p}\right)=\textbf{p}\mathbf{C}^{-1}\textbf{p}^\mathrm{T},\]
+where, $\textbf{p}$ is the vector of nuisance parameter values and $\mathbf{C}$, is the total error matrix. The nature of beamline uncertainties results in constraints that are often strongly correlated across beam modes, neutrino species, and energy bins. As a result, this method can prove problematic for gradient descent minimization. This method neccessarily introduces one parameter per beam mode, neutrino species, and energy bin, this number cannot be reduced without losing granularity. For finely binned uncertainties as a function of off axis angle, this number can be prohibitively large, $\mathcal{O}\left(1000\right)$.
 
-The second method is conceptually similar but mechanically slightly more involved and can be used to elide the two problems highlighted for the first method. The total number of varied predictions that went into the analysis was presented here was 122, however, for even on-axis-only and coarse energy binning the number of columns and rows in $\mathbf{C}$ is likely to be $\mathcal{O}\left(200)$. The matrix $\mathbf{C}$ can be diagonalized and then only the most important $n$ eigenvectors and values used in error propagation---where $n<122$, as the eigenvectors corresponding to smaller eigenvalues will neccessarily be composed of just MC statistical noise. This decomposition can be conceptually thought of as a rotation from the basis of beam mode, neutrino species, and energy to an effective basis that captures the correlated constraint described by $\mathbf{C}$ across all simultaneously.
+The second method is conceptually similar but mechanically slightly more involved and can be used to elide the two problems highlighted for the first method. The total number of varied predictions that went into the analysis was presented here was 122, however, for even on-axis-only and coarse energy binning the number of columns and rows in $\mathbf{C}$ is likely to be $\mathcal{O}\left(200\right)$. The matrix $\mathbf{C}$ can be diagonalized and then only the most important $n$ eigenvectors and values used in error propagation---where $n<122$, as the eigenvectors corresponding to smaller eigenvalues will neccessarily be composed of just MC statistical noise. This decomposition is equivalent to a rotation from a basis of beam mode, neutrino species, and energy bin normalizations to an effective basis that describes the correlated constraint described by $\mathbf{C}$ across each simultaneously.
 
-% Eigenvalues
-% Top X Eigenvectors
+\subsection{Error Matrices}
+
+The total error matrices from all sources of error described in \S~\ref{sec:uncertainties_used} can be seen in Fig~\ref{}. The corresponding correlation matrix can be seen in Fig~\ref{}. This matrix is only shown for the on axis near detector position as including the off axis stops shown elsewhere in this document brings the total bin count to $\mathcal{O}\left(900\right)$. If correlated uncertainties at off axis stops are needed, it is recommended that the eigenvector/eigenvalue technique of error propagation is used as then no large matrix handling is required at analysis time..
+
+\begin{figure}
+  \includegraphics[width=\textwidth]{plots/mats/ErrorMatrices_covmat}
+  \caption{The total error (covariance) matrix describing the correlated neutrino flux prediction uncertainties across neutrino energies, between two horn polarities, two detector volumes, and four neutrino species.}
+  \label{fig:covmat}
+\end{figure}
+
+\begin{figure}
+  \includegraphics[width=\textwidth]{plots/mats/ErrorMatrices_corrmat}
+  \caption{The correlation matrix describing the correlated neutrino flux prediction uncertainties across neutrino energies, between two horn polarities, two detector volumes, and four neutrino species.}
+  \label{fig:corrmat}
+\end{figure}
 
 \section{Terms}
 

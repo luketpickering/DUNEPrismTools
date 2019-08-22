@@ -1,0 +1,35 @@
+BeamModes: ["nu", "nubar"]
+# BeamModes: ["nu"]
+Species: ["numu", "numubar","nue","nuebar"]
+# Species: ["numu"]
+
+InputFile: "Fluxes/DUNE_Flux_OffAxis_Nov2017Review_syst_shifts.root"
+
+
+Nominal: {
+  NDFileName: @local::InputFile
+  NDHistName: "%C_ppfx/LBNF_%S_flux_Nom"
+  FDFileName: @local::InputFile
+  FDHistName: "%C_ppfx/LBNF_%S_flux_Nom"
+}
+
+OffAxisPositions: [6,12,18,24,30] # meter off axis
+
+EffectiveVariations: [
+  {
+    NThrows: 10000
+    Name: "Total"
+    NEffectiveParametersToRead: 50
+    ND_detector_tag: "ND"
+    FD_detector_tag: "FD"
+    nu_mode_beam_tag: "nu"
+    nubar_mode_beam_tag: "nubar"
+    numu_species_tag: "numu"
+    nue_species_tag: "nue"
+    numubar_species_tag: "numubar"
+    nuebar_species_tag: "nuebar"
+    InputFile: "FluxErrors_UncertPoints_TotalNonHP.root"
+  }
+]
+
+OutputFile: "FluxRatios_NonHP.root"
