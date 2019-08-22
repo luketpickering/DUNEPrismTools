@@ -511,11 +511,7 @@ GetRandomFluxWindowPosition(TRandom3 &rnjesus, double win_min, double win_max) {
   return std::make_pair(RandomOffAxisPos, rndDetPos);
 }
 
-double largest_w;
-
 void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
-
-  largest_w = 0;
 
   TRandom3 rnjesus;
 
@@ -760,6 +756,8 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
         }
         nuray_tree->Fill();
       }
+      //Also have to increment here to get POT scaling correct!
+      NDecayParentsUsed++;
       continue;
     }
 
