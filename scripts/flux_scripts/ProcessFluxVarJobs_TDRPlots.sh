@@ -1,22 +1,24 @@
 # !/bin/bash
 
-PRED_DIR="uncertbin"
+PRED_TYPE="uncertbin"
 declare -A FD_FHICL_ARR
 declare -A ND_FHICL_ARR
-FD_FHICL_ARR["nu"]="-FF flux/build_FD_fluxes_numode_${PRED_DIR}_onaxis.fcl"
-ND_FHICL_ARR["nu"]="-FN flux/build_ND_fluxes_numode_${PRED_DIR}_offaxis.fcl"
-FD_FHICL_ARR["nubar"]="-FF flux/build_FD_fluxes_nubarmode_${PRED_DIR}_onaxis.fcl"
-ND_FHICL_ARR["nubar"]="-FN flux/build_ND_fluxes_nubarmode_${PRED_DIR}_offaxis.fcl"
+FD_FHICL_ARR["nu"]="-FF flux/build_FD_fluxes_numode_${PRED_TYPE}_onaxis.fcl"
+ND_FHICL_ARR["nu"]="-FN flux/build_ND_fluxes_numode_${PRED_TYPE}_offaxis.fcl"
+FD_FHICL_ARR["nubar"]="-FF flux/build_FD_fluxes_nubarmode_${PRED_TYPE}_onaxis.fcl"
+ND_FHICL_ARR["nubar"]="-FN flux/build_ND_fluxes_nubarmode_${PRED_TYPE}_offaxis.fcl"
+
+PRED_DIR="uncertbin_opt"
 
 FORCEOVERWRITE="true"
 
 #coarsebin
-EDISK="1GB"
-EDISK_PPFX="1GB"
-EDISK_PPFX_COMP="1GB"
+EDISK="2GB"
+EDISK_PPFX="2GB"
+EDISK_PPFX_COMP="2GB"
 
 # 3 files takes 30 s
-ETIME="2h"
+ETIME="30m"
 # 3 files takes 1 min
 ETIME_PPFX="2h"
 # 3 files takes 6 mins
@@ -37,23 +39,29 @@ PDG_ONLY["nubar"]="0"
 PDG_ONLY_PPFX["nubar"]="0"
 PDG_ONLY_PPFX_COMP["nubar"]="-14"
 
-DO_PPFX="0"
+DO_PPFX="1"
 NPPFXUNIVERSES="100"
 PPFX_DIR="nominal_5E8POT_wppfx"
 DO_PPFX_VARIATIONS="1"
 
-DO_PPFX_COMPONENT_VARIATIONS="1"
+DO_PPFX_COMPONENT_VARIATIONS="0"
 PPFX_COMP_DIR="nominal_2.5E8POT_wallppfx"
 
-DO_FOCUS="0"
+DO_FOCUS="1"
 FOCUS_DIR="Focussing"
 
-DO_ALIGN="0"
+DO_ALIGN="1"
 ALIGN_DIR="Alignment"
 
-NINPUTSPERJOB="200"
+NINPUTSPERJOB="50"
+NMAXCONC="2"
+
 NINPUTSPERJOB_PPFX="30"
+NMAXCONC_PPFX="10"
+
 NINPUTSPERJOB_PPFX_COMP="5"
+NMAXCONC_PPFX_COMP="20"
+
 NMAXJOBS="1000"
 NTOTALJOBS="1000000"
 
@@ -88,7 +96,8 @@ for NUMODE in ${BEAM_MODES}; do
        --expected-mem ${EMEM_PPFX} ${FD_FHICL} ${ND_FHICL} \
        -p ${PPFX_DIR}/DUNEPrismFluxes/__DET___${NUMODE}/${PRED_DIR} \
        -i /pnfs/dune/persistent/users/picker24/${PPFX_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${NUMODE}/dk2nulite \
-       -n ${NINPUTSPERJOB_PPFX} --N-max-jobs ${NMAXJOBS} ${PPFX_ARG}\
+       -n ${NINPUTSPERJOB_PPFX} --maxConcurrent ${NMAXCONC_PPFX}\
+       --N-max-jobs ${NMAXJOBS} ${PPFX_ARG}\
        --only-pdg ${PDG_ONLY_PPFX[${NUMODE}]} -f
     NJOBS=$(( NJOBS + NMAXJOBS ))
     echo "[INFO]: Done ${NJOBS}."
@@ -119,7 +128,8 @@ for NUMODE in ${BEAM_MODES}; do
        --expected-mem ${EMEM_PPFX_COMP} ${FD_FHICL} ${ND_FHICL} \
        -p ${PPFX_COMP_DIR}/DUNEPrismFluxes/__DET___${NUMODE}/${PRED_DIR} \
        -i /pnfs/dune/persistent/users/picker24/${PPFX_COMP_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${NUMODE}/dk2nulite \
-       -n ${NINPUTSPERJOB_PPFX_COMP} --N-max-jobs ${NMAXJOBS} ${PPFX_ARG}\
+       -n ${NINPUTSPERJOB_PPFX_COMP} --maxConcurrent ${NMAXCONC_PPFX_COMP}\
+        --N-max-jobs ${NMAXJOBS} ${PPFX_ARG}\
        --only-pdg ${PDG_ONLY_PPFX_COMP[${NUMODE}]} -f
 
     NJOBS=$(( NJOBS + NMAXJOBS ))
@@ -150,7 +160,8 @@ for NUMODE in ${BEAM_MODES}; do
            --expected-mem ${EMEM} ${FD_FHICL} ${ND_FHICL} \
            -p ${FOCUS_DIR}/DUNEPrismFluxes/__DET___${NUMODE}/${VARIATION}${SIGSHIFT}/${PRED_DIR} \
            -i /pnfs/dune/persistent/users/picker24/${FOCUS_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${VARIATION}${SIGSHIFT}/${NUMODE}/dk2nulite \
-           -n ${NINPUTSPERJOB} --N-max-jobs ${NMAXJOBS} \
+           -n ${NINPUTSPERJOB} --maxConcurrent ${NMAXCONC}\
+           --N-max-jobs ${NMAXJOBS} \
            --only-pdg ${PDG_ONLY[${NUMODE}]} -f
 
         NJOBS=$(( NJOBS + NMAXJOBS ))
@@ -183,7 +194,8 @@ for NUMODE in ${BEAM_MODES}; do
            --expected-mem ${EMEM} ${FD_FHICL} ${ND_FHICL} \
            -p ${ALIGN_DIR}/DUNEPrismFluxes/__DET___${NUMODE}/${HORN}${VARIATION}/${PRED_DIR} \
            -i /pnfs/dune/persistent/users/picker24/${ALIGN_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${HORN}${VARIATION}/${NUMODE}/dk2nulite \
-           -n ${NINPUTSPERJOB} --N-max-jobs ${NMAXJOBS} \
+           -n ${NINPUTSPERJOB} --maxConcurrent ${NMAXCONC}\
+            --N-max-jobs ${NMAXJOBS} \
            --only-pdg ${PDG_ONLY[${NUMODE}]} -f
 
         NJOBS=$(( NJOBS + NMAXJOBS ))

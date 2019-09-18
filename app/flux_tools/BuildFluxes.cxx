@@ -511,12 +511,7 @@ GetRandomFluxWindowPosition(TRandom3 &rnjesus, double win_min, double win_max) {
   return std::make_pair(RandomOffAxisPos, rndDetPos);
 }
 
-double largest_w;
-
 void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
-
-  largest_w = 0;
-
   TRandom3 rnjesus;
 
   TFile *nuray_file = nullptr;
@@ -534,12 +529,10 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
 
   size_t NDecayParents =
       std::min(config.input.max_decay_parents, size_t(dk2nuRdr.GetEntries()));
-  size_t NDecayParentsUsed = 0;
 
-  double TotalPOTGuess =
-      TotalPOT * (double(NDecayParents) / double(dk2nuRdr.GetEntries()));
+  TotalPOT = TotalPOT * (double(NDecayParents) / double(dk2nuRdr.GetEntries()));
   std::cout << "Only using the first " << NDecayParents << " events out of "
-            << dk2nuRdr.GetEntries() << ", scaling POT to ~" << TotalPOTGuess
+            << dk2nuRdr.GetEntries() << ", scaling POT to " << TotalPOT
             << std::endl;
   std::cout << "Reading " << NDecayParents << " Dk2Nu entries." << std::endl;
 
@@ -763,7 +756,7 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
       continue;
     }
 
-    double wF = (dk2nuRdr.decay_nimpwt / TMath::Pi());
+    double wF = (dk2nuRdr.decay_nimpwt / TMath::Pi()) * (1.0 / TotalPOT);
 
     for (Int_t ang_it = 0; ang_it < NOffAxisBins; ++ang_it) {
 
@@ -803,7 +796,8 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
       if ((!std::isnormal(std::get<0>(nuStats)) || (!std::isnormal(w)))) {
         std::cout << std::get<0>(nuStats) << ", " << w << "("
                   << std::get<2>(nuStats) << "*" << dk2nuRdr.decay_nimpwt
-                  << "/(" << TMath::Pi() << ")." << std::endl;
+                  << "/(" << TMath::Pi() << "*" << TotalPOT << ")."
+                  << std::endl;
         throw;
       }
 
@@ -851,13 +845,10 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
 
         double ppfx_w = 1;
         if (use_PPFX) {
-          ppfx_w = std::min(config.input.ppfx_weightcap,
-                            GetPPFXWeight(ppfx_univ_it,
-                                          config.input.number_ppfx_universes,
-                                          dk2nuRdr));
+          ppfx_w = GetPPFXWeight(ppfx_univ_it,
+                                 config.input.number_ppfx_universes, dk2nuRdr);
+          ppfx_w = std::min(ppfx_w, config.input.ppfx_weightcap);
         }
-
-        double tw = w * ppfx_w;
 
         // AddBinContent with known bin fails to track errors, must fill each
         // time.
@@ -867,17 +858,18 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
                                                     // the stats correct
             if (config.output.use_THF) {
               static_cast<TH2JaggedF *>(Hists_2D[ppfx_univ_it][nuPDG_it][0])
-                  ->FillKnownBin(JagBin, tw);
+                  ->FillKnownBin(JagBin, w * ppfx_w);
             } else {
               static_cast<TH2JaggedD *>(Hists_2D[ppfx_univ_it][nuPDG_it][0])
-                  ->FillKnownBin(JagBin, tw);
+                  ->FillKnownBin(JagBin, w * ppfx_w);
             }
           } else {
-            Hists_2D[ppfx_univ_it][nuPDG_it][0]->Fill(std::get<0>(nuStats),
-                                                      det_point.first, tw);
+            Hists_2D[ppfx_univ_it][nuPDG_it][0]->Fill(
+                std::get<0>(nuStats), det_point.first, w * ppfx_w);
           }
         } else {
-          Hists[ppfx_univ_it][nuPDG_it][0]->Fill(std::get<0>(nuStats), tw);
+          Hists[ppfx_univ_it][nuPDG_it][0]->Fill(std::get<0>(nuStats),
+                                                 w * ppfx_w);
         }
         if (config.output.separate_by_hadron_species) {
           if (IsOffAxis) {
@@ -888,19 +880,19 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
               if (config.output.use_THF) {
                 static_cast<TH2JaggedF *>(
                     Hists_2D[ppfx_univ_it][nuPDG_it][extra_hist_index])
-                    ->FillKnownBin(JagBin, tw);
+                    ->FillKnownBin(JagBin, w * ppfx_w);
               } else {
                 static_cast<TH2JaggedD *>(
                     Hists_2D[ppfx_univ_it][nuPDG_it][extra_hist_index])
-                    ->FillKnownBin(JagBin, tw);
+                    ->FillKnownBin(JagBin, w * ppfx_w);
               }
             } else {
               Hists_2D[ppfx_univ_it][nuPDG_it][extra_hist_index]->Fill(
-                  std::get<0>(nuStats), det_point.first, tw);
+                  std::get<0>(nuStats), det_point.first, w * ppfx_w);
             }
           } else {
             Hists[ppfx_univ_it][nuPDG_it][extra_hist_index]->Fill(
-                std::get<0>(nuStats), tw);
+                std::get<0>(nuStats), w * ppfx_w);
           }
         }
 
@@ -920,7 +912,6 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
     if (nuray_tree) {
       nuray_tree->Fill();
     }
-    NDecayParentsUsed++;
   } // End loop over decay parents
 
   if (determine_binning) {
@@ -949,14 +940,6 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
     return;
   }
 
-  double TotalPOTUsed =
-      TotalPOT * (double(NDecayParentsUsed) / double(dk2nuRdr.GetEntries()));
-  std::cout << "Only used the first " << NDecayParentsUsed << " events out of "
-            << dk2nuRdr.GetEntries() << ", scaling POT to " << TotalPOTUsed
-            << std::endl;
-
-  double MToCMAndPOTUsedScale = 1.0E-4 / TotalPOTUsed;
-
   for (size_t nuPDG_it = 0; nuPDG_it < NuPDGTargets.size(); ++nuPDG_it) {
     std::cout << "[INFO]: Found " << NNuPDGTargets[nuPDG_it]
               << " Neutrinos with PDG: " << NuPDGTargets[nuPDG_it] << std::endl;
@@ -979,7 +962,7 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
              hist_index < (config.output.separate_by_hadron_species ? 5 : 1);
              ++hist_index) {
           TH2 *hist = univ_hists[hist_index];
-          hist->Scale(MToCMAndPOTUsedScale, "width");
+          hist->Scale(1E-4, "width");
           // To accomodate TH2Jagged it is easier to scale by cell area and then
           // loop through Y and scale up by y;
           for (Int_t ybin_it = 0; ybin_it < hist->GetYaxis()->GetNbins();
@@ -1019,8 +1002,7 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
         for (size_t hist_index = 0;
              hist_index < (config.output.separate_by_hadron_species ? 5 : 1);
              ++hist_index) {
-          Hists[ppfx_univ_it][nuPDG_it][hist_index]->Scale(MToCMAndPOTUsedScale,
-                                                           "width");
+          Hists[ppfx_univ_it][nuPDG_it][hist_index]->Scale(1E-4, "width");
           outfile->WriteTObject(
               Hists[ppfx_univ_it][nuPDG_it][hist_index],
               Hists[ppfx_univ_it][nuPDG_it][hist_index]->GetName());

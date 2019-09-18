@@ -1,13 +1,13 @@
 #!/bin/bash
 
-IDIR="uncertbin"
+IDIR="uncertbin_opt"
 
-OUTPUT_FILE_NAME="AADUNE_Flux_OffAxis_Nov2017Review_syst_shifts_uncert_jagged_latest.root"
+OUTPUT_FILE_NAME="DUNE_Flux_OffAxis_Nov2017Review_syst_shifts_uncert_jagged_opt.root"
 
-DO_PPFX="0"
-DO_PPFX_COMPONENT_VARIATIONS="1"
-DO_FOCUS="0"
-DO_ALIGN="0"
+DO_PPFX="1"
+DO_PPFX_COMPONENT_VARIATIONS="0"
+DO_FOCUS="1"
+DO_ALIGN="1"
 
 for DET in "ND" "FD"; do
   for i in nu nubar; do
