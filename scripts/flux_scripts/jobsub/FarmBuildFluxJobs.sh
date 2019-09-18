@@ -413,8 +413,8 @@ if [ ${MAXCONCURRENT} == "0" ]; then
   MAXCONCURRENT=${NJOBSTORUN}
 fi
 
-echo "jobsub_submit --group=${EXPERIMENT} --jobid-output-only --resource-provides=usage_model=${UMODEL} --expected-lifetime=${LIFETIME_EXP} --disk=${DISK_EXP} -N ${NJOBSTORUN} --maxConcurrent=${MAXCONCURRENT} --memory=${MEM_EXP} --cpu=1 --OS=SL6 --tar_file_name=dropbox://apps.${DUNEPRISMTOOLS_VERSION}.tar.gz file://${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/BuildFluxJob.sh ${NPPFXU} ${USE_PPFX_COMPONENTS} --only-pdg ${ONLY_PDG} ${NPERJOB} ${ND_PATH_APPEND} ${FD_PATH_APPEND}"
-JID=$(jobsub_submit --group=${EXPERIMENT} --jobid-output-only --resource-provides=usage_model=${UMODEL} --expected-lifetime=${LIFETIME_EXP} --disk=${DISK_EXP} -N ${NJOBSTORUN} --maxConcurrent=${MAXCONCURRENT} --memory=${MEM_EXP} --cpu=1 --OS=SL6 --tar_file_name=dropbox://apps.${DUNEPRISMTOOLS_VERSION}.tar.gz file://${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/BuildFluxJob.sh ${NPPFXU} ${USE_PPFX_COMPONENTS} --only-pdg ${ONLY_PDG} ${NPERJOB} ${ND_PATH_APPEND} ${FD_PATH_APPEND})
+echo "jobsub_submit --group=${EXPERIMENT} --jobid-output-only --resource-provides=usage_model=${UMODEL} --expected-lifetime=${LIFETIME_EXP} --disk=${DISK_EXP} -N ${NJOBSTORUN} --maxConcurrent=${MAXCONCURRENT} --memory=${MEM_EXP} --cpu=1 --OS=SL7 --tar_file_name=dropbox://apps.${DUNEPRISMTOOLS_VERSION}.tar.gz file://${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/BuildFluxJob.sh ${NPPFXU} ${USE_PPFX_COMPONENTS} --only-pdg ${ONLY_PDG} ${NPERJOB} ${ND_PATH_APPEND} ${FD_PATH_APPEND}"
+JID=$(jobsub_submit --group=${EXPERIMENT} --jobid-output-only --resource-provides=usage_model=${UMODEL} --expected-lifetime=${LIFETIME_EXP} --disk=${DISK_EXP} -N ${NJOBSTORUN} --maxConcurrent=${MAXCONCURRENT} --memory=${MEM_EXP} --cpu=1 --OS=SL7 --tar_file_name=dropbox://apps.${DUNEPRISMTOOLS_VERSION}.tar.gz file://${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/BuildFluxJob.sh ${NPPFXU} ${USE_PPFX_COMPONENTS} --only-pdg ${ONLY_PDG} ${NPERJOB} ${ND_PATH_APPEND} ${FD_PATH_APPEND})
 
 JID=$(echo ${JID} | tr -d "\n" | tr -d " " | tr -d "\t" | sed "s/\.[0-9]*@/@/g")
 

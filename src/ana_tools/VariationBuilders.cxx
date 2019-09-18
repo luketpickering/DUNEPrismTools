@@ -61,6 +61,8 @@ void VariationBuilder::BaseConfigure(fhicl::ParameterSet const &ps) {
       std::string NominalHistName =
           str_replace(NominalHistName_conf, "%S", species);
 
+      size_t NBinsOld = NominalPrediction.size();
+
       if (IsJagged) {
         size_t OneOABin = paramset.get<size_t>(
             pred_config + "_OffAxisBin", std::numeric_limits<size_t>::max());
@@ -109,6 +111,12 @@ void VariationBuilder::BaseConfigure(fhicl::ParameterSet const &ps) {
         nom_hist->SetName((Name + "_Nom").c_str());
         NominalHistogramSet.push_back(std::move(nom_hist));
       }
+
+      size_t NBinsNew = NominalPrediction.size();
+
+      std::cout << "[INFO]: Added " << pred_config << "_" << species << " with "
+                << (NBinsNew - NBinsOld) << " bins. Total " << NBinsNew
+                << " bins." << std::endl;
 
       NominalHistogramSet.back()->SetName(
           (pred_config + "_" + species).c_str());
