@@ -753,6 +753,8 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
         }
         nuray_tree->Fill();
       }
+      //Also have to increment here to get POT scaling correct!
+      NDecayParentsUsed++;
       continue;
     }
 

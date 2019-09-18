@@ -1,0 +1,82 @@
+BeamModes: ["nu"]
+# BeamModes: ["nu"]
+Species: ["numu"]
+# Species: ["numu"]
+
+InputFile: "Fluxes/DUNE_Flux_OffAxis_Nov2017Review_syst_shifts.root"
+
+
+Nominal: {
+  NDFileName: @local::InputFile
+  NDHistName: "%C_ppfx_allw/LBNF_%S_flux_Nom"
+  FDFileName: @local::InputFile
+  FDHistName: "%C_ppfx_allw/LBNF_%S_flux_Nom"
+}
+
+OffAxisPositions: [6,12,18,24,30] # meter off axis
+
+EffectiveVariations: [
+  {
+    NThrows: 10000
+    Name: "PPFX"
+    NEffectiveParametersToRead: 50
+    ND_detector_tag: "ND"
+    FD_detector_tag: "FD"
+    nu_mode_beam_tag: "nu"
+    nubar_mode_beam_tag: "nubar"
+    numu_species_tag: "numu"
+    nue_species_tag: "nue"
+    numubar_species_tag: "numubar"
+    nuebar_species_tag: "nuebar"
+    InputFile: "FluxErrors_UncertPoints_PPFX.root"
+  }
+]
+
+EffectiveVariations[1]: {
+  @table::EffectiveVariations[0]
+  Name: "PPFX_abs"
+  InputFile: "FluxErrors_UncertPoints_PPFX_abs_nu.root"
+}
+
+EffectiveVariations[2]: {
+  @table::EffectiveVariations[0]
+  Name: "PPFX_att"
+  InputFile: "FluxErrors_UncertPoints_PPFX_att_nu.root"
+}
+EffectiveVariations[3]: {
+  @table::EffectiveVariations[0]
+  Name: "PPFX_ttpCpi"
+  InputFile: "FluxErrors_UncertPoints_PPFX_ttpCpi_nu.root"
+}
+EffectiveVariations[4]: {
+  @table::EffectiveVariations[0]
+  Name: "PPFX_ttpCk"
+  InputFile: "FluxErrors_UncertPoints_PPFX_ttpCk_nu.root"
+}
+EffectiveVariations[5]: {
+  @table::EffectiveVariations[0]
+  Name: "PPFX_ttnCpi"
+  InputFile: "FluxErrors_UncertPoints_PPFX_ttnCpi_nu.root"
+}
+EffectiveVariations[6]: {
+  @table::EffectiveVariations[0]
+  Name: "PPFX_ttpCnu"
+  InputFile: "FluxErrors_UncertPoints_PPFX_ttpCnu_nu.root"
+}
+EffectiveVariations[7]: {
+  @table::EffectiveVariations[0]
+  Name: "PPFX_ttnua"
+  InputFile: "FluxErrors_UncertPoints_PPFX_ttnua_nu.root"
+}
+EffectiveVariations[8]: {
+  @table::EffectiveVariations[0]
+  Name: "PPFX_ttmesinc"
+  InputFile: "FluxErrors_UncertPoints_PPFX_ttmesinc_nu.root"
+}
+EffectiveVariations[9]: {
+  @table::EffectiveVariations[0]
+  Name: "PPFX_oth"
+  InputFile: "FluxErrors_UncertPoints_PPFX_oth_nu.root"
+}
+
+OutputFile: "FluxRatios_PPFX_nu.root"

@@ -187,40 +187,42 @@ PPFX: {
   dump_diagnostics: false
   dump_matrices: false
 }
+PPFX_comp_base: @local::PPFX
+PPFX_comp_base.Nominal.InputHistName: "%C_ppfx_allw/LBNF_%S_flux_CV"
 
-PPFX_abs: @local::PPFX
+PPFX_abs: @local::PPFX_comp_base
 PPFX_abs.Name: "PPFX_abs"
 PPFX_abs.Varied.InputHistName: "%C_ppfx_allw/LBNF_%S_flux_univ_%i_abs"
 
-PPFX_att: @local::PPFX
+PPFX_att: @local::PPFX_comp_base
 PPFX_att.Name: "PPFX_att"
 PPFX_att.Varied.InputHistName: "%C_ppfx_allw/LBNF_%S_flux_univ_%i_att"
 
-PPFX_ttpCpi: @local::PPFX
+PPFX_ttpCpi: @local::PPFX_comp_base
 PPFX_ttpCpi.Name: "PPFX_ttpCpi"
 PPFX_ttpCpi.Varied.InputHistName: "%C_ppfx_allw/LBNF_%S_flux_univ_%i_ttpCpi"
 
-PPFX_ttpCk: @local::PPFX
+PPFX_ttpCk: @local::PPFX_comp_base
 PPFX_ttpCk.Name: "PPFX_ttpCk"
 PPFX_ttpCk.Varied.InputHistName: "%C_ppfx_allw/LBNF_%S_flux_univ_%i_ttpCk"
 
-PPFX_ttnCpi: @local::PPFX
+PPFX_ttnCpi: @local::PPFX_comp_base
 PPFX_ttnCpi.Name: "PPFX_ttnCpi"
 PPFX_ttnCpi.Varied.InputHistName: "%C_ppfx_allw/LBNF_%S_flux_univ_%i_ttnCpi"
 
-PPFX_ttpCnu: @local::PPFX
+PPFX_ttpCnu: @local::PPFX_comp_base
 PPFX_ttpCnu.Name: "PPFX_ttpCnu"
 PPFX_ttpCnu.Varied.InputHistName: "%C_ppfx_allw/LBNF_%S_flux_univ_%i_ttpCnu"
 
-PPFX_ttnua: @local::PPFX
+PPFX_ttnua: @local::PPFX_comp_base
 PPFX_ttnua.Name: "PPFX_ttnua"
 PPFX_ttnua.Varied.InputHistName: "%C_ppfx_allw/LBNF_%S_flux_univ_%i_ttnua"
 
-PPFX_ttmesinc: @local::PPFX
+PPFX_ttmesinc: @local::PPFX_comp_base
 PPFX_ttmesinc.Name: "PPFX_ttmesinc"
 PPFX_ttmesinc.Varied.InputHistName: "%C_ppfx_allw/LBNF_%S_flux_univ_%i_ttmesinc"
 
-PPFX_oth: @local::PPFX
+PPFX_oth: @local::PPFX_comp_base
 PPFX_oth.Name: "PPFX_oth"
 PPFX_oth.Varied.InputHistName: "%C_ppfx_allw/LBNF_%S_flux_univ_%i_oth"
 
