@@ -5,11 +5,11 @@ if [ -z ${DUNEPRISMTOOLSROOT} ]; then
   return;
 fi
 
-DO_PPFX="0"
+DO_PPFX="1"
 PPFX_OUTPUT_DIR="nominal_5E8POT_wppfx"
 DO_PPFX_VARIATIONS="0"
 
-DO_HIGHERHC="0"
+DO_HIGHERHC="1"
 HIGHERHC_OUTPUT_DIR="HigherHC_2.5E8POT"
 if [ "${DO_PPFX}" == "1" ]; then
   HIGHERHC_OUTPUT_DIR="HigherHC_2.5E8POT_wppfx"
@@ -149,7 +149,7 @@ for i in nu nubar; do
 
     EMEM=1GB
     PPFX_ARG=""
-    if [ "${DO_PPFX_VARIATIONS}" == "1" ]; then
+    if [ "${DO_PPFX}" == "1" ]; then
       PPFX_ARG="--PPFX"
       EMEM=1.9GB
     fi

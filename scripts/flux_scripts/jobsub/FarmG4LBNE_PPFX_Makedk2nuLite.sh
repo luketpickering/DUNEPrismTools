@@ -272,8 +272,8 @@ if [ -z ${JOBSCRIPT} ] || [ ! -e ${JOBSCRIPT} ]; then
   exit 1
 fi
 
-echo "Submitting job: jobsub_submit --group=${EXPERIMENT} --jobid-output-only --resource-provides=usage_model=OPPORTUNISTIC,OFFSITE --expected-lifetime=${LIFETIME_EXP} --disk=${DISK_EXP} -N ${NJOBSTORUN} --memory=${MEM_EXP} --cpu=1 --OS=SL6 --tar_file_name=dropbox://g4blne_makedk2nulite.tar.gz file://${JOBSCRIPT} ${MACRO_FILE_NAME} ${PNFS_PATH_APPEND} ${USE_PPFX} ${USE_ALL_PPFX_WEIGHTS}"
-JID=$(jobsub_submit --group=${EXPERIMENT} --jobid-output-only --resource-provides=usage_model=OPPORTUNISTIC,OFFSITE --expected-lifetime=${LIFETIME_EXP} --disk=${DISK_EXP} -N ${NJOBSTORUN} --memory=${MEM_EXP} --cpu=1 --OS=SL6 --tar_file_name=dropbox://g4blne_makedk2nulite.tar.gz file://${JOBSCRIPT} ${MACRO_FILE_NAME} ${PNFS_PATH_APPEND} ${USE_PPFX} ${USE_ALL_PPFX_WEIGHTS})
+echo "Submitting job: jobsub_submit --group=${EXPERIMENT} --jobid-output-only --resource-provides=usage_model=OPPORTUNISTIC,OFFSITE --expected-lifetime=${LIFETIME_EXP} --disk=${DISK_EXP} -N ${NJOBSTORUN} --memory=${MEM_EXP} --cpu=1 --OS=SL7 --tar_file_name=dropbox://g4blne_makedk2nulite.tar.gz file://${JOBSCRIPT} ${MACRO_FILE_NAME} ${PNFS_PATH_APPEND} ${USE_PPFX} ${USE_ALL_PPFX_WEIGHTS}"
+JID=$(jobsub_submit --group=${EXPERIMENT} --jobid-output-only --resource-provides=usage_model=OPPORTUNISTIC,OFFSITE --expected-lifetime=${LIFETIME_EXP} --disk=${DISK_EXP} -N ${NJOBSTORUN} --memory=${MEM_EXP} --cpu=1 --OS=SL7 --tar_file_name=dropbox://g4blne_makedk2nulite.tar.gz file://${JOBSCRIPT} ${MACRO_FILE_NAME} ${PNFS_PATH_APPEND} ${USE_PPFX} ${USE_ALL_PPFX_WEIGHTS})
 
 
 
