@@ -9,14 +9,20 @@ DO_PPFX="0"
 PPFX_OUTPUT_DIR="nominal_5E8POT_wppfx"
 DO_PPFX_VARIATIONS="0"
 
-DO_PPFX_COMPONENT_VARIATIONS="1"
-PPFX_COMP_DIR="nominal_2.5E8POT_wallppfx_2"
+DO_HIGHERHC="0"
+HIGHERHC_OUTPUT_DIR="HigherHC_2.5E8POT"
+if [ "${DO_PPFX}" == "1" ]; then
+  HIGHERHC_OUTPUT_DIR="HigherHC_2.5E8POT_wppfx"
+fi
+
+DO_PPFX_COMPONENT_VARIATIONS="0"
+PPFX_COMP_DIR="nominal_2.5E8POT_wallppfx"
 
 DO_FOCUS="0"
-FOCUS_DIR="Focussing_2"
+FOCUS_DIR="Focussing"
 
 DO_ALIGN="0"
-ALIGN_DIR="Alignment_2"
+ALIGN_DIR="Alignment"
 
 for i in nu nubar; do
 
@@ -123,6 +129,39 @@ for i in nu nubar; do
        --expected-walltime 4h \
        --jobname BeamSim_${i}_${j}${k}Shift
       done
+    done
+  fi
+
+
+#alignment
+  if [ "${DO_HIGHERHC}" == "1" ]; then
+    for j in 303 313 323 333 343; do
+
+      if [ -e /pnfs/dune/persistent/users/picker24/${HIGHERHC_OUTPUT_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/HC_${j}/${i} ]; then
+        echo "[INFO]: Not regenerating /pnfs/dune/persistent/users/picker24/${HIGHERHC_OUTPUT_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/HC_${j}/${i}"
+        continue
+      fi
+
+      if [ ! -e ${DUNEPRISMTOOLSROOT}/configs/g4lbnf_macros/OptimizedEngineeredNov2017Review_HC${j}kA_${i}mode.mac ]; then
+        echo "[INFO]: No such g4lbnf macro OptimizedEngineeredNov2017Review_HC${j}kA_${i}mode.mac Not running."
+        continue
+      fi
+
+    EMEM=1GB
+    PPFX_ARG=""
+    if [ "${DO_PPFX_VARIATIONS}" == "1" ]; then
+      PPFX_ARG="--PPFX"
+      EMEM=1.9GB
+    fi
+
+      ${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/FarmG4LBNE_PPFX_Makedk2nuLite.sh \
+       -m ${DUNEPRISMTOOLSROOT}/configs/g4lbnf_macros/OptimizedEngineeredNov2017Review_HC${j}kA_${i}mode.mac \
+       -p ${HIGHERHC_OUTPUT_DIR}/v3r5p4/QGSP_BERT/QGSP_BERT/OptimizedEngineeredNov2017Review/HC_${j}/${i} \
+       --number-of-jobs 2500 \
+       --expected-disk 1GB \
+       --expected-mem ${EMEM} \
+       --expected-walltime 4h \
+       --jobname BeamSim_${i}_HC_${j} ${PPFX_ARG}
     done
   fi
 done
