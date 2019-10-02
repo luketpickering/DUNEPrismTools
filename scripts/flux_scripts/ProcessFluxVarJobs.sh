@@ -39,6 +39,12 @@ DO_PPFX_VARIATIONS="1"
 DO_PPFX_COMPONENT_VARIATIONS="1"
 PPFX_COMP_DIR="nominal_2.5E8POT_wallppfx"
 
+DO_HIGHERHC="1"
+HIGHERHC_DIR="HigherHC_2.5E8POT"
+if [ "${DO_PPFX_VARIATIONS}" == "1" ]; then
+  HIGHERHC_DIR="HigherHC_2.5E8POT_wppfx"
+fi
+
 DO_FOCUS="0"
 FOCUS_DIR="Focussing"
 
@@ -150,4 +156,41 @@ for NUMODE in nu nubar; do
       done
     done
   fi
+
+
+    #Alignment
+  if [ "${DO_HIGHERHC}" == "1" ]; then
+    for CURR in 303 313 323 333 343; do
+        if [ ! -e /pnfs/dune/persistent/users/picker24/${HIGHERHC_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/HC_${CURR}/${NUMODE}/dk2nulite ]; then
+          echo "[INFO]: No input directory, skipping."
+          continue
+        fi
+
+        if [ ${FORCEOVERWRITE} != "true" ] && [ -e /pnfs/dune/persistent/users/picker24/${HIGHERHC_DIR}/DUNEPrismFluxes/ND_${NUMODE}/HC_${CURR}/${PRED_DIR} ]; then
+          echo "[INFO]: Already have ND_${NUMODE}/${VARIATION}${HORN} not reprocessing."
+          continue
+        fi
+
+        HHC_ETIME=${ETIME}
+        HHC_EDISK=${EDISK}
+        HHC_EMEM=${EMEM}
+
+        PPFX_ARG=""
+        if [ "${DO_PPFX_VARIATIONS}" == "1" ]; then
+          PPFX_ARG="--NPPFXU ${NPPFXUNIVERSES}"
+          HHC_ETIME=${ETIME_PPFX}
+          HHC_EDISK=${EDISK_PPFX}
+          HHC_EMEM=${EMEM_PPFX}
+        fi
+
+        ${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/FarmBuildFluxJobs.sh \
+           --expected-walltime ${HHC_ETIME} --expected-disk ${HHC_EDISK} \
+           --expected-mem ${HHC_EMEM} ${FD_FHICL} ${ND_FHICL} \
+           -p ${HIGHERHC_DIR}/DUNEPrismFluxes/__DET___${NUMODE}/HC_${CURR}/${PRED_DIR} \
+           -i /pnfs/dune/persistent/users/picker24/${ALIGN_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/HC_${CURR}/${NUMODE}/dk2nulite \
+           -n ${NINPUTSPERJOB} --N-max-jobs ${NMAXJOBS} -f ${PPFX_ARG}
+      done
+    done
+  fi
+
 done

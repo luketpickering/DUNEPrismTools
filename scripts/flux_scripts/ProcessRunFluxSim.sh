@@ -5,14 +5,14 @@ if [ -z ${DUNEPRISMTOOLSROOT} ]; then
   return;
 fi
 
-DO_PPFX="1"
+DO_PPFX="0"
 PPFX_OUTPUT_DIR="nominal_5E8POT_wppfx"
-DO_PPFX_VARIATIONS="0"
+DO_PPFX_VARIATIONS="1"
 
 DO_HIGHERHC="1"
-HIGHERHC_OUTPUT_DIR="HigherHC_2.5E8POT"
+HIGHERHC_DIR="HigherHC_2.5E8POT"
 if [ "${DO_PPFX}" == "1" ]; then
-  HIGHERHC_OUTPUT_DIR="HigherHC_2.5E8POT_wppfx"
+  HIGHERHC_DIR="HigherHC_2.5E8POT_wppfx"
 fi
 
 DO_PPFX_COMPONENT_VARIATIONS="0"
@@ -137,8 +137,8 @@ for i in nu nubar; do
   if [ "${DO_HIGHERHC}" == "1" ]; then
     for j in 303 313 323 333 343; do
 
-      if [ -e /pnfs/dune/persistent/users/picker24/${HIGHERHC_OUTPUT_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/HC_${j}/${i} ]; then
-        echo "[INFO]: Not regenerating /pnfs/dune/persistent/users/picker24/${HIGHERHC_OUTPUT_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/HC_${j}/${i}"
+      if [ -e /pnfs/dune/persistent/users/picker24/${HIGHERHC_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/HC_${j}/${i} ]; then
+        echo "[INFO]: Not regenerating /pnfs/dune/persistent/users/picker24/${HIGHERHC_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/HC_${j}/${i}"
         continue
       fi
 
@@ -149,14 +149,14 @@ for i in nu nubar; do
 
     EMEM=1GB
     PPFX_ARG=""
-    if [ "${DO_PPFX}" == "1" ]; then
+    if [ "${DO_PPFX_VARIATIONS}" == "1" ]; then
       PPFX_ARG="--PPFX"
       EMEM=1.9GB
     fi
 
       ${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/FarmG4LBNE_PPFX_Makedk2nuLite.sh \
        -m ${DUNEPRISMTOOLSROOT}/configs/g4lbnf_macros/OptimizedEngineeredNov2017Review_HC${j}kA_${i}mode.mac \
-       -p ${HIGHERHC_OUTPUT_DIR}/v3r5p4/QGSP_BERT/QGSP_BERT/OptimizedEngineeredNov2017Review/HC_${j}/${i} \
+       -p ${HIGHERHC_DIR}/v3r5p4/QGSP_BERT/QGSP_BERT/OptimizedEngineeredNov2017Review/HC_${j}/${i} \
        --number-of-jobs 2500 \
        --expected-disk 1GB \
        --expected-mem ${EMEM} \
