@@ -756,7 +756,7 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
         }
         nuray_tree->Fill();
       }
-      //Also have to increment here to get POT scaling correct!
+      // Also have to increment here to get POT scaling correct!
       NDecayParentsUsed++;
       continue;
     }
@@ -1010,6 +1010,8 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
           outfile->WriteTObject(
               Hists[ppfx_univ_it][nuPDG_it][hist_index],
               Hists[ppfx_univ_it][nuPDG_it][hist_index]->GetName());
+          Hists[ppfx_univ_it][nuPDG_it][hist_index]->SetDirectory(nullptr);
+          delete Hists[ppfx_univ_it][nuPDG_it][hist_index];
         } // Loop over decay parents
       }   // Loop over universes
     } else {
@@ -1022,6 +1024,8 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
           outfile->WriteTObject(
               Hists[ppfx_univ_it][nuPDG_it][hist_index],
               Hists[ppfx_univ_it][nuPDG_it][hist_index]->GetName());
+          Hists[ppfx_univ_it][nuPDG_it][hist_index]->SetDirectory(nullptr);
+          delete Hists[ppfx_univ_it][nuPDG_it][hist_index];
         }
       }
     }

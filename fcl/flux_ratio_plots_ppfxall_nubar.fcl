@@ -19,7 +19,7 @@ EffectiveVariations: [
   {
     NThrows: 10000
     Name: "PPFX"
-    NEffectiveParametersToRead: 50
+    NEffectiveParametersToRead: 200
     ND_detector_tag: "ND"
     FD_detector_tag: "FD"
     nu_mode_beam_tag: "nu"

@@ -281,51 +281,35 @@ energy_binning_defs: {
   fine_uncert_nue_WS_descript: "0_5:0.5,5_10:1,10_20:2"
 }
 
-energy_binnings: {
-  fine_uniform: {
-    nu: {
-      nuebar: @local::energy_binning_defs.fine_uniform_descript
-      nue: @local::energy_binning_defs.fine_uniform_descript
-      numubar: @local::energy_binning_defs.fine_uniform_descript
-      numu: @local::energy_binning_defs.fine_uniform_descript
-    }
-    nubar: {
-      nuebar: @local::energy_binning_defs.fine_uniform_descript
-      nue: @local::energy_binning_defs.fine_uniform_descript
-      numubar: @local::energy_binning_defs.fine_uniform_descript
-      numu: @local::energy_binning_defs.fine_uniform_descript
-    }
-  }
-}
-
 off_axis_defs: {
   half_meter: "-0.25_40.25:0.5"
   meter: "-0.5_40.5:1"
-
   mrads: "-0.5_57.5:1"
 }
 
-off_axis_binnings: {
-  half_meter: {
-    nuebar: @local::off_axis_defs.half_meter
-    nue: @local::off_axis_defs.half_meter
-    numubar: @local::off_axis_defs.half_meter
-    numu: @local::off_axis_defs.half_meter
-    type: position_m
-  }
-  meter: {
-    nuebar: @local::off_axis_defs.meter
-    nue: @local::off_axis_defs.meter
-    numubar: @local::off_axis_defs.meter
-    numu: @local::off_axis_defs.meter
-    type: position_m
-  }
-  mrads: {
-    nuebar: @local::off_axis_defs.mrads
-    nue: @local::off_axis_defs.mrads
-    numubar: @local::off_axis_defs.mrads
-    numu: @local::off_axis_defs.mrads
-    type: mrad
+non_jagged_binnings: {
+  fine_uniform_halfmeter: {
+    nu: {
+      numu: {
+        energy: @local::energy_binning_defs.fine_uniform_descript
+        off_axis: @local::off_axis_defs.half_meter
+      }
+      numubar: {
+        energy: @local::energy_binning_defs.fine_uniform_descript
+        off_axis: @local::off_axis_defs.half_meter
+      }
+      nue: {
+        energy: @local::energy_binning_defs.fine_uniform_descript
+        off_axis: @local::off_axis_defs.half_meter
+      }
+      nuebar: {
+        energy: @local::energy_binning_defs.fine_uniform_descript
+        off_axis: @local::off_axis_defs.half_meter
+      }
+      type: position_m
+    }
   }
 }
+non_jagged_binnings.fine_uniform_halfmeter.nubar: @local::non_jagged_binnings.fine_uniform_halfmeter.nu
+
 END_PROLOG

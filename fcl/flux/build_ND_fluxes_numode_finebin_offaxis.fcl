@@ -1,10 +1,7 @@
   #include "flux_binnings.fcl"
   #include "flux_windows.fcl"
 
-binning: {
-  energy: @local::energy_binnings.fine_uniform.nu
-  off_axis: @local::off_axis_binnings.half_meter
-}
+binning: @local::non_jagged_binnings.fine_uniform_halfmeter.nu
 
 flux_window: @local::ND_OffAxis
 
