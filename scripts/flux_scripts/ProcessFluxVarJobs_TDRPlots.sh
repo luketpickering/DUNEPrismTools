@@ -8,7 +8,7 @@ ND_FHICL_ARR["nu"]="-FN flux/build_ND_fluxes_numode_${PRED_TYPE}_offaxis.fcl"
 FD_FHICL_ARR["nubar"]="-FF flux/build_FD_fluxes_nubarmode_${PRED_TYPE}_onaxis.fcl"
 ND_FHICL_ARR["nubar"]="-FN flux/build_ND_fluxes_nubarmode_${PRED_TYPE}_offaxis.fcl"
 
-PRED_DIR="finebin"
+PRED_DIR="finebin_hhcfix"
 
 FORCEOVERWRITE="false"
 
@@ -49,7 +49,7 @@ PDG_ONLY["nubar"]="0"
 PDG_ONLY_PPFX["nubar"]="0"
 PDG_ONLY_PPFX_COMP["nubar"]="-14"
 
-DO_PPFX="1"
+DO_PPFX="0"
 NPPFXUNIVERSES="100"
 PPFX_DIR="nominal_5E8POT_wppfx"
 DO_PPFX_VARIATIONS="1"
@@ -57,10 +57,10 @@ DO_PPFX_VARIATIONS="1"
 DO_PPFX_COMPONENT_VARIATIONS="0"
 PPFX_COMP_DIR="nominal_2.5E8POT_wallppfx"
 
-DO_FOCUS="1"
+DO_FOCUS="0"
 FOCUS_DIR="Focussing"
 
-DO_ALIGN="1"
+DO_ALIGN="0"
 ALIGN_DIR="Alignment"
 
 DO_HIGHERHC="1"
@@ -249,6 +249,7 @@ for NUMODE in ${BEAM_MODES}; do
         HHC_EDISK=${EDISK}
         HHC_EMEM=${EMEM}
         HHC_NMAXCONC=${NMAXCONC}
+        HHC_NINPUTSPERJOB=${NINPUTSPERJOB}
 
         PPFX_ARG=""
         if [ "${DO_PPFX_VARIATIONS}" == "1" ]; then
@@ -257,14 +258,15 @@ for NUMODE in ${BEAM_MODES}; do
           HHC_EDISK=${EDISK_PPFX}
           HHC_EMEM=${EMEM_PPFX}
           HHC_NMAXCONC=${NMAXCONC_PPFX}
+          HHC_NINPUTSPERJOB=${NINPUTSPERJOB_PPFX}
         fi
 
         ${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/FarmBuildFluxJobs.sh \
            --expected-walltime ${HHC_ETIME} --expected-disk ${HHC_EDISK} \
            --expected-mem ${HHC_EMEM} ${FD_FHICL} ${ND_FHICL} \
            -p ${HIGHERHC_DIR}/DUNEPrismFluxes/__DET___${NUMODE}/HC_${CURR}/${PRED_DIR} \
-           -i /pnfs/dune/persistent/users/picker24/${ALIGN_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/HC_${CURR}/${NUMODE}/dk2nulite --maxConcurrent ${HHC_NMAXCONC} \
-           -n ${NINPUTSPERJOB} --N-max-jobs ${NMAXJOBS} --only-pdg ${PDG_ONLY[${NUMODE}]} -f ${PPFX_ARG}
+           -i /pnfs/dune/persistent/users/picker24/${HIGHERHC_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/HC_${CURR}/${NUMODE}/dk2nulite --maxConcurrent ${HHC_NMAXCONC} \
+           -n ${HHC_NINPUTSPERJOB} --N-max-jobs ${NMAXJOBS} --only-pdg ${PDG_ONLY[${NUMODE}]} -f ${PPFX_ARG}
     done
   fi
 
