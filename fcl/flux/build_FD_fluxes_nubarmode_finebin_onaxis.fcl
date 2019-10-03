@@ -1,9 +1,7 @@
   #include "flux_binnings.fcl"
   #include "flux_windows.fcl"
 
-binning: {
-  energy: @local::energy_binnings.fine_uniform.nubar
-}
+binning: @local::non_jagged_binnings.fine_uniform_onaxis.nubar
 
 flux_window: @local::FD_OnAxis
 

@@ -309,7 +309,25 @@ non_jagged_binnings: {
       type: position_m
     }
   }
+  fine_uniform_onaxis: {
+    nu: {
+      numu: {
+        energy: @local::energy_binning_defs.fine_uniform_descript
+      }
+      numubar: {
+        energy: @local::energy_binning_defs.fine_uniform_descript
+      }
+      nue: {
+        energy: @local::energy_binning_defs.fine_uniform_descript
+      }
+      nuebar: {
+        energy: @local::energy_binning_defs.fine_uniform_descript
+      }
+    }
+  }
 }
 non_jagged_binnings.fine_uniform_halfmeter.nubar: @local::non_jagged_binnings.fine_uniform_halfmeter.nu
+
+non_jagged_binnings.fine_uniform_onaxis.nubar: @local::non_jagged_binnings.fine_uniform_onaxis.nu
 
 END_PROLOG
