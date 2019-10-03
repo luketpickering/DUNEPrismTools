@@ -265,7 +265,6 @@ for NUMODE in ${BEAM_MODES}; do
            -p ${HIGHERHC_DIR}/DUNEPrismFluxes/__DET___${NUMODE}/HC_${CURR}/${PRED_DIR} \
            -i /pnfs/dune/persistent/users/picker24/${ALIGN_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/HC_${CURR}/${NUMODE}/dk2nulite --maxConcurrent ${HHC_NMAXCONC} \
            -n ${NINPUTSPERJOB} --N-max-jobs ${NMAXJOBS} --only-pdg ${PDG_ONLY[${NUMODE}]} -f ${PPFX_ARG}
-      done
     done
   fi
 

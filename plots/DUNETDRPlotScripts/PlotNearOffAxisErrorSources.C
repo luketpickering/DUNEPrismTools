@@ -79,7 +79,7 @@ std::map<error, std::string> errstrings = {
 std::map<error, std::string> errslegtrings = {
     {kDecayPipeRadius, "Decay pipe radius (10 cm)"},
     {kWaterLayer, "Water Layer Thickness (0.5 mm)"},
-    {kHornCurrent, "Horn Current (2 kA)"},
+    {kHornCurrent, "Horn Current (3 kA)"},
     {kTargetDensity, "\\textrm{Target Density (0.4 g cm}^{-3})"},
     {kHorn1XShift, "Horn1 X Shift (1 mm)"},
     {kHorn2XShift, "Horn2 X Shift (1 mm)"},
