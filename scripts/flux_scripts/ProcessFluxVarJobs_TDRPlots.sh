@@ -96,73 +96,76 @@ NJOBS="0"
 
 for NUMODE in ${BEAM_MODES}; do
 
-  FD_FHICL=${FD_FHICL_ARR[${NUMODE}]}
-  ND_FHICL=${ND_FHICL_ARR[${NUMODE}]}
+  for dummy in dummy; do
 
-  if [ "${DO_PPFX}" == "1" ]; then
-    if [ ! -e /pnfs/dune/persistent/users/picker24/${PPFX_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${NUMODE}/dk2nulite ]; then
-      echo "[INFO]: No input directory for ${NUMODE} wppfx, skipping."
-      continue
-    fi
+    FD_FHICL=${FD_FHICL_ARR[${NUMODE}]}
+    ND_FHICL=${ND_FHICL_ARR[${NUMODE}]}
 
-    if [ ${FORCEOVERWRITE} != "true" ] && [ -e /pnfs/dune/persistent/users/picker24/${PPFX_DIR}/DUNEPrismFluxes/ND_${NUMODE}/${PRED_DIR} ]; then
-      echo "[INFO]: Already have ${NUMODE} wppfx not reprocessing."
-      continue
-    fi
+    if [ "${DO_PPFX}" == "1" ]; then
+      if [ ! -e /pnfs/dune/persistent/users/picker24/${PPFX_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${NUMODE}/dk2nulite ]; then
+        echo "[INFO]: No input directory for ${NUMODE} wppfx, skipping."
+        continue
+      fi
 
-    PPFX_ARG=""
-    if [ "${DO_PPFX_VARIATIONS}" == "1" ]; then
-      PPFX_ARG="--NPPFXU ${NPPFXUNIVERSES}"
-    fi
+      if [ ${FORCEOVERWRITE} != "true" ] && [ -e /pnfs/dune/persistent/users/picker24/${PPFX_DIR}/DUNEPrismFluxes/ND_${NUMODE}/${PRED_DIR} ]; then
+        echo "[INFO]: Already have ${NUMODE} wppfx not reprocessing."
+        continue
+      fi
 
-    ${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/FarmBuildFluxJobs.sh \
-       --expected-walltime ${ETIME_PPFX} --expected-disk ${EDISK_PPFX} \
-       --expected-mem ${EMEM_PPFX} ${FD_FHICL} ${ND_FHICL} \
-       -p ${PPFX_DIR}/DUNEPrismFluxes/__DET___${NUMODE}/${PRED_DIR} \
-       -i /pnfs/dune/persistent/users/picker24/${PPFX_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${NUMODE}/dk2nulite \
-       -n ${NINPUTSPERJOB_PPFX} --maxConcurrent ${NMAXCONC_PPFX}\
-       --N-max-jobs ${NMAXJOBS} ${PPFX_ARG}\
-       --only-pdg ${PDG_ONLY_PPFX[${NUMODE}]} -f
-    NJOBS=$(( NJOBS + NMAXJOBS ))
-    echo "[INFO]: Done ${NJOBS}."
-    if [ "${NJOBS}" -ge "${NTOTALJOBS}" ]; then
-      echo "[INFO]: Stopping after ${NJOBS} JOBS"
-      exit
-    fi
-  fi
+      PPFX_ARG=""
+      if [ "${DO_PPFX_VARIATIONS}" == "1" ]; then
+        PPFX_ARG="--NPPFXU ${NPPFXUNIVERSES}"
+      fi
 
-  if [ "${DO_PPFX_COMPONENT_VARIATIONS}" == "1" ]; then
-    if [ ! -e /pnfs/dune/persistent/users/picker24/${PPFX_COMP_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${NUMODE}/dk2nulite ]; then
-      echo "[INFO]: No input directory for ${NUMODE} wppfx, skipping."
-      continue
-    fi
-
-    if [ ${FORCEOVERWRITE} != "true" ] && [ -e /pnfs/dune/persistent/users/picker24/${PPFX_COMP_DIR}/DUNEPrismFluxes/ND_${NUMODE}/${PRED_DIR} ]; then
-      echo "[INFO]: Already have ${NUMODE} wppfx not reprocessing."
-      continue
-    fi
-
-    PPFX_ARG=""
-    if [ "${DO_PPFX_VARIATIONS}" == "1" ]; then
-      PPFX_ARG="--NPPFXU ${NPPFXUNIVERSES} --PPFX-Components"
-    fi
-
-    ${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/FarmBuildFluxJobs.sh \
-       --expected-walltime ${ETIME_PPFX_COMP} --expected-disk ${EDISK_PPFX_COMP} \
-       --expected-mem ${EMEM_PPFX_COMP} ${FD_FHICL} ${ND_FHICL} \
-       -p ${PPFX_COMP_DIR}/DUNEPrismFluxes/__DET___${NUMODE}/${PRED_DIR} \
-       -i /pnfs/dune/persistent/users/picker24/${PPFX_COMP_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${NUMODE}/dk2nulite \
-       -n ${NINPUTSPERJOB_PPFX_COMP} --maxConcurrent ${NMAXCONC_PPFX_COMP}\
+      ${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/FarmBuildFluxJobs.sh \
+        --expected-walltime ${ETIME_PPFX} --expected-disk ${EDISK_PPFX} \
+        --expected-mem ${EMEM_PPFX} ${FD_FHICL} ${ND_FHICL} \
+        -p ${PPFX_DIR}/DUNEPrismFluxes/__DET___${NUMODE}/${PRED_DIR} \
+        -i /pnfs/dune/persistent/users/picker24/${PPFX_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${NUMODE}/dk2nulite \
+        -n ${NINPUTSPERJOB_PPFX} --maxConcurrent ${NMAXCONC_PPFX}\
         --N-max-jobs ${NMAXJOBS} ${PPFX_ARG}\
-       --only-pdg ${PDG_ONLY_PPFX_COMP[${NUMODE}]} -f
-
-    NJOBS=$(( NJOBS + NMAXJOBS ))
-    echo "[INFO]: Done ${NJOBS}."
-    if [ "${NJOBS}" -ge "${NTOTALJOBS}" ]; then
-      echo "[INFO]: Stopping after ${NJOBS} JOBS"
-      exit
+        --only-pdg ${PDG_ONLY_PPFX[${NUMODE}]} -f
+      NJOBS=$(( NJOBS + NMAXJOBS ))
+      echo "[INFO]: Done ${NJOBS}."
+      if [ "${NJOBS}" -ge "${NTOTALJOBS}" ]; then
+        echo "[INFO]: Stopping after ${NJOBS} JOBS"
+        exit
+      fi
     fi
-  fi
+
+    if [ "${DO_PPFX_COMPONENT_VARIATIONS}" == "1" ]; then
+      if [ ! -e /pnfs/dune/persistent/users/picker24/${PPFX_COMP_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${NUMODE}/dk2nulite ]; then
+        echo "[INFO]: No input directory for ${NUMODE} wppfx, skipping."
+        continue
+      fi
+
+      if [ ${FORCEOVERWRITE} != "true" ] && [ -e /pnfs/dune/persistent/users/picker24/${PPFX_COMP_DIR}/DUNEPrismFluxes/ND_${NUMODE}/${PRED_DIR} ]; then
+        echo "[INFO]: Already have ${NUMODE} wppfx not reprocessing."
+        continue
+      fi
+
+      PPFX_ARG=""
+      if [ "${DO_PPFX_VARIATIONS}" == "1" ]; then
+        PPFX_ARG="--NPPFXU ${NPPFXUNIVERSES} --PPFX-Components"
+      fi
+
+      ${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/FarmBuildFluxJobs.sh \
+        --expected-walltime ${ETIME_PPFX_COMP} --expected-disk ${EDISK_PPFX_COMP} \
+        --expected-mem ${EMEM_PPFX_COMP} ${FD_FHICL} ${ND_FHICL} \
+        -p ${PPFX_COMP_DIR}/DUNEPrismFluxes/__DET___${NUMODE}/${PRED_DIR} \
+        -i /pnfs/dune/persistent/users/picker24/${PPFX_COMP_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${NUMODE}/dk2nulite \
+        -n ${NINPUTSPERJOB_PPFX_COMP} --maxConcurrent ${NMAXCONC_PPFX_COMP}\
+          --N-max-jobs ${NMAXJOBS} ${PPFX_ARG}\
+        --only-pdg ${PDG_ONLY_PPFX_COMP[${NUMODE}]} -f
+
+      NJOBS=$(( NJOBS + NMAXJOBS ))
+      echo "[INFO]: Done ${NJOBS}."
+      if [ "${NJOBS}" -ge "${NTOTALJOBS}" ]; then
+        echo "[INFO]: Stopping after ${NJOBS} JOBS"
+        exit
+      fi
+    fi
+  done
 
   #With focussing
   if [ "${DO_FOCUS}" == "1" ]; then
