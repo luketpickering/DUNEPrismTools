@@ -102,12 +102,12 @@ for NUMODE in ${BEAM_MODES}; do
     ND_FHICL=${ND_FHICL_ARR[${NUMODE}]}
 
     if [ "${DO_PPFX}" == "1" ]; then
-      if [ ! -e /pnfs/dune/persistent/users/picker24/${PPFX_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${NUMODE}/dk2nulite ]; then
+      if [ ! -e /pnfs/dune/persistent/users/${USER}/${PPFX_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${NUMODE}/dk2nulite ]; then
         echo "[INFO]: No input directory for ${NUMODE} wppfx, skipping."
         continue
       fi
 
-      if [ ${FORCEOVERWRITE} != "true" ] && [ -e /pnfs/dune/persistent/users/picker24/${PPFX_DIR}/DUNEPrismFluxes/ND_${NUMODE}/${PRED_DIR} ]; then
+      if [ ${FORCEOVERWRITE} != "true" ] && [ -e /pnfs/dune/persistent/users/${USER}/${PPFX_DIR}/DUNEPrismFluxes/ND_${NUMODE}/${PRED_DIR} ]; then
         echo "[INFO]: Already have ${NUMODE} wppfx not reprocessing."
         continue
       fi
@@ -121,7 +121,7 @@ for NUMODE in ${BEAM_MODES}; do
         --expected-walltime ${ETIME_PPFX} --expected-disk ${EDISK_PPFX} \
         --expected-mem ${EMEM_PPFX} ${FD_FHICL} ${ND_FHICL} \
         -p ${PPFX_DIR}/DUNEPrismFluxes/__DET___${NUMODE}/${PRED_DIR} \
-        -i /pnfs/dune/persistent/users/picker24/${PPFX_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${NUMODE}/dk2nulite \
+        -i /pnfs/dune/persistent/users/${USER}/${PPFX_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${NUMODE}/dk2nulite \
         -n ${NINPUTSPERJOB_PPFX} --maxConcurrent ${NMAXCONC_PPFX}\
         --N-max-jobs ${NMAXJOBS} ${PPFX_ARG}\
         --only-pdg ${PDG_ONLY_PPFX[${NUMODE}]} -f
@@ -134,12 +134,12 @@ for NUMODE in ${BEAM_MODES}; do
     fi
 
     if [ "${DO_PPFX_COMPONENT_VARIATIONS}" == "1" ]; then
-      if [ ! -e /pnfs/dune/persistent/users/picker24/${PPFX_COMP_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${NUMODE}/dk2nulite ]; then
+      if [ ! -e /pnfs/dune/persistent/users/${USER}/${PPFX_COMP_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${NUMODE}/dk2nulite ]; then
         echo "[INFO]: No input directory for ${NUMODE} wppfx, skipping."
         continue
       fi
 
-      if [ ${FORCEOVERWRITE} != "true" ] && [ -e /pnfs/dune/persistent/users/picker24/${PPFX_COMP_DIR}/DUNEPrismFluxes/ND_${NUMODE}/${PRED_DIR} ]; then
+      if [ ${FORCEOVERWRITE} != "true" ] && [ -e /pnfs/dune/persistent/users/${USER}/${PPFX_COMP_DIR}/DUNEPrismFluxes/ND_${NUMODE}/${PRED_DIR} ]; then
         echo "[INFO]: Already have ${NUMODE} wppfx not reprocessing."
         continue
       fi
@@ -153,7 +153,7 @@ for NUMODE in ${BEAM_MODES}; do
         --expected-walltime ${ETIME_PPFX_COMP} --expected-disk ${EDISK_PPFX_COMP} \
         --expected-mem ${EMEM_PPFX_COMP} ${FD_FHICL} ${ND_FHICL} \
         -p ${PPFX_COMP_DIR}/DUNEPrismFluxes/__DET___${NUMODE}/${PRED_DIR} \
-        -i /pnfs/dune/persistent/users/picker24/${PPFX_COMP_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${NUMODE}/dk2nulite \
+        -i /pnfs/dune/persistent/users/${USER}/${PPFX_COMP_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${NUMODE}/dk2nulite \
         -n ${NINPUTSPERJOB_PPFX_COMP} --maxConcurrent ${NMAXCONC_PPFX_COMP}\
           --N-max-jobs ${NMAXJOBS} ${PPFX_ARG}\
         --only-pdg ${PDG_ONLY_PPFX_COMP[${NUMODE}]} -f
@@ -172,12 +172,12 @@ for NUMODE in ${BEAM_MODES}; do
     for SIGSHIFT in p1 m1; do
       for VARIATION in WL HC DPR TargetDensity BeamSigma BeamOffsetX BeamTheta BeamThetaPhi; do
 
-        if [ ! -e /pnfs/dune/persistent/users/picker24/${FOCUS_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${VARIATION}${SIGSHIFT}/${NUMODE}/dk2nulite ]; then
+        if [ ! -e /pnfs/dune/persistent/users/${USER}/${FOCUS_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${VARIATION}${SIGSHIFT}/${NUMODE}/dk2nulite ]; then
           echo "[INFO]: No input directory, skipping."
           continue
         fi
 
-        if [ ${FORCEOVERWRITE} != "true" ] && [ -e /pnfs/dune/persistent/users/picker24/${FOCUS_DIR}/DUNEPrismFluxes/ND_${NUMODE}/${VARIATION}${SIGSHIFT}/${PRED_DIR} ]; then
+        if [ ${FORCEOVERWRITE} != "true" ] && [ -e /pnfs/dune/persistent/users/${USER}/${FOCUS_DIR}/DUNEPrismFluxes/ND_${NUMODE}/${VARIATION}${SIGSHIFT}/${PRED_DIR} ]; then
           echo "[INFO]: Already have ND_${NUMODE}/${VARIATION}${SIGSHIFT} not reprocessing."
           continue
         fi
@@ -186,7 +186,7 @@ for NUMODE in ${BEAM_MODES}; do
            --expected-walltime ${ETIME} --expected-disk ${EDISK} \
            --expected-mem ${EMEM} ${FD_FHICL} ${ND_FHICL} \
            -p ${FOCUS_DIR}/DUNEPrismFluxes/__DET___${NUMODE}/${VARIATION}${SIGSHIFT}/${PRED_DIR} \
-           -i /pnfs/dune/persistent/users/picker24/${FOCUS_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${VARIATION}${SIGSHIFT}/${NUMODE}/dk2nulite \
+           -i /pnfs/dune/persistent/users/${USER}/${FOCUS_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${VARIATION}${SIGSHIFT}/${NUMODE}/dk2nulite \
            -n ${NINPUTSPERJOB} --maxConcurrent ${NMAXCONC}\
            --N-max-jobs ${NMAXJOBS} \
            --only-pdg ${PDG_ONLY[${NUMODE}]} -f
@@ -206,12 +206,12 @@ for NUMODE in ${BEAM_MODES}; do
     for HORN in Horn1 Horn2; do
       for VARIATION in X Y XNeg X3mm XNeg3mm; do
 
-        if [ ! -e /pnfs/dune/persistent/users/picker24/${ALIGN_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${HORN}${VARIATION}/${NUMODE}/dk2nulite ]; then
+        if [ ! -e /pnfs/dune/persistent/users/${USER}/${ALIGN_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${HORN}${VARIATION}/${NUMODE}/dk2nulite ]; then
           echo "[INFO]: No input directory, skipping."
           continue
         fi
 
-        if [ ${FORCEOVERWRITE} != "true" ] && [ -e /pnfs/dune/persistent/users/picker24/${ALIGN_DIR}/DUNEPrismFluxes/ND_${NUMODE}/${HORN}${VARIATION}/${PRED_DIR} ]; then
+        if [ ${FORCEOVERWRITE} != "true" ] && [ -e /pnfs/dune/persistent/users/${USER}/${ALIGN_DIR}/DUNEPrismFluxes/ND_${NUMODE}/${HORN}${VARIATION}/${PRED_DIR} ]; then
           echo "[INFO]: Already have ND_${NUMODE}/${VARIATION}${HORN} not reprocessing."
           continue
         fi
@@ -220,7 +220,7 @@ for NUMODE in ${BEAM_MODES}; do
            --expected-walltime ${ETIME} --expected-disk ${EDISK} \
            --expected-mem ${EMEM} ${FD_FHICL} ${ND_FHICL} \
            -p ${ALIGN_DIR}/DUNEPrismFluxes/__DET___${NUMODE}/${HORN}${VARIATION}/${PRED_DIR} \
-           -i /pnfs/dune/persistent/users/picker24/${ALIGN_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${HORN}${VARIATION}/${NUMODE}/dk2nulite \
+           -i /pnfs/dune/persistent/users/${USER}/${ALIGN_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${HORN}${VARIATION}/${NUMODE}/dk2nulite \
            -n ${NINPUTSPERJOB} --maxConcurrent ${NMAXCONC}\
             --N-max-jobs ${NMAXJOBS} \
            --only-pdg ${PDG_ONLY[${NUMODE}]} -f
@@ -238,12 +238,12 @@ for NUMODE in ${BEAM_MODES}; do
 
   if [ "${DO_HIGHERHC}" == "1" ]; then
     for CURR in 303 313 323 333 343; do
-        if [ ! -e /pnfs/dune/persistent/users/picker24/${HIGHERHC_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/HC_${CURR}/${NUMODE}/dk2nulite ]; then
+        if [ ! -e /pnfs/dune/persistent/users/${USER}/${HIGHERHC_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/HC_${CURR}/${NUMODE}/dk2nulite ]; then
           echo "[INFO]: No input directory, skipping."
           continue
         fi
 
-        if [ ${FORCEOVERWRITE} != "true" ] && [ -e /pnfs/dune/persistent/users/picker24/${HIGHERHC_DIR}/DUNEPrismFluxes/ND_${NUMODE}/HC_${CURR}/${PRED_DIR} ]; then
+        if [ ${FORCEOVERWRITE} != "true" ] && [ -e /pnfs/dune/persistent/users/${USER}/${HIGHERHC_DIR}/DUNEPrismFluxes/ND_${NUMODE}/HC_${CURR}/${PRED_DIR} ]; then
           echo "[INFO]: Already have ND_${NUMODE}/${VARIATION}${HORN} not reprocessing."
           continue
         fi
@@ -268,7 +268,7 @@ for NUMODE in ${BEAM_MODES}; do
            --expected-walltime ${HHC_ETIME} --expected-disk ${HHC_EDISK} \
            --expected-mem ${HHC_EMEM} ${FD_FHICL} ${ND_FHICL} \
            -p ${HIGHERHC_DIR}/DUNEPrismFluxes/__DET___${NUMODE}/HC_${CURR}/${PRED_DIR} \
-           -i /pnfs/dune/persistent/users/picker24/${HIGHERHC_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/HC_${CURR}/${NUMODE}/dk2nulite --maxConcurrent ${HHC_NMAXCONC} \
+           -i /pnfs/dune/persistent/users/${USER}/${HIGHERHC_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/HC_${CURR}/${NUMODE}/dk2nulite --maxConcurrent ${HHC_NMAXCONC} \
            -n ${HHC_NINPUTSPERJOB} --N-max-jobs ${NMAXJOBS} --only-pdg ${PDG_ONLY[${NUMODE}]} -f ${PPFX_ARG}
     done
   fi

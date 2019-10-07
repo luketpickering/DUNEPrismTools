@@ -28,8 +28,8 @@ for i in nu nubar; do
 
   if [ "${DO_PPFX}" == "1" ]; then
     for dummy in dummy; do # So that continue does what you expect
-    if [ -e /pnfs/dune/persistent/users/picker24/${PPFX_OUTPUT_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${i} ]; then
-      echo "[INFO]: Not regenerating /pnfs/dune/persistent/users/picker24/${PPFX_OUTPUT_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${i}"
+    if [ -e /pnfs/dune/persistent/users/${USER}/${PPFX_OUTPUT_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${i} ]; then
+      echo "[INFO]: Not regenerating /pnfs/dune/persistent/users/${USER}/${PPFX_OUTPUT_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${i}"
       continue
     fi
 
@@ -57,8 +57,8 @@ for i in nu nubar; do
   if [ "${DO_PPFX_COMPONENT_VARIATIONS}" == "1" ]; then
     for dummy in dummy; do # So that continue does what you expect
 
-    if [ -e /pnfs/dune/persistent/users/picker24/${PPFX_COMP_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${i} ]; then
-      echo "[INFO]: Not regenerating /pnfs/dune/persistent/users/picker24/${PPFX_COMP_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${i}"
+    if [ -e /pnfs/dune/persistent/users/${USER}/${PPFX_COMP_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${i} ]; then
+      echo "[INFO]: Not regenerating /pnfs/dune/persistent/users/${USER}/${PPFX_COMP_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${i}"
       continue
     fi
 
@@ -83,8 +83,8 @@ for i in nu nubar; do
     for j in p1 m1; do
       for k in WL HC DPR TargetDensity BeamSigma BeamOffsetX BeamTheta BeamThetaPhi; do
 
-      if [ -e /pnfs/dune/persistent/users/picker24/${FOCUS_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${k}${j}/${i} ]; then
-        echo "[INFO]: Not regenerating /pnfs/dune/persistent/users/picker24/${FOCUS_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${k}${j}/${i}"
+      if [ -e /pnfs/dune/persistent/users/${USER}/${FOCUS_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${k}${j}/${i} ]; then
+        echo "[INFO]: Not regenerating /pnfs/dune/persistent/users/${USER}/${FOCUS_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${k}${j}/${i}"
         continue
       fi
 
@@ -110,8 +110,8 @@ for i in nu nubar; do
     for j in Horn1 Horn2; do
       for k in X Y XNeg X3mm XNeg3mm; do
 
-      if [ -e /pnfs/dune/persistent/users/picker24/${ALIGN_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${j}${k}/${i} ]; then
-        echo "[INFO]: Not regenerating /pnfs/dune/persistent/users/picker24/${ALIGN_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${j}${k}/${i}"
+      if [ -e /pnfs/dune/persistent/users/${USER}/${ALIGN_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${j}${k}/${i} ]; then
+        echo "[INFO]: Not regenerating /pnfs/dune/persistent/users/${USER}/${ALIGN_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${j}${k}/${i}"
         continue
       fi
 
@@ -137,8 +137,8 @@ for i in nu nubar; do
   if [ "${DO_HIGHERHC}" == "1" ]; then
     for j in 303 313 323 333 343; do
 
-      if [ -e /pnfs/dune/persistent/users/picker24/${HIGHERHC_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/HC_${j}/${i} ]; then
-        echo "[INFO]: Not regenerating /pnfs/dune/persistent/users/picker24/${HIGHERHC_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/HC_${j}/${i}"
+      if [ -e /pnfs/dune/persistent/users/${USER}/${HIGHERHC_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/HC_${j}/${i} ]; then
+        echo "[INFO]: Not regenerating /pnfs/dune/persistent/users/${USER}/${HIGHERHC_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/HC_${j}/${i}"
         continue
       fi
 

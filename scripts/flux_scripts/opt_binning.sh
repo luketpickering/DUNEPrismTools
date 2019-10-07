@@ -3,8 +3,8 @@ NFILES=100
 NEVEQuiv_RS=25000
 NEVEQuiv_WS=10000
 NEVEQuiv_NUE=2500
-NUSTUB=/pnfs/dune/persistent/users/picker24/nominal_5E8POT_wppfx/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/nu/dk2nulite
-NUBARSTUB=/pnfs/dune/persistent/users/picker24/nominal_5E8POT_wppfx/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/nubar/dk2nulite
+NUSTUB=/pnfs/dune/persistent/users/${USER}/nominal_5E8POT_wppfx/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/nu/dk2nulite
+NUBARSTUB=/pnfs/dune/persistent/users/${USER}/nominal_5E8POT_wppfx/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/nubar/dk2nulite
 
 ls ${NUSTUB}/g4*.root | head -${NFILES} | sed "s|/pnfs/dune|root://fndca1.fnal.gov:1094/pnfs/fnal.gov/usr/dune|g" > nu.files.list
 ls ${NUBARSTUB}/g4*.root | head -${NFILES} | sed "s|/pnfs/dune|root://fndca1.fnal.gov:1094/pnfs/fnal.gov/usr/dune|g" > nubar.files.list
@@ -38,8 +38,8 @@ for hc in nu nubar; do
           --optimized-binning-file ${hc}.${NAME}.optbin.fcl \
           --optimized-binning-N ${NEVEQuiv} \
           --optimized-binning-min-width 0.05 \
-          --optimized-binning-max-width 10.0; then 
-      exit 1 
+          --optimized-binning-max-width 10.0; then
+      exit 1
     fi
 
   done
