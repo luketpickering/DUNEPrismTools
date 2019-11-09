@@ -11,6 +11,10 @@ SET(FLUX_APPS
   # UndoPCAInPostFitCovmat
 )
 
+if(USE_DK2NU)
+LIST(APPEND FLUX_APPS ReconstitutedDk2Nu)
+endif()
+
 include_directories(${INCDIRS})
 
 foreach(appname ${FLUX_APPS})

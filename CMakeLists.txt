@@ -66,6 +66,9 @@ include(${CMAKE_SOURCE_DIR}/cmake/eigenSetup.cmake)
 #################################  TH2Jagged  #################################
 include(${CMAKE_SOURCE_DIR}/cmake/TH2JaggedSetup.cmake)
 
+#################################  TH2Jagged  #################################
+include(${CMAKE_SOURCE_DIR}/cmake/dk2nuSetup.cmake)
+
 ################################## COMPILER ####################################
 LIST(APPEND EXTRA_CXX_FLAGS -fopenmp)
 include(${CMAKE_SOURCE_DIR}/cmake/c++CompilerSetup.cmake)

@@ -1,6 +1,10 @@
 #ifndef DK2NU_TREEREADER_HXX_SEEN
 #define DK2NU_TREEREADER_HXX_SEEN
 
+#ifdef USE_DK2NU
+#include "dk2nu/tree/dk2nu.h"
+#endif
+
 #include "TChain.h"
 
 #include <string>
@@ -154,6 +158,10 @@ struct DK2NuReader {
   UInt_t GetEntries();
 
   void WriteOutLiteTree(TTree *outtree);
+
+#ifdef USE_DK2NU
+  bsim::Dk2Nu GetDk2Nu();
+#endif
 
   ~DK2NuReader();
 };

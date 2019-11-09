@@ -19,6 +19,10 @@
 #include "fhiclcpp/ParameterSet.h"
 #include "fhiclcpp/make_ParameterSet.h"
 
+#ifdef USE_DK2NU
+#include "dk2nu/tree/calcLocationWeights.h"
+#endif
+
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -32,6 +36,24 @@ inline double CosTheta(TVector3 const &v1, TVector3 const &v2) {
 
 std::tuple<double, double, double> GetNuWeight(DK2NuReader &dk2nuRdr,
                                                TVector3 const &DetPoint) {
+
+//If we have dk2nu support, use that to calculate the decay weight
+#ifdef USE_DK2NU
+  bsim::Dk2Nu const &dk2nu = dk2nuRdr.GetDk2Nu();
+
+  double nu_energy, nu_wght;
+  if (bsim::calcEnuWgt(dk2nu.decay, DetPoint, nu_energy, nu_wght)) {
+    std::cout << "[ERROR]: bsim::calcLocationWeight failed." << std::endl;
+    throw;
+  }
+
+  TVector3 nuRay((DetPoint[0] - dk2nu.decay.vx), (DetPoint[1] - dk2nu.decay.vy),
+                 (DetPoint[2] - dk2nu.decay.vz));
+
+  return std::make_tuple(nu_energy, nuRay.Theta(), nu_wght);
+
+#else
+
   static const double detRadius = 100.0; // in cm
   static double const mumass = 0.105658389;
 
@@ -155,6 +177,7 @@ std::tuple<double, double, double> GetNuWeight(DK2NuReader &dk2nuRdr,
     abort();
   }
   return std::make_tuple(nu_energy, nuRay.Theta(), nu_wght);
+#endif
 }
 
 enum OffAxisStepUnits { kPostion_m = 0, kmrad, kdegrees };
@@ -513,7 +536,7 @@ GetRandomFluxWindowPosition(TRandom3 &rnjesus, double win_min, double win_max) {
 
 void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
 
-  TRandom3 rnjesus;
+  TRandom3 rnjesus(0);
 
   TFile *nuray_file = nullptr;
   std::vector<double> nuray_weights;

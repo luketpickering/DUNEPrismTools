@@ -135,6 +135,17 @@ void DK2NuReader::SetBranchAddresses(bool DK2NULite) {
 }
 
 void DK2NuReader::SetPPFXBranchAddresses(size_t NUniverses) {
+  if (!NUniverses) {
+    return;
+  }
+  if (!CheckTTreeHasBranch(tree, "ppfx_cvwgt")) {
+    std::cout << "[DK2NuReader]: Cannot read non-existant PPFX branches"
+              << std::endl;
+    return;
+  }
+
+  std::cout << "[DK2NuReader]: Reading PPFX branches" << std::endl;
+
   ppfx_vwgt_tot = new double[NUniverses];
 
   tree->SetBranchAddress("ppfx_cvwgt", &ppfx_cvwgt);
@@ -564,6 +575,34 @@ void DK2NuReader::WriteOutLiteTree(TTree *outtree) {
   tree->GetEntry(CEnt);
 }
 
+#ifdef USE_DK2NU
+bsim::Dk2Nu DK2NuReader::GetDk2Nu() {
+  bsim::Dk2Nu rtn;
+
+  rtn.decay.ntype = decay_ntype;
+  rtn.decay.vx = decay_vx;
+  rtn.decay.vy = decay_vy;
+  rtn.decay.vz = decay_vz;
+  rtn.decay.pdpx = decay_pdpx;
+  rtn.decay.pdpy = decay_pdpy;
+  rtn.decay.pdpz = decay_pdpz;
+  rtn.decay.ppdxdz = decay_ppdxdz;
+  rtn.decay.ppdydz = decay_ppdydz;
+  rtn.decay.pppz = decay_pppz;
+  rtn.decay.ppenergy = decay_ppenergy;
+  rtn.decay.ptype = decay_ptype;
+  rtn.decay.muparpx = decay_muparpx;
+  rtn.decay.muparpy = decay_muparpy;
+  rtn.decay.muparpz = decay_muparpz;
+  rtn.decay.mupare = decay_mupare;
+  rtn.decay.necm = decay_necm;
+  rtn.decay.nimpwt = decay_nimpwt;
+
+  return rtn;
+}
+
+#endif
+
 DK2NuReader::~DK2NuReader() {
   delete tree;
   if (ppfx_tree) {
@@ -760,7 +799,9 @@ double GetPPFXWeight(Int_t PPFXUniv, Int_t NPPFXUniv, DK2NuReader &dk2nuRdr) {
     W = dk2nuRdr.ppfx_vwgt_abs[univ] *
         (dk2nuRdr.ppfx_cvwgt / dk2nuRdr.ppfx_cvwgt_abs);
     if (W > dk2nuRdr.ppfx_abs_maxweight) {
-      std::cout << "Found bigger abs weight = " << W << " = " <<  dk2nuRdr.ppfx_vwgt_abs[univ] << " * " << dk2nuRdr.ppfx_cvwgt << " / " << dk2nuRdr.ppfx_cvwgt_abs << std::endl;
+      std::cout << "Found bigger abs weight = " << W << " = "
+                << dk2nuRdr.ppfx_vwgt_abs[univ] << " * " << dk2nuRdr.ppfx_cvwgt
+                << " / " << dk2nuRdr.ppfx_cvwgt_abs << std::endl;
       dk2nuRdr.ppfx_abs_maxweight = std::max(dk2nuRdr.ppfx_abs_maxweight, W);
     }
     break;
