@@ -1,14 +1,15 @@
 # !/bin/bash
 
 PRED_TYPE="finebin"
+NDAXIS="onaxis"
 declare -A FD_FHICL_ARR
 declare -A ND_FHICL_ARR
 FD_FHICL_ARR["nu"]="-FF flux/build_FD_fluxes_numode_${PRED_TYPE}_onaxis.fcl"
-ND_FHICL_ARR["nu"]="-FN flux/build_ND_fluxes_numode_${PRED_TYPE}_offaxis.fcl"
+ND_FHICL_ARR["nu"]="-FN flux/build_ND_fluxes_numode_${PRED_TYPE}_${NDAXIS}.fcl"
 FD_FHICL_ARR["nubar"]="-FF flux/build_FD_fluxes_nubarmode_${PRED_TYPE}_onaxis.fcl"
-ND_FHICL_ARR["nubar"]="-FN flux/build_ND_fluxes_nubarmode_${PRED_TYPE}_offaxis.fcl"
+ND_FHICL_ARR["nubar"]="-FN flux/build_ND_fluxes_nubarmode_${PRED_TYPE}_${NDAXIS}.fcl"
 
-PRED_DIR="finebin_hhcfix"
+PRED_DIR="finebin_onaxis"
 
 FORCEOVERWRITE="false"
 
@@ -80,17 +81,24 @@ fi
 # NMAXCONC_PPFX_COMP="20"
 
 #finebin
-NINPUTSPERJOB="20"
-NMAXCONC="5"
+# NINPUTSPERJOB="20"
+# NMAXCONC="5"
 
-NINPUTSPERJOB_PPFX="5"
-NMAXCONC_PPFX="20"
+# NINPUTSPERJOB_PPFX="5"
+# NMAXCONC_PPFX="20"
+
+#finebin onaxis
+NINPUTSPERJOB="500"
+NMAXCONC="1"
+
+NINPUTSPERJOB_PPFX="500"
+NMAXCONC_PPFX="1"
 
 NMAXJOBS="10000"
 NTOTALJOBS="1000000"
 
-BEAM_MODES="nu nubar"
-# BEAM_MODES="nu"
+# BEAM_MODES="nu nubar"
+BEAM_MODES="nu"
 
 NJOBS="0"
 
@@ -237,7 +245,7 @@ for NUMODE in ${BEAM_MODES}; do
 
 
   if [ "${DO_HIGHERHC}" == "1" ]; then
-    for CURR in 303 313 323 333 343; do
+    for CURR in 295.5 298 300.5 303 305.5 308 310.5 313 323 333 343; do
         if [ ! -e /pnfs/dune/persistent/users/${USER}/${HIGHERHC_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/HC_${CURR}/${NUMODE}/dk2nulite ]; then
           echo "[INFO]: No input directory, skipping."
           continue

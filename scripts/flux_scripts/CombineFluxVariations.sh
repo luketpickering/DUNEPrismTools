@@ -1,13 +1,13 @@
 #!/bin/bash
 
-IDIR="uncertbin_opt"
+IDIR="finebin_onaxis"
 
-OUTPUT_FILE_NAME="DUNE_Flux_OffAxis_Nov2017Review_syst_shifts_uncert_jagged_opt.root"
+OUTPUT_FILE_NAME="DUNE_Flux_OffAxis_Nov2017Review_syst_shifts_finebin_HHCOnAxis.root"
 
-DO_PPFX="1"
+DO_PPFX="0"
 DO_PPFX_COMPONENT_VARIATIONS="0"
-DO_FOCUS="1"
-DO_ALIGN="1"
+DO_FOCUS="0"
+DO_ALIGN="0"
 DO_HIGHERHC="1"
 
 for DET in "ND" "FD"; do
@@ -69,16 +69,17 @@ for DET in "ND" "FD"; do
     fi
 
     if [ "${DO_HIGHERHC}" == "1" ]; then
-      for CURR in 303 313 323 333 343; do
+      for CURR in 295.5 298 300.5 303 305.5 308 310.5 313 323 333 343; do
 
-        if [ ! -e /pnfs/dune/persistent/users/${USER}/${HIGHERHC_DIR}/DUNEPrismFluxes/ND_${NUMODE}/HC_${CURR}/${IDIR}/flux ]; then
+        if [ ! -e /pnfs/dune/persistent/users/${USER}/HigherHC_2.5E8POT_wppfx/DUNEPrismFluxes/${DET}_${i}/HC_${CURR}/${IDIR}/flux ]; then
+          echo "Cannot find /pnfs/dune/persistent/users/${USER}/HigherHC_2.5E8POT_wppfx/DUNEPrismFluxes/${DET}_${i}/HC_${CURR}/${IDIR}/flux"
           continue;
         fi
 
         dp_CombineBuiltFluxes  \
-          -i "/pnfs/dune/persistent/users/${USER}/${HIGHERHC_DIR}/DUNEPrismFluxes/ND_${NUMODE}/HC_${CURR}/${IDIR}/flux/Fluxes.*.root" \
+          -i "/pnfs/dune/persistent/users/${USER}/HigherHC_2.5E8POT_wppfx/DUNEPrismFluxes/${DET}_${i}/HC_${CURR}/${IDIR}/flux/Fluxes.*.root" \
           -a ${OUTPUT_FILE_NAME} \
-          -D ${DET}_${i}_HC_${CURR}
+          -D ${DET}_${i}_HC_${CURR} --NPPFXU 100
 
 
       done
