@@ -205,6 +205,8 @@ struct Config {
   Flux_Window flux_window;
 
   struct Input {
+    size_t max_decay_parents;
+
     bool use_dk2nu_lite;
     bool limit_decay_parent_use;
     bool isdef_limit_decay_parent_use_;
@@ -340,11 +342,13 @@ struct Config {
 
     fhicl::ParameterSet input_ps =
         ps.get<fhicl::ParameterSet>("input", fhicl::ParameterSet());
-
+    input.max_decay_parents = input_ps.get<size_t>(
+        "max_decay_parents", std::numeric_limits<size_t>::max());
     input.use_dk2nu_lite = input_ps.get<bool>("use_dk2nu_lite", true);
-    if(input.isdef_limit_decay_parent_use_){
-        input.limit_decay_parent_use =
-            input_ps.get<bool>("limit_decay_parent_use", false);}
+    if (input.isdef_limit_decay_parent_use_) {
+      input.limit_decay_parent_use =
+          input_ps.get<bool>("limit_decay_parent_use", false);
+    }
 
     fhicl::ParameterSet output_ps =
         ps.get<fhicl::ParameterSet>("output", fhicl::ParameterSet());
@@ -376,11 +380,13 @@ void handleOpts(int argc, char const *argv[]) {
     } else if (std::string(argv[opt]) == "--only-pdg") {
       config.output.only_nu_species_pdg = str2T<int>(argv[++opt]);
       config.output.isdef_only_nu_species_pdg_ = false;
+    } else if (std::string(argv[opt]) == "-N") {
+      config.input.max_decay_parents = str2T<size_t>(argv[++opt]);
     } else if (std::string(argv[opt]) == "--limit-decay-parent") {
       config.input.limit_decay_parent_use = true;
-            config.input.isdef_limit_decay_parent_use_ = false;
+      config.input.isdef_limit_decay_parent_use_ = false;
 
-    }else if (std::string(argv[opt]) == "--fhicl") {
+    } else if (std::string(argv[opt]) == "--fhicl") {
       config.SetFromFHiCL(fhicl::make_ParameterSet(argv[++opt]));
       got_fhicl_config = true;
     } else {
@@ -468,7 +474,8 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
   nuray_tree->Branch("parent_pdg", &nr.parent_pdg);
   nuray_tree->Branch("parent_position", &nr.parent_position);
 
-  size_t NDecayParents = dk2nuRdr.GetEntries();
+  size_t NDecayParents =
+      std::min(config.input.max_decay_parents, size_t(dk2nuRdr.GetEntries()));
 
   if (config.output.only_nu_species_pdg) {
     std::vector<int>::iterator pdg_it =
@@ -480,7 +487,9 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
                 << std::endl;
       throw;
     }
-    NuPDGTargets = std::vector<int>{NuPDGTargets[*pdg_it],};
+    NuPDGTargets = std::vector<int>{
+        NuPDGTargets[*pdg_it],
+    };
   }
 
   size_t updateStep = (NDecayParents / 10) ? NDecayParents / 10 : 1;
