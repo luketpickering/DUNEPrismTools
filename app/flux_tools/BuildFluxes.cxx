@@ -37,7 +37,7 @@ inline double CosTheta(TVector3 const &v1, TVector3 const &v2) {
 std::tuple<double, double, double> GetNuWeight(DK2NuReader &dk2nuRdr,
                                                TVector3 const &DetPoint) {
 
-//If we have dk2nu support, use that to calculate the decay weight
+// If we have dk2nu support, use that to calculate the decay weight
 #ifdef USE_DK2NU
   bsim::Dk2Nu const &dk2nu = dk2nuRdr.GetDk2Nu();
 
@@ -1000,23 +1000,25 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
              hist_index < (config.output.separate_by_hadron_species ? 5 : 1);
              ++hist_index) {
           TH2 *hist = univ_hists[hist_index];
+
           hist->Scale(MToCMAndPOTUsedScale, "width");
           // To accomodate TH2Jagged it is easier to scale by cell area and then
           // loop through Y and scale up by y;
           for (Int_t ybin_it = 0; ybin_it < hist->GetYaxis()->GetNbins();
                ++ybin_it) {
+
             double ybw = hist->GetYaxis()->GetBinWidth(ybin_it + 1);
 
             TAxis const *xax;
             if (config.output.use_THF) {
               xax = config.binning.is_jagged[nuPDG_it]
-                        ? dynamic_cast<TH2JaggedF *>(hist)->GetNonUniformAxis(
-                              ybin_it + 1)
+                        ? dynamic_cast<TH2JaggedF *>(hist)
+                              ->GetNonUniformAxis_UniformAxisBin(ybin_it + 1)
                         : hist->GetXaxis();
             } else {
               xax = config.binning.is_jagged[nuPDG_it]
-                        ? dynamic_cast<TH2JaggedD *>(hist)->GetNonUniformAxis(
-                              ybin_it + 1)
+                        ? dynamic_cast<TH2JaggedD *>(hist)
+                              ->GetNonUniformAxis_UniformAxisBin(ybin_it + 1)
                         : hist->GetXaxis();
             }
 

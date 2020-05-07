@@ -44,6 +44,8 @@ public:
   VariationBuilder() : diagdir(nullptr), DumpDiagnostics(false) {}
   virtual void Configure(fhicl::ParameterSet const &) = 0;
   virtual void Process() = 0;
+  virtual std::vector<std::unique_ptr<TH1>> GetOneSigmaVariation() = 0;
+
   void SetDiagnosticDirectory(TDirectory *td) { diagdir = td; }
   std::vector<std::unique_ptr<TH1>>
   GetNominalHistograms(std::string const &suff = "") const {
@@ -59,6 +61,12 @@ public:
 class ThrownVariations : public VariationBuilder {
 
 public:
+  std::vector<std::unique_ptr<TH1>> GetOneSigmaVariation() {
+    std::cout << "[ERROR]: Thrown variation (" << Name << ") cannot process directly to "
+                 "OneSigmaVariations, Please use PCA tools instead."
+              << std::endl;
+    abort();
+  }
   ThrownVariations() : VariationBuilder() {}
   void Configure(fhicl::ParameterSet const &);
   void Process();
@@ -71,8 +79,10 @@ class DiscreteVariations : public VariationBuilder {
   std::vector<std::vector<double>> diags_Errors; // only used for diagnostics
 
   bool fEvalAtOne;
+
 public:
   DiscreteVariations() : VariationBuilder() {}
+  std::vector<std::unique_ptr<TH1>> GetOneSigmaVariation();
   void Configure(fhicl::ParameterSet const &);
   void Process();
 };
@@ -80,6 +90,7 @@ public:
 class DirectVariations : public VariationBuilder {
 public:
   DirectVariations() : VariationBuilder() {}
+  std::vector<std::unique_ptr<TH1>> GetOneSigmaVariation();
   void Configure(fhicl::ParameterSet const &);
   void Process();
 };
@@ -87,6 +98,7 @@ public:
 class UniformVariations : public VariationBuilder {
 public:
   UniformVariations() : VariationBuilder() {}
+  std::vector<std::unique_ptr<TH1>> GetOneSigmaVariation();
   void Configure(fhicl::ParameterSet const &);
   void Process();
 };

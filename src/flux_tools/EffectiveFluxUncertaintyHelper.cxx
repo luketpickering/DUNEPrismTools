@@ -10,7 +10,6 @@ void EffectiveFluxUncertaintyHelper::Initialize(fhicl::ParameterSet const &ps) {
 
   bool IsCAFAnaFormat = ps.get<bool>("IsCAFAnaFormat", false);
 
-  size_t NParams = ps.get<size_t>("NEffectiveParametersToRead");
   std::string ND_detector_tag = ps.get<std::string>("ND_detector_tag", "");
   std::string FD_detector_tag = ps.get<std::string>("FD_detector_tag", "");
   std::string nu_mode_beam_tag = ps.get<std::string>("nu_mode_beam_tag", "");
@@ -27,12 +26,37 @@ void EffectiveFluxUncertaintyHelper::Initialize(fhicl::ParameterSet const &ps) {
   std::string input_dir = ps.get<std::string>(
       "InputDir", IsCAFAnaFormat ? "" : "EffectiveFluxParameters");
 
+  TFile *f = TFile::Open(input_file.c_str(), "READ");
+
+  if (!f || !f->IsOpen()) {
+    std::cout << "[ERROR]: Failed to open TFile: " << input_file << std::endl;
+    abort();
+  }
+
+  TDirectory *d = f->GetDirectory(input_dir.c_str());
+
+  if (!d) {
+    std::cout << "[ERROR]: Failed to open TDirectory: " << input_dir
+              << " in file: " << input_file << std::endl;
+    abort();
+  }
+
+  TList *param_names = nullptr;
+  d->GetObject("param_names",param_names);
+  if (!param_names) {
+    std::cout << "[ERROR]: Failed to find param name list in TDirectory: "
+              << input_dir << " in file: " << input_file << std::endl;
+    abort();
+  }
+
+  size_t NParams = param_names->GetSize();
+
   for (size_t p_it = 0; p_it < NParams; ++p_it) {
     NDTweaks.emplace_back();
     FDTweaks.emplace_back();
-    std::string input_dir_i = input_dir + (input_dir.size() ? "/" : "") +
-                              (IsCAFAnaFormat ? "syst" : "param_") +
-                              std::to_string(p_it) + "/";
+    std::string input_dir_i =
+        input_dir + (input_dir.size() ? "/" : "") +
+        static_cast<TObjString *>(param_names->At(p_it))->String().Data() + "/";
 
     size_t NHistsLoaded = 0;
     int nucf = kND_numu_numode;

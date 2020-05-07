@@ -173,6 +173,7 @@ PPFX: {
   Type: "Thrown"
   Name: "PPFX"
   NThrows: 100
+  include_in_PCA: true
 
   Nominal: {
     InputFile: @local::InputFile

@@ -1,28 +1,28 @@
 #!/bin/bash
 
 BASEFCL=${DUNEPRISMTOOLSROOT}/fcl/flux_uncertainty_generation_comp.toconfig.fcl
-IFILE=DUNE_Flux_OffAxis_Nov2017Review_syst_shifts_uncert_jagged_opt_1m.root
+IFILE=DUNE_Flux_OffAxis_Nov2017Review_syst_shifts_uncert_jagged_opt.root
 
-for twk in  DecayPipeRadius \
-            WaterLayer \
-            HornCurrent \
-            TargetDensity \
-            Horn1XShift \
-            Horn2XShift \
-            Horn1YShift \
-            Horn2YShift \
-            BeamTheta \
-            BeamThetaPhi \
-            BeamSigma \
-            BeamOffsetX \
-            PPFX \
-            POTCounting; do
+# for twk in  DecayPipeRadius \
+#             WaterLayer \
+#             HornCurrent \
+#             TargetDensity \
+#             Horn1XShift \
+#             Horn2XShift \
+#             Horn1YShift \
+#             Horn2YShift \
+#             BeamTheta \
+#             BeamThetaPhi \
+#             BeamSigma \
+#             BeamOffsetX \
+#             PPFX \
+#             POTCounting; do
 
-  cat ${BASEFCL} | sed "s/__PROPNAME__/${twk}/g" | sed "s/__TWEAKS__/@local::${twk}/g" | sed "s/__SPECIES__/[numu,numubar,nue,nuebar]/g" | sed "s/__CONFIGS__/[ND_nu, ND_nubar, FD_nu, FD_nubar]/g" > ${twk}_.fcl
-  fhicl-dump ./${twk}_.fcl | sed "s|Fluxes/DUNE_Flux_OffAxis_Nov2017Review_syst_shifts.root|${IFILE}|g" > ${twk}.fcl
-  dp_BuildUncertaintyMatrix --fhicl ./${twk}.fcl
+#   cat ${BASEFCL} | sed "s/__PROPNAME__/${twk}/g" | sed "s/__TWEAKS__/@local::${twk}/g" | sed "s/__SPECIES__/[numu,numubar,nue,nuebar]/g" | sed "s/__CONFIGS__/[ND_nu, ND_nubar, FD_nu, FD_nubar]/g" > ${twk}_.fcl
+#   fhicl-dump ./${twk}_.fcl | sed "s|Fluxes/DUNE_Flux_OffAxis_Nov2017Review_syst_shifts.root|${IFILE}|g" > ${twk}.fcl
+#   dp_BuildUncertaintyMatrix --fhicl ./${twk}.fcl
 
-done
+# done
 
 for set in  FocussingTweaks \
             AlignmentTweaks \
@@ -33,6 +33,8 @@ for set in  FocussingTweaks \
   dp_BuildUncertaintyMatrix --fhicl ./${set}.fcl
 
 done
+
+exit 0
 
 for twk in  PPFX_abs\
             PPFX_att\

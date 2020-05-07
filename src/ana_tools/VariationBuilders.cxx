@@ -543,6 +543,23 @@ void DiscreteVariations::Configure(fhicl::ParameterSet const &ps) {
   }
 }
 
+std::vector<std::unique_ptr<TH1>> DiscreteVariations::GetOneSigmaVariation() {
+  size_t NBins = InterpolatedResponses.size();
+
+  std::vector<double> thrw_pred(NBins);
+
+  for (size_t fbin_i = 0; fbin_i < NBins; ++fbin_i) {
+    thrw_pred[fbin_i] = InterpolatedResponses[fbin_i].eval(1) -
+                        InterpolatedResponses[fbin_i].eval(0);
+  }
+
+  std::vector<std::unique_ptr<TH1>> nom_histograms =
+      CloneHistVector(NominalHistogramSet, "_nominal_pred");
+
+  FillHistFromstdvector(nom_histograms, thrw_pred);
+  return nom_histograms;
+}
+
 void DiscreteVariations::Process() {
 
   std::random_device r;
@@ -557,7 +574,7 @@ void DiscreteVariations::Process() {
     std::vector<double> thrw_pred(NBins);
     double val = fEvalAtOne ? 1 : RNJesus(RNEngine);
 
-#pragma omp parallel for
+    // #pragma omp parallel for
     for (size_t fbin_i = 0; fbin_i < NBins; ++fbin_i) {
       thrw_pred[fbin_i] = InterpolatedResponses[fbin_i].eval(val);
       if (fEvalAtOne) {
@@ -866,6 +883,14 @@ void DirectVariations::Configure(fhicl::ParameterSet const &ps) {
   RelativeTweaks.push_back(std::move(pred_twk));
 }
 
+std::vector<std::unique_ptr<TH1>> DirectVariations::GetOneSigmaVariation() {
+  std::vector<std::unique_ptr<TH1>> nom_histograms =
+      CloneHistVector(NominalHistogramSet, "_nominal_pred");
+
+  FillHistFromstdvector(nom_histograms, RelativeTweaks.front());
+  return nom_histograms;
+}
+
 void DirectVariations::Process() {
   CovarianceBuilder cb(RelativeTweaks, true);
 
@@ -1002,6 +1027,14 @@ void UniformVariations::Configure(fhicl::ParameterSet const &ps) {
   }
 
   RelativeTweaks.push_back(std::move(pred_twk));
+}
+
+std::vector<std::unique_ptr<TH1>> UniformVariations::GetOneSigmaVariation() {
+  std::vector<std::unique_ptr<TH1>> nom_histograms =
+      CloneHistVector(NominalHistogramSet, "_nominal_pred");
+
+  FillHistFromstdvector(nom_histograms, RelativeTweaks.front());
+  return nom_histograms;
 }
 
 void UniformVariations::Process() {

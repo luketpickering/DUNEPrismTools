@@ -15,7 +15,6 @@ FluxUncertainty: {
   # Configurations: [ND_nu, FD_nu]
 
   Tweaks: [@local::PPFX]
-
 }
 
 FluxUncertainty.OutputFile: "FluxErrors_UncertPoints_PPFX.root"

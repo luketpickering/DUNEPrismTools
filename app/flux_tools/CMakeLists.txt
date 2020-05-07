@@ -9,6 +9,7 @@ SET(FLUX_APPS
   FluxSmusher
   FluxLinearSolver_Standalone
   # UndoPCAInPostFitCovmat
+  BuildNuRayTree
 )
 
 if(USE_DK2NU)
