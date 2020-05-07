@@ -449,13 +449,14 @@ GetRandomFluxWindowPosition(TRandom3 &rnjesus, double win_min, double win_max) {
 }
 
 struct NuRay {
-  double phase_space_weight;
-  int pdg;
-  TLorentzVector four_mom;
-  TVector3 ray_end_point;
+  float phase_space_weight;
+  float imp_weight;
+  short pdg;
+  float four_mom[4];
+  float ray_end_point[3];
 
-  int parent_pdg;
-  TVector3 parent_position;
+  short parent_pdg;
+  float parent_position[3];
 };
 
 void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
@@ -467,12 +468,14 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
 
   NuRay nr;
 
-  nuray_tree->Branch("phase_space_weight", &nr.phase_space_weight);
-  nuray_tree->Branch("pdg", &nr.pdg);
-  nuray_tree->Branch("four_mom", &nr.four_mom);
-  nuray_tree->Branch("ray_end_point", &nr.ray_end_point);
-  nuray_tree->Branch("parent_pdg", &nr.parent_pdg);
-  nuray_tree->Branch("parent_position", &nr.parent_position);
+  nuray_tree->Branch("phase_space_weight", &nr.phase_space_weight, "phase_space_weight/F");
+  nuray_tree->Branch("imp_weight", &nr.imp_weight, "imp_weight/F");
+  nuray_tree->Branch("pdg", &nr.pdg, "pdg/S");
+  nuray_tree->Branch("four_mom", &nr.four_mom, "four_mom[4]/F");
+  nuray_tree->Branch("ray_end_point", &nr.ray_end_point, "ray_end_point[3]/F");
+  nuray_tree->Branch("parent_pdg", &nr.parent_pdg, "parent_pdg/S");
+  nuray_tree->Branch("parent_position", &nr.parent_position,
+                     "parent_position[3]/F");
 
   size_t NDecayParents =
       std::min(config.input.max_decay_parents, size_t(dk2nuRdr.GetEntries()));
@@ -512,7 +515,7 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
       continue;
     }
 
-    double wF = (dk2nuRdr.decay_nimpwt / TMath::Pi());
+    double wF = dk2nuRdr.decay_nimpwt;
 
     for (Int_t ang_it = 0; ang_it < NOffAxisBins; ++ang_it) {
 
@@ -530,7 +533,7 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
       std::tuple<double, double, double> nuStats =
           GetNuWeight(dk2nuRdr, det_point.second);
 
-      double w = std::get<2>(nuStats) * wF;
+      double w = std::get<2>(nuStats) * (wF / TMath::Pi());
 
       if ((!std::isnormal(std::get<0>(nuStats)) || (!std::isnormal(w)))) {
         std::cout << std::get<0>(nuStats) << ", " << w << "("
@@ -544,12 +547,21 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
                      (det_point.second[2] - dk2nuRdr.decay_vz));
 
       nr.phase_space_weight = w;
+      nr.imp_weight = wF;
       nr.pdg = dk2nuRdr.decay_ntype;
-      nr.ray_end_point = det_point.second;
-      nr.four_mom.SetVectM(nuRay.Unit() * std::get<0>(nuStats), 0);
+      nr.ray_end_point[0] = det_point.second.X();
+      nr.ray_end_point[1] = det_point.second.Y();
+      nr.ray_end_point[2] = det_point.second.Z();
+      TVector3 nuMom = nuRay.Unit() * std::get<0>(nuStats);
+      nr.four_mom[0] = nuMom.X();
+      nr.four_mom[1]= nuMom.Y();
+      nr.four_mom[2]= nuMom.Z();
+      nr.four_mom[3] = std::get<0>(nuStats);
       nr.parent_pdg = dk2nuRdr.decay_ptype;
-      nr.parent_position =
-          TVector3(dk2nuRdr.decay_vx, dk2nuRdr.decay_vy, dk2nuRdr.decay_vz);
+      nr.parent_position[0] = dk2nuRdr.decay_vx;
+      nr.parent_position[1] = dk2nuRdr.decay_vy;
+      nr.parent_position[2] = dk2nuRdr.decay_vz;
+
       nuray_tree->Fill();
       // If we aren't re-using the parents then we have placed this neutrino
       // randomly in the 2D range and should now move to the next one.
