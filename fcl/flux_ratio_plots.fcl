@@ -3,23 +3,150 @@ BeamModes: ["nu", "nubar"]
 Species: ["numu", "numubar","nue","nuebar"]
 # Species: ["numu"]
 
-InputFile: "Fluxes/DUNE_Flux_OffAxis_Nov2017Review_syst_shifts.root"
-
-
 Nominal: {
-  NDFileName: @local::InputFile
   NDHistName: "%C_ppfx/LBNF_%S_flux_Nom"
-  FDFileName: @local::InputFile
   FDHistName: "%C_ppfx/LBNF_%S_flux_Nom"
 }
 
 OffAxisPositions: [6,12,18,24,30] # meter off axis
 
-EffectiveVariations: [
+param_groups: {
+  BeamAlignment: [
+    param_BeamOffsetX,
+    param_BeamSigma,
+    param_BeamThetaPhip1,
+    param_BeamThetap1
+  ]
+  Alignment: [
+    param_DPRp1,
+    param_Horn1XShift,
+    param_Horn1YShift,
+    param_Horn2XShift,
+    param_Horn2YShift
+  ]
+  Focussing: [
+    param_HornCurrent,
+    param_TargetDensity,
+    param_WLp1
+  ]
+  POTCounting: [
+    param_POTCounting
+  ]
+  PPFX: [
+    param_pca_0,
+    param_pca_1,
+    param_pca_2,
+    param_pca_3,
+    param_pca_4,
+    param_pca_5,
+    param_pca_6,
+    param_pca_7,
+    param_pca_8,
+    param_pca_9,
+    param_pca_10,
+    param_pca_11,
+    param_pca_12,
+    param_pca_13,
+    param_pca_14,
+    param_pca_15,
+    param_pca_16,
+    param_pca_17,
+    param_pca_18,
+    param_pca_19,
+    param_pca_20,
+    param_pca_21,
+    param_pca_22,
+    param_pca_23,
+    param_pca_24,
+    param_pca_25,
+    param_pca_26,
+    param_pca_27,
+    param_pca_28,
+    param_pca_29,
+    param_pca_30,
+    param_pca_31,
+    param_pca_32,
+    param_pca_33,
+    param_pca_34,
+    param_pca_35,
+    param_pca_36,
+    param_pca_37,
+    param_pca_38,
+    param_pca_39,
+    param_pca_40,
+    param_pca_41,
+    param_pca_42,
+    param_pca_43,
+    param_pca_44,
+    param_pca_45,
+    param_pca_46,
+    param_pca_47,
+    param_pca_48,
+    param_pca_49,
+    param_pca_50,
+    param_pca_51,
+    param_pca_52,
+    param_pca_53,
+    param_pca_54,
+    param_pca_55,
+    param_pca_56,
+    param_pca_57,
+    param_pca_58,
+    param_pca_59,
+    param_pca_60,
+    param_pca_61,
+    param_pca_62,
+    param_pca_63,
+    param_pca_64,
+    param_pca_65,
+    param_pca_66,
+    param_pca_67,
+    param_pca_68,
+    param_pca_69,
+    param_pca_70,
+    param_pca_71,
+    param_pca_72,
+    param_pca_73,
+    param_pca_74,
+    param_pca_75,
+    param_pca_76,
+    param_pca_77,
+    param_pca_78,
+    param_pca_79,
+    param_pca_80,
+    param_pca_81,
+    param_pca_82,
+    param_pca_83,
+    param_pca_84,
+    param_pca_85,
+    param_pca_86,
+    param_pca_87,
+    param_pca_88,
+    param_pca_89,
+    param_pca_90,
+    param_pca_91,
+    param_pca_92,
+    param_pca_93,
+    param_pca_94,
+    param_pca_95,
+    param_pca_96,
+    param_pca_97,
+    param_pca_98,
+    param_pca_99
+  ]
+  Total: [
+    @sequence::param_groups.BeamAlignment,
+    @sequence::param_groups.Alignment,
+    @sequence::param_groups.Focussing,
+    @sequence::param_groups.POTCounting,
+    @sequence::param_groups.PPFX
+  ]
+}
+
+VariationSets: [
   {
     NThrows: 10000
     Name: "Total"
-    NEffectiveParametersToRead: 200
     ND_detector_tag: "ND"
     FD_detector_tag: "FD"
     nu_mode_beam_tag: "nu"
@@ -28,120 +155,124 @@ EffectiveVariations: [
     nue_species_tag: "nue"
     numubar_species_tag: "numubar"
     nuebar_species_tag: "nuebar"
-    InputFile: "FluxErrors_UncertPoints_Total.root"
+
+    param_names: @local::param_groups.Total
+
   }
 ]
 
-EffectiveVariations[1]: {
-  @table::EffectiveVariations[0]
+VariationSets[1]: {
+  @table::VariationSets[0]
   Name: "PPFX"
-  InputFile: "FluxErrors_UncertPoints_PPFX.root"
+
+  param_names: @local::param_groups.PPFX
 }
 
-EffectiveVariations[2]: {
-  @table::EffectiveVariations[0]
+VariationSets[2]: {
+  @table::VariationSets[0]
   Name: "Focussing"
-  InputFile: "FluxErrors_UncertPoints_FocussingTweaks.root"
+  param_names: @local::param_groups.Focussing
 }
 
-EffectiveVariations[3]: {
-  @table::EffectiveVariations[0]
+VariationSets[3]: {
+  @table::VariationSets[0]
   Name: "Alignment"
-  InputFile: "FluxErrors_UncertPoints_AlignmentTweaks.root"
+  param_names: @local::param_groups.Alignment
 }
 
-EffectiveVariations[4]: {
-  @table::EffectiveVariations[0]
-  Name: "BeamAlign"
-  InputFile: "FluxErrors_UncertPoints_BeamAlignmentTweaks.root"
+VariationSets[4]: {
+  @table::VariationSets[0]
+  Name: "BeamAlignment"
+  param_names: @local::param_groups.BeamAlignment
 }
 
-EffectiveVariations[5]: {
+VariationSets[5]: {
   NThrows: 1
-  @table::EffectiveVariations[0]
-  Name: "POT"
-  InputFile: "FluxErrors_UncertPoints_POTCounting.root"
+  @table::VariationSets[0]
+  Name: "POTCounting"
+  param_names: @local::param_groups.POTCounting
 }
 
-EffectiveVariations[6]: {
-  @table::EffectiveVariations[0]
-  Name: "WaterLayer"
-  InputFile: "FluxErrors_UncertPoints_WaterLayer.root"
-}
-
-EffectiveVariations[7]: {
-  @table::EffectiveVariations[0]
-  Name: "HornCurrent"
-  NEffectiveParametersToRead: 1
-  InputFile: "FluxErrors_UncertPoints_HornCurrent.root"
-}
-
-EffectiveVariations[8]: {
-  @table::EffectiveVariations[0]
-  Name: "TargetDensity"
-  NEffectiveParametersToRead: 1
-  InputFile: "FluxErrors_UncertPoints_TargetDensity.root"
-}
-
-EffectiveVariations[9]: {
-  @table::EffectiveVariations[0]
-  Name: "Horn1XShift"
-  NEffectiveParametersToRead: 1
-  InputFile: "FluxErrors_UncertPoints_Horn1XShift.root"
-}
-
-EffectiveVariations[10]: {
-  @table::EffectiveVariations[0]
-  Name: "Horn2XShift"
-  NEffectiveParametersToRead: 1
-  InputFile: "FluxErrors_UncertPoints_Horn2XShift.root"
-}
-
-EffectiveVariations[11]: {
-  @table::EffectiveVariations[0]
-  Name: "Horn1YShift"
-  NEffectiveParametersToRead: 1
-  InputFile: "FluxErrors_UncertPoints_Horn1YShift.root"
-}
-
-EffectiveVariations[12]: {
-  @table::EffectiveVariations[0]
-  Name: "Horn2YShift"
-  NEffectiveParametersToRead: 1
-  InputFile: "FluxErrors_UncertPoints_Horn2YShift.root"
-}
-
-EffectiveVariations[13]: {
-  @table::EffectiveVariations[0]
-  Name: "BeamTheta"
-  InputFile: "FluxErrors_UncertPoints_BeamTheta.root"
-}
-
-EffectiveVariations[14]: {
-  @table::EffectiveVariations[0]
-  Name: "BeamThetaPhi"
-  InputFile: "FluxErrors_UncertPoints_BeamThetaPhi.root"
-}
-
-EffectiveVariations[15]: {
-  @table::EffectiveVariations[0]
-  Name: "BeamSigma"
-  NEffectiveParametersToRead: 1
-  InputFile: "FluxErrors_UncertPoints_BeamSigma.root"
-}
-
-EffectiveVariations[16]: {
-  @table::EffectiveVariations[0]
+VariationSets[6]: {
+  NThrows: 1
+  @table::VariationSets[0]
   Name: "BeamOffsetX"
-  NEffectiveParametersToRead: 1
-  InputFile: "FluxErrors_UncertPoints_BeamOffsetX.root"
+  param_names: [ param_BeamOffsetX ]
 }
 
-EffectiveVariations[17]: {
-  @table::EffectiveVariations[0]
+VariationSets[7]: {
+  NThrows: 1
+  @table::VariationSets[0]
+  Name: "BeamSigma"
+  param_names: [ param_BeamSigma ]
+}
+
+VariationSets[8]: {
+  NThrows: 1
+  @table::VariationSets[0]
+  Name: "BeamThetaPhi"
+  param_names: [ param_BeamThetaPhip1 ]
+}
+
+VariationSets[9]: {
+  NThrows: 1
+  @table::VariationSets[0]
+  Name: "BeamTheta"
+  param_names: [ param_BeamThetap1 ]
+}
+
+VariationSets[10]: {
+  NThrows: 1
+  @table::VariationSets[0]
   Name: "DecayPipeRadius"
-  InputFile: "FluxErrors_UncertPoints_DecayPipeRadius.root"
+  param_names: [ param_DPRp1 ]
 }
 
+VariationSets[11]: {
+  NThrows: 1
+  @table::VariationSets[0]
+  Name: "Horn1XShift"
+  param_names: [ param_Horn1XShift ]
+}
 
-OutputFile: "FluxRatios.root"
+VariationSets[12]: {
+  NThrows: 1
+  @table::VariationSets[0]
+  Name: "Horn1YShift"
+  param_names: [ param_Horn1YShift ]
+}
+
+VariationSets[13]: {
+  NThrows: 1
+  @table::VariationSets[0]
+  Name: "Horn2XShift"
+  param_names: [ param_Horn2XShift ]
+}
+
+VariationSets[14]: {
+  NThrows: 1
+  @table::VariationSets[0]
+  Name: "Horn2YShift"
+  param_names: [ param_Horn2YShift ]
+}
+
+VariationSets[15]: {
+  NThrows: 1
+  @table::VariationSets[0]
+  Name: "HornCurrent"
+  param_names: [ param_HornCurrent ]
+}
+
+VariationSets[16]: {
+  NThrows: 1
+  @table::VariationSets[0]
+  Name: "TargetDensity"
+  param_names: [ param_TargetDensity ]
+}
+
+VariationSets[17]: {
+  NThrows: 1
+  @table::VariationSets[0]
+  Name: "WaterLayer"
+  param_names: [ param_WLp1 ]
+}

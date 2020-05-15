@@ -554,7 +554,7 @@ std::vector<std::unique_ptr<TH1>> DiscreteVariations::GetOneSigmaVariation() {
   }
 
   std::vector<std::unique_ptr<TH1>> nom_histograms =
-      CloneHistVector(NominalHistogramSet, "_nominal_pred");
+      CloneHistVector(NominalHistogramSet);
 
   FillHistFromstdvector(nom_histograms, thrw_pred);
   return nom_histograms;
@@ -885,7 +885,7 @@ void DirectVariations::Configure(fhicl::ParameterSet const &ps) {
 
 std::vector<std::unique_ptr<TH1>> DirectVariations::GetOneSigmaVariation() {
   std::vector<std::unique_ptr<TH1>> nom_histograms =
-      CloneHistVector(NominalHistogramSet, "_nominal_pred");
+      CloneHistVector(NominalHistogramSet);
 
   FillHistFromstdvector(nom_histograms, RelativeTweaks.front());
   return nom_histograms;
@@ -1031,7 +1031,7 @@ void UniformVariations::Configure(fhicl::ParameterSet const &ps) {
 
 std::vector<std::unique_ptr<TH1>> UniformVariations::GetOneSigmaVariation() {
   std::vector<std::unique_ptr<TH1>> nom_histograms =
-      CloneHistVector(NominalHistogramSet, "_nominal_pred");
+      CloneHistVector(NominalHistogramSet);
 
   FillHistFromstdvector(nom_histograms, RelativeTweaks.front());
   return nom_histograms;

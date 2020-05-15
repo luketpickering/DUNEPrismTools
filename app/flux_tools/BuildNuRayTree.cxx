@@ -468,7 +468,8 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
 
   NuRay nr;
 
-  nuray_tree->Branch("phase_space_weight", &nr.phase_space_weight, "phase_space_weight/F");
+  nuray_tree->Branch("phase_space_weight", &nr.phase_space_weight,
+                     "phase_space_weight/F");
   nuray_tree->Branch("imp_weight", &nr.imp_weight, "imp_weight/F");
   nuray_tree->Branch("pdg", &nr.pdg, "pdg/S");
   nuray_tree->Branch("four_mom", &nr.four_mom, "four_mom[4]/F");
@@ -554,8 +555,8 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
       nr.ray_end_point[2] = det_point.second.Z();
       TVector3 nuMom = nuRay.Unit() * std::get<0>(nuStats);
       nr.four_mom[0] = nuMom.X();
-      nr.four_mom[1]= nuMom.Y();
-      nr.four_mom[2]= nuMom.Z();
+      nr.four_mom[1] = nuMom.Y();
+      nr.four_mom[2] = nuMom.Z();
       nr.four_mom[3] = std::get<0>(nuStats);
       nr.parent_pdg = dk2nuRdr.decay_ptype;
       nr.parent_position[0] = dk2nuRdr.decay_vx;

@@ -244,7 +244,7 @@ int main(int argc, char const *argv[]) {
 
     TDirectory *td = nullptr;
     if (!SaveCAFAnaFormat) {
-      td = oupF->mkdir("EffectiveFluxParameters");
+      td = oupF->mkdir("FluxParameters");
     }
 
     std::vector<std::string> param_names(NonPCAComponents.size() + NEigvals);
@@ -320,7 +320,7 @@ int main(int argc, char const *argv[]) {
 
     if (PCACovMatInitialized) {
 
-      TH1D *Evs = new TH1D("eigenvalues", ";Eigen value index;Magnitude",
+      TH1D *Evs = new TH1D("pca_eigenvalues", ";Eigen value index;Magnitude",
                            NEigvals, 0, NEigvals);
       Evs->SetDirectory(oupF.get());
 
@@ -329,10 +329,10 @@ int main(int argc, char const *argv[]) {
       for (int tw_it = 0; tw_it < Tweaks.cols(); ++tw_it) {
         if (!SaveCAFAnaFormat) {
 
-          param_names[nNonPCA] =
+          param_names[nNonPCA + tw_it] =
               std::string("param_pca_") + std::to_string(tw_it);
 
-          TDirectory *t_id = td->mkdir(param_names[nNonPCA].c_str());
+          TDirectory *t_id = td->mkdir(param_names[nNonPCA + tw_it].c_str());
 
           std::vector<std::unique_ptr<TH1>> tweak_histograms =
               CloneHistVector(NominalHistogramSet);
@@ -354,9 +354,10 @@ int main(int argc, char const *argv[]) {
           // Output with CAFAna naming scheme
           std::stringstream dir_caf_ss("");
           dir_caf_ss << "syst" << tw_it + nNonPCA;
-          param_names[nNonPCA] = dir_caf_ss.str();
+          param_names[nNonPCA + tw_it] = dir_caf_ss.str();
 
-          TDirectory *td_caf = oupF->mkdir(param_names[nNonPCA].c_str());
+          TDirectory *td_caf =
+              oupF->mkdir(param_names[nNonPCA + tw_it].c_str());
 
           std::vector<std::unique_ptr<TH1>> tweak_histograms_caf =
               CloneHistVector(NominalHistogramSet);
@@ -410,12 +411,7 @@ int main(int argc, char const *argv[]) {
       }
     }
 
-    // size_t nrows = FullCovarianceMatrix.rows();
     Eigen::VectorXd rtvar = FullCovarianceMatrix.diagonal().cwiseSqrt();
-
-    // for (size_t i = 0; i < nrows; ++i) {
-    //   rtvar[i] = sqrt(FullCovarianceMatrix(i, i));
-    // }
     std::vector<std::unique_ptr<TH1>> std_dev_histograms =
         CloneHistVector(NominalHistogramSet);
     FillHistFromEigenVector(std_dev_histograms, rtvar);

@@ -23,8 +23,8 @@ void EffectiveFluxUncertaintyHelper::Initialize(fhicl::ParameterSet const &ps) {
       ps.get<std::string>("nuebar_species_tag", "");
 
   std::string input_file = ps.get<std::string>("InputFile");
-  std::string input_dir = ps.get<std::string>(
-      "InputDir", IsCAFAnaFormat ? "" : "EffectiveFluxParameters");
+  std::string input_dir =
+      ps.get<std::string>("InputDir", IsCAFAnaFormat ? "" : "FluxParameters");
 
   TFile *f = TFile::Open(input_file.c_str(), "READ");
 
@@ -41,22 +41,40 @@ void EffectiveFluxUncertaintyHelper::Initialize(fhicl::ParameterSet const &ps) {
     abort();
   }
 
-  TList *param_names = nullptr;
-  d->GetObject("param_names",param_names);
-  if (!param_names) {
-    std::cout << "[ERROR]: Failed to find param name list in TDirectory: "
-              << input_dir << " in file: " << input_file << std::endl;
-    abort();
+  std::vector<std::string> param_names =
+      ps.get<std::vector<std::string>>("param_names", {});
+
+  // Try loading them from
+  if (!param_names.size()) {
+    size_t NMaxParams =
+        ps.get<size_t>("nmax_params", std::numeric_limits<size_t>::max());
+
+    TList *param_names_list = nullptr;
+    d->GetObject("param_names", param_names_list);
+    if (!param_names_list) {
+      std::cout << "[ERROR]: Failed to find param_name list in TDirectory: "
+                << input_dir << " in file: " << input_file
+                << " and was passed no param_names FHiCL list to try to load."
+                << std::endl;
+      abort();
+    }
+    for (size_t p_it = 0;
+         p_it < std::min(NMaxParams, size_t(param_names_list->GetSize()));
+         ++p_it) {
+      param_names.push_back(
+          static_cast<TObjString *>(param_names_list->At(p_it))
+              ->String()
+              .Data());
+    }
   }
 
-  size_t NParams = param_names->GetSize();
+  size_t NParams = param_names.size();
 
   for (size_t p_it = 0; p_it < NParams; ++p_it) {
     NDTweaks.emplace_back();
     FDTweaks.emplace_back();
     std::string input_dir_i =
-        input_dir + (input_dir.size() ? "/" : "") +
-        static_cast<TObjString *>(param_names->At(p_it))->String().Data() + "/";
+        input_dir + (input_dir.size() ? "/" : "") + param_names[p_it] + "/";
 
     size_t NHistsLoaded = 0;
     int nucf = kND_numu_numode;
@@ -79,30 +97,31 @@ void EffectiveFluxUncertaintyHelper::Initialize(fhicl::ParameterSet const &ps) {
           if (nucf < kFD_numu_numode) { // Is ND
             NDTweaks.back().back() =
                 GetHistogram_uptr<TH1>(input_file, hname, true);
-
+            if (!NDTweaks.back().back()) {
+              std::cout << "[WARN]: Failed to load tweak: " << hname << " from "
+                        << input_file << std::endl;
+            }
             if ((NDIs2D == -1) && NDTweaks.back().back()) {
               NDIs2D = NDTweaks.back().back()->GetDimension() - 1;
             }
 
             NHistsLoaded += bool(NDTweaks.back().back());
-            // if (!NDTweaks.back().back()) {
-            //   std::cout << "failed to read " << hname << std::endl;
-            // }
           } else {
             FDTweaks.back().back() =
                 GetHistogram_uptr<TH1>(input_file, hname, true);
-
+            if (!FDTweaks.back().back()) {
+              std::cout << "[WARN]: Failed to load tweak: " << hname << " from "
+                        << input_file << std::endl;
+            }
             NHistsLoaded += bool(FDTweaks.back().back());
-            // if (!FDTweaks.back().back()) {
-            //   std::cout << "failed to read " << hname << std::endl;
-            // }
           }
           nucf += 1;
         }
       }
     }
-    // std::cout << "[EffectiveFluxParameters]: Loaded " << NHistsLoaded
-    //           << " tweak histograms for parameter " << p_it << std::endl;
+    std::cout << "[EffectiveFluxParameters]: Loaded " << NHistsLoaded
+              << " tweak histograms for parameter " << param_names[p_it]
+              << std::endl;
 
     if (!NHistsLoaded) {
       NDTweaks.pop_back();
