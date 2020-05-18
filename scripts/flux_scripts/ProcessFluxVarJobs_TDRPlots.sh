@@ -65,17 +65,19 @@ DO_ALIGN="1"
 ALIGN_DIR="Alignment"
 
 DO_HC280KA="1"
-HC280KA_DIR="280KA_wppfx"
-
+HC280KA_DIR="280KA"
+if [ "${DO_PPFX_VARIATIONS}" == "1" ]; then
+  HC280KA_DIR="280KA_wppfx"
+fi
 #coarsebin
-# NINPUTSPERJOB="50"
-# NMAXCONC="2"
+NINPUTSPERJOB="50"
+NMAXCONC="2"
 
-# NINPUTSPERJOB_PPFX="30"
-# NMAXCONC_PPFX="10"
+NINPUTSPERJOB_PPFX="30"
+NMAXCONC_PPFX="10"
 
-# NINPUTSPERJOB_PPFX_COMP="5"
-# NMAXCONC_PPFX_COMP="20"
+NINPUTSPERJOB_PPFX_COMP="5"
+NMAXCONC_PPFX_COMP="20"
 
 #finebin
 # NINPUTSPERJOB="20"
@@ -85,21 +87,21 @@ HC280KA_DIR="280KA_wppfx"
 # NMAXCONC_PPFX="20"
 
 #finebin onaxis
-NINPUTSPERJOB="500"
-NMAXCONC="1"
+# NINPUTSPERJOB="500"
+# NMAXCONC="1"
 
-NINPUTSPERJOB_PPFX="250"
-NMAXCONC_PPFX="2"
+# NINPUTSPERJOB_PPFX="250"
+# NMAXCONC_PPFX="2"
 
-NMAXJOBS="1000"
-NTOTALJOBS="1000000"
+# NMAXJOBS="1000"
+# NTOTALJOBS="1000000"
 
 # BEAM_MODES="nu nubar"
-BEAM_MODES="nu"
+BEAM_MODES="nu nubar"
 
 NJOBS="0"
 
-for NUMODE in ${BEAM_MODES}; do
+for NUMODPPFX_ARGE in ${BEAM_MODES}; do
 
   for dummy in dummy; do
 
@@ -170,13 +172,6 @@ for NUMODE in ${BEAM_MODES}; do
         exit
       fi
     fi
-
-  if [ "
-
-
-
-
-
   done
 
   #With focussing
@@ -245,6 +240,52 @@ for NUMODE in ${BEAM_MODES}; do
         fi
       done
     done
+  fi
+
+  #Alignment
+  if [ "${DO_HC280KA}" == "1" ]; then
+    if [ ! -e /pnfs/dune/persistent/users/${USER}/${HC280KA_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${NUMODE}/dk2nulite ]; then
+      echo "[INFO]: No input directory, skipping."
+      continue
+    fi
+
+    if [ ${FORCEOVERWRITE} != "true" ] && [ -e /pnfs/dune/persistent/users/${USER}/${HC280KA_DIR}/DUNEPrismFluxes/ND_${NUMODE}/${PRED_DIR} ]; then
+      echo "[INFO]: Already have ND_${NUMODE}/280kA not reprocessing."
+      continue
+    fi
+
+
+    ETIME_280KA=${ETIME}
+    EDISK_280KA=${EDISK}
+    EMEM_280KA=${EMEM}
+    NMAXCONC_280KA=${NMAXCONC}
+    if [ "${DO_PPFX_VARIATIONS}" == "1" ]; then
+      ETIME_280KA=${ETIME_PPFX}
+      EDISK_280KA=${EDISK_PPFX}
+      EMEM_280KA=${EMEM_PPFX}
+      NMAXCONC_280KA=${NMAXCONC_PPFX}
+    fi
+
+    PPFX_ARG=""
+    if [ "${DO_PPFX_VARIATIONS}" == "1" ]; then
+      PPFX_ARG="--NPPFXU ${NPPFXUNIVERSES}"
+    fi
+
+    ${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/FarmBuildFluxJobs.sh \
+       --expected-walltime ${ETIME_280KA} --expected-disk ${EDISK_280KA} \
+       --expected-mem ${EMEM_280KA} ${FD_FHICL} ${ND_FHICL} \
+       -p ${HC280KA_DIR}/DUNEPrismFluxes/__DET___${NUMODE}/${PRED_DIR} \
+       -i /pnfs/dune/persistent/users/${USER}/${HC280KA_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${NUMODE}/dk2nulite \
+       -n ${NINPUTSPERJOB} --maxConcurrent ${NMAXCONC_280KA}\
+        --N-max-jobs ${NMAXJOBS} ${PPFX_ARG}\
+       --only-pdg ${PDG_ONLY[${NUMODE}]} -f
+
+    NJOBS=$(( NJOBS + NMAXJOBS ))
+    echo "[INFO]: Done ${NJOBS}."
+    if [ "${NJOBS}" -ge "${NTOTALJOBS}" ]; then
+      echo "[INFO]: Stopping after ${NJOBS} JOBS"
+      exit
+    fi
   fi
 
 done

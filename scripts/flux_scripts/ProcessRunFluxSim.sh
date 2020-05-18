@@ -9,10 +9,10 @@ DO_PPFX="0"
 PPFX_OUTPUT_DIR="nominal_5E8POT_wppfx"
 DO_PPFX_VARIATIONS="1"
 
-DO_HIGHERHC="1"
-HIGHERHC_DIR="HigherHC_2.5E8POT_2019117"
+DO_HC280KA="1"
+HC280KA_DIR="280KA"
 if [ "${DO_PPFX_VARIATIONS}" == "1" ]; then
-  HIGHERHC_DIR="HigherHC_2.5E8POT_wppfx_2019117"
+  HC280KA_DIR="280KA_wppfx"
 fi
 
 DO_PPFX_COMPONENT_VARIATIONS="0"
@@ -134,65 +134,33 @@ for i in nu; do
   fi
 
 
-#alignment
-  if [ "${DO_HIGHERHC}" == "1" ]; then
-    for j in 200 250; do
+#280kA
+  if [ "${DO_HC280KA}" == "1" ]; then
 
-      if [ -e /pnfs/dune/persistent/users/${USER}/${HIGHERHC_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/HC_${j}/${i} ]; then
-        echo "[INFO]: Not regenerating /pnfs/dune/persistent/users/${USER}/${HIGHERHC_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/HC_${j}/${i}"
-        continue
-      fi
-
-      if [ ! -e ${DUNEPRISMTOOLSROOT}/configs/g4lbnf_macros/OptimizedEngineeredNov2017Review_HC${j}kA_${i}mode.mac ]; then
-        echo "[INFO]: No such g4lbnf macro OptimizedEngineeredNov2017Review_HC${j}kA_${i}mode.mac Not running."
-        continue
-      fi
-
-    EMEM=1GB
-    PPFX_ARG=""
-    if [ "${DO_PPFX_VARIATIONS}" == "1" ]; then
-      PPFX_ARG="--PPFX"
-      EMEM=1.9GB
+    if [ -e /pnfs/dune/persistent/users/${USER}/${HC280KA_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${i} ]; then
+      echo "[INFO]: Not regenerating /pnfs/dune/persistent/users/${USER}/${HC280KA_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${i}"
+      continue
     fi
 
-      ${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/FarmG4LBNE_PPFX_Makedk2nuLite.sh \
-       -m ${DUNEPRISMTOOLSROOT}/configs/g4lbnf_macros/OptimizedEngineeredNov2017Review_HC${j}kA_${i}mode.mac \
-       -p ${HIGHERHC_DIR}/v3r5p4/QGSP_BERT/QGSP_BERT/OptimizedEngineeredNov2017Review/HC_${j}/${i} \
-       --number-of-jobs 5000 \
-       --expected-disk 1GB \
-       --expected-mem ${EMEM} \
-       --expected-walltime 4h \
-       --jobname BeamSim_${i}_HC_${j} ${PPFX_ARG}
-    done
-
-    for j in 295.5 298 300.5 303 305.5 308 310.5 313 323 333 343; do
-
-      if [ -e /pnfs/dune/persistent/users/${USER}/${HIGHERHC_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/HC_${j}/${i} ]; then
-        echo "[INFO]: Not regenerating /pnfs/dune/persistent/users/${USER}/${HIGHERHC_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/HC_${j}/${i}"
-        continue
-      fi
-
-      if [ ! -e ${DUNEPRISMTOOLSROOT}/configs/g4lbnf_macros/OptimizedEngineeredNov2017Review_HC${j}kA_${i}mode.mac ]; then
-        echo "[INFO]: No such g4lbnf macro OptimizedEngineeredNov2017Review_HC${j}kA_${i}mode.mac Not running."
-        continue
-      fi
-
-    EMEM=1GB
-    PPFX_ARG=""
-    if [ "${DO_PPFX_VARIATIONS}" == "1" ]; then
-      PPFX_ARG="--PPFX"
-      EMEM=1.9GB
+    if [ ! -e ${DUNEPRISMTOOLSROOT}/configs/g4lbnf_macros/OptimizedEngineeredNov2017Review_HC${j}kA_${i}mode.mac ]; then
+      echo "[INFO]: No such g4lbnf macro OptimizedEngineeredNov2017Review_HC${j}kA_${i}mode.mac Not running."
+      continue
     fi
 
-      ${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/FarmG4LBNE_PPFX_Makedk2nuLite.sh \
-       -m ${DUNEPRISMTOOLSROOT}/configs/g4lbnf_macros/OptimizedEngineeredNov2017Review_HC${j}kA_${i}mode.mac \
-       -p ${HIGHERHC_DIR}/v3r5p4/QGSP_BERT/QGSP_BERT/OptimizedEngineeredNov2017Review/HC_${j}/${i} \
-       --number-of-jobs 2000 \
-       --expected-disk 1GB \
-       --expected-mem ${EMEM} \
-       --expected-walltime 4h \
-       --jobname BeamSim_${i}_HC_${j} ${PPFX_ARG}
-    done
+  EMEM=1GB
+  PPFX_ARG=""
+  if [ "${DO_PPFX_VARIATIONS}" == "1" ]; then
+    PPFX_ARG="--PPFX"
+    EMEM=1.9GB
+  fi
 
+    ${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/FarmG4LBNE_PPFX_Makedk2nuLite.sh \
+     -m ${DUNEPRISMTOOLSROOT}/configs/g4lbnf_macros/OptimizedEngineeredNov2017Review_HC${j}kA_${i}mode.mac \
+     -p ${HC280KA_DIR}/v3r5p4/QGSP_BERT/QGSP_BERT/OptimizedEngineeredNov2017Review/${i} \
+     --number-of-jobs 5000 \
+     --expected-disk 1GB \
+     --expected-mem ${EMEM} \
+     --expected-walltime 4h \
+     --jobname BeamSim_${i}_HC_${j} ${PPFX_ARG}
   fi
 done
