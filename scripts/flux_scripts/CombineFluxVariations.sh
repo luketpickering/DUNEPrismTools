@@ -69,7 +69,7 @@ for DET in "ND" "FD"; do
     fi
 
     if [ "${DO_HIGHERHC}" == "1" ]; then
-      for CURR in 295.5 298 300.5 303 305.5 308 310.5 313 323 333 343; do
+      for CURR in 200 250 295.5 298 300.5 303 305.5 308 310.5 313 323 333 343; do
 
         if [ ! -e /pnfs/dune/persistent/users/${USER}/HigherHC_2.5E8POT_wppfx/DUNEPrismFluxes/${DET}_${i}/HC_${CURR}/${IDIR}/flux ]; then
           echo "Cannot find /pnfs/dune/persistent/users/${USER}/HigherHC_2.5E8POT_wppfx/DUNEPrismFluxes/${DET}_${i}/HC_${CURR}/${IDIR}/flux"
