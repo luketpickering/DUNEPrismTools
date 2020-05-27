@@ -24,8 +24,8 @@ FOCUS_DIR="Focussing"
 DO_ALIGN="0"
 ALIGN_DIR="Alignment"
 
-# for i in nu nubar; do
-for i in nu; do
+ for i in nu nubar; do
+#for i in nu; do
 
   if [ "${DO_PPFX}" == "1" ]; then
     for dummy in dummy; do # So that continue does what you expect
@@ -142,8 +142,8 @@ for i in nu; do
       continue
     fi
 
-    if [ ! -e ${DUNEPRISMTOOLSROOT}/configs/g4lbnf_macros/OptimizedEngineeredNov2017Review_HC${j}kA_${i}mode.mac ]; then
-      echo "[INFO]: No such g4lbnf macro OptimizedEngineeredNov2017Review_HC${j}kA_${i}mode.mac Not running."
+    if [ ! -e ${DUNEPRISMTOOLSROOT}/configs/g4lbnf_macros/OptimizedEngineeredNov2017Review_HC280kA_${i}mode.mac ]; then
+      echo "[INFO]: No such g4lbnf macro OptimizedEngineeredNov2017Review_HC280kA_${i}mode.mac Not running."
       continue
     fi
 
@@ -155,12 +155,12 @@ for i in nu; do
   fi
 
     ${DUNEPRISMTOOLSROOT}/scripts/flux_scripts/FarmG4LBNE_PPFX_Makedk2nuLite.sh \
-     -m ${DUNEPRISMTOOLSROOT}/configs/g4lbnf_macros/OptimizedEngineeredNov2017Review_HC${j}kA_${i}mode.mac \
-     -p ${HC280KA_DIR}/v3r5p4/QGSP_BERT/QGSP_BERT/OptimizedEngineeredNov2017Review/${i} \
+     -m ${DUNEPRISMTOOLSROOT}/configs/g4lbnf_macros/OptimizedEngineeredNov2017Review_HC280kA_${i}mode.mac \
+     -p ${HC280KA_DIR}/v3r5p4/QGSP_BERT/OptimizedEngineeredNov2017Review/${i} \
      --number-of-jobs 5000 \
      --expected-disk 1GB \
      --expected-mem ${EMEM} \
      --expected-walltime 4h \
-     --jobname BeamSim_${i}_HC_${j} ${PPFX_ARG}
+     --jobname BeamSim_${i}_HC_280 ${PPFX_ARG}
   fi
 done

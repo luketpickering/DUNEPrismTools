@@ -11,7 +11,7 @@ ND_FHICL_ARR["nubar"]="-FN flux/build_ND_fluxes_nubarmode_${PRED_TYPE}_${NDAXIS}
 
 PRED_DIR="uncertbin_offaxis"
 
-FORCEOVERWRITE="false"
+FORCEOVERWRITE="true"
 
 #coarsebin
 # EDISK="2GB"
@@ -55,7 +55,7 @@ NPPFXUNIVERSES="100"
 PPFX_DIR="nominal_5E8POT_wppfx"
 DO_PPFX_VARIATIONS="1"
 
-DO_PPFX_COMPONENT_VARIATIONS="1"
+DO_PPFX_COMPONENT_VARIATIONS="0"
 PPFX_COMP_DIR="nominal_2.5E8POT_wallppfx"
 
 DO_FOCUS="1"
@@ -93,15 +93,15 @@ NMAXCONC_PPFX_COMP="20"
 # NINPUTSPERJOB_PPFX="250"
 # NMAXCONC_PPFX="2"
 
-# NMAXJOBS="1000"
+NMAXJOBS="10000"
 # NTOTALJOBS="1000000"
 
-# BEAM_MODES="nu nubar"
+#BEAM_MODES="nu"
 BEAM_MODES="nu nubar"
 
 NJOBS="0"
 
-for NUMODPPFX_ARGE in ${BEAM_MODES}; do
+for NUMODE in ${BEAM_MODES}; do
 
   for dummy in dummy; do
 
@@ -133,8 +133,8 @@ for NUMODPPFX_ARGE in ${BEAM_MODES}; do
         --N-max-jobs ${NMAXJOBS} ${PPFX_ARG}\
         --only-pdg ${PDG_ONLY_PPFX[${NUMODE}]} -f
       NJOBS=$(( NJOBS + NMAXJOBS ))
-      echo "[INFO]: Done ${NJOBS}."
-      if [ "${NJOBS}" -ge "${NTOTALJOBS}" ]; then
+      echo "[INFO]: Done ${NJOBS}/${NTOTALJOBS}."
+      if [ ${NJOBS} -ge ${NTOTALJOBS} ]; then
         echo "[INFO]: Stopping after ${NJOBS} JOBS"
         exit
       fi
@@ -167,7 +167,7 @@ for NUMODPPFX_ARGE in ${BEAM_MODES}; do
 
       NJOBS=$(( NJOBS + NMAXJOBS ))
       echo "[INFO]: Done ${NJOBS}."
-      if [ "${NJOBS}" -ge "${NTOTALJOBS}" ]; then
+      if [ ${NJOBS} -ge ${NTOTALJOBS} ]; then
         echo "[INFO]: Stopping after ${NJOBS} JOBS"
         exit
       fi
@@ -200,7 +200,7 @@ for NUMODPPFX_ARGE in ${BEAM_MODES}; do
 
         NJOBS=$(( NJOBS + NMAXJOBS ))
         echo "[INFO]: Done ${NJOBS}."
-        if [ "${NJOBS}" -ge "${NTOTALJOBS}" ]; then
+        if [ ${NJOBS} -ge ${NTOTALJOBS} ]; then
           echo "[INFO]: Stopping after ${NJOBS} JOBS"
           exit
         fi
@@ -234,7 +234,7 @@ for NUMODPPFX_ARGE in ${BEAM_MODES}; do
 
         NJOBS=$(( NJOBS + NMAXJOBS ))
         echo "[INFO]: Done ${NJOBS}."
-        if [ "${NJOBS}" -ge "${NTOTALJOBS}" ]; then
+        if [ ${NJOBS} -ge ${NTOTALJOBS} ]; then
           echo "[INFO]: Stopping after ${NJOBS} JOBS"
           exit
         fi
@@ -282,7 +282,7 @@ for NUMODPPFX_ARGE in ${BEAM_MODES}; do
 
     NJOBS=$(( NJOBS + NMAXJOBS ))
     echo "[INFO]: Done ${NJOBS}."
-    if [ "${NJOBS}" -ge "${NTOTALJOBS}" ]; then
+    if [ ${NJOBS} -ge ${NTOTALJOBS} ]; then
       echo "[INFO]: Stopping after ${NJOBS} JOBS"
       exit
     fi
