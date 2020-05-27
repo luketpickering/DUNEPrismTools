@@ -1,14 +1,18 @@
 #!/bin/bash
 
-IDIR="finebin_onaxis"
+IDIR="uncertbin_offaxis"
 
-OUTPUT_FILE_NAME="DUNE_Flux_OffAxis_Nov2017Review_syst_shifts_finebin_HHCOnAxis.root"
+OUTPUT_FILE_NAME="DUNE_Flux_OffAxis_Nov2017Review_syst_shifts_uncertbin_offaxis_280kAOnAxis.root"
 
-DO_PPFX="0"
+DO_PPFX="1"
 DO_PPFX_COMPONENT_VARIATIONS="0"
-DO_FOCUS="0"
-DO_ALIGN="0"
-DO_HIGHERHC="1"
+DO_FOCUS="1"
+DO_ALIGN="1"
+DO_HC280KA="1"
+HC280KA_DIR="280KA"
+if [ "${DO_PPFX}" == "1" ]; then
+  HC280KA_DIR="280KA_wppfx"
+fi
 
 for DET in "ND" "FD"; do
   for i in nu nubar; do
@@ -68,21 +72,17 @@ for DET in "ND" "FD"; do
       done
     fi
 
-    if [ "${DO_HIGHERHC}" == "1" ]; then
-      for CURR in 200 250 295.5 298 300.5 303 305.5 308 310.5 313 323 333 343; do
+    if [ "${HC280KA_DIR}" == "1" ]; then
+      if [ ! -e /pnfs/dune/persistent/users/${USER}/${HC280KA_DIR}/DUNEPrismFluxes/${DET}_${i}/${IDIR}/flux ]; then
+        echo "Cannot find /pnfs/dune/persistent/users/${USER}/${HC280KA_DIR}/DUNEPrismFluxes/${DET}_${i}/${IDIR}/flux"
+        continue;
+      fi
 
-        if [ ! -e /pnfs/dune/persistent/users/${USER}/HigherHC_2.5E8POT_wppfx/DUNEPrismFluxes/${DET}_${i}/HC_${CURR}/${IDIR}/flux ]; then
-          echo "Cannot find /pnfs/dune/persistent/users/${USER}/HigherHC_2.5E8POT_wppfx/DUNEPrismFluxes/${DET}_${i}/HC_${CURR}/${IDIR}/flux"
-          continue;
-        fi
+      dp_CombineBuiltFluxes  \
+        -i "/pnfs/dune/persistent/users/${USER}/${HC280KA_DIR}/DUNEPrismFluxes/${DET}_${i}/${IDIR}/flux/Fluxes.*.root" \
+        -a ${OUTPUT_FILE_NAME} \
+        -D ${DET}_${i}_HC_${CURR} --NPPFXU 100
 
-        dp_CombineBuiltFluxes  \
-          -i "/pnfs/dune/persistent/users/${USER}/HigherHC_2.5E8POT_wppfx/DUNEPrismFluxes/${DET}_${i}/HC_${CURR}/${IDIR}/flux/Fluxes.*.root" \
-          -a ${OUTPUT_FILE_NAME} \
-          -D ${DET}_${i}_HC_${CURR} --NPPFXU 100
-
-
-      done
     fi
   done
 done
