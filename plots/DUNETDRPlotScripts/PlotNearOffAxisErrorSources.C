@@ -60,10 +60,10 @@ std::map<error, std::string> errstrings = {
     {kBeamSigma, "BeamSigma"},
     {kBeamOffsetX, "BeamOffsetX"},
     {kPPFX, "PPFX"},
-    {kPOTCounting, "POT"},
+    {kPOTCounting, "POTCounting"},
     {kFocussingTweaks, "Focussing"},
     {kAlignmentTweaks, "Alignment"},
-    {kBeamAlignmentTweaks, "BeamAlign"},
+    {kBeamAlignmentTweaks, "BeamAlignment"},
     {kPPFX_abs, "PPFX_abs"},
     {kPPFX_att, "PPFX_att"},
     {kPPFX_ttpCpi, "PPFX_ttpCpi"},
@@ -161,7 +161,12 @@ void PlotNearOffAxisErrorSources() {
   std::map<beam, std::map<spec, std::map<error, std::map<location, TH1 *>>>>
       Hists;
 
+  bool doppfxall = false;
+
   for (auto errf : errfiles) {
+    if (!doppfxall && (errf.first == "FluxRatios_PPFX_nu.root")) {
+      continue;
+    }
     TFile f(errf.first.c_str());
     for (auto e : errf.second) {
       for (auto b : beamstr) {
@@ -240,6 +245,10 @@ void PlotNearOffAxisErrorSources() {
           for (auto e : pg.second) {
             std::cout << "Plotting " << s.second << " for " << b.second
                       << " @ error: " << errstrings[e.first] << std::endl;
+            if (!Hists[b.first][s.first][e.first][l.first]) {
+              std::cout << "Couldn't get!" << std::endl;
+              abort();
+            }
             Hists[b.first][s.first][e.first][l.first]->SetLineWidth(2);
             Hists[b.first][s.first][e.first][l.first]->SetLineColor(e.second);
 
@@ -281,7 +290,7 @@ void PlotNearOffAxisErrorSources() {
                                                                   : "HIST");
             if (l.first == kND) {
               leg.AddEntry(Hists[b.first][s.first][e.first][l.first],
-                         errslegtrings[e.first].c_str(), "l");
+                           errslegtrings[e.first].c_str(), "l");
             }
             drawn = true;
           }
@@ -300,11 +309,9 @@ void PlotNearOffAxisErrorSources() {
               << pg.first.first << "_OffAxis.tex";
 
         c1.SaveAs(oname.str().c_str());
-          // c1.SaveAs("dum.pdf");
-
+        // c1.SaveAs("dum.pdf");
       }
     }
   }
-    // c1.SaveAs("dum.pdf]");
-
+  // c1.SaveAs("dum.pdf]");
 }

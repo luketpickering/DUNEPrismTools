@@ -151,7 +151,12 @@ void PlotNearFarRatioErrorSources() {
   std::map<beam, std::map<spec, std::map<error, std::map<location, TH1 *>>>>
       Hists;
 
+  bool doother = false;
+
   for (auto errf : errfiles) {
+    if (!doother && (errf.first != "FluxRatios.root")) {
+      continue;
+    }
     TFile f(errf.first.c_str());
     for (auto e : errf.second) {
       for (auto b : beamstr) {
@@ -229,6 +234,10 @@ void PlotNearFarRatioErrorSources() {
 
   TCanvas c1("", "", 600, 600);
   for (auto pg : PlotGroups) {
+    if (!doother && ((std::get<0>(pg.first) == "PPFX") ||
+                     (std::get<0>(pg.first) == "NonHPErrs"))) {
+      continue;
+    }
     for (auto b : beamstr) {
       for (auto s : specnames) {
 
@@ -266,6 +275,10 @@ void PlotNearFarRatioErrorSources() {
         for (auto e : pg.second) {
           std::cout << "Plotting " << s.second << " for " << b.second
                     << " @ error: " << errstrings[e.first] << std::endl;
+          if (!Hists[b.first][s.first][e.first][kND]) {
+            std::cout << "couldn't!" << std::endl;
+            abort();
+          }
           Hists[b.first][s.first][e.first][kND]->SetLineWidth(2);
           Hists[b.first][s.first][e.first][kND]->SetLineColor(e.second);
 
