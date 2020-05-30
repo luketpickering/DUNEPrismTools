@@ -22,6 +22,7 @@ std::string outputdirectory = "";
 size_t NPPFX_Universes = 0;
 bool ReadPPFXAllWeights = false;
 bool LowMemoryMode = true;
+bool perparent = false;
 
 void SayUsage(char const *argv[]) {
   std::cout << "[USAGE]: " << argv[0] << GetUsageText(argv[0], "flux_tools")
@@ -41,6 +42,8 @@ void handleOpts(int argc, char const *argv[]) {
       append = true;
     } else if (std::string(argv[opt]) == "-D") {
       outputdirectory = argv[++opt];
+    } else if (std::string(argv[opt]) == "-P") {
+      perparent = true;
     } else if (std::string(argv[opt]) == "--NPPFXU") {
       NPPFX_Universes = str2T<UInt_t>(argv[++opt]);
     } else if (std::string(argv[opt]) == "--ReadPPFXAllWeights") {
@@ -91,6 +94,10 @@ int main(int argc, char const *argv[]) {
   }
 
   bool use_PPFX = (NPPFXU > 1);
+
+  if (perparent && !use_PPFX) {
+    NPPFXU = 5;
+  }
 
   size_t NFilesAdded = 0, NHistogramsAdded = 0;
 
@@ -153,6 +160,25 @@ int main(int argc, char const *argv[]) {
 
               if (use_PPFX) {
                 hist_name << GetPPFXHistName(ppfx_univ_it, NPPFX_Universes);
+              } else if (ppfx_univ_it > 0) {
+                switch (ppfx_univ_it) {
+                case 1: {
+                  hist_name << "_pi";
+                  break;
+                }
+                case 2: {
+                  hist_name << "_k";
+                  break;
+                }
+                case 3: {
+                  hist_name << "_k0";
+                  break;
+                }
+                case 4: {
+                  hist_name << "_mu";
+                  break;
+                }
+                }
               }
 
               TH1 *ih = dynamic_cast<TH1 *>(ifl->Get(hist_name.str().c_str()));
