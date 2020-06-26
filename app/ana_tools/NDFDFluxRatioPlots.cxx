@@ -7,6 +7,8 @@
 
 #include "Eigen/Dense"
 
+#include "TH2Jagged.h"
+
 #include <memory>
 #include <random>
 
@@ -122,12 +124,14 @@ int main(int argc, char const *argv[]) {
       FD_NominalHist =
           str_replace(FD_NominalHist, "%C", std::string("FD_") + beam_config);
 
-      std::unique_ptr<TH2> NDHist_nom_2D =
-          GetHistogram_uptr<TH2>(ND_NominalFile, ND_NominalHist);
+      std::unique_ptr<TH2JaggedD> NDHist_nom_2D =
+          GetHistogram_uptr<TH2JaggedD>(ND_NominalFile, ND_NominalHist);
 
+      // assumes 1m binning from where bin 1  is -3 -- -2
       std::unique_ptr<TH1> NDHist_nom(
-          dynamic_cast<TH1 *>(NDHist_nom_2D->ProjectionX(
-              (ND_NominalHist + "_OnAxisND").c_str(), 1, 1)));
+          NDHist_nom_2D
+              ->UniformRange((ND_NominalHist + "_OnAxisND").c_str(), 2, 6, true)
+              ->NonUniformSlice(1));
       NDHist_nom->SetDirectory(spec_dir);
 
       std::vector<Int_t> OffAxisBins;
@@ -148,12 +152,14 @@ int main(int argc, char const *argv[]) {
       }
 
       for (size_t OA_it = 0; OA_it < OffAxisBins.size(); ++OA_it) {
-        OffAxis_Noms.emplace_back(dynamic_cast<TH1 *>(
-            NDHist_nom_2D->ProjectionX((ND_NominalHist + "_ND_OA" +
-                                        std::to_string(OffAxisPositions[OA_it]))
-                                           .c_str(),
-                                       OffAxisBins[OA_it],
-                                       OffAxisBins[OA_it])));
+        OffAxis_Noms.emplace_back(
+            NDHist_nom_2D
+                ->UniformRange((ND_NominalHist + "_ND_OA" +
+                                std::to_string(OffAxisPositions[OA_it]))
+                                   .c_str(),
+                               OffAxisBins[OA_it] - 2, OffAxisBins[OA_it] + 2,
+                               true)
+                ->NonUniformSlice(1));
         OffAxis_Noms.back()->SetDirectory(spec_dir);
       }
 
@@ -166,162 +172,6 @@ int main(int argc, char const *argv[]) {
           ("FD_ND_" + species_config + "_Ratio_Nom").c_str())));
       RatioHist_nom->Divide(NDHist_nom.get());
       RatioHist_nom->SetDirectory(spec_dir);
-
-      // for (fhicl::ParameterSet const &vps :
-      //      ps.get<std::vector<fhicl::ParameterSet>>("Varied", {})) {
-
-      //   bool IsRelative = vps.get<bool>("IsRelative", false);
-
-      //   std::string const &VarName = vps.get<std::string>("Name");
-      //   TDirectory *var_dir = spec_dir->mkdir(VarName.c_str());
-
-      //   std::cout << "[INFO]: \t\tRunning configured ratios for tweak: "
-      //             << VarName << std::endl;
-
-      //   std::string ND_File_Template = vps.get<std::string>("NDFileName");
-      //   std::string FD_File_Template = vps.get<std::string>("FDFileName");
-
-      //   std::string ND_File = str_replace(ND_File_Template, "%C",
-      //                                     std::string("ND_") + beam_config);
-      //   std::string FD_File = str_replace(FD_File_Template, "%C",
-      //                                     std::string("FD_") + beam_config);
-
-      //   ND_File = str_replace(ND_File, "%N", VarName);
-      //   FD_File = str_replace(FD_File, "%N", VarName);
-
-      //   std::string ND_Hist_Template = vps.get<std::string>("NDHistName");
-      //   std::string FD_Hist_Template = vps.get<std::string>("FDHistName");
-
-      //   std::string ND_Hist = str_replace(ND_Hist_Template, "%C",
-      //                                     std::string("ND_") + beam_config);
-      //   std::string FD_Hist = str_replace(FD_Hist_Template, "%C",
-      //                                     std::string("FD_") + beam_config);
-      //   ND_Hist = str_replace(ND_Hist, "%S", species_config);
-      //   FD_Hist = str_replace(FD_Hist, "%S", species_config);
-      //   ND_Hist = str_replace(ND_Hist, "%N", VarName);
-      //   FD_Hist = str_replace(FD_Hist, "%N", VarName);
-
-      //   std::unique_ptr<TH2> NDHist_var_2D =
-      //       GetHistogram_uptr<TH2>(ND_File, ND_Hist);
-
-      //   std::unique_ptr<TH1> NDHist_var(dynamic_cast<TH1 *>(
-      //       NDHist_var_2D->ProjectionX((ND_Hist + "_OnAxisND").c_str(), 1,
-      //       1)));
-      //   NDHist_var->SetDirectory(var_dir);
-
-      //   if (IsRelative) {
-      //     for (Int_t bi_it = 0; bi_it < NDHist_var->GetXaxis()->GetNbins();
-      //          ++bi_it) {
-      //       NDHist_var->SetBinContent(
-      //           bi_it + 1, (1 + NDHist_var->GetBinContent(bi_it + 1)) *
-      //                          NDHist_nom->GetBinContent(bi_it + 1));
-      //     }
-      //   }
-
-      //   std::unique_ptr<TH1> NDHist_rel(dynamic_cast<TH1 *>(
-      //       NDHist_var->Clone((ND_Hist + "_OnAxisND" +
-      //       "_relative").c_str())));
-      //   NDHist_rel->SetDirectory(var_dir);
-      //   NDHist_rel->Divide(NDHist_nom.get());
-      //   for (Int_t bi_it = 0; bi_it < NDHist_rel->GetXaxis()->GetNbins();
-      //        ++bi_it) {
-      //     NDHist_rel->SetBinContent(bi_it + 1,
-      //                               NDHist_rel->GetBinContent(bi_it + 1) -
-      //                               1);
-      //   }
-
-      //   std::vector<std::unique_ptr<TH1>> OffAxis_var;
-      //   std::vector<std::unique_ptr<TH1>> OffAxis_rel;
-
-      //   for (size_t OA_it = 0; OA_it < OffAxisBins.size(); ++OA_it) {
-      //     OffAxis_var.emplace_back(
-      //         dynamic_cast<TH1 *>(NDHist_var_2D->ProjectionX(
-      //             (ND_Hist + "_ND_OA" +
-      //             std::to_string(OffAxisPositions[OA_it]))
-      //                 .c_str(),
-      //             OffAxisBins[OA_it], OffAxisBins[OA_it])));
-      //     OffAxis_var.back()->SetDirectory(spec_dir);
-
-      //     if (IsRelative) {
-      //       for (Int_t bi_it = 0;
-      //            bi_it < OffAxis_var.back()->GetXaxis()->GetNbins(); ++bi_it)
-      //            {
-      //         OffAxis_var.back()->SetBinContent(
-      //             bi_it + 1,
-      //             (1 + OffAxis_var.back()->GetBinContent(bi_it + 1)) *
-      //                 OffAxis_Noms[OA_it]->GetBinContent(bi_it + 1));
-      //       }
-      //     }
-
-      //     OffAxis_rel.emplace_back(dynamic_cast<TH1 *>(NDHist_var->Clone(
-      //         (ND_Hist + "_ND_OA" + std::to_string(OffAxisPositions[OA_it]) +
-      //          "_relative")
-      //             .c_str())));
-      //     OffAxis_rel.back()->SetDirectory(var_dir);
-      //     OffAxis_rel.back()->Divide(OffAxis_Noms[OA_it].get());
-      //     for (Int_t bi_it = 0;
-      //          bi_it < OffAxis_rel.back()->GetXaxis()->GetNbins(); ++bi_it) {
-      //       OffAxis_rel.back()->SetBinContent(
-      //           bi_it + 1, OffAxis_rel.back()->GetBinContent(bi_it + 1) - 1);
-      //     }
-      //   }
-
-      //   std::unique_ptr<TH1> FDHist_var =
-      //       GetHistogram_uptr<TH1>(FD_File, FD_Hist);
-      //   FDHist_var->SetName((FD_Hist + "_FD").c_str());
-      //   FDHist_var->SetDirectory(var_dir);
-
-      //   if (IsRelative) {
-      //     for (Int_t bi_it = 0; bi_it < FDHist_var->GetXaxis()->GetNbins();
-      //          ++bi_it) {
-      //       FDHist_var->SetBinContent(
-      //           bi_it + 1, (1 + FDHist_var->GetBinContent(bi_it + 1)) *
-      //                          FDHist_nom->GetBinContent(bi_it + 1));
-      //     }
-      //   }
-
-      //   std::unique_ptr<TH1> FDHist_rel(dynamic_cast<TH1 *>(
-      //       FDHist_var->Clone((FD_Hist + "_FD_relative").c_str())));
-      //   FDHist_rel->SetDirectory(var_dir);
-      //   FDHist_rel->Divide(FDHist_nom.get());
-      //   for (Int_t bi_it = 0; bi_it < FDHist_rel->GetXaxis()->GetNbins();
-      //        ++bi_it) {
-      //     FDHist_rel->SetBinContent(bi_it + 1,
-      //                               FDHist_rel->GetBinContent(bi_it + 1) -
-      //                               1);
-      //   }
-
-      //   std::unique_ptr<TH1> RatioHist_var(dynamic_cast<TH1 *>(
-      //       FDHist_var->Clone(("FD_ND_" + species_config +
-      //       "_Ratio").c_str())));
-      //   RatioHist_var->Divide(NDHist_var.get());
-      //   RatioHist_var->SetDirectory(var_dir);
-
-      //   std::unique_ptr<TH1> RatioHist_rel(
-      //       dynamic_cast<TH1 *>(RatioHist_var->Clone(
-      //           ("FD_ND_" + species_config + "_Ratio" +
-      //           "_relative").c_str())));
-      //   RatioHist_rel->SetDirectory(var_dir);
-      //   RatioHist_rel->Divide(RatioHist_nom.get());
-      //   for (Int_t bi_it = 0; bi_it < RatioHist_rel->GetXaxis()->GetNbins();
-      //        ++bi_it) {
-      //     RatioHist_rel->SetBinContent(
-      //         bi_it + 1, RatioHist_rel->GetBinContent(bi_it + 1) - 1);
-      //   }
-
-      //   NDHist_var.release();
-      //   NDHist_rel.release();
-
-      //   for (size_t OA_it = 0; OA_it < OffAxisBins.size(); ++OA_it) {
-      //     OffAxis_var[OA_it].release();
-      //     OffAxis_rel[OA_it].release();
-      //   }
-
-      //   FDHist_var.release();
-      //   FDHist_rel.release();
-      //   RatioHist_var.release();
-      //   RatioHist_rel.release();
-      // }
 
       for (fhicl::ParameterSet eps :
            ps.get<std::vector<fhicl::ParameterSet>>("VariationSets", {})) {

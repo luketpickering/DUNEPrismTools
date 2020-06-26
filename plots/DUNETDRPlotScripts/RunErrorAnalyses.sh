@@ -36,14 +36,16 @@ IFILE=DUNE_Flux_OffAxis_Nov2017Review_syst_shifts_uncertbin_offaxis_280kAOnAxis.
 
 CONFIGS="[ND_nu, ND_nubar, FD_nu, FD_nubar, ND_nu_280kA, ND_nubar_280kA]"
 
-# cat ${BASEFCL} \
-# 	| sed "s/__PROPNAME__/Total/g" \
-# 	| sed "s/__TWEAKS__/@local::PPFX,@local::POTCounting,@sequence::FocussingTweaks,@sequence::AlignmentTweaks,@sequence::BeamAlignmentTweaks/g" \
-# 	| sed "s/__SPECIES__/[numu,numubar,nue,nuebar]/g" \
-# 	| sed "s/__CONFIGS__/${CONFIGS}/g" > Total_.fcl
-# fhicl-dump ./Total_.fcl \
-# 	| sed "s|Fluxes/DUNE_Flux_OffAxis_Nov2017Review_syst_shifts.root|${IFILE}|g" > Total.fcl
-# dp_BuildUncertaintyMatrix --fhicl ./Total.fcl
+cat ${BASEFCL} \
+	| sed "s/__PROPNAME__/Total/g" \
+	| sed "s/__TWEAKS__/@local::PPFX,@local::POTCounting,@sequence::FocussingTweaks,@sequence::AlignmentTweaks,@sequence::BeamAlignmentTweaks/g" \
+	| sed "s/__SPECIES__/[numu,numubar,nue,nuebar]/g" \
+	| sed "s/WriteMatrices: true/WriteMatrices: false/g" \
+	| sed "s/__CONFIGS__/${CONFIGS}/g" > Total_.fcl 
+	
+fhicl-dump ./Total_.fcl \
+	| sed "s|Fluxes/DUNE_Flux_OffAxis_Nov2017Review_syst_shifts.root|${IFILE}|g" > Total.fcl
+dp_BuildUncertaintyMatrix --fhicl ./Total.fcl
 
 # cat ${BASEFCL_ALLPCA} \
 # 	| sed "s/__PROPNAME__/Total_allpca/g" \
@@ -64,15 +66,15 @@ CONFIGS="[ND_nu, ND_nubar, FD_nu, FD_nubar, ND_nu_280kA, ND_nubar_280kA]"
 # 	| sed "s|Fluxes/DUNE_Flux_OffAxis_Nov2017Review_syst_shifts.root|${IFILE}|g" > Total_onaxis.fcl
 # dp_BuildUncertaintyMatrix --fhicl ./Total_onaxis.fcl
 
-cat ${BASEFCL} \
-	| sed "s/__PROPNAME__/Total_onaxis_onebin/g" \
-	| sed "s/__TWEAKS__/@local::PPFX,@local::POTCounting,@sequence::FocussingTweaks,@sequence::AlignmentTweaks,@sequence::BeamAlignmentTweaks/g" \
-	| sed "s/__SPECIES__/[numu,numubar,nue,nuebar]/g" \
-	| sed "s/__CONFIGS__/${CONFIGS}/g" \
-	| sed "s/#JUSTONEBINGUARD//g" > Total_onaxis_onebin_.fcl
-fhicl-dump ./Total_onaxis_onebin_.fcl \
-	| sed "s|Fluxes/DUNE_Flux_OffAxis_Nov2017Review_syst_shifts.root|${IFILE}|g" > Total_onaxis_onebin.fcl
-dp_BuildUncertaintyMatrix --fhicl ./Total_onaxis_onebin.fcl
+# cat ${BASEFCL} \
+# 	| sed "s/__PROPNAME__/Total_onaxis_onebin/g" \
+# 	| sed "s/__TWEAKS__/@local::PPFX,@local::POTCounting,@sequence::FocussingTweaks,@sequence::AlignmentTweaks,@sequence::BeamAlignmentTweaks/g" \
+# 	| sed "s/__SPECIES__/[numu,numubar,nue,nuebar]/g" \
+# 	| sed "s/__CONFIGS__/${CONFIGS}/g" \
+# 	| sed "s/#JUSTONEBINGUARD//g" > Total_onaxis_onebin_.fcl
+# fhicl-dump ./Total_onaxis_onebin_.fcl \
+# 	| sed "s|Fluxes/DUNE_Flux_OffAxis_Nov2017Review_syst_shifts.root|${IFILE}|g" > Total_onaxis_onebin.fcl
+# dp_BuildUncertaintyMatrix --fhicl ./Total_onaxis_onebin.fcl
 
 # cat ${BASEFCL_ALLPCA} \
 # 	| sed "s/__PROPNAME__/Total_onaxis_allpca/g" \

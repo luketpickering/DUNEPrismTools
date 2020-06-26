@@ -5,6 +5,12 @@ InputFile: "Fluxes/DUNE_Flux_OffAxis_Nov2017Review_syst_shifts.root"
 Nominal_Prediction_Input: {
   InputFile: @local::InputFile
   InputHistName: "%C_ppfx/LBNF_%S_flux_Nom"
+
+  # If we don't have non-PPFX variations for the 280kA run, then we just dupe
+  # but cannot use the ppfx run as the nominal as that will be different 
+  # for the 280kA run
+  ND_nu_280kA_InputHistName: "ND_nu_ppfx/LBNF_%S_flux_Nom"
+  ND_nubar_280kA_InputHistName: "ND_nubar_ppfx/LBNF_%S_flux_Nom"
 }
 
 DirectSyst_base: {
@@ -251,8 +257,8 @@ POTCounting: {
   dump_matrices: false
 }
 
-AllConfigurations: [ND_nu, ND_nubar, FD_nu, FD_nubar]
-numode_Configurations: [ND_nu, FD_nu]
+AllConfigurations: [ND_nu, ND_nubar, FD_nu, FD_nubar, ND_nu_280kA, ND_nubar_280kA]
+numode_Configurations: [ND_nu, FD_nu, ND_nu_280kA]
 
 numuOnly: [numu]
 AllSpecies: [numu, nue, numubar, nuebar]

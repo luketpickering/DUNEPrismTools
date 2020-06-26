@@ -457,6 +457,7 @@ struct NuRay {
 
   short parent_pdg;
   float parent_position[3];
+  float parent_mom[3];
 };
 
 void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
@@ -477,6 +478,7 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
   nuray_tree->Branch("parent_pdg", &nr.parent_pdg, "parent_pdg/S");
   nuray_tree->Branch("parent_position", &nr.parent_position,
                      "parent_position[3]/F");
+  nuray_tree->Branch("parent_mom", &nr.parent_mom, "parent_mom[3]/F");
 
   size_t NDecayParents =
       std::min(config.input.max_decay_parents, size_t(dk2nuRdr.GetEntries()));
@@ -562,7 +564,9 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
       nr.parent_position[0] = dk2nuRdr.decay_vx;
       nr.parent_position[1] = dk2nuRdr.decay_vy;
       nr.parent_position[2] = dk2nuRdr.decay_vz;
-
+      nr.parent_mom[0] = dk2nuRdr.decay_pdpx;
+      nr.parent_mom[1] = dk2nuRdr.decay_pdpy;
+      nr.parent_mom[2] = dk2nuRdr.decay_pdpz;
       nuray_tree->Fill();
       // If we aren't re-using the parents then we have placed this neutrino
       // randomly in the 2D range and should now move to the next one.

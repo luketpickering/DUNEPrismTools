@@ -1,0 +1,23 @@
+  #include "flux_binnings.fcl"
+  #include "flux_windows.fcl"
+
+binning: {
+  numu: {
+    off_axis: "-2,2,8,12,18,22,28,32"
+  }
+  numubar: {
+    off_axis: "-2,2,8,12,18,22,28,32"
+  }
+  nue: {
+    off_axis: "-2,2,8,12,18,22,28,32"
+  }
+  nuebar: {
+    off_axis: "-2,2,8,12,18,22,28,32"
+  }
+}
+
+flux_window: @local::ND_OffAxis
+
+input: {
+  use_dk2nu_lite: true
+}

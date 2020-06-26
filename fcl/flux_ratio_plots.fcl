@@ -148,6 +148,7 @@ VariationSets: [
     NThrows: 10000
     Name: "Total"
     ND_detector_tag: "ND"
+    ND_SpecHCRun_detector_tag: "280kA"
     FD_detector_tag: "FD"
     nu_mode_beam_tag: "nu"
     nubar_mode_beam_tag: "nubar"

@@ -23,23 +23,35 @@ public:
   static int const kND_numubar_nubarmode = 6;
   static int const kND_nuebar_nubarmode = 7;
 
-  static int const kFD_numu_numode = 8;
-  static int const kFD_nue_numode = 9;
-  static int const kFD_numubar_numode = 10;
-  static int const kFD_nuebar_numode = 11;
+  static int const kND_SpecHCRun_numu_numode = 8;
+  static int const kND_SpecHCRun_nue_numode = 9;
+  static int const kND_SpecHCRun_numubar_numode = 10;
+  static int const kND_SpecHCRun_nuebar_numode = 11;
 
-  static int const kFD_numu_nubarmode = 12;
-  static int const kFD_nue_nubarmode = 13;
-  static int const kFD_numubar_nubarmode = 14;
-  static int const kFD_nuebar_nubarmode = 15;
+  static int const kND_SpecHCRun_numu_nubarmode = 12;
+  static int const kND_SpecHCRun_nue_nubarmode = 13;
+  static int const kND_SpecHCRun_numubar_nubarmode = 14;
+  static int const kND_SpecHCRun_nuebar_nubarmode = 15;
 
-  static int const kUnhandled = 16;
+  static int const kFD_numu_numode = 16;
+  static int const kFD_nue_numode = 17;
+  static int const kFD_numubar_numode = 18;
+  static int const kFD_nuebar_numode = 19;
+
+  static int const kFD_numu_nubarmode = 20;
+  static int const kFD_nue_nubarmode = 21;
+  static int const kFD_numubar_nubarmode = 22;
+  static int const kFD_nuebar_nubarmode = 23;
+
+  static int const kUnhandled = 24;
 
   static int const kInvalidBin = std::numeric_limits<int>::max();
 
 private:
   int NDIs2D;
+  int NDSpecHCRunIs2D;
   std::vector<std::vector<std::unique_ptr<TH1>>> NDTweaks;
+  std::vector<std::vector<std::unique_ptr<TH1>>> NDSpecHCRunTweaks;
   std::vector<std::vector<std::unique_ptr<TH1>>> FDTweaks;
 
 public:
@@ -47,9 +59,9 @@ public:
 
   size_t GetNParameters() { return NDTweaks.size(); }
   size_t GetNEnuBins(int nu_pdg, double off_axix_pos_m = 0, bool IsND = true,
-                     bool IsNuMode = true) {
+                     bool IsNuMode = true, bool isSpecHCRun = false) {
 
-    int nucf = GetNuConfig(nu_pdg, IsND, IsNuMode);
+    int nucf = GetNuConfig(nu_pdg, IsND, IsNuMode, isSpecHCRun);
 
     if (nucf == kUnhandled) {
       return 0;
@@ -69,18 +81,22 @@ public:
     }
   }
 
-  int GetNuConfig(int nu_pdg, bool IsND = true, bool IsNuMode = true);
+  int GetNuConfig(int nu_pdg, bool IsND = true, bool IsNuMode = true,
+                  bool isSpecHCRun = false);
 
   // This form checks that the neutrino is within weighting bin ranges and
   // returns kUnhandled if not
   int GetNuConfig(int nu_pdg, double enu_GeV, double off_axix_pos_m,
-                  size_t param_id = 0, bool IsND = true, bool IsNuMode = true);
+                  size_t param_id = 0, bool IsND = true, bool IsNuMode = true,
+                  bool isSpecHCRun = false);
 
   int GetBin(int nu_pdg, double enu_GeV, double off_axix_pos_m,
-             size_t param_id = 0, bool IsND = true, bool IsNuMode = true);
+             size_t param_id = 0, bool IsND = true, bool IsNuMode = true,
+             bool isSpecHCRun = false);
 
-  int GetFirstEnuBin(int nu_pdg, bool IsND = true, bool IsNuMode = true) {
-    int nucf = GetNuConfig(nu_pdg, IsND, IsNuMode);
+  int GetFirstEnuBin(int nu_pdg, bool IsND = true, bool IsNuMode = true,
+                     bool isSpecHCRun = false) {
+    int nucf = GetNuConfig(nu_pdg, IsND, IsNuMode, isSpecHCRun);
 
     if (nucf == kUnhandled) {
       return 0;
@@ -108,11 +124,11 @@ public:
 
   double GetFluxWeight(size_t param_id, double param_val, double enu_GeV,
                        double off_axix_pos_m, int nu_pdg, bool IsND,
-                       bool IsNuMode) {
-    return GetFluxWeight(
-        param_id, param_val,
-        GetBin(nu_pdg, enu_GeV, off_axix_pos_m, param_id, IsND, IsNuMode),
-        GetNuConfig(nu_pdg, IsND, IsNuMode));
+                       bool IsNuMode, bool isSpecHCRun = false) {
+    return GetFluxWeight(param_id, param_val,
+                         GetBin(nu_pdg, enu_GeV, off_axix_pos_m, param_id, IsND,
+                                IsNuMode, isSpecHCRun),
+                         GetNuConfig(nu_pdg, IsND, IsNuMode, isSpecHCRun));
   }
 };
 

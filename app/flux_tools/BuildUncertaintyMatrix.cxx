@@ -84,15 +84,6 @@ int main(int argc, char const *argv[]) {
   std::vector<std::string> Configurations =
       flux_uncert_config.get<std::vector<std::string>>("Configurations");
 
-  bool ND_nu_IsJagged = flux_uncert_config.get<bool>("ND_nu_IsJagged", false);
-  bool ND_nubar_IsJagged =
-      flux_uncert_config.get<bool>("ND_nubar_IsJagged", false);
-
-  size_t ND_nu_OffAxisBin = flux_uncert_config.get<size_t>(
-      "ND_nu_OffAxisBin", std::numeric_limits<size_t>::max());
-  size_t ND_nubar_OffAxisBin = flux_uncert_config.get<size_t>(
-      "ND_nubar_OffAxisBin", std::numeric_limits<size_t>::max());
-
   std::vector<std::unique_ptr<TH1>> NominalHistogramSet;
 
   bool PCACovMatInitialized = false, FullCovMatInitialized = false;
@@ -104,16 +95,38 @@ int main(int argc, char const *argv[]) {
   for (fhicl::ParameterSet twk_ps :
        flux_uncert_config.get<std::vector<std::string>>("Tweaks")) {
     for (std::string const &Conf : Configurations) {
-      twk_ps.put(std::string("FluxSlicesDescriptor_") + Conf,
-                 flux_uncert_config.get<std::string>(
-                     std::string("FluxSlicesDescriptor_") + Conf, ""));
+      bool isjagged = flux_uncert_config.get<bool>(Conf + "_IsJagged", false);
+      twk_ps.put(Conf + "_IsJagged", isjagged);
+      size_t offaxisbin = flux_uncert_config.get<size_t>(
+          Conf + "_OffAxisBin", std::numeric_limits<size_t>::max());
+      twk_ps.put(Conf + "_OffAxisBin", offaxisbin);
+
+      // for jagged it is a sequence
+      if (isjagged) {
+        std::vector<int> const &fluxdescriptor =
+            flux_uncert_config.get<std::vector<int>>(
+                Conf + "_FluxSlicesDescriptor", {});
+        if (fluxdescriptor.size()) {
+          twk_ps.put(Conf + "_FluxSlicesDescriptor", fluxdescriptor);
+        }
+
+        std::string fluxmerge =
+            flux_uncert_config.get<std::string>(Conf + "_FluxSlicesMerge", "");
+        if (fluxmerge.size()) {
+          twk_ps.put(Conf + "_FluxSlicesMerge", fluxmerge);
+        }
+      }
+      // for legacy TH2 it will be a string
+      else {
+        std::string fluxdescriptor = flux_uncert_config.get<std::string>(
+            Conf + "_FluxSlicesDescriptor", "");
+        if (fluxdescriptor.size()) {
+          twk_ps.put(Conf + "_FluxSlicesDescriptor", fluxdescriptor);
+        }
+      }
     }
     twk_ps.put("Species", Species);
     twk_ps.put("Configurations", Configurations);
-    twk_ps.put("ND_nu_IsJagged", ND_nu_IsJagged);
-    twk_ps.put("ND_nubar_IsJagged", ND_nubar_IsJagged);
-    twk_ps.put("ND_nu_OffAxisBin", ND_nu_OffAxisBin);
-    twk_ps.put("ND_nubar_OffAxisBin", ND_nubar_OffAxisBin);
     std::unique_ptr<VariationBuilder> varb = GetVariationBuilder(twk_ps);
 
     if (!NominalHistogramSet.size()) {

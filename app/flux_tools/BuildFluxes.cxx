@@ -499,7 +499,7 @@ GetRandomFluxWindowPosition(TRandom3 &rnjesus, double win_min, double win_max) {
 
   double zpos_cm = config.flux_window.z_from_target_cm +
                    config.flux_window.z_rel_min_cm +
-                   config.flux_window.z_extent_cm * rnjesus.Uniform();
+                   (config.flux_window.z_extent_cm * rnjesus.Uniform());
 
   TVector3 rndDetPos(0,
                      (2.0 * rnjesus.Uniform() - 1.0) *

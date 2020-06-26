@@ -6,10 +6,29 @@ FluxUncertainty: {
   # ND guys should be jagged
   ND_nu_IsJagged: true
   ND_nubar_IsJagged: true
-  # FD guys are 1D so don't need off axis binning descriptors
+  ND_nu_280kA_IsJagged: true
+  ND_nubar_280kA_IsJagged: true
 
-  # ND_nu_OffAxisBin: 1
-  # ND_nubar_OffAxisBin: 1
+  #The on axis position if we are using 1m binning
+  ND_nu_280kA_FluxSlicesDescriptor: [2, 6]
+  #ONEBINGUARD ND_nu_280kA_FluxSlicesMerge: true
+  ND_nubar_280kA_FluxSlicesDescriptor: [2, 6]
+  #ONEBINGUARD ND_nubar_280kA_FluxSlicesMerge: true
+
+  #ONEBINGUARD ND_nu_FluxSlicesDescriptor: [2, 6]
+  #ONEBINGUARD ND_nu_FluxSlicesMerge: true
+  #ONEBINGUARD ND_nubar_FluxSlicesDescriptor: [2, 6]
+  #ONEBINGUARD ND_nubar_FluxSlicesMerge: true
+
+
+  #JUSTONEBINGUARD ND_nu_280kA_FluxSlicesMerge: true
+  #JUSTONEBINGUARD ND_nubar_280kA_FluxSlicesMerge: true
+
+  #JUSTONEBINGUARD ND_nu_FluxSlicesDescriptor: [3,4]
+  #JUSTONEBINGUARD ND_nu_FluxSlicesMerge: true
+  #JUSTONEBINGUARD ND_nubar_FluxSlicesDescriptor: [3,4]
+  #JUSTONEBINGUARD ND_nubar_FluxSlicesMerge: true
+
 
   Species: __SPECIES__
 

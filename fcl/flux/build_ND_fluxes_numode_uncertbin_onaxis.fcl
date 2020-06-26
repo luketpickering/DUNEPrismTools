@@ -2,7 +2,7 @@
   #include "flux_windows.fcl"
 
 binning: {
-  energy: @local::energy_binnings.coarse_uncert.nu
+  @table::FD_defs.uncert.nu
 }
 
 flux_window: @local::ND_OnAxis
@@ -11,10 +11,12 @@ input: {
   # max_decay_parents: -1
   # limit_decay_parent_use: false
   use_dk2nu_lite: true
-  # use_dk2nu_ppfx: false
-  # use_dk2nu_ppfx_allweights: false
-  # number_ppfx_universes: 0
+  # use_dk2nu_ppfx: true
+  # use_dk2nu_ppfx_allweights: true
+  # number_ppfx_universes: 100
+  ppfx_weightcap: 10
 }
+
 
 output: {
   # only_nu_species_pdg: 0

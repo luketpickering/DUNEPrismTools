@@ -34,25 +34,44 @@ void VariationBuilder::BaseConfigure(fhicl::ParameterSet const &ps) {
   Species = paramset.get<std::vector<std::string>>("Species");
 
   std::string NominalInputFile_template =
-      paramset.get<std::string>("Nominal.InputFile");
+      paramset.get<std::string>("Nominal.InputFile", "");
   std::string NominalHistName_template =
-      paramset.get<std::string>("Nominal.InputHistName");
-
-  NominalInputFile_template =
-      str_replace(NominalInputFile_template, "%N", Name);
-  NominalHistName_template = str_replace(NominalHistName_template, "%N", Name);
+      paramset.get<std::string>("Nominal.InputHistName", "");
 
   for (std::string const &pred_config : Configurations) {
 
-    std::string FluxSliceDescriptor = paramset.get<std::string>(
-        std::string("FluxSlicesDescriptor_") + pred_config, "");
+    std::string FluxSliceDescriptor_key = pred_config + "_FluxSlicesDescriptor";
 
     bool IsJagged = paramset.get<bool>(pred_config + "_IsJagged", false);
 
-    std::string NominalInputFile_conf =
-        str_replace(NominalInputFile_template, "%C", pred_config);
-    std::string NominalHistName_conf =
-        str_replace(NominalHistName_template, "%C", pred_config);
+    size_t OneOABin = paramset.get<size_t>(pred_config + "_OffAxisBin",
+                                           std::numeric_limits<size_t>::max());
+
+    std::string NominalInputFile_conf = paramset.get<std::string>(
+        "Nominal." + pred_config + "_InputFile", NominalInputFile_template);
+    std::string NominalHistName_conf = paramset.get<std::string>(
+        "Nominal." + pred_config + "_InputHistName", NominalHistName_template);
+
+    NominalInputFile_conf =
+        str_replace(NominalInputFile_conf, "%C", pred_config);
+    NominalHistName_conf = str_replace(NominalHistName_conf, "%C", pred_config);
+
+    NominalInputFile_conf = str_replace(NominalInputFile_conf, "%N", Name);
+    NominalHistName_conf = str_replace(NominalHistName_conf, "%N", Name);
+
+    if (!NominalInputFile_conf.size()) {
+      std::cout << "[ERROR]: Expected to be able to read either "
+                   "Nominal.InputFile or Nominal."
+                << pred_config << "_InputFile for tweak: " << Name << std::endl;
+      abort();
+    }
+    if (!NominalHistName_conf.size()) {
+      std::cout << "[ERROR]: Expected to be able to read either "
+                   "Nominal.InputHistName or Nominal."
+                << pred_config << "_InputHistName for tweak: " << Name
+                << std::endl;
+      abort();
+    }
 
     for (std::string const &species : Species) {
 
@@ -64,11 +83,31 @@ void VariationBuilder::BaseConfigure(fhicl::ParameterSet const &ps) {
       size_t NBinsOld = NominalPrediction.size();
 
       if (IsJagged) {
-        size_t OneOABin = paramset.get<size_t>(
-            pred_config + "_OffAxisBin", std::numeric_limits<size_t>::max());
         std::unique_ptr<TH2JaggedD> flux2D =
             GetHistogram_uptr<TH2JaggedD>(NominalInputFile, NominalHistName);
-        if (OneOABin != std::numeric_limits<size_t>::max()) {
+
+        if (paramset.has_key(FluxSliceDescriptor_key)) {
+          auto bin_range =
+              paramset.get<std::array<int, 2>>(FluxSliceDescriptor_key);
+
+          flux2D = std::unique_ptr<TH2JaggedD>(flux2D->UniformRange(
+              "range", bin_range[0], bin_range[1],
+              paramset.get<bool>(pred_config + "_FluxSlicesMerge", false)));
+          Mergestdvector(NominalPrediction, Getstdvector(flux2D.get()));
+          Mergestdvector(NominalPredictionError,
+                         Getstdvectorerror(flux2D.get()));
+          if (flux2D->GetYaxis()->GetNbins() ==
+              1) { // if we've merged it down to a flat histogram, just make it
+                   // into a TH1D for writing
+
+            NominalHistogramSet.push_back(
+                std::unique_ptr<TH1D>(flux2D->NonUniformSlice(1)));
+          } else {
+            flux2D->SetName((Name + "_Nom").c_str());
+            NominalHistogramSet.push_back(std::move(flux2D));
+          }
+
+        } else if (OneOABin != std::numeric_limits<size_t>::max()) {
           std::unique_ptr<TH1> nom_hist(
               flux2D->ProjectionX((Name + "_Nom").c_str(), OneOABin, OneOABin));
           Mergestdvector(NominalPrediction, Getstdvector(nom_hist.get()));
@@ -84,7 +123,10 @@ void VariationBuilder::BaseConfigure(fhicl::ParameterSet const &ps) {
           flux2D->SetName((Name + "_Nom").c_str());
           NominalHistogramSet.push_back(std::move(flux2D));
         }
-      } else if (FluxSliceDescriptor.size()) {
+
+      } else if (paramset.has_key(FluxSliceDescriptor_key)) {
+        std::string FluxSliceDescriptor =
+            paramset.get<std::string>(FluxSliceDescriptor_key);
         std::vector<std::pair<double, double>> XRanges =
             BuildRangesList(FluxSliceDescriptor);
         std::unique_ptr<TH2D> flux2D =
@@ -132,12 +174,11 @@ void ThrownVariations::Process() {
 
   fhicl::ParameterSet VariedHist_ps =
       paramset.get<fhicl::ParameterSet>("Varied");
-  std::string InputFile_template = VariedHist_ps.get<std::string>("InputFile");
-  std::string VariedHistName_template =
-      VariedHist_ps.get<std::string>("InputHistName");
 
-  InputFile_template = str_replace(InputFile_template, "%N", Name);
-  VariedHistName_template = str_replace(VariedHistName_template, "%N", Name);
+  std::string InputFile_template =
+      VariedHist_ps.get<std::string>("InputFile", "");
+  std::string VariedHistName_template =
+      VariedHist_ps.get<std::string>("InputHistName", "");
 
   size_t NThrows = paramset.get<size_t>("NThrows");
   size_t NThrowSkip = paramset.get<size_t>("NThrowSkip", 0);
@@ -150,22 +191,45 @@ void ThrownVariations::Process() {
   for (size_t t_it = NThrowSkip; t_it < NThrows; ++t_it) {
     std::vector<double> flux_pred_i;
 
-    std::string InputFile_i =
-        str_replace(InputFile_template, "%i", std::to_string(t_it));
-
-    std::string VariedHistName_i =
-        str_replace(VariedHistName_template, "%i", std::to_string(t_it));
-
     for (std::string const &pred_config : Configurations) {
 
-      std::string FluxSliceDescriptor = paramset.get<std::string>(
-          std::string("FluxSlicesDescriptor_") + pred_config, "");
+      std::string FluxSliceDescriptor_key =
+          pred_config + "_FluxSlicesDescriptor";
 
       bool IsJagged = paramset.get<bool>(pred_config + "_IsJagged", false);
 
-      std::string InputFile_i_c = str_replace(InputFile_i, "%C", pred_config);
-      std::string VariedHistName_i_c =
-          str_replace(VariedHistName_i, "%C", pred_config);
+      size_t OneOABin = paramset.get<size_t>(
+          pred_config + "_OffAxisBin", std::numeric_limits<size_t>::max());
+
+      std::string InputFile_i_c = VariedHist_ps.get<std::string>(
+          pred_config + "_InputFile", InputFile_template);
+      std::string VariedHistName_i_c = VariedHist_ps.get<std::string>(
+          pred_config + "_InputHistName", VariedHistName_template);
+
+      InputFile_i_c = str_replace(InputFile_i_c, "%C", pred_config);
+      VariedHistName_i_c = str_replace(VariedHistName_i_c, "%C", pred_config);
+
+      InputFile_i_c = str_replace(InputFile_i_c, "%N", Name);
+      VariedHistName_i_c = str_replace(VariedHistName_i_c, "%N", Name);
+
+      InputFile_i_c = str_replace(InputFile_i_c, "%i", std::to_string(t_it));
+      VariedHistName_i_c =
+          str_replace(VariedHistName_i_c, "%i", std::to_string(t_it));
+
+      if (!InputFile_i_c.size()) {
+        std::cout << "[ERROR]: Expected to be able to read either "
+                     "Varied.InputFile or Varied."
+                  << pred_config << "_InputFile for tweak: " << Name
+                  << std::endl;
+        abort();
+      }
+      if (!VariedHistName_i_c.size()) {
+        std::cout << "[ERROR]: Expected to be able to read either "
+                     "Varied.InputHistName or Varied."
+                  << pred_config << "_InputHistName for tweak: " << Name
+                  << std::endl;
+        abort();
+      }
 
       for (std::string const &species : Species) {
 
@@ -174,18 +238,28 @@ void ThrownVariations::Process() {
             str_replace(VariedHistName_i_c, "%S", species);
 
         if (IsJagged) {
-          size_t OneOABin = paramset.get<size_t>(
-              pred_config + "_OffAxisBin", std::numeric_limits<size_t>::max());
+
           std::unique_ptr<TH2JaggedD> flux2D =
               GetHistogram_uptr<TH2JaggedD>(InputFile, VariedHistName);
-          if (OneOABin != std::numeric_limits<size_t>::max()) {
+          if (paramset.has_key(FluxSliceDescriptor_key)) {
+            auto bin_range =
+                paramset.get<std::array<int, 2>>(FluxSliceDescriptor_key);
+            flux2D = std::unique_ptr<TH2JaggedD>(flux2D->UniformRange(
+                "range", bin_range[0], bin_range[1],
+                paramset.get<bool>(pred_config + "_FluxSlicesMerge", false)));
+            Mergestdvector(flux_pred_i, Getstdvector(flux2D.get()));
+
+          } else if (OneOABin != std::numeric_limits<size_t>::max()) {
             std::unique_ptr<TH1> var_hist(flux2D->ProjectionX(
                 (Name + "_var").c_str(), OneOABin, OneOABin));
             Mergestdvector(flux_pred_i, Getstdvector(var_hist.get()));
           } else {
             Mergestdvector(flux_pred_i, Getstdvector(flux2D.get()));
           }
-        } else if (FluxSliceDescriptor.size()) {
+
+        } else if (paramset.has_key(FluxSliceDescriptor_key)) {
+          std::string FluxSliceDescriptor =
+              paramset.get<std::string>(FluxSliceDescriptor_key);
           std::vector<std::pair<double, double>> XRanges =
               BuildRangesList(FluxSliceDescriptor);
 
@@ -398,24 +472,43 @@ void DiscreteVariations::Configure(fhicl::ParameterSet const &ps) {
 
     std::vector<double> pred_twk, pred_error;
 
-    std::string InputFile_template = tweak_ps.get<std::string>("InputFile");
+    std::string InputFile_template = tweak_ps.get<std::string>("InputFile", "");
     std::string VariedHistName_template =
-        tweak_ps.get<std::string>("InputHistName");
-
-    InputFile_template = str_replace(InputFile_template, "%N", Name);
-    VariedHistName_template = str_replace(VariedHistName_template, "%N", Name);
+        tweak_ps.get<std::string>("InputHistName", "");
 
     for (std::string const &pred_config : Configurations) {
-
-      std::string FluxSliceDescriptor = paramset.get<std::string>(
-          std::string("FluxSlicesDescriptor_") + pred_config, "");
+      std::string FluxSliceDescriptor_key =
+          pred_config + "_FluxSlicesDescriptor";
 
       bool IsJagged = paramset.get<bool>(pred_config + "_IsJagged", false);
+      size_t OneOABin = paramset.get<size_t>(
+          pred_config + "_OffAxisBin", std::numeric_limits<size_t>::max());
 
-      std::string InputFile_tw_c =
-          str_replace(InputFile_template, "%C", pred_config);
-      std::string VariedHistName_tw_c =
-          str_replace(VariedHistName_template, "%C", pred_config);
+      std::string InputFile_tw_c = tweak_ps.get<std::string>(
+          pred_config + "_InputFile", InputFile_template);
+      std::string VariedHistName_tw_c = tweak_ps.get<std::string>(
+          pred_config + "_InputHistName", VariedHistName_template);
+
+      InputFile_tw_c = str_replace(InputFile_tw_c, "%C", pred_config);
+      VariedHistName_tw_c = str_replace(VariedHistName_tw_c, "%C", pred_config);
+
+      InputFile_tw_c = str_replace(InputFile_tw_c, "%N", Name);
+      VariedHistName_tw_c = str_replace(VariedHistName_tw_c, "%N", Name);
+
+      if (!InputFile_tw_c.size()) {
+        std::cout << "[ERROR]: Expected to be able to read either "
+                     "InputFile or "
+                  << pred_config << "_InputFile for tweak: " << Name
+                  << std::endl;
+        abort();
+      }
+      if (!VariedHistName_tw_c.size()) {
+        std::cout << "[ERROR]: Expected to be able to read either "
+                     "InputHistName or "
+                  << pred_config << "_InputHistName for tweak: " << Name
+                  << std::endl;
+        abort();
+      }
 
       for (std::string const &species : Species) {
 
@@ -424,11 +517,18 @@ void DiscreteVariations::Configure(fhicl::ParameterSet const &ps) {
             str_replace(VariedHistName_tw_c, "%S", species);
 
         if (IsJagged) {
-          size_t OneOABin = paramset.get<size_t>(
-              pred_config + "_OffAxisBin", std::numeric_limits<size_t>::max());
           std::unique_ptr<TH2JaggedD> flux2D =
               GetHistogram_uptr<TH2JaggedD>(InputFile, VariedHistName);
-          if (OneOABin != std::numeric_limits<size_t>::max()) {
+          if (paramset.has_key(FluxSliceDescriptor_key)) {
+            auto bin_range =
+                paramset.get<std::array<int, 2>>(FluxSliceDescriptor_key);
+            flux2D = std::unique_ptr<TH2JaggedD>(flux2D->UniformRange(
+                "range", bin_range[0], bin_range[1],
+                paramset.get<bool>(pred_config + "_FluxSlicesMerge", false)));
+            Mergestdvector(pred_twk, Getstdvector(flux2D.get()));
+            Mergestdvector(pred_error, Getstdvectorerror(flux2D.get()));
+
+          } else if (OneOABin != std::numeric_limits<size_t>::max()) {
             std::unique_ptr<TH1> var_hist(flux2D->ProjectionX(
                 (Name + "_var").c_str(), OneOABin, OneOABin));
             Mergestdvector(pred_twk, Getstdvector(var_hist.get()));
@@ -437,7 +537,9 @@ void DiscreteVariations::Configure(fhicl::ParameterSet const &ps) {
             Mergestdvector(pred_twk, Getstdvector(flux2D.get()));
             Mergestdvector(pred_error, Getstdvectorerror(flux2D.get()));
           }
-        } else if (FluxSliceDescriptor.size()) { // 2D Uniform
+        } else if (paramset.has_key(FluxSliceDescriptor_key)) {
+          std::string FluxSliceDescriptor =
+              paramset.get<std::string>(FluxSliceDescriptor_key);
           std::vector<std::pair<double, double>> XRanges =
               BuildRangesList(FluxSliceDescriptor);
 
@@ -794,25 +896,42 @@ void DirectVariations::Configure(fhicl::ParameterSet const &ps) {
   std::vector<double> pred_twk;
 
   std::string InputFile_template =
-      paramset.get<std::string>("Varied.InputFile");
+      paramset.get<std::string>("Varied.InputFile", "");
   std::string VariedHistName_template =
-      paramset.get<std::string>("Varied.InputHistName");
-
-  InputFile_template = str_replace(InputFile_template, "%N", Name);
-  VariedHistName_template = str_replace(VariedHistName_template, "%N", Name);
+      paramset.get<std::string>("Varied.InputHistName", "");
 
   for (std::string const &pred_config : Configurations) {
 
-    std::string FluxSliceDescriptor = paramset.get<std::string>(
-        std::string("FluxSlicesDescriptor_") + pred_config, "");
+    std::string FluxSliceDescriptor_key = pred_config + "_FluxSlicesDescriptor";
 
     bool IsJagged = paramset.get<bool>(pred_config + "_IsJagged", false);
+    size_t OneOABin = paramset.get<size_t>(pred_config + "_OffAxisBin",
+                                           std::numeric_limits<size_t>::max());
 
-    std::string InputFile_tw_c =
-        str_replace(InputFile_template, "%C", pred_config);
+    std::string InputFile_tw_c = paramset.get<std::string>(
+        "Varied." + pred_config + "_InputFile", InputFile_template);
+    std::string VariedHistName_tw_c = paramset.get<std::string>(
+        "Varied." + pred_config + "_InputHistName", VariedHistName_template);
 
-    std::string VariedHistName_tw_c =
-        str_replace(VariedHistName_template, "%C", pred_config);
+    InputFile_tw_c = str_replace(InputFile_tw_c, "%C", pred_config);
+    VariedHistName_tw_c = str_replace(VariedHistName_tw_c, "%C", pred_config);
+
+    InputFile_tw_c = str_replace(InputFile_tw_c, "%N", Name);
+    VariedHistName_tw_c = str_replace(VariedHistName_tw_c, "%N", Name);
+
+    if (!InputFile_tw_c.size()) {
+      std::cout << "[ERROR]: Expected to be able to read either "
+                   "Varied.InputFile or Varied."
+                << pred_config << "_InputFile for tweak: " << Name << std::endl;
+      abort();
+    }
+    if (!VariedHistName_tw_c.size()) {
+      std::cout << "[ERROR]: Expected to be able to read either "
+                   "Varied.InputHistName or Varied."
+                << pred_config << "_InputHistName for tweak: " << Name
+                << std::endl;
+      abort();
+    }
 
     for (std::string const &species : Species) {
 
@@ -821,11 +940,17 @@ void DirectVariations::Configure(fhicl::ParameterSet const &ps) {
           str_replace(VariedHistName_tw_c, "%S", species);
 
       if (IsJagged) {
-        size_t OneOABin = paramset.get<size_t>(
-            pred_config + "_OffAxisBin", std::numeric_limits<size_t>::max());
         std::unique_ptr<TH2JaggedD> flux2D =
             GetHistogram_uptr<TH2JaggedD>(InputFile, VariedHistName);
-        if (OneOABin != std::numeric_limits<size_t>::max()) {
+        if (paramset.has_key(FluxSliceDescriptor_key)) {
+          auto bin_range =
+              paramset.get<std::array<int, 2>>(FluxSliceDescriptor_key);
+          flux2D = std::unique_ptr<TH2JaggedD>(flux2D->UniformRange(
+              "range", bin_range[0], bin_range[1],
+              paramset.get<bool>(pred_config + "_FluxSlicesMerge", false)));
+          Mergestdvector(pred_twk, Getstdvector(flux2D.get()));
+
+        } else if (OneOABin != std::numeric_limits<size_t>::max()) {
           std::unique_ptr<TH1> var_hist(
               flux2D->ProjectionX((Name + "_var").c_str(), OneOABin, OneOABin));
           Mergestdvector(pred_twk, Getstdvector(var_hist.get()));
@@ -833,7 +958,9 @@ void DirectVariations::Configure(fhicl::ParameterSet const &ps) {
           Mergestdvector(pred_twk, Getstdvector(flux2D.get()));
         }
 
-      } else if (FluxSliceDescriptor.size()) {
+      } else if (paramset.has_key(FluxSliceDescriptor_key)) {
+        std::string FluxSliceDescriptor =
+            paramset.get<std::string>(FluxSliceDescriptor_key);
         std::vector<std::pair<double, double>> XRanges =
             BuildRangesList(FluxSliceDescriptor);
 
