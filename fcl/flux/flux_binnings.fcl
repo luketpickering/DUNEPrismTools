@@ -283,6 +283,7 @@ energy_binning_defs: {
 
 off_axis_defs: {
   half_meter: "-0.25_40.25:0.5"
+  fivecm: "-0.025_1.025:0.05"
   meter: "-0.5_40.5:1"
   mrads: "-0.5_57.5:1"
 }
@@ -305,6 +306,27 @@ non_jagged_binnings: {
       nuebar: {
         energy: @local::energy_binning_defs.fine_uniform_descript
         off_axis: @local::off_axis_defs.half_meter
+      }
+      type: position_m
+    }
+  }
+  fine_uniform_fivecm: {
+    nu: {
+      numu: {
+        energy: @local::energy_binning_defs.fine_uniform_descript
+        off_axis: @local::off_axis_defs.fivecm
+      }
+      numubar: {
+        energy: @local::energy_binning_defs.fine_uniform_descript
+        off_axis: @local::off_axis_defs.fivecm
+      }
+      nue: {
+        energy: @local::energy_binning_defs.fine_uniform_descript
+        off_axis: @local::off_axis_defs.fivecm
+      }
+      nuebar: {
+        energy: @local::energy_binning_defs.fine_uniform_descript
+        off_axis: @local::off_axis_defs.fivecm
       }
       type: position_m
     }
