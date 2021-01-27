@@ -237,7 +237,7 @@ struct Config {
     bool use_reciprocal_energy;
     bool ignore_prediction_integral;
     std::string write_nu_ray_tree_to;
-    bool applytiltweighting;
+    bool apply_tilt_weighting;
 
     std::string output_filename;
   };
@@ -820,7 +820,7 @@ void AllInOneGo(DK2NuReader &dk2nuRdr, double TotalPOT) {
       double w = std::get<2>(nuStats) * wF;
 
       //weight for angle of window crossing
-      if (config.apply_tilt_weighting) {
+      if (config.output.apply_tilt_weighting) {
         w *= cos(std::get<1>(nuStats));
       }
 
